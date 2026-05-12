@@ -1,8 +1,10 @@
-// shared.js – user-aware data management, GitHub-stored accounts, blocked users,
-//            email notifications (EmailJS), auto-logout, image protection, PDF generation
+// shared.js – user-aware data management, GitHub‑stored accounts,
+//            blocked users, email notifications (EmailJS),
+//            auto‑logout, image protection, PDF generation,
+//            public admin profile for visitors
 
 /* ======================================================================
-   DEFAULT DATA (shown to public visitors only)
+   DEFAULT DATA (fallback if admin profile cannot be fetched)
    ====================================================================== */
 const defaultProjects = {
   batch: {
@@ -109,7 +111,7 @@ window.SessionManager = (() => {
    ACCOUNT MANAGEMENT (GitHub‑based, email confirmations)
    ====================================================================== */
 window.AccountManager = {
-  // Email helper – loads EmailJS once and sends
+  // EmailJS loader
   async _ensureEmailJS() {
     if (typeof emailjs === 'undefined') {
       await new Promise((resolve, reject) => {
@@ -123,7 +125,7 @@ window.AccountManager = {
     }
   },
 
-  // Sends an email using the given template ID and parameters
+  // Send an email with given template ID and parameters
   async _sendEmail(templateID, params) {
     await this._ensureEmailJS();
     return emailjs.send(window.APP_CONFIG.emailjs.serviceID, templateID, params);
@@ -152,7 +154,7 @@ window.AccountManager = {
       await this._sendEmail(cfg.userTemplateID, {
         to_email: userEmail,
         subject: 'Welcome to DeltaV Portfolio',
-        message: `Your account (${userEmail}) has been successfully created. You can now log in and start managing your projects.`
+        message: `Your account (${userEmail}) has been successfully created. You can now log in and start managing your projects and certificates.`
       });
     } catch (e) {
       console.warn('User confirmation email failed:', e);
@@ -178,7 +180,6 @@ window.AccountManager = {
     const encUser = encodeURIComponent(username);
     const path = `${dataPath}/users/${encUser}/account.json`;
 
-    // Ensure not already exists
     const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, pat).catch(() => null);
     if (existing) throw new Error('An account with this email already exists on GitHub.');
 
@@ -227,7 +228,7 @@ window.AccountManager = {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const path = `${dataPath}/blocked_users.json`;
 
-    // Always fetch latest SHA
+    // Always fetch the latest SHA before updating
     let sha = null;
     const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, adminToken).catch(() => null);
     if (existing) sha = existing.sha;
@@ -292,12 +293,13 @@ window.AccountManager = {
 };
 
 /* ======================================================================
-   PORTFOLIO DATA (auto‑logout on block)
+   PORTFOLIO DATA (public admin profile, auto‑logout on block)
    ====================================================================== */
 window.portfolioData = (() => {
   const PROJECTS_KEY = 'deltaVProjects';
   const CERTS_KEY = 'deltaVCertificates';
 
+  // Helper: check if current user is blocked, if so log out
   async function verifyNotBlocked() {
     const user = SessionManager.getCurrentUser();
     if (!user) return;
@@ -329,10 +331,27 @@ window.portfolioData = (() => {
       } catch (e) {
         if (e.message === 'Blocked') throw e;
       }
+    } else {
+      // No login: show public admin profile (set in config)
+      const publicEmail = window.APP_CONFIG.publicProfileEmail;
+      if (publicEmail) {
+        try {
+          const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+          const encUser = encodeURIComponent(publicEmail);
+          const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${dataPath}/users/${encUser}/projects.json`;
+          const resp = await fetch(rawUrl);
+          if (resp.ok) {
+            const data = await resp.json();
+            localStorage.setItem(PROJECTS_KEY, JSON.stringify(data));
+            return data;
+          }
+        } catch (e) { console.warn('Could not fetch public projects, using defaults'); }
+      }
     }
+    // Fallback
     const stored = localStorage.getItem(PROJECTS_KEY);
     if (stored) return JSON.parse(stored);
-    return SessionManager.getCurrentUser() ? {} : defaultProjects;
+    return defaultProjects;
   }
 
   async function loadCertificates() {
@@ -355,10 +374,25 @@ window.portfolioData = (() => {
       } catch (e) {
         if (e.message === 'Blocked') throw e;
       }
+    } else {
+      const publicEmail = window.APP_CONFIG.publicProfileEmail;
+      if (publicEmail) {
+        try {
+          const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+          const encUser = encodeURIComponent(publicEmail);
+          const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${dataPath}/users/${encUser}/certificates.json`;
+          const resp = await fetch(rawUrl);
+          if (resp.ok) {
+            const data = await resp.json();
+            localStorage.setItem(CERTS_KEY, JSON.stringify(data));
+            return data;
+          }
+        } catch (e) { console.warn('Could not fetch public certificates, using defaults'); }
+      }
     }
     const stored = localStorage.getItem(CERTS_KEY);
     if (stored) return JSON.parse(stored);
-    return SessionManager.getCurrentUser() ? [] : defaultCertificates;
+    return defaultCertificates;
   }
 
   async function saveProjects(data) {
@@ -374,9 +408,9 @@ window.portfolioData = (() => {
         const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat).catch(() => null);
         if (existing) sha = existing.sha;
         await GitHubAPI.updateFile(owner, repo, path, data, 'Update projects', branch, user.pat, sha);
-      } catch (e) {
-        console.error('GitHub sync failed:', e);
-        throw e;
+      } catch (err) {
+        console.error('GitHub sync failed:', err);
+        throw err;
       }
     }
   }
@@ -394,9 +428,9 @@ window.portfolioData = (() => {
         const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat).catch(() => null);
         if (existing) sha = existing.sha;
         await GitHubAPI.updateFile(owner, repo, path, data, 'Update certificates', branch, user.pat, sha);
-      } catch (e) {
-        console.error('GitHub sync failed:', e);
-        throw e;
+      } catch (err) {
+        console.error('GitHub sync failed:', err);
+        throw err;
       }
     }
   }
@@ -430,7 +464,7 @@ window.protectImages = function () {
 };
 
 /* ======================================================================
-   PDF GENERATION (themed, full) – same as before, included for completeness
+   PDF GENERATION (themed, includes SIS & DCS light green)
    ====================================================================== */
 window.generateProjectReport = async function(projectId) {
   const data = await window.portfolioData.loadProjects();
@@ -441,6 +475,7 @@ window.generateProjectReport = async function(projectId) {
   let primaryColor, bgColor;
   if (projectType === 'DCS') { primaryColor = '#2fc7ff'; bgColor = '#f9fbfd'; }
   else if (projectType === 'SIS') { primaryColor = '#ffc107'; bgColor = '#fffdf0'; }
+  else if (projectType === 'SIS & DCS') { primaryColor = '#8bc34a'; bgColor = '#f1f8e9'; }
   else { primaryColor = '#6c757d'; bgColor = '#f8f9fa'; }
 
   const chartCanvas = document.createElement('canvas');
@@ -449,6 +484,7 @@ window.generateProjectReport = async function(projectId) {
   let chart;
   const chartColors = (projectType === 'DCS') ? ['#2fc7ff','#1d9fcf','#0f5c6b','#0a4b59'] :
                       (projectType === 'SIS') ? ['#ffc107','#ffb300','#ff8f00','#ff6f00'] :
+                      (projectType === 'SIS & DCS') ? ['#8bc34a','#689f38','#558b2f','#33691e'] :
                       ['#adb5bd','#6c757d','#495057','#212529'];
   if (proj.graphType === 'pie') {
     chart = new Chart(ctx, {
