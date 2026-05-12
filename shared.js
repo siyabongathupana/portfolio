@@ -1,6 +1,9 @@
-// shared.js – user-aware data management, GitHub-stored accounts, loading helpers
+// shared.js – user-aware data management, GitHub-stored accounts, loading helpers,
+//            admin user management, blocked users, image protection, PDF generation
 
-/* ---------- Default data (only for non-logged-in public visitors) ---------- */
+/* ======================================================================
+   DEFAULT DATA – shown to public visitors only (not logged in)
+   ====================================================================== */
 const defaultProjects = {
   batch: {
     id: "batch", title: "Batch Automation Upgrade", controllerType: "MD", cabinetCount: 3,
@@ -22,7 +25,7 @@ const defaultProjects = {
     io: { AI:32, AO:16, DI:64, DO:32 },
     dates: { start:"2024-02-01", finish:"2024-07-15", ifat:"2024-06-01", cfat:"2024-07-05" },
     siteLocation: "Baton Rouge, LA",
-    team: { lead: "Sarah Lee", engineer: "Lucas Chen", technician: "James Carter" },
+    team: { lead: "Sarah Lee",工程师: "Lucas Chen", technician: "James Carter" },
     description: "Migrated legacy emergency shutdown system to DeltaV SIS, achieving 99.9% availability and reduced spurious trips by 34%.",
     graphType: "pie",
     selectedImages: [
@@ -52,7 +55,9 @@ const defaultCertificates = [
   { id: "cert3", title: "IEC 61511 Functional Safety", issuer: "TÜV Rheinland", date: "2024-01", link: "https://drive.google.com/file/d/example3/preview", thumbnail: "https://picsum.photos/id/29/300/200" }
 ];
 
-/* ---------- Global loading overlay ---------- */
+/* ======================================================================
+   GLOBAL LOADING OVERLAY
+   ====================================================================== */
 window.showLoading = function (msg = 'Processing...') {
   let loader = document.getElementById('globalLoader');
   if (!loader) {
@@ -75,7 +80,9 @@ window.hideLoading = function () {
   if (loader) loader.style.display = 'none';
 };
 
-/* ---------- Session Manager ---------- */
+/* ======================================================================
+   SESSION MANAGER
+   ====================================================================== */
 window.SessionManager = (() => {
   let current = null;
   return {
@@ -98,8 +105,11 @@ window.SessionManager = (() => {
   };
 })();
 
-/* ---------- Account management (GitHub‑based) ---------- */
+/* ======================================================================
+   ACCOUNT MANAGEMENT (GitHub‑based)
+   ====================================================================== */
 window.AccountManager = {
+  // Fetch encrypted account blob from GitHub (public raw URL)
   async fetchAccount(username) {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const url = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${dataPath}/users/${username}/account.json`;
@@ -109,27 +119,95 @@ window.AccountManager = {
       return await resp.json();
     } catch { return null; }
   },
+
+  // Register: encrypt PAT with passphrase, push account blob to GitHub using the PAT itself
   async register(username, passphrase, pat) {
     const payload = JSON.stringify({ test: 'VALID', token: pat });
     const encrypted = await window.CryptoUtil.encrypt(payload, passphrase);
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const path = `${dataPath}/users/${username}/account.json`;
+
     const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, pat).catch(() => null);
     if (existing) throw new Error('Username already exists on GitHub.');
+
     await GitHubAPI.updateFile(owner, repo, path, encrypted, `Register user ${username}`, branch, pat);
     return true;
   },
+
+  // Login: fetch encrypted blob, check blocked, decrypt, return PAT
   async login(username, passphrase) {
+    // Check if user is blocked
+    const blocked = await this.getBlockedUsers();
+    if (blocked.includes(username)) throw new Error('Account blocked. Contact administrator.');
+
     const blob = await this.fetchAccount(username);
     if (!blob) throw new Error('User not found');
     const decrypted = await window.CryptoUtil.decrypt(blob, passphrase);
     const data = JSON.parse(decrypted);
     if (data.test !== 'VALID') throw new Error('Corrupted account');
     return data.token;
+  },
+
+  // Blocked users management (public read, admin write)
+  async getBlockedUsers() {
+    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+    const url = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${dataPath}/blocked_users.json`;
+    try {
+      const resp = await fetch(url);
+      if (!resp.ok) return [];
+      return await resp.json();
+    } catch { return []; }
+  },
+
+  async toggleBlock(username, block, adminToken) {
+    const blocked = await this.getBlockedUsers();
+    if (block) {
+      if (!blocked.includes(username)) blocked.push(username);
+    } else {
+      const idx = blocked.indexOf(username);
+      if (idx !== -1) blocked.splice(idx, 1);
+    }
+    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+    const path = `${dataPath}/blocked_users.json`;
+    let sha = null;
+    const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, adminToken).catch(() => null);
+    if (existing) sha = existing.sha;
+    await GitHubAPI.updateFile(owner, repo, path, blocked, `Update blocked users`, branch, adminToken, sha);
+    return true;
+  },
+
+  // List all users (admin only) – returns array of usernames
+  async listUsers(adminToken) {
+    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+    const url = `https://api.github.com/repos/${owner}/${repo}/contents/${dataPath}/users?ref=${branch}`;
+    const resp = await fetch(url, {
+      headers: { 'Authorization': `token ${adminToken}`, 'Accept': 'application/vnd.github.v3+json' }
+    });
+    if (!resp.ok) throw new Error('Cannot list users');
+    const items = await resp.json();
+    return items.filter(i => i.type === 'dir').map(i => i.name);
+  },
+
+  // Delete user account (admin can remove the folder)
+  async deleteUser(username, adminToken) {
+    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+    const dirPath = `${dataPath}/users/${username}`;
+    const url = `https://api.github.com/repos/${owner}/${repo}/contents/${dirPath}?ref=${branch}`;
+    const resp = await fetch(url, {
+      headers: { 'Authorization': `token ${adminToken}`, 'Accept': 'application/vnd.github.v3+json' }
+    });
+    if (!resp.ok) throw new Error('User folder not found');
+    const items = await resp.json();
+    for (const item of items) {
+      await GitHubAPI.deleteFile(owner, repo, item.path, branch, adminToken, item.sha);
+    }
+    return true;
   }
 };
 
-/* ---------- Portfolio data (projects/certificates) ---------- */
+/* ======================================================================
+   PORTFOLIO DATA (projects/certificates)
+   ====================================================================== */
 window.portfolioData = (() => {
   const PROJECTS_KEY = 'deltaVProjects';
   const CERTS_KEY = 'deltaVCertificates';
@@ -146,17 +224,15 @@ window.portfolioData = (() => {
           localStorage.setItem(PROJECTS_KEY, JSON.stringify(data));
           return data;
         } else {
-          // No file found on GitHub => user is new => return empty projects
+          // No file on GitHub yet -> new user -> empty projects
           localStorage.removeItem(PROJECTS_KEY);
           return {};
         }
-      } catch {
-        // Fallback to localStorage, but if not logged in, we return empty
-      }
+      } catch {}
     }
+    // Fallback to localStorage or defaults (if not logged in, show demo)
     const stored = localStorage.getItem(PROJECTS_KEY);
     if (stored) return JSON.parse(stored);
-    // If not logged in, show defaults (public demo)
     return SessionManager.getCurrentUser() ? {} : defaultProjects;
   }
 
@@ -185,7 +261,7 @@ window.portfolioData = (() => {
   async function saveProjects(data) {
     // Update local immediately for speed
     localStorage.setItem(PROJECTS_KEY, JSON.stringify(data));
-    // Then push to GitHub in the background
+    // Then push to GitHub in background
     const user = SessionManager.getCurrentUser();
     if (user && user.pat) {
       const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
@@ -197,7 +273,6 @@ window.portfolioData = (() => {
         await GitHubAPI.updateFile(owner, repo, path, data, 'Update projects', branch, user.pat, sha);
       } catch (err) {
         console.error('GitHub sync failed:', err);
-        // Keep local saved, user will be notified
         throw err;
       }
     }
@@ -221,10 +296,6 @@ window.portfolioData = (() => {
     }
   }
 
-  async function resetProjectsToDefault() {
-    await saveProjects(defaultProjects);
-  }
-
   function exportData() {
     Promise.all([loadProjects(), loadCertificates()]).then(([projects, certs]) => {
       const zip = new JSZip();
@@ -239,10 +310,12 @@ window.portfolioData = (() => {
     });
   }
 
-  return { loadProjects, saveProjects, loadCertificates, saveCertificates, resetProjectsToDefault, exportData };
+  return { loadProjects, saveProjects, loadCertificates, saveCertificates, exportData };
 })();
 
-/* ---------- Image protection ---------- */
+/* ======================================================================
+   IMAGE PROTECTION
+   ====================================================================== */
 window.protectImages = function () {
   document.querySelectorAll('.project-img, .modal-carousel-img').forEach(img => {
     img.setAttribute('draggable', 'false');
@@ -251,7 +324,9 @@ window.protectImages = function () {
   });
 };
 
-/* ---------- PDF generation (kept intact, just copied here) ---------- */
+/* ======================================================================
+   PDF GENERATION (themed)
+   ====================================================================== */
 window.generateProjectReport = async function(projectId) {
   const data = await window.portfolioData.loadProjects();
   const proj = data[projectId];
