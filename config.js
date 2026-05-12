@@ -1,11 +1,9 @@
-// config.js - GitHub Configuration
-// Replace these with your actual repository details
-
+// config.js – GitHub configuration & app constants
 window.REPO_CONFIG = {
-  owner: "siyabongathupana",        // Your GitHub username
-  repo: "portfolio",                 // Repository name
-  branch: "main",                    // Default branch
-  dataPath: "data",                  // Base data folder in repo
+  owner: "siyabongathupana",
+  repo: "portfolio",
+  branch: "main",
+  dataPath: "data",
   remoteBase: "https://raw.githubusercontent.com/siyabongathupana/portfolio/main/data/"
 };
 
