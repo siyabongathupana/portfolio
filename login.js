@@ -1,7 +1,7 @@
 // login.js – Authentication with GitHub-stored accounts (email usernames)
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Show blocked message if redirected from auto-logout
+  // Show blocked message if redirected
   const params = new URLSearchParams(window.location.search);
   if (params.get('blocked') === '1') {
     showError('Your account has been blocked. Contact the administrator.');
