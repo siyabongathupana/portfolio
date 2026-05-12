@@ -1,8 +1,8 @@
-// shared.js – user-aware data management, GitHub-stored accounts, loading helpers,
-//            admin user management, blocked users, image protection, PDF generation
+// shared.js – user-aware data management, GitHub-stored accounts, blocked users,
+//            email notifications (EmailJS), auto-logout, image protection, PDF generation
 
 /* ======================================================================
-   DEFAULT DATA – shown to public visitors only (not logged in)
+   DEFAULT DATA (shown to public visitors only)
    ====================================================================== */
 const defaultProjects = {
   batch: {
@@ -25,7 +25,7 @@ const defaultProjects = {
     io: { AI:32, AO:16, DI:64, DO:32 },
     dates: { start:"2024-02-01", finish:"2024-07-15", ifat:"2024-06-01", cfat:"2024-07-05" },
     siteLocation: "Baton Rouge, LA",
-    team: { lead: "Sarah Lee",工程师: "Lucas Chen", technician: "James Carter" },
+    team: { lead: "Sarah Lee", engineer: "Lucas Chen", technician: "James Carter" },
     description: "Migrated legacy emergency shutdown system to DeltaV SIS, achieving 99.9% availability and reduced spurious trips by 34%.",
     graphType: "pie",
     selectedImages: [
@@ -106,13 +106,64 @@ window.SessionManager = (() => {
 })();
 
 /* ======================================================================
-   ACCOUNT MANAGEMENT (GitHub‑based)
+   ACCOUNT MANAGEMENT (GitHub‑based, email confirmations)
    ====================================================================== */
 window.AccountManager = {
-  // Fetch encrypted account blob from GitHub (public raw URL)
+  // Email helper – loads EmailJS once and sends
+  async _ensureEmailJS() {
+    if (typeof emailjs === 'undefined') {
+      await new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js';
+        script.onload = resolve;
+        script.onerror = reject;
+        document.head.appendChild(script);
+      });
+      emailjs.init(window.APP_CONFIG.emailjs.publicKey);
+    }
+  },
+
+  // Sends an email using the given template ID and parameters
+  async _sendEmail(templateID, params) {
+    await this._ensureEmailJS();
+    return emailjs.send(window.APP_CONFIG.emailjs.serviceID, templateID, params);
+  },
+
+  // Notify admin about a new user
+  async _notifyAdminNewUser(userEmail) {
+    const cfg = window.APP_CONFIG.emailjs;
+    if (!cfg || !cfg.publicKey || !cfg.adminTemplateID) return;
+    try {
+      await this._sendEmail(cfg.adminTemplateID, {
+        to_email: cfg.adminEmail,
+        subject: `New user registered: ${userEmail}`,
+        message: `A new user with email ${userEmail} has created an account on DeltaV Portfolio.`
+      });
+    } catch (e) {
+      console.warn('Admin notification email failed:', e);
+    }
+  },
+
+  // Send confirmation email to the user
+  async _notifyUserConfirmation(userEmail) {
+    const cfg = window.APP_CONFIG.emailjs;
+    if (!cfg || !cfg.publicKey || !cfg.userTemplateID) return;
+    try {
+      await this._sendEmail(cfg.userTemplateID, {
+        to_email: userEmail,
+        subject: 'Welcome to DeltaV Portfolio',
+        message: `Your account (${userEmail}) has been successfully created. You can now log in and start managing your projects.`
+      });
+    } catch (e) {
+      console.warn('User confirmation email failed:', e);
+    }
+  },
+
+  // ---------- Core account methods ----------
   async fetchAccount(username) {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const url = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${dataPath}/users/${username}/account.json`;
+    const encUser = encodeURIComponent(username);
+    const url = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${dataPath}/users/${encUser}/account.json`;
     try {
       const resp = await fetch(url);
       if (!resp.ok) return null;
@@ -120,25 +171,30 @@ window.AccountManager = {
     } catch { return null; }
   },
 
-  // Register: encrypt PAT with passphrase, push account blob to GitHub using the PAT itself
   async register(username, passphrase, pat) {
     const payload = JSON.stringify({ test: 'VALID', token: pat });
     const encrypted = await window.CryptoUtil.encrypt(payload, passphrase);
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const path = `${dataPath}/users/${username}/account.json`;
+    const encUser = encodeURIComponent(username);
+    const path = `${dataPath}/users/${encUser}/account.json`;
 
+    // Ensure not already exists
     const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, pat).catch(() => null);
-    if (existing) throw new Error('Username already exists on GitHub.');
+    if (existing) throw new Error('An account with this email already exists on GitHub.');
 
     await GitHubAPI.updateFile(owner, repo, path, encrypted, `Register user ${username}`, branch, pat);
+
+    // Send emails (non‑blocking)
+    this._notifyAdminNewUser(username);
+    this._notifyUserConfirmation(username);
+
     return true;
   },
 
-  // Login: fetch encrypted blob, check blocked, decrypt, return PAT
   async login(username, passphrase) {
     // Check if user is blocked
     const blocked = await this.getBlockedUsers();
-    if (blocked.includes(username)) throw new Error('Account blocked. Contact administrator.');
+    if (blocked.includes(username)) throw new Error('Your account has been blocked. Contact the administrator.');
 
     const blob = await this.fetchAccount(username);
     if (!blob) throw new Error('User not found');
@@ -148,7 +204,7 @@ window.AccountManager = {
     return data.token;
   },
 
-  // Blocked users management (public read, admin write)
+  // ---------- Blocking ----------
   async getBlockedUsers() {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const url = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${dataPath}/blocked_users.json`;
@@ -167,16 +223,20 @@ window.AccountManager = {
       const idx = blocked.indexOf(username);
       if (idx !== -1) blocked.splice(idx, 1);
     }
+
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const path = `${dataPath}/blocked_users.json`;
+
+    // Always fetch latest SHA
     let sha = null;
     const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, adminToken).catch(() => null);
     if (existing) sha = existing.sha;
+
     await GitHubAPI.updateFile(owner, repo, path, blocked, `Update blocked users`, branch, adminToken, sha);
     return true;
   },
 
-  // List all users (admin only) – returns array of usernames
+  // ---------- Admin user list ----------
   async listUsers(adminToken) {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const url = `https://api.github.com/repos/${owner}/${repo}/contents/${dataPath}/users?ref=${branch}`;
@@ -188,10 +248,10 @@ window.AccountManager = {
     return items.filter(i => i.type === 'dir').map(i => i.name);
   },
 
-  // Delete user account (admin can remove the folder)
   async deleteUser(username, adminToken) {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const dirPath = `${dataPath}/users/${username}`;
+    const encUser = encodeURIComponent(username);
+    const dirPath = `${dataPath}/users/${encUser}`;
     const url = `https://api.github.com/repos/${owner}/${repo}/contents/${dirPath}?ref=${branch}`;
     const resp = await fetch(url, {
       headers: { 'Authorization': `token ${adminToken}`, 'Accept': 'application/vnd.github.v3+json' }
@@ -202,35 +262,74 @@ window.AccountManager = {
       await GitHubAPI.deleteFile(owner, repo, item.path, branch, adminToken, item.sha);
     }
     return true;
+  },
+
+  // ---------- Stats for admin ----------
+  async getUserStats(username, adminToken) {
+    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+    const encUser = encodeURIComponent(username);
+    const base = `${dataPath}/users/${encUser}`;
+    let projectCount = 0, certCount = 0;
+
+    try {
+      const projFile = await GitHubAPI.getFileContent(owner, repo, `${base}/projects.json`, branch, adminToken);
+      if (projFile && projFile.content) {
+        const data = JSON.parse(projFile.content);
+        projectCount = Object.keys(data).length;
+      }
+    } catch (e) {}
+
+    try {
+      const certFile = await GitHubAPI.getFileContent(owner, repo, `${base}/certificates.json`, branch, adminToken);
+      if (certFile && certFile.content) {
+        const data = JSON.parse(certFile.content);
+        certCount = data.length;
+      }
+    } catch (e) {}
+
+    return { projects: projectCount, certificates: certCount };
   }
 };
 
 /* ======================================================================
-   PORTFOLIO DATA (projects/certificates)
+   PORTFOLIO DATA (auto‑logout on block)
    ====================================================================== */
 window.portfolioData = (() => {
   const PROJECTS_KEY = 'deltaVProjects';
   const CERTS_KEY = 'deltaVCertificates';
 
+  async function verifyNotBlocked() {
+    const user = SessionManager.getCurrentUser();
+    if (!user) return;
+    const blocked = await AccountManager.getBlockedUsers();
+    if (blocked.includes(user.username)) {
+      SessionManager.logout();
+      window.location.href = 'login.html?blocked=1';
+      throw new Error('Blocked');
+    }
+  }
+
   async function loadProjects() {
     const user = SessionManager.getCurrentUser();
     if (user && user.pat) {
+      await verifyNotBlocked();
       try {
         const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-        const path = `${dataPath}/users/${user.username}/projects.json`;
+        const encUser = encodeURIComponent(user.username);
+        const path = `${dataPath}/users/${encUser}/projects.json`;
         const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
         if (file && file.content) {
           const data = JSON.parse(file.content);
           localStorage.setItem(PROJECTS_KEY, JSON.stringify(data));
           return data;
         } else {
-          // No file on GitHub yet -> new user -> empty projects
           localStorage.removeItem(PROJECTS_KEY);
           return {};
         }
-      } catch {}
+      } catch (e) {
+        if (e.message === 'Blocked') throw e;
+      }
     }
-    // Fallback to localStorage or defaults (if not logged in, show demo)
     const stored = localStorage.getItem(PROJECTS_KEY);
     if (stored) return JSON.parse(stored);
     return SessionManager.getCurrentUser() ? {} : defaultProjects;
@@ -239,9 +338,11 @@ window.portfolioData = (() => {
   async function loadCertificates() {
     const user = SessionManager.getCurrentUser();
     if (user && user.pat) {
+      await verifyNotBlocked();
       try {
         const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-        const path = `${dataPath}/users/${user.username}/certificates.json`;
+        const encUser = encodeURIComponent(user.username);
+        const path = `${dataPath}/users/${encUser}/certificates.json`;
         const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
         if (file && file.content) {
           const data = JSON.parse(file.content);
@@ -251,7 +352,9 @@ window.portfolioData = (() => {
           localStorage.removeItem(CERTS_KEY);
           return [];
         }
-      } catch {}
+      } catch (e) {
+        if (e.message === 'Blocked') throw e;
+      }
     }
     const stored = localStorage.getItem(CERTS_KEY);
     if (stored) return JSON.parse(stored);
@@ -259,21 +362,21 @@ window.portfolioData = (() => {
   }
 
   async function saveProjects(data) {
-    // Update local immediately for speed
     localStorage.setItem(PROJECTS_KEY, JSON.stringify(data));
-    // Then push to GitHub in background
     const user = SessionManager.getCurrentUser();
     if (user && user.pat) {
+      await verifyNotBlocked();
       const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-      const path = `${dataPath}/users/${user.username}/projects.json`;
+      const encUser = encodeURIComponent(user.username);
+      const path = `${dataPath}/users/${encUser}/projects.json`;
       let sha = null;
       try {
         const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat).catch(() => null);
         if (existing) sha = existing.sha;
         await GitHubAPI.updateFile(owner, repo, path, data, 'Update projects', branch, user.pat, sha);
-      } catch (err) {
-        console.error('GitHub sync failed:', err);
-        throw err;
+      } catch (e) {
+        console.error('GitHub sync failed:', e);
+        throw e;
       }
     }
   }
@@ -282,16 +385,18 @@ window.portfolioData = (() => {
     localStorage.setItem(CERTS_KEY, JSON.stringify(data));
     const user = SessionManager.getCurrentUser();
     if (user && user.pat) {
+      await verifyNotBlocked();
       const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-      const path = `${dataPath}/users/${user.username}/certificates.json`;
+      const encUser = encodeURIComponent(user.username);
+      const path = `${dataPath}/users/${encUser}/certificates.json`;
       let sha = null;
       try {
         const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat).catch(() => null);
         if (existing) sha = existing.sha;
         await GitHubAPI.updateFile(owner, repo, path, data, 'Update certificates', branch, user.pat, sha);
-      } catch (err) {
-        console.error('GitHub sync failed:', err);
-        throw err;
+      } catch (e) {
+        console.error('GitHub sync failed:', e);
+        throw e;
       }
     }
   }
@@ -325,7 +430,7 @@ window.protectImages = function () {
 };
 
 /* ======================================================================
-   PDF GENERATION (themed)
+   PDF GENERATION (themed, full) – same as before, included for completeness
    ====================================================================== */
 window.generateProjectReport = async function(projectId) {
   const data = await window.portfolioData.loadProjects();
