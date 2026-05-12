@@ -1,40 +1,4 @@
 {
-  "sis": {
-    "id": "sis",
-    "title": "SIS Logic Migration",
-    "controllerType": "S-series",
-    "cabinetCount": 2,
-    "io": {
-      "AI": 32,
-      "AO": 16,
-      "DI": 64,
-      "DO": 32
-    },
-    "dates": {
-      "start": "2024-02-01",
-      "finish": "2024-07-15",
-      "ifat": "2024-06-01",
-      "cfat": "2024-07-05"
-    },
-    "siteLocation": "Baton Rouge, LA",
-    "team": {
-      "lead": "Sarah Lee",
-      "engineer": "Lucas Chen",
-      "technician": "James Carter"
-    },
-    "description": "Migrated legacy emergency shutdown system to DeltaV SIS, achieving 99.9% availability and reduced spurious trips by 34%.",
-    "graphType": "pie",
-    "selectedImages": [
-      {
-        "url": "https://picsum.photos/id/19/400/300",
-        "caption": "SIS logic solver"
-      },
-      {
-        "url": "https://picsum.photos/id/39/400/300",
-        "caption": "Safety matrix"
-      }
-    ]
-  },
   "pharma": {
     "id": "pharma",
     "title": "Pharma Cleanroom Automation",
