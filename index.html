@@ -12,7 +12,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="config.js"></script>
-  <script src="api.js"></script>
   <script src="shared.js"></script>
 </head>
 <body>
@@ -84,7 +83,7 @@
         <p>I'm available for consulting, system integration & DeltaV optimization projects.</p>
         <ul class="list-unstyled">
           <li><i class="fa fa-phone"></i> +1 (555) 781-2345</li>
-          <li><i class="fa fa-envelope"></i> engineer@deltav-portfolio.com</li>
+          <li><i class="fa fa-envelope"></i> siyabongatshem@gmail.com</li>
           <li><i class="fa fa-map-marker"></i> Houston, TX / remote</li>
         </ul>
         <div class="mt-3">
@@ -93,12 +92,14 @@
         </div>
       </div>
       <div class="col-md-7">
-        <form>
-          <div class="form-group"><input type="text" class="form-control" placeholder="Name"></div>
-          <div class="form-group"><input type="email" class="form-control" placeholder="Email"></div>
-          <div class="form-group"><textarea rows="3" class="form-control" placeholder="Project inquiry"></textarea></div>
-          <button class="btn btn-delta">Send Message <i class="fa fa-paper-plane"></i></button>
+        <form id="contactForm">
+          <div class="form-group"><input type="text" id="contactName" class="form-control" placeholder="Name" required></div>
+          <div class="form-group"><input type="email" id="contactEmail" class="form-control" placeholder="Email" required></div>
+          <div class="form-group"><textarea id="contactMsg" rows="3" class="form-control" placeholder="Project inquiry" required></textarea></div>
+          <button type="submit" class="btn btn-delta">Send Message <i class="fa fa-paper-plane"></i></button>
         </form>
+        <div id="contactSuccess" class="alert alert-success mt-3" style="display:none;">Message sent successfully!</div>
+        <div id="contactError" class="alert alert-danger mt-3" style="display:none;"></div>
       </div>
     </div>
   </div>
@@ -170,10 +171,51 @@
       `;
       grid.innerHTML += card;
     });
-
     window.protectImages();
     hideLoading();
   }
+
+  // Contact form submission via EmailJS
+  (async function() {
+    const cfg = window.APP_CONFIG.emailjs;
+    if (cfg && cfg.publicKey) {
+      if (typeof emailjs === 'undefined') {
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js';
+        document.head.appendChild(script);
+        await new Promise(r => script.onload = r);
+        emailjs.init(cfg.publicKey);
+      }
+    }
+    document.getElementById('contactForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('contactName').value.trim();
+      const email = document.getElementById('contactEmail').value.trim();
+      const msg = document.getElementById('contactMsg').value.trim();
+      if (!name || !email || !msg) return;
+
+      if (typeof emailjs === 'undefined') {
+        document.getElementById('contactError').textContent = 'Email service not configured.';
+        document.getElementById('contactError').style.display = 'block';
+        return;
+      }
+
+      try {
+        await emailjs.send(cfg.serviceID, cfg.adminTemplateID, {
+          to_email: cfg.adminEmail,
+          from_name: name,
+          from_email: email,
+          message: msg,
+          subject: 'Portfolio contact from ' + name
+        });
+        document.getElementById('contactSuccess').style.display = 'block';
+        document.getElementById('contactForm').reset();
+      } catch (err) {
+        document.getElementById('contactError').textContent = 'Failed to send message. Please try again.';
+        document.getElementById('contactError').style.display = 'block';
+      }
+    });
+  })();
 
   window.onload = renderFeatured;
 </script>
