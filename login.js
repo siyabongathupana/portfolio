@@ -1,4 +1,14 @@
+
 // login.js – Authentication with GitHub-stored accounts
+document.getElementById('forgotPassphrase').addEventListener('click', (e) => {
+  e.preventDefault();
+  const email = document.getElementById('loginUsername').value.trim();
+  if (!email.includes('@')) {
+    showError('Enter your email (username) first.');
+    return;
+  }
+  showError('If you forget your passphrase, contact the admin (siyabongatshem@gmail.com) to reset your account. After reset, you can re-register with the same email.');
+});
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('showRegister').addEventListener('click', (e) => {
     e.preventDefault();
