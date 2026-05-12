@@ -1,4 +1,3 @@
-// api.js – GitHub API operations
 const GitHubAPI = (() => {
   function getAuthHeaders(token) {
     return {
@@ -32,9 +31,7 @@ const GitHubAPI = (() => {
     };
     if (sha) body.sha = sha;
     const resp = await fetch(url, {
-      method: 'PUT',
-      headers: getAuthHeaders(token),
-      body: JSON.stringify(body)
+      method: 'PUT', headers: getAuthHeaders(token), body: JSON.stringify(body)
     });
     if (!resp.ok) {
       const err = await resp.json();
@@ -48,11 +45,7 @@ const GitHubAPI = (() => {
     const resp = await fetch(url, {
       method: 'DELETE',
       headers: getAuthHeaders(token),
-      body: JSON.stringify({
-        message: 'Delete file',
-        branch: branch,
-        sha: sha
-      })
+      body: JSON.stringify({ message: 'Delete', branch, sha })
     });
     if (!resp.ok) {
       const err = await resp.json();
