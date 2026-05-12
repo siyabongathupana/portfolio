@@ -105,12 +105,10 @@
 <footer><p>© 2025 DeltaV Engineering Portfolio — <a href="admin.html" class="text-white">Manage projects & data</a></p></footer>
 
 <script>
-  function escapeHtml(str) {
-    if (!str) return '';
-    return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m] || m);
-  }
+  function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m] || m); }
 
   async function renderFeatured() {
+    window.showLoading('Loading portfolio...');
     const data = await window.portfolioData.loadProjects();
     const projectsArray = Object.values(data);
     const grid = document.getElementById('featuredGrid');
@@ -119,6 +117,7 @@
     if (projectsArray.length === 0) {
       grid.innerHTML = '';
       noMsg.style.display = 'block';
+      hideLoading();
       return;
     }
     noMsg.style.display = 'none';
@@ -170,6 +169,9 @@
       `;
       grid.innerHTML += card;
     });
+
+    window.protectImages();
+    hideLoading();
   }
 
   window.onload = renderFeatured;
