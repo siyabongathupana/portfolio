@@ -8,12 +8,15 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
+  <script src="config.js"></script>
+  <script src="shared.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="shared.js"></script>
+  <style>#userBanner { background:#e9f2fa; color:#0b2b3b; padding:6px 20px; font-size:0.9rem; text-align:center; }</style>
 </head>
 <body>
+<div id="userBanner"></div>
 <nav class="navbar navbar-expand-lg custom_nav-container pt-3" style="background:#0b2b3b; padding:15px 0;">
   <div class="container"><a class="navbar-brand" href="index.html"><span>ΔV</span> Engineering</a>
     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navAll"><span class="fa fa-bars text-white"></span></button>
@@ -22,7 +25,7 @@
         <li class="nav-item"><a class="nav-link" href="index.html">Home</a></li>
         <li class="nav-item active"><a class="nav-link" href="projects.html">All Projects</a></li>
         <li class="nav-item"><a class="nav-link" href="certificates.html">Certificates</a></li>
-        <li class="nav-item"><a class="nav-link" href="admin.html" target="_blank">Manage</a></li>
+        <li class="nav-item"><a class="nav-link" href="admin.html" target="_blank"><i class="fa fa-cog"></i> Manage</a></li>
       </ul>
     </div>
   </div>
@@ -39,74 +42,79 @@
 <footer><p>© 2025 DeltaV Engineering Portfolio</p></footer>
 
 <script>
-  function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m] || m); }
-
-  async function renderAllProjects() {
+  function renderAllProjects() {
     window.showLoading('Loading all projects...');
-    const data = await window.portfolioData.loadProjects();
-    const projects = Object.values(data);
-    const grid = document.getElementById('allProjectsGrid');
-    const noMsg = document.getElementById('noProjectsMsg');
+    window.portfolioData.loadProjects().then(data => {
+      const projects = Object.values(data);
+      const grid = document.getElementById('allProjectsGrid');
+      const noMsg = document.getElementById('noProjectsMsg');
 
-    if (projects.length === 0) {
+      if (projects.length === 0) {
+        grid.innerHTML = '';
+        noMsg.style.display = 'block';
+        window.hideLoading();
+        return;
+      }
+      noMsg.style.display = 'none';
       grid.innerHTML = '';
-      noMsg.style.display = 'block';
-      hideLoading();
-      return;
-    }
-    noMsg.style.display = 'none';
-    grid.innerHTML = '';
 
-    projects.forEach(proj => {
-      const modalId = `galleryModal-${proj.id}`;
-      if (!document.getElementById(modalId)) {
-        const carouselItems = proj.selectedImages.map((img, idx) => `
-          <div class="carousel-item ${idx === 0 ? 'active' : ''}">
-            <div class="carousel-caption-top">${escapeHtml(img.caption || '')}</div>
-            <img src="${img.url}" class="d-block w-100 modal-carousel-img" loading="lazy">
-          </div>`).join('');
-        const modalHtml = `
-          <div class="modal fade" id="${modalId}" tabindex="-1">
-            <div class="modal-dialog modal-lg">
-              <div class="modal-content">
-                <div class="modal-header"><h5>${escapeHtml(proj.title)} - Gallery</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div>
-                <div class="modal-body">
-                  <div id="carousel-${proj.id}" class="carousel slide" data-ride="carousel">
-                    <div class="carousel-inner">${carouselItems}</div>
-                    <a class="carousel-control-prev" href="#carousel-${proj.id}" data-slide="prev"><span class="carousel-control-prev-icon"></span></a>
-                    <a class="carousel-control-next" href="#carousel-${proj.id}" data-slide="next"><span class="carousel-control-next-icon"></span></a>
+      projects.forEach(proj => {
+        const modalId = `galleryModal-${proj.id}`;
+        if (!document.getElementById(modalId)) {
+          const carouselItems = proj.selectedImages.map((img, idx) => `
+            <div class="carousel-item ${idx === 0 ? 'active' : ''}">
+              <div class="carousel-caption-top">${window.escapeHtml(img.caption || '')}</div>
+              <img src="${img.url}" class="d-block w-100 modal-carousel-img" loading="lazy">
+            </div>`).join('');
+          const modalHtml = `
+            <div class="modal fade" id="${modalId}" tabindex="-1">
+              <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                  <div class="modal-header"><h5>${window.escapeHtml(proj.title)} - Gallery</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div>
+                  <div class="modal-body">
+                    <div id="carousel-${proj.id}" class="carousel slide" data-ride="carousel">
+                      <div class="carousel-inner">${carouselItems}</div>
+                      <a class="carousel-control-prev" href="#carousel-${proj.id}" data-slide="prev"><span class="carousel-control-prev-icon"></span></a>
+                      <a class="carousel-control-next" href="#carousel-${proj.id}" data-slide="next"><span class="carousel-control-next-icon"></span></a>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
+          `;
+          document.body.insertAdjacentHTML('beforeend', modalHtml);
+        }
+        const firstImg = proj.selectedImages[0]?.url || 'https://picsum.photos/id/40/400/200';
+        const badgeText = `${proj.projectType || 'DCS'} · DeltaV ${proj.deltaVVersion || 'N/A'}`;
+        const card = `
+          <div class="col-lg-4 col-md-6 mb-4">
+            <div class="project-card">
+              <img src="${firstImg}" class="project-img">
+              <h4>${window.escapeHtml(proj.title)}</h4>
+              <div><span class="tech-tag">${proj.controllerType}</span><span class="tech-tag">${proj.cabinetCount} cabinets</span><span class="tech-tag">${proj.siteLocation || ''}</span></div>
+              <p>${window.escapeHtml(proj.description.substring(0, 100))}...</p>
+              <div class="d-flex justify-content-between align-items-center mt-auto">
+                <button class="btn btn-sm btn-outline-delta" data-toggle="modal" data-target="#${modalId}"><i class="fa fa-image"></i> Gallery</button>
+                <button class="btn btn-sm btn-delta" onclick="window.generateProjectReport('${proj.id}')"><i class="fa fa-file-pdf-o"></i> PDF Report</button>
+              </div>
+              <div class="mt-2 text-muted" style="font-size:0.75rem;">${badgeText}</div>
+            </div>
           </div>
         `;
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
-      }
-      const firstImg = proj.selectedImages[0]?.url || 'https://picsum.photos/id/40/400/200';
-      const badgeText = `${proj.projectType || 'DCS'} · DeltaV ${proj.deltaVVersion || 'N/A'}`;
-      const card = `
-        <div class="col-lg-4 col-md-6 mb-4">
-          <div class="project-card">
-            <img src="${firstImg}" class="project-img">
-            <h4>${escapeHtml(proj.title)}</h4>
-            <div><span class="tech-tag">${proj.controllerType}</span><span class="tech-tag">${proj.cabinetCount} cabinets</span><span class="tech-tag">${proj.siteLocation || ''}</span></div>
-            <p>${escapeHtml(proj.description.substring(0, 100))}...</p>
-            <div class="d-flex justify-content-between align-items-center mt-auto">
-              <button class="btn btn-sm btn-outline-delta" data-toggle="modal" data-target="#${modalId}"><i class="fa fa-image"></i> Gallery</button>
-              <button class="btn btn-sm btn-delta" onclick="window.generateProjectReport('${proj.id}')"><i class="fa fa-file-pdf-o"></i> PDF Report</button>
-            </div>
-            <div class="mt-2 text-muted" style="font-size:0.75rem;">${badgeText}</div>
-          </div>
-        </div>
-      `;
-      grid.innerHTML += card;
+        grid.innerHTML += card;
+      });
+      window.protectImages();
+      window.hideLoading();
+    }).catch(e => {
+      console.error(e);
+      window.hideLoading();
     });
-    window.protectImages();
-    hideLoading();
   }
 
-  window.onload = renderAllProjects;
+  window.onload = function() {
+    window.updateUserBanner();
+    renderAllProjects();
+  };
 </script>
 <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script>
