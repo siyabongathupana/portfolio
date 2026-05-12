@@ -40,10 +40,14 @@
   </div>
 </div>
 <footer><p>© 2025 DeltaV Engineering Portfolio</p></footer>
-
 <script>
-  function renderCertificates() {
-    const certs = window.portfolioData.loadCertificates();
+  function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m] || m);
+  }
+
+  async function renderCertificates() {
+    const certs = await window.portfolioData.loadCertificates();
     const grid = document.getElementById('certificatesGrid');
     const noMsg = document.getElementById('noCertsMsg');
 
@@ -81,7 +85,7 @@
       grid.innerHTML += card;
     });
   }
-  function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m] || m); }
+
   window.onload = renderCertificates;
 </script>
 <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
