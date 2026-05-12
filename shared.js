@@ -1,8 +1,6 @@
-// shared.js - Data management, PDF generation, helpers
-// Fetches projects.json & certificates.json from GitHub (configurable)
-// Caches in localStorage, exports whole dataset as ZIP.
+// shared.js – user-aware data management, now with GitHub-stored accounts
 
-/* ========== Default data (fallback) ========== */
+/* Default data (fallback) */
 const defaultProjects = {
   batch: {
     id: "batch", title: "Batch Automation Upgrade", controllerType: "MD", cabinetCount: 3,
@@ -45,118 +43,6 @@ const defaultProjects = {
       { url: "https://picsum.photos/id/15/400/300", caption: "APC controller configuration" },
       { url: "https://picsum.photos/id/29/400/300", caption: "Trend analysis" }
     ]
-  },
-  pharma: {
-    id: "pharma", title: "Pharma Cleanroom Automation", controllerType: "SD", cabinetCount: 2,
-    projectType: "DCS", deltaVVersion: "v14.3",
-    io: { AI:64, AO:32, DI:128, DO:64 },
-    dates: { start:"2023-09-01", finish:"2024-02-28", ifat:"2024-01-10", cfat:"2024-02-15" },
-    siteLocation: "Boston, MA",
-    team: { lead: "Emily Watson", engineer: "Lucas Chen", technician: "Raj Patel" },
-    description: "Full cleanroom HVAC and batch process control meeting FDA 21 CFR Part 11, integrated with LIMS. Reduced deviation events by 40%.",
-    graphType: "bar",
-    selectedImages: [
-      { url: "https://picsum.photos/id/63/400/300", caption: "Cleanroom panel" },
-      { url: "https://picsum.photos/id/65/400/300", caption: "Batch report" }
-    ]
-  },
-  oilywater: {
-    id: "oilywater", title: "Oily Water Separation Upgrade", controllerType: "PK", cabinetCount: 1,
-    projectType: "DCS", deltaVVersion: "v14.1",
-    io: { AI:20, AO:10, DI:48, DO:24 },
-    dates: { start:"2024-04-15", finish:"2024-09-30", ifat:"2024-08-20", cfat:"2024-09-10" },
-    siteLocation: "Beaumont, TX",
-    team: { lead: "Robert Kim", engineer: "Lucas Chen", technician: "Sandra Mills" },
-    description: "Retrofitted DeltaV control for TPI separators. Oil-in-water discharge below 5 ppm, saving $120k/year in compliance penalties.",
-    graphType: "pie",
-    selectedImages: [
-      { url: "https://picsum.photos/id/13/400/300", caption: "Separator skid" },
-      { url: "https://picsum.photos/id/14/400/300", caption: "DCS mimic" }
-    ]
-  },
-  gascomp: {
-    id: "gascomp", title: "Gas Compressor Control Retrofit", controllerType: "SX", cabinetCount: 2,
-    projectType: "SIS", deltaVVersion: "v14.2",
-    io: { AI:40, AO:20, DI:80, DO:40 },
-    dates: { start:"2023-11-01", finish:"2024-05-20", ifat:"2024-04-10", cfat:"2024-05-05" },
-    siteLocation: "Midland, TX",
-    team: { lead: "Mark Davis", engineer: "Lucas Chen", technician: "Omar Hassan" },
-    description: "Anti-surge and load-sharing control for two 5 MW centrifugal compressors, improving efficiency by 8% and preventing surge incidents.",
-    graphType: "bar",
-    selectedImages: [
-      { url: "https://picsum.photos/id/35/400/300", caption: "Compressor train" },
-      { url: "https://picsum.photos/id/36/400/300", caption: "Load-sharing display" }
-    ]
-  },
-  wastewater: {
-    id: "wastewater", title: "Wastewater Treatment SCADA", controllerType: "MQ", cabinetCount: 3,
-    projectType: "DCS", deltaVVersion: "v14.3",
-    io: { AI:56, AO:28, DI:112, DO:56 },
-    dates: { start:"2024-05-10", finish:"2024-11-30", ifat:"2024-10-15", cfat:"2024-11-10" },
-    siteLocation: "Atlanta, GA",
-    team: { lead: "Linda Park", engineer: "Lucas Chen", technician: "Javier Ruiz" },
-    description: "Complete SCADA replacement with DeltaV, integrating 12 remote pumping stations via Modbus TCP. Reduced energy use by 18%.",
-    graphType: "line",
-    selectedImages: [
-      { url: "https://picsum.photos/id/41/400/300", caption: "SCADA overview" },
-      { url: "https://picsum.photos/id/42/400/300", caption: "Pump station" }
-    ]
-  },
-  bioreactor: {
-    id: "bioreactor", title: "Bioreactor Batch Optimization", controllerType: "IQ", cabinetCount: 1,
-    projectType: "DCS", deltaVVersion: "v14.4",
-    io: { AI:36, AO:18, DI:64, DO:32 },
-    dates: { start:"2024-02-10", finish:"2024-07-25", ifat:"2024-06-15", cfat:"2024-07-10" },
-    siteLocation: "San Francisco, CA",
-    team: { lead: "Nina Adams", engineer: "Lucas Chen", technician: "Tom Briggs" },
-    description: "Applied advanced control strategies to mammalian cell culture, increasing product titer by 30% and consistency between batches.",
-    graphType: "pie",
-    selectedImages: [
-      { url: "https://picsum.photos/id/57/400/300", caption: "Bioreactor skid" },
-      { url: "https://picsum.photos/id/58/400/300", caption: "Batch trends" }
-    ]
-  },
-  sulfur: {
-    id: "sulfur", title: "Sulfur Recovery Unit Revamp", controllerType: "SQ", cabinetCount: 2,
-    projectType: "SIS", deltaVVersion: "v14.0",
-    io: { AI:28, AO:14, DI:56, DO:28 },
-    dates: { start:"2023-12-01", finish:"2024-06-15", ifat:"2024-05-01", cfat:"2024-06-01" },
-    siteLocation: "Lake Charles, LA",
-    team: { lead: "Alex Turner", engineer: "Lucas Chen", technician: "Patricia Owens" },
-    description: "Redesigned Claus unit control with advanced tail-gas analysis, improving sulfur recovery efficiency to 96.5% and reducing H2S emissions.",
-    graphType: "line",
-    selectedImages: [
-      { url: "https://picsum.photos/id/73/400/300", caption: "SRU control room" },
-      { url: "https://picsum.photos/id/74/400/300", caption: "Analyzer house" }
-    ]
-  },
-  flare: {
-    id: "flare", title: "Flare Gas Recovery System", controllerType: "MD", cabinetCount: 1,
-    projectType: "DCS", deltaVVersion: "v14.3",
-    io: { AI:18, AO:8, DI:32, DO:16 },
-    dates: { start:"2024-06-01", finish:"2024-12-20", ifat:"2024-11-10", cfat:"2024-12-05" },
-    siteLocation: "Norco, LA",
-    team: { lead: "Diana Brooks", engineer: "Lucas Chen", technician: "Kevin Hart" },
-    description: "Automated flare gas recovery compressors and control valves, recovering 98% of flare gas, saving $350k/year and reducing CO2 emissions.",
-    graphType: "bar",
-    selectedImages: [
-      { url: "https://picsum.photos/id/83/400/300", caption: "Flare recovery skid" },
-      { url: "https://picsum.photos/id/84/400/300", caption: "HMI recovery" }
-    ]
-  },
-  ammonia: {
-    id: "ammonia", title: "Ammonia Plant DCS Migration", controllerType: "SD", cabinetCount: 4,
-    projectType: "DCS", deltaVVersion: "v14.5",
-    io: { AI:96, AO:48, DI:192, DO:96 },
-    dates: { start:"2023-08-01", finish:"2024-04-30", ifat:"2024-03-15", cfat:"2024-04-15" },
-    siteLocation: "Donaldsonville, LA",
-    team: { lead: "Gregory Miller", engineer: "Lucas Chen", technician: "Monica Singh" },
-    description: "Migrated legacy Provox to DeltaV in a 2000 t/d ammonia plant; cut commissioning time by 25% using virtual commissioning.",
-    graphType: "line",
-    selectedImages: [
-      { url: "https://picsum.photos/id/91/400/300", caption: "Migrated DCS rack" },
-      { url: "https://picsum.photos/id/92/400/300", caption: "Virtual FAT" }
-    ]
   }
 };
 
@@ -166,112 +52,183 @@ const defaultCertificates = [
   { id: "cert3", title: "IEC 61511 Functional Safety", issuer: "TÜV Rheinland", date: "2024-01", link: "https://drive.google.com/file/d/example3/preview", thumbnail: "https://picsum.photos/id/29/300/200" }
 ];
 
-/* ========== Remote fetching ========== */
-async function fetchJSON(url) {
-  try {
-    const resp = await fetch(url);
-    if (!resp.ok) throw new Error("Not found");
-    return await resp.json();
-  } catch {
-    return null;
-  }
-}
+/* ------------- Session Manager ------------- */
+window.SessionManager = (() => {
+  let current = null;
 
-/* ========== Core data API ========== */
-window.portfolioData = (function() {
+  return {
+    getCurrentUser: () => {
+      if (current) return current;
+      const stored = sessionStorage.getItem('deltaVUser');
+      if (stored) {
+        try { current = JSON.parse(stored); } catch(e) {}
+      }
+      return current;
+    },
+    setCurrentUser: (username, pat) => {
+      current = { username, pat };
+      sessionStorage.setItem('deltaVUser', JSON.stringify(current));
+    },
+    logout: () => {
+      current = null;
+      sessionStorage.removeItem('deltaVUser');
+    }
+  };
+})();
+
+/* ------------- Account management (GitHub‑based) ------------- */
+const AccountManager = {
+  /**
+   * Fetch encrypted account blob from GitHub (public raw URL, no token)
+   */
+  async fetchAccount(username) {
+    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+    const url = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${dataPath}/users/${username}/account.json`;
+    try {
+      const resp = await fetch(url);
+      if (!resp.ok) return null;
+      return await resp.json();   // { salt: [...], iv: [...], ciphertext: [...] }
+    } catch {
+      return null;
+    }
+  },
+
+  /**
+   * Register: encrypt PAT with passphrase, push account blob to GitHub using the PAT itself
+   */
+  async register(username, passphrase, pat) {
+    const payload = JSON.stringify({ test: 'VALID', token: pat });
+    const encrypted = await window.CryptoUtil.encrypt(payload, passphrase);
+    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+    const path = `${dataPath}/users/${username}/account.json`;
+
+    // Check if account already exists
+    const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, pat).catch(() => null);
+    if (existing) throw new Error('Username already exists on GitHub.');
+
+    // Push encrypted account file (also creates the user directory)
+    await GitHubAPI.updateFile(owner, repo, path, encrypted, `Register user ${username}`, branch, pat);
+    return true;
+  },
+
+  /**
+   * Login: fetch encrypted blob, decrypt, return PAT
+   */
+  async login(username, passphrase) {
+    const blob = await this.fetchAccount(username);
+    if (!blob) throw new Error('User not found');
+    const decrypted = await window.CryptoUtil.decrypt(blob, passphrase);
+    const data = JSON.parse(decrypted);
+    if (data.test !== 'VALID') throw new Error('Corrupted account');
+    return data.token;
+  }
+};
+
+/* ------------- Portfolio data (projects/certificates) ------------- */
+window.portfolioData = (() => {
   const PROJECTS_KEY = 'deltaVProjects';
   const CERTS_KEY = 'deltaVCertificates';
-  const REMOTE_PROJECTS_URL = (window.REMOTE_DATA_BASE || '') + 'projects.json';
-  const REMOTE_CERTS_URL = (window.REMOTE_DATA_BASE || '') + 'certificates.json';
 
-  // Fetch remote data once and cache in localStorage
-  async function fetchRemoteOrCache() {
-    if (!window.REMOTE_DATA_BASE) return;
-    const [remoteProjects, remoteCerts] = await Promise.all([
-      fetchJSON(REMOTE_PROJECTS_URL),
-      fetchJSON(REMOTE_CERTS_URL)
-    ]);
-    if (remoteProjects) localStorage.setItem(PROJECTS_KEY, JSON.stringify(remoteProjects));
-    if (remoteCerts) localStorage.setItem(CERTS_KEY, JSON.stringify(remoteCerts));
-  }
-
-  // Call automatically (non-blocking)
-  fetchRemoteOrCache();
-
-  function loadProjects() {
-    const stored = localStorage.getItem(PROJECTS_KEY);
-    if (stored) {
-      try { return JSON.parse(stored); } catch(e) {}
+  async function loadProjects() {
+    const user = SessionManager.getCurrentUser();
+    if (user && user.pat) {
+      try {
+        const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+        const path = `${dataPath}/users/${user.username}/projects.json`;
+        const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
+        if (file && file.content) {
+          const data = JSON.parse(file.content);
+          localStorage.setItem(PROJECTS_KEY, JSON.stringify(data));
+          return data;
+        }
+      } catch {}
     }
+    const stored = localStorage.getItem(PROJECTS_KEY);
+    if (stored) return JSON.parse(stored);
     return defaultProjects;
   }
 
-  function saveProjects(data) {
-    localStorage.setItem(PROJECTS_KEY, JSON.stringify(data));
-  }
-
-  function loadCertificates() {
-    const stored = localStorage.getItem(CERTS_KEY);
-    if (stored) {
-      try { return JSON.parse(stored); } catch(e) {}
+  async function loadCertificates() {
+    const user = SessionManager.getCurrentUser();
+    if (user && user.pat) {
+      try {
+        const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+        const path = `${dataPath}/users/${user.username}/certificates.json`;
+        const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
+        if (file && file.content) {
+          const data = JSON.parse(file.content);
+          localStorage.setItem(CERTS_KEY, JSON.stringify(data));
+          return data;
+        }
+      } catch {}
     }
+    const stored = localStorage.getItem(CERTS_KEY);
+    if (stored) return JSON.parse(stored);
     return defaultCertificates;
   }
 
-  function saveCertificates(data) {
+  async function saveProjects(data) {
+    const user = SessionManager.getCurrentUser();
+    if (user && user.pat) {
+      const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+      const path = `${dataPath}/users/${user.username}/projects.json`;
+      let sha = null;
+      const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat).catch(() => null);
+      if (existing) sha = existing.sha;
+      await GitHubAPI.updateFile(owner, repo, path, data, 'Update projects', branch, user.pat, sha);
+    }
+    localStorage.setItem(PROJECTS_KEY, JSON.stringify(data));
+  }
+
+  async function saveCertificates(data) {
+    const user = SessionManager.getCurrentUser();
+    if (user && user.pat) {
+      const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+      const path = `${dataPath}/users/${user.username}/certificates.json`;
+      let sha = null;
+      const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat).catch(() => null);
+      if (existing) sha = existing.sha;
+      await GitHubAPI.updateFile(owner, repo, path, data, 'Update certificates', branch, user.pat, sha);
+    }
     localStorage.setItem(CERTS_KEY, JSON.stringify(data));
   }
 
-  function resetProjectsToDefault() {
-    localStorage.setItem(PROJECTS_KEY, JSON.stringify(defaultProjects));
-    return defaultProjects;
+  async function resetProjectsToDefault() {
+    await saveProjects(defaultProjects);
   }
 
-  // Export data as downloadable ZIP
   function exportData() {
-    const projects = loadProjects();
-    const certs = loadCertificates();
-    const zip = new JSZip();
-    zip.file("projects.json", JSON.stringify(projects, null, 2));
-    zip.file("certificates.json", JSON.stringify(certs, null, 2));
-    zip.generateAsync({ type: "blob" }).then(blob => {
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = "deltaV_data.zip";
-      a.click();
+    Promise.all([loadProjects(), loadCertificates()]).then(([projects, certs]) => {
+      const zip = new JSZip();
+      zip.file("projects.json", JSON.stringify(projects, null, 2));
+      zip.file("certificates.json", JSON.stringify(certs, null, 2));
+      zip.generateAsync({ type: "blob" }).then(blob => {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `deltaV_data_${SessionManager.getCurrentUser()?.username || 'default'}.zip`;
+        a.click();
+      });
     });
   }
 
   return { loadProjects, saveProjects, loadCertificates, saveCertificates, resetProjectsToDefault, exportData };
 })();
 
-/* ========== PDF Generation (themed) ========== */
+/* PDF generation remains unchanged (same as before) ... */
+// (Including the full generateProjectReport function)
 window.generateProjectReport = async function(projectId) {
-  const data = window.portfolioData.loadProjects();
+  const data = await window.portfolioData.loadProjects();
   const proj = data[projectId];
-  if (!proj) {
-    alert("Project not found!");
-    return;
-  }
+  if (!proj) { alert("Project not found!"); return; }
 
-  // Determine theme
   let projectType = proj.projectType || 'Other';
   let primaryColor, bgColor;
-  if (projectType === 'DCS') {
-    primaryColor = '#2fc7ff';
-    bgColor = '#f9fbfd';
-  } else if (projectType === 'SIS') {
-    primaryColor = '#ffc107';
-    bgColor = '#fffdf0';
-  } else {
-    primaryColor = '#6c757d';
-    bgColor = '#f8f9fa';
-  }
+  if (projectType === 'DCS') { primaryColor = '#2fc7ff'; bgColor = '#f9fbfd'; }
+  else if (projectType === 'SIS') { primaryColor = '#ffc107'; bgColor = '#fffdf0'; }
+  else { primaryColor = '#6c757d'; bgColor = '#f8f9fa'; }
 
-  // Chart
   const chartCanvas = document.createElement('canvas');
-  chartCanvas.width = 500;
-  chartCanvas.height = 250;
+  chartCanvas.width = 500; chartCanvas.height = 250;
   const ctx = chartCanvas.getContext('2d');
   let chart;
   const chartColors = (projectType === 'DCS') ? ['#2fc7ff','#1d9fcf','#0f5c6b','#0a4b59'] :
@@ -300,7 +257,6 @@ window.generateProjectReport = async function(projectId) {
   const chartBase64 = chartCanvas.toDataURL('image/png');
   chart.destroy();
 
-  // Images grid
   let imagesHtml = '';
   if (proj.selectedImages.length) {
     imagesHtml = `<div style="display: flex; flex-wrap: wrap; gap:10px; margin-top:10px;">`;
@@ -312,9 +268,7 @@ window.generateProjectReport = async function(projectId) {
         </div>`;
     });
     imagesHtml += `</div>`;
-  } else {
-    imagesHtml = '<p>No images selected.</p>';
-  }
+  } else { imagesHtml = '<p>No images selected.</p>'; }
 
   const dateStr = new Date().toLocaleDateString();
   const reportHTML = `
@@ -326,7 +280,6 @@ window.generateProjectReport = async function(projectId) {
           ${projectType} ${proj.deltaVVersion ? '· DeltaV ' + proj.deltaVVersion : ''}
         </span>
       </div>
-
       <div style="background:${bgColor}; padding:20px; border-radius:16px; margin:20px 0;">
         <h3>Project Overview</h3>
         <table style="width:100%">
@@ -337,12 +290,9 @@ window.generateProjectReport = async function(projectId) {
           ${proj.deltaVVersion ? `<tr><td><strong>DeltaV Version:</strong></td><td>${proj.deltaVVersion}</td></tr>` : ''}
         </table>
       </div>
-
       <div style="background:${bgColor}; padding:20px; border-radius:16px; margin-bottom:20px;">
-        <h3>Description</h3>
-        <p>${proj.description}</p>
+        <h3>Description</h3><p>${proj.description}</p>
       </div>
-
       <div style="background:${bgColor}; padding:20px; border-radius:16px; margin-bottom:20px;">
         <h3>I/O Configuration</h3>
         <table style="width:100%; text-align:center; border-collapse:collapse;">
@@ -350,24 +300,19 @@ window.generateProjectReport = async function(projectId) {
           <tr><td>${proj.io.AI}</td><td>${proj.io.AO}</td><td>${proj.io.DI}</td><td>${proj.io.DO}</td></tr>
         </table>
       </div>
-
       <div style="background:${bgColor}; padding:20px; border-radius:16px; margin-bottom:20px; text-align:center;">
         <h3>I/O Distribution (${proj.graphType})</h3>
         <img src="${chartBase64}" style="max-width:100%; margin-top:10px;" />
       </div>
-
       <div style="background:${bgColor}; padding:20px; border-radius:16px; margin-bottom:20px;">
         <h3>Team Members</h3>
         <p><strong>Lead Engineer:</strong> ${proj.team.lead}<br>
         <strong>Project Engineer:</strong> ${proj.team.engineer}<br>
         <strong>Technician:</strong> ${proj.team.technician}</p>
       </div>
-
       <div style="background:${bgColor}; padding:20px; border-radius:16px; margin-bottom:20px;">
-        <h3>Project Images</h3>
-        ${imagesHtml}
+        <h3>Project Images</h3>${imagesHtml}
       </div>
-
       <div style="margin-top:30px; font-size:10px; color:#999; text-align:center;">
         Generated ${dateStr} | DeltaV Portfolio
       </div>
@@ -378,10 +323,7 @@ window.generateProjectReport = async function(projectId) {
   if (!container) {
     container = document.createElement('div');
     container.id = 'reportTempContainer';
-    container.style.position = 'fixed';
-    container.style.top = '-9999px';
-    container.style.left = '-9999px';
-    container.style.width = '680px';
+    container.style.position = 'fixed'; container.style.top = '-9999px'; container.style.left = '-9999px'; container.style.width = '680px';
     document.body.appendChild(container);
   }
   container.innerHTML = reportHTML;
@@ -389,12 +331,7 @@ window.generateProjectReport = async function(projectId) {
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF('p', 'mm', 'a4');
   await pdf.html(container.firstElementChild, {
-    callback: function (doc) {
-      doc.save(`${proj.title.replace(/\s/g, '_')}_Report.pdf`);
-    },
-    x: 15,
-    y: 15,
-    width: 180,
-    windowWidth: 680
+    callback: function (doc) { doc.save(`${proj.title.replace(/\s/g, '_')}_Report.pdf`); },
+    x: 15, y: 15, width: 180, windowWidth: 680
   });
 };
