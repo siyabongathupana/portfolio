@@ -1,6 +1,6 @@
-// shared.js – user-aware data management, now with GitHub-stored accounts
+// shared.js – user-aware data management, GitHub-stored accounts, loading helpers
 
-/* Default data (fallback) */
+/* ---------- Default data (only for non-logged-in public visitors) ---------- */
 const defaultProjects = {
   batch: {
     id: "batch", title: "Batch Automation Upgrade", controllerType: "MD", cabinetCount: 3,
@@ -52,10 +52,32 @@ const defaultCertificates = [
   { id: "cert3", title: "IEC 61511 Functional Safety", issuer: "TÜV Rheinland", date: "2024-01", link: "https://drive.google.com/file/d/example3/preview", thumbnail: "https://picsum.photos/id/29/300/200" }
 ];
 
-/* ------------- Session Manager ------------- */
+/* ---------- Global loading overlay ---------- */
+window.showLoading = function (msg = 'Processing...') {
+  let loader = document.getElementById('globalLoader');
+  if (!loader) {
+    loader = document.createElement('div');
+    loader.id = 'globalLoader';
+    loader.innerHTML = `
+      <div class="loader-overlay">
+        <div class="loader-spinner"></div>
+        <p class="loader-text">${msg}</p>
+      </div>`;
+    document.body.appendChild(loader);
+  } else {
+    loader.querySelector('.loader-text').textContent = msg;
+    loader.style.display = 'flex';
+  }
+};
+
+window.hideLoading = function () {
+  const loader = document.getElementById('globalLoader');
+  if (loader) loader.style.display = 'none';
+};
+
+/* ---------- Session Manager ---------- */
 window.SessionManager = (() => {
   let current = null;
-
   return {
     getCurrentUser: () => {
       if (current) return current;
@@ -76,44 +98,27 @@ window.SessionManager = (() => {
   };
 })();
 
-/* ------------- Account management (GitHub‑based) ------------- */
-const AccountManager = {
-  /**
-   * Fetch encrypted account blob from GitHub (public raw URL, no token)
-   */
+/* ---------- Account management (GitHub‑based) ---------- */
+window.AccountManager = {
   async fetchAccount(username) {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const url = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${dataPath}/users/${username}/account.json`;
     try {
       const resp = await fetch(url);
       if (!resp.ok) return null;
-      return await resp.json();   // { salt: [...], iv: [...], ciphertext: [...] }
-    } catch {
-      return null;
-    }
+      return await resp.json();
+    } catch { return null; }
   },
-
-  /**
-   * Register: encrypt PAT with passphrase, push account blob to GitHub using the PAT itself
-   */
   async register(username, passphrase, pat) {
     const payload = JSON.stringify({ test: 'VALID', token: pat });
     const encrypted = await window.CryptoUtil.encrypt(payload, passphrase);
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const path = `${dataPath}/users/${username}/account.json`;
-
-    // Check if account already exists
     const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, pat).catch(() => null);
     if (existing) throw new Error('Username already exists on GitHub.');
-
-    // Push encrypted account file (also creates the user directory)
     await GitHubAPI.updateFile(owner, repo, path, encrypted, `Register user ${username}`, branch, pat);
     return true;
   },
-
-  /**
-   * Login: fetch encrypted blob, decrypt, return PAT
-   */
   async login(username, passphrase) {
     const blob = await this.fetchAccount(username);
     if (!blob) throw new Error('User not found');
@@ -124,7 +129,7 @@ const AccountManager = {
   }
 };
 
-/* ------------- Portfolio data (projects/certificates) ------------- */
+/* ---------- Portfolio data (projects/certificates) ---------- */
 window.portfolioData = (() => {
   const PROJECTS_KEY = 'deltaVProjects';
   const CERTS_KEY = 'deltaVCertificates';
@@ -140,12 +145,19 @@ window.portfolioData = (() => {
           const data = JSON.parse(file.content);
           localStorage.setItem(PROJECTS_KEY, JSON.stringify(data));
           return data;
+        } else {
+          // No file found on GitHub => user is new => return empty projects
+          localStorage.removeItem(PROJECTS_KEY);
+          return {};
         }
-      } catch {}
+      } catch {
+        // Fallback to localStorage, but if not logged in, we return empty
+      }
     }
     const stored = localStorage.getItem(PROJECTS_KEY);
     if (stored) return JSON.parse(stored);
-    return defaultProjects;
+    // If not logged in, show defaults (public demo)
+    return SessionManager.getCurrentUser() ? {} : defaultProjects;
   }
 
   async function loadCertificates() {
@@ -159,38 +171,54 @@ window.portfolioData = (() => {
           const data = JSON.parse(file.content);
           localStorage.setItem(CERTS_KEY, JSON.stringify(data));
           return data;
+        } else {
+          localStorage.removeItem(CERTS_KEY);
+          return [];
         }
       } catch {}
     }
     const stored = localStorage.getItem(CERTS_KEY);
     if (stored) return JSON.parse(stored);
-    return defaultCertificates;
+    return SessionManager.getCurrentUser() ? [] : defaultCertificates;
   }
 
   async function saveProjects(data) {
+    // Update local immediately for speed
+    localStorage.setItem(PROJECTS_KEY, JSON.stringify(data));
+    // Then push to GitHub in the background
     const user = SessionManager.getCurrentUser();
     if (user && user.pat) {
       const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
       const path = `${dataPath}/users/${user.username}/projects.json`;
       let sha = null;
-      const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat).catch(() => null);
-      if (existing) sha = existing.sha;
-      await GitHubAPI.updateFile(owner, repo, path, data, 'Update projects', branch, user.pat, sha);
+      try {
+        const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat).catch(() => null);
+        if (existing) sha = existing.sha;
+        await GitHubAPI.updateFile(owner, repo, path, data, 'Update projects', branch, user.pat, sha);
+      } catch (err) {
+        console.error('GitHub sync failed:', err);
+        // Keep local saved, user will be notified
+        throw err;
+      }
     }
-    localStorage.setItem(PROJECTS_KEY, JSON.stringify(data));
   }
 
   async function saveCertificates(data) {
+    localStorage.setItem(CERTS_KEY, JSON.stringify(data));
     const user = SessionManager.getCurrentUser();
     if (user && user.pat) {
       const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
       const path = `${dataPath}/users/${user.username}/certificates.json`;
       let sha = null;
-      const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat).catch(() => null);
-      if (existing) sha = existing.sha;
-      await GitHubAPI.updateFile(owner, repo, path, data, 'Update certificates', branch, user.pat, sha);
+      try {
+        const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat).catch(() => null);
+        if (existing) sha = existing.sha;
+        await GitHubAPI.updateFile(owner, repo, path, data, 'Update certificates', branch, user.pat, sha);
+      } catch (err) {
+        console.error('GitHub sync failed:', err);
+        throw err;
+      }
     }
-    localStorage.setItem(CERTS_KEY, JSON.stringify(data));
   }
 
   async function resetProjectsToDefault() {
@@ -214,8 +242,16 @@ window.portfolioData = (() => {
   return { loadProjects, saveProjects, loadCertificates, saveCertificates, resetProjectsToDefault, exportData };
 })();
 
-/* PDF generation remains unchanged (same as before) ... */
-// (Including the full generateProjectReport function)
+/* ---------- Image protection ---------- */
+window.protectImages = function () {
+  document.querySelectorAll('.project-img, .modal-carousel-img').forEach(img => {
+    img.setAttribute('draggable', 'false');
+    img.addEventListener('contextmenu', e => e.preventDefault());
+    img.addEventListener('dragstart', e => e.preventDefault());
+  });
+};
+
+/* ---------- PDF generation (kept intact, just copied here) ---------- */
 window.generateProjectReport = async function(projectId) {
   const data = await window.portfolioData.loadProjects();
   const proj = data[projectId];
