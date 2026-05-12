@@ -1,15 +1,12 @@
+// login.js – Authentication with GitHub-stored accounts (email usernames)
 
-// login.js – Authentication with GitHub-stored accounts
-document.getElementById('forgotPassphrase').addEventListener('click', (e) => {
-  e.preventDefault();
-  const email = document.getElementById('loginUsername').value.trim();
-  if (!email.includes('@')) {
-    showError('Enter your email (username) first.');
-    return;
-  }
-  showError('If you forget your passphrase, contact the admin (siyabongatshem@gmail.com) to reset your account. After reset, you can re-register with the same email.');
-});
 document.addEventListener('DOMContentLoaded', () => {
+  // Show blocked message if redirected from auto-logout
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('blocked') === '1') {
+    showError('Your account has been blocked. Contact the administrator.');
+  }
+
   document.getElementById('showRegister').addEventListener('click', (e) => {
     e.preventDefault();
     document.getElementById('loginForm').style.display = 'none';
@@ -26,6 +23,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('loginBtn').addEventListener('click', handleLogin);
   document.getElementById('registerBtn').addEventListener('click', handleRegister);
+  document.getElementById('forgotPassphrase').addEventListener('click', (e) => {
+    e.preventDefault();
+    const email = document.getElementById('loginUsername').value.trim();
+    if (!email.includes('@')) {
+      showError('Enter your email first, then click "Forgot passphrase" again.');
+      return;
+    }
+    showError('To reset your passphrase, please contact the administrator (siyabongatshem@gmail.com). Your account will be reset and you can re-register with the same email.');
+  });
 
   async function handleLogin() {
     clearMessages();
@@ -35,6 +41,10 @@ document.addEventListener('DOMContentLoaded', () => {
       showError('Please fill all fields.');
       return;
     }
+    if (!username.includes('@')) {
+      showError('Please enter a valid email address.');
+      return;
+    }
 
     try {
       const pat = await window.AccountManager.login(username, passphrase);
@@ -42,7 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
       showSuccess('Login successful! Redirecting...');
       setTimeout(() => { window.location.href = 'admin.html'; }, 1000);
     } catch (err) {
-      showError('Invalid username or passphrase.');
+      showError(err.message || 'Invalid email or passphrase.');
     }
   }
 
@@ -55,6 +65,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!username || !passphrase || !token) {
       showError('Please fill all fields.');
+      return;
+    }
+    if (!username.includes('@')) {
+      showError('Must be a valid email address.');
       return;
     }
     if (passphrase !== confirm) {
@@ -72,7 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     try {
       await window.AccountManager.register(username, passphrase, token);
-      showSuccess('Account created! You can now log in.');
+      showSuccess('Account created! A confirmation email has been sent. You can now log in.');
       document.getElementById('registerForm').style.display = 'none';
       document.getElementById('loginForm').style.display = 'block';
       document.getElementById('loginUsername').value = username;
