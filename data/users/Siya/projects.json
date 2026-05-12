@@ -73,42 +73,6 @@
       }
     ]
   },
-  "apc": {
-    "id": "apc",
-    "title": "Advanced Process Control",
-    "controllerType": "M-series",
-    "cabinetCount": 1,
-    "io": {
-      "AI": 24,
-      "AO": 12,
-      "DI": 32,
-      "DO": 16
-    },
-    "dates": {
-      "start": "2024-03-10",
-      "finish": "2024-08-20",
-      "ifat": "2024-07-10",
-      "cfat": "2024-08-10"
-    },
-    "siteLocation": "Corpus Christi, TX",
-    "team": {
-      "lead": "David Wu",
-      "engineer": "Lucas Chen",
-      "technician": "Anna Gomez"
-    },
-    "description": "Model Predictive Control on crude distillation unit. Stabilized product specs, reduced temperature variance 47% and fuel gas consumption 12%.",
-    "graphType": "line",
-    "selectedImages": [
-      {
-        "url": "https://picsum.photos/id/15/400/300",
-        "caption": "APC controller configuration"
-      },
-      {
-        "url": "https://picsum.photos/id/29/400/300",
-        "caption": "Trend analysis"
-      }
-    ]
-  },
   "pharma": {
     "id": "pharma",
     "title": "Pharma Cleanroom Automation",
