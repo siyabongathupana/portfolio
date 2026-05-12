@@ -342,3 +342,32 @@ footer {
   border-radius: 20px;
   font-size: 0.9rem;
 }
+/* Loading overlay */
+.loader-overlay {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(255,255,255,0.8);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+.loader-spinner {
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #2fc7ff;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+}
+.loader-text {
+  margin-top: 15px;
+  color: #0b2b3b;
+  font-weight: 500;
+}
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
