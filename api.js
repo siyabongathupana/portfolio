@@ -1,5 +1,4 @@
-// api.js - GitHub API operations
-
+// api.js – GitHub API operations
 const GitHubAPI = (() => {
   function getAuthHeaders(token) {
     return {
@@ -11,12 +10,12 @@ const GitHubAPI = (() => {
 
   async function getFileContent(owner, repo, path, branch, token) {
     const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`;
-    const response = await fetch(url, { headers: getAuthHeaders(token) });
-    if (!response.ok) {
-      if (response.status === 404) return null;
-      throw new Error(`GitHub API error: ${response.status}`);
+    const resp = await fetch(url, { headers: getAuthHeaders(token) });
+    if (!resp.ok) {
+      if (resp.status === 404) return null;
+      throw new Error(`GitHub API error: ${resp.status}`);
     }
-    const data = await response.json();
+    const data = await resp.json();
     return {
       sha: data.sha,
       content: atob(data.content.replace(/\n/g, '')),
@@ -24,32 +23,43 @@ const GitHubAPI = (() => {
     };
   }
 
-  async function updateFile(owner, repo, path, content, commitMessage, branch, token, sha = null) {
+  async function updateFile(owner, repo, path, content, commitMsg, branch, token, sha = null) {
     const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
     const body = {
-      message: commitMessage,
+      message: commitMsg,
       content: btoa(unescape(encodeURIComponent(JSON.stringify(content, null, 2)))),
       branch: branch
     };
     if (sha) body.sha = sha;
-
-    const response = await fetch(url, {
+    const resp = await fetch(url, {
       method: 'PUT',
       headers: getAuthHeaders(token),
       body: JSON.stringify(body)
     });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(`Failed to update file: ${error.message}`);
+    if (!resp.ok) {
+      const err = await resp.json();
+      throw new Error(`Update failed: ${err.message}`);
     }
-    return response.json();
+    return resp.json();
   }
 
-  async function createUserDirectory(owner, repo, path, token) {
-    // GitHub creates directories when you add a file; we'll create a .gitkeep
-    return updateFile(owner, repo, `${path}/.gitkeep`, '', 'Create user directory', 'main', token);
+  async function deleteFile(owner, repo, path, branch, token, sha) {
+    const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
+    const resp = await fetch(url, {
+      method: 'DELETE',
+      headers: getAuthHeaders(token),
+      body: JSON.stringify({
+        message: 'Delete file',
+        branch: branch,
+        sha: sha
+      })
+    });
+    if (!resp.ok) {
+      const err = await resp.json();
+      throw new Error(`Delete failed: ${err.message}`);
+    }
+    return resp.json();
   }
 
-  return { getFileContent, updateFile, createUserDirectory };
+  return { getFileContent, updateFile, deleteFile };
 })();
