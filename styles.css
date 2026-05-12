@@ -1,4 +1,4 @@
-/* styles.css - DeltaV DCS Portfolio */
+/* styles.css – DeltaV DCS Portfolio */
 * {
   margin: 0;
   padding: 0;
@@ -326,23 +326,8 @@ footer {
     padding: 20px;
   }
 }
-/* Add at end of styles.css */
-.login-page {
-  background: linear-gradient(135deg, #0b2b3b 0%, #1e4d5f 100%);
-  min-height: 100vh;
-}
-.login-page .card {
-  border-radius: 24px;
-  background: white;
-}
-.user-badge {
-  background: #2fc7ff;
-  color: white;
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 0.9rem;
-}
-/* Loading overlay */
+
+/* ========== Loading overlay ========== */
 .loader-overlay {
   position: fixed;
   top: 0; left: 0;
@@ -370,4 +355,21 @@ footer {
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+/* Login page */
+.login-page {
+  background: linear-gradient(135deg, #0b2b3b 0%, #1e4d5f 100%);
+  min-height: 100vh;
+}
+.login-page .card {
+  border-radius: 24px;
+  background: white;
+}
+.user-badge {
+  background: #2fc7ff;
+  color: white;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.9rem;
 }
