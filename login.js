@@ -1,5 +1,4 @@
-// login.js - Authentication with GitHub-stored accounts
-
+// login.js – Authentication with GitHub-stored accounts
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('showRegister').addEventListener('click', (e) => {
     e.preventDefault();
@@ -28,8 +27,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     try {
-      const pat = await AccountManager.login(username, passphrase);
-      SessionManager.setCurrentUser(username, pat);
+      const pat = await window.AccountManager.login(username, passphrase);
+      window.SessionManager.setCurrentUser(username, pat);
       showSuccess('Login successful! Redirecting...');
       setTimeout(() => { window.location.href = 'admin.html'; }, 1000);
     } catch (err) {
@@ -62,7 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     try {
-      await AccountManager.register(username, passphrase, token);
+      await window.AccountManager.register(username, passphrase, token);
       showSuccess('Account created! You can now log in.');
       document.getElementById('registerForm').style.display = 'none';
       document.getElementById('loginForm').style.display = 'block';
@@ -78,12 +77,14 @@ document.addEventListener('DOMContentLoaded', () => {
     el.style.display = 'block';
     document.getElementById('successMsg').style.display = 'none';
   }
+
   function showSuccess(msg) {
     const el = document.getElementById('successMsg');
     el.textContent = msg;
     el.style.display = 'block';
     document.getElementById('errorMsg').style.display = 'none';
   }
+
   function clearMessages() {
     document.getElementById('errorMsg').style.display = 'none';
     document.getElementById('successMsg').style.display = 'none';
