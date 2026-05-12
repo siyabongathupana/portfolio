@@ -1,42 +1,4 @@
 {
-  "batch": {
-    "id": "batch",
-    "title": "Batch Automation Upgrade",
-    "controllerType": "PK",
-    "projectType": "SIS",
-    "deltaVVersion": "v12",
-    "cabinetCount": 3,
-    "io": {
-      "AI": 48,
-      "AO": 24,
-      "DI": 96,
-      "DO": 48
-    },
-    "dates": {
-      "start": "2024-01-15",
-      "finish": "2024-06-30",
-      "ifat": "2024-05-10",
-      "cfat": "2024-06-20"
-    },
-    "siteLocation": "Houston, TX",
-    "team": {
-      "lead": "John Smith",
-      "engineer": "Lucas Chen",
-      "technician": "Mike Ross"
-    },
-    "description": "Complete redesign of batch sequence phases, integration with ERP, and OEE dashboard. Achieved 22% reduction in cycle time and 31% decrease in batch exceptions.",
-    "graphType": "bar",
-    "selectedImages": [
-      {
-        "url": "https://picsum.photos/id/21/400/300",
-        "caption": "Main control cabinet"
-      },
-      {
-        "url": "https://picsum.photos/id/47/400/300",
-        "caption": "HMI batch overview"
-      }
-    ]
-  },
   "sis": {
     "id": "sis",
     "title": "SIS Logic Migration",
