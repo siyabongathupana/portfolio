@@ -1,7 +1,5 @@
-// shared.js – Data management, accounts, blocked users, email, PDF, image protection
-// ======================================================================
-// GLOBAL LOADING OVERLAY
-// ======================================================================
+// shared.js – Data management, accounts, blocked users, email, banner, PDF, image protection
+
 window.showLoading = function (msg = 'Processing...') {
   let loader = document.getElementById('globalLoader');
   if (!loader) {
@@ -24,31 +22,23 @@ window.hideLoading = function () {
   if (loader) loader.style.display = 'none';
 };
 
-// ======================================================================
-// HTML ESCAPE (global)
-// ======================================================================
 window.escapeHtml = function (str) {
   if (!str) return '';
   return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m] || m);
 };
 
-// ======================================================================
-// USER BANNER
-// ======================================================================
-window.updateUserBanner = function () {
+window.updateUserFooter = function () {
   const user = window.SessionManager.getCurrentUser();
-  const banner = document.getElementById('userBanner');
-  if (!banner) return;
+  const el = document.getElementById('userFooterStatus');
+  if (!el) return;
   if (user) {
-    banner.innerHTML = `Logged in as: <strong>${window.escapeHtml(user.username)}</strong>`;
+    el.innerHTML = `Logged in as: <strong>${window.escapeHtml(user.username)}</strong>`;
   } else {
-    banner.innerHTML = `Visitor – seeing projects from <strong>${window.APP_CONFIG.publicProfileEmail}</strong>`;
+    el.innerHTML = `Visitor – viewing portfolio of <strong>${window.APP_CONFIG.publicProfileEmail}</strong>`;
   }
 };
 
-// ======================================================================
-// SESSION MANAGER
-// ======================================================================
+/* ========== Session Manager ========== */
 window.SessionManager = (() => {
   let current = null;
   return {
@@ -71,9 +61,7 @@ window.SessionManager = (() => {
   };
 })();
 
-// ======================================================================
-// ACCOUNT MANAGEMENT (GitHub‑based, email, blocking)
-// ======================================================================
+/* ========== Account Manager ========== */
 window.AccountManager = {
   async _ensureEmailJS() {
     if (typeof emailjs === 'undefined') {
@@ -87,12 +75,10 @@ window.AccountManager = {
       emailjs.init(window.APP_CONFIG.emailjs.publicKey);
     }
   },
-
   async _sendEmail(templateID, params) {
     await this._ensureEmailJS();
     return emailjs.send(window.APP_CONFIG.emailjs.serviceID, templateID, params);
   },
-
   async _notifyAdminNewUser(userEmail) {
     const cfg = window.APP_CONFIG.emailjs;
     if (!cfg || !cfg.publicKey || !cfg.adminTemplateID) return;
@@ -104,7 +90,6 @@ window.AccountManager = {
       });
     } catch (e) { console.warn('Admin email failed', e); }
   },
-
   async _notifyUserConfirmation(userEmail) {
     const cfg = window.APP_CONFIG.emailjs;
     if (!cfg || !cfg.publicKey || !cfg.userTemplateID) return;
@@ -116,7 +101,6 @@ window.AccountManager = {
       });
     } catch (e) { console.warn('User email failed', e); }
   },
-
   async fetchAccount(username) {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(username);
@@ -127,27 +111,22 @@ window.AccountManager = {
       return await resp.json();
     } catch { return null; }
   },
-
   async register(username, passphrase, pat) {
     const payload = JSON.stringify({ test: 'VALID', token: pat });
     const encrypted = await window.CryptoUtil.encrypt(payload, passphrase);
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(username);
     const path = `${dataPath}/users/${encUser}/account.json`;
-
     const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, pat).catch(() => null);
     if (existing) throw new Error('An account with this email already exists on GitHub.');
-
     await GitHubAPI.updateFile(owner, repo, path, encrypted, `Register ${username}`, branch, pat);
     this._notifyAdminNewUser(username);
     this._notifyUserConfirmation(username);
     return true;
   },
-
   async login(username, passphrase) {
     const blocked = await this.getBlockedUsers();
     if (blocked.includes(username)) throw new Error('Your account has been blocked. Contact the administrator.');
-
     const blob = await this.fetchAccount(username);
     if (!blob) throw new Error('User not found');
     const decrypted = await window.CryptoUtil.decrypt(blob, passphrase);
@@ -155,7 +134,6 @@ window.AccountManager = {
     if (data.test !== 'VALID') throw new Error('Corrupted account');
     return data.token;
   },
-
   async getBlockedUsers() {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const url = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${dataPath}/blocked_users.json`;
@@ -165,15 +143,10 @@ window.AccountManager = {
       return await resp.json();
     } catch { return []; }
   },
-
   async toggleBlock(username, block, adminToken) {
     const blocked = await this.getBlockedUsers();
-    if (block) {
-      if (!blocked.includes(username)) blocked.push(username);
-    } else {
-      const idx = blocked.indexOf(username);
-      if (idx !== -1) blocked.splice(idx, 1);
-    }
+    if (block) { if (!blocked.includes(username)) blocked.push(username); }
+    else { const idx = blocked.indexOf(username); if (idx !== -1) blocked.splice(idx, 1); }
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const path = `${dataPath}/blocked_users.json`;
     let sha = null;
@@ -182,26 +155,20 @@ window.AccountManager = {
     await GitHubAPI.updateFile(owner, repo, path, blocked, 'Update blocked users', branch, adminToken, sha);
     return true;
   },
-
   async listUsers(adminToken) {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const url = `https://api.github.com/repos/${owner}/${repo}/contents/${dataPath}/users?ref=${branch}`;
-    const resp = await fetch(url, {
-      headers: { 'Authorization': `token ${adminToken}`, 'Accept': 'application/vnd.github.v3+json' }
-    });
+    const resp = await fetch(url, { headers: { 'Authorization': `token ${adminToken}`, 'Accept': 'application/vnd.github.v3+json' } });
     if (!resp.ok) throw new Error('Cannot list users');
     const items = await resp.json();
     return items.filter(i => i.type === 'dir').map(i => i.name);
   },
-
   async deleteUser(username, adminToken) {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(username);
     const dirPath = `${dataPath}/users/${encUser}`;
     const url = `https://api.github.com/repos/${owner}/${repo}/contents/${dirPath}?ref=${branch}`;
-    const resp = await fetch(url, {
-      headers: { 'Authorization': `token ${adminToken}`, 'Accept': 'application/vnd.github.v3+json' }
-    });
+    const resp = await fetch(url, { headers: { 'Authorization': `token ${adminToken}`, 'Accept': 'application/vnd.github.v3+json' } });
     if (!resp.ok) throw new Error('User folder not found');
     const items = await resp.json();
     for (const item of items) {
@@ -209,7 +176,6 @@ window.AccountManager = {
     }
     return true;
   },
-
   async getUserStats(username, adminToken) {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(username);
@@ -233,23 +199,8 @@ window.AccountManager = {
   }
 };
 
-// ======================================================================
-// PORTFOLIO DATA – robust GitHub sync with confirmation, public profile
-// ======================================================================
-// Minimal default data – only if everything else fails
-const defaultProjects = {
-  _placeholder: {
-    id: "_placeholder", title: "Placeholder Project", controllerType: "MD", cabinetCount: 1,
-    projectType: "DCS", deltaVVersion: "v14.0",
-    io: { AI:0, AO:0, DI:0, DO:0 },
-    dates: { start:"", finish:"", ifat:"", cfat:"" },
-    siteLocation: "",
-    team: { lead:"", engineer:"", technician:"" },
-    description: "This is a placeholder. Log in or add projects.",
-    graphType: "bar",
-    selectedImages: []
-  }
-};
+/* ========== Portfolio Data ========== */
+const defaultProjects = {};
 const defaultCertificates = [];
 
 window.portfolioData = (() => {
@@ -288,7 +239,6 @@ window.portfolioData = (() => {
         if (e.message === 'Blocked') throw e;
       }
     }
-    // Public visitor: show admin's projects
     const publicEmail = window.APP_CONFIG.publicProfileEmail;
     if (!user && publicEmail) {
       try {
@@ -303,7 +253,6 @@ window.portfolioData = (() => {
         }
       } catch (e) {}
     }
-    // Last resort: localStorage or placeholder
     const stored = localStorage.getItem(PROJECTS_KEY);
     if (stored) return JSON.parse(stored);
     return defaultProjects;
@@ -361,12 +310,9 @@ window.portfolioData = (() => {
       const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat).catch(() => null);
       if (existing) sha = existing.sha;
       await GitHubAPI.updateFile(owner, repo, path, data, 'Update projects', branch, user.pat, sha);
-      // Confirm sync
-      const updated = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
-      if (!updated || !updated.content) throw new Error('Sync verification failed');
     } catch (err) {
-      console.error('GitHub sync error:', err);
-      throw new Error('Could not sync to GitHub. Check your token permissions.');
+      console.error('GitHub write error:', err);
+      throw new Error('Could not sync to GitHub. Check token permissions.');
     }
   }
 
@@ -383,11 +329,9 @@ window.portfolioData = (() => {
       const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat).catch(() => null);
       if (existing) sha = existing.sha;
       await GitHubAPI.updateFile(owner, repo, path, data, 'Update certificates', branch, user.pat, sha);
-      const updated = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
-      if (!updated || !updated.content) throw new Error('Sync verification failed');
     } catch (err) {
-      console.error('GitHub sync error:', err);
-      throw new Error('Could not sync to GitHub. Check your token permissions.');
+      console.error('GitHub write error:', err);
+      throw new Error('Could not sync to GitHub. Check token permissions.');
     }
   }
 
@@ -408,9 +352,7 @@ window.portfolioData = (() => {
   return { loadProjects, saveProjects, loadCertificates, saveCertificates, exportData };
 })();
 
-// ======================================================================
-// IMAGE PROTECTION
-// ======================================================================
+/* ========== Image Protection ========== */
 window.protectImages = function () {
   document.querySelectorAll('.project-img, .modal-carousel-img').forEach(img => {
     img.setAttribute('draggable', 'false');
@@ -419,9 +361,7 @@ window.protectImages = function () {
   });
 };
 
-// ======================================================================
-// PDF GENERATION (supports SIS & DCS light green theme)
-// ======================================================================
+/* ========== PDF Generation ========== */
 window.generateProjectReport = async function(projectId) {
   const data = await window.portfolioData.loadProjects();
   const proj = data[projectId];
