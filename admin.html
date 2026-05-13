@@ -194,7 +194,6 @@
 </div>
 
 <script>
-  // Check login
   const user = window.SessionManager?.getCurrentUser();
   if (!user) {
     window.location.href = 'login.html';
@@ -326,7 +325,7 @@
       }
       document.querySelectorAll('.edit-project').forEach(btn => btn.addEventListener('click', () => openProjectModal(btn.dataset.id)));
       document.querySelectorAll('.delete-project').forEach(btn => btn.addEventListener('click', () => {
-        if (confirm('Delete this project?')) deleteProject(btn.dataset.id);
+        if (confirm('Delete this project?')) safeDeleteProject(btn.dataset.id);
       }));
     }
 
@@ -353,41 +352,63 @@
       });
       document.querySelectorAll('.edit-cert').forEach(btn => btn.addEventListener('click', () => openCertModal(parseInt(btn.dataset.index))));
       document.querySelectorAll('.delete-cert').forEach(btn => btn.addEventListener('click', () => {
-        if (confirm('Delete this certificate?')) deleteCertificate(parseInt(btn.dataset.index));
+        if (confirm('Delete this certificate?')) safeDeleteCertificate(parseInt(btn.dataset.index));
       }));
     }
 
-    // ---------- OPTIMISTIC DELETE / SAVE ----------
-    async function deleteProject(id) {
-      const projects = await window.portfolioData.loadProjects();
-      const backup = projects[id];
-      delete projects[id];
-      await renderProjects();
+    // ---------- SAFE DELETE / SAVE (transactional) ----------
+    async function safeDeleteProject(id) {
+      showLoading('Deleting project...');
+      const current = await window.portfolioData.loadProjects();
+      if (!current[id]) { hideLoading(); return; }
+      delete current[id];
       try {
-        await window.portfolioData.saveProjects(projects);
-      } catch (err) {
-        const current = await window.portfolioData.loadProjects();
-        current[id] = backup;
-        localStorage.setItem('deltaVProjects', JSON.stringify(current));
+        await window.portfolioData.saveProjects(current);
         await renderProjects();
-        alert('Failed to sync deletion: ' + err.message);
+      } catch (err) {
+        alert('Delete failed: ' + err.message);
       }
+      hideLoading();
     }
 
-    async function deleteCertificate(idx) {
+    async function safeDeleteCertificate(idx) {
+      showLoading('Deleting certificate...');
       const certs = await window.portfolioData.loadCertificates();
-      const backup = certs[idx];
+      if (!certs[idx]) { hideLoading(); return; }
       certs.splice(idx, 1);
-      await renderCertificates();
       try {
         await window.portfolioData.saveCertificates(certs);
-      } catch (err) {
-        const current = await window.portfolioData.loadCertificates();
-        current.splice(idx, 0, backup);
-        localStorage.setItem('deltaVCertificates', JSON.stringify(current));
         await renderCertificates();
-        alert('Failed to sync deletion: ' + err.message);
+      } catch (err) {
+        alert('Delete failed: ' + err.message);
       }
+      hideLoading();
+    }
+
+    async function safeSaveProject(project) {
+      showLoading('Saving project...');
+      const allProjects = await window.portfolioData.loadProjects();
+      allProjects[project.id] = project;
+      try {
+        await window.portfolioData.saveProjects(allProjects);
+        await renderProjects();
+        $('#projectModal').modal('hide');
+      } catch (err) {
+        alert('Save failed: ' + err.message);
+      }
+      hideLoading();
+    }
+
+    async function safeSaveCertificate(certs) {
+      showLoading('Saving certificate...');
+      try {
+        await window.portfolioData.saveCertificates(certs);
+        await renderCertificates();
+        $('#certModal').modal('hide');
+      } catch (err) {
+        alert('Save failed: ' + err.message);
+      }
+      hideLoading();
     }
 
     // ---------- PROJECT MODAL ----------
@@ -483,18 +504,7 @@
         selectedImages
       };
 
-      // Instantly update UI
-      const allProjects = await window.portfolioData.loadProjects();
-      allProjects[newId] = project;
-      await renderProjects();
-      $('#projectModal').modal('hide');
-
-      // Background GitHub sync
-      try {
-        await window.portfolioData.saveProjects(allProjects);
-      } catch (err) {
-        alert('Project saved locally but sync failed: ' + err.message);
-      }
+      await safeSaveProject(project);
     });
 
     // ---------- CERTIFICATE MODAL ----------
@@ -546,15 +556,7 @@
       if (idx !== '' && certs[idx]) certs[idx] = newCert;
       else certs.push(newCert);
 
-      // Update UI instantly
-      await renderCertificates();
-      $('#certModal').modal('hide');
-
-      try {
-        await window.portfolioData.saveCertificates(certs);
-      } catch (err) {
-        alert('Certificate saved locally but sync failed: ' + err.message);
-      }
+      await safeSaveCertificate(certs);
     });
 
     // ---------- USER MANAGEMENT (Admin only) ----------
@@ -649,8 +651,12 @@
     document.getElementById('deleteAllProjectsBtn').addEventListener('click', async () => {
       if (confirm('Permanently delete ALL your projects?')) {
         showLoading('Deleting all projects...');
-        await window.portfolioData.saveProjects({});
-        await renderProjects();
+        try {
+          await window.portfolioData.saveProjects({});
+          await renderProjects();
+        } catch (err) {
+          alert('Failed: ' + err.message);
+        }
         hideLoading();
       }
     });
@@ -664,8 +670,12 @@
     document.getElementById('deleteAllCertsBtn').addEventListener('click', async () => {
       if (confirm('Delete all certificates?')) {
         showLoading('Deleting all certificates...');
-        await window.portfolioData.saveCertificates([]);
-        await renderCertificates();
+        try {
+          await window.portfolioData.saveCertificates([]);
+          await renderCertificates();
+        } catch (err) {
+          alert('Failed: ' + err.message);
+        }
         hideLoading();
       }
     });
