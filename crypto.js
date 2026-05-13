@@ -1,5 +1,4 @@
 // crypto.js – Secure encryption using Web Crypto API (PBKDF2 + AES-GCM)
-//test
 window.CryptoUtil = (function() {
   const ALGORITHM = 'AES-GCM';
   const KEY_LENGTH = 256;
