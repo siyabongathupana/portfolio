@@ -13,10 +13,9 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="config.js"></script>
   <script src="shared.js"></script>
-  <style>#userBanner { background:#e9f2fa; color:#0b2b3b; padding:6px 20px; font-size:0.9rem; text-align:center; }</style>
 </head>
 <body>
-<div id="userBanner"></div>
+
 <div class="hero_area" id="home">
   <div class="container-fluid px-4 px-md-5">
     <nav class="navbar navbar-expand-lg custom_nav-container">
@@ -105,7 +104,10 @@
     </div>
   </div>
 </section>
-<footer><p>© 2025 DeltaV Engineering Portfolio — <a href="admin.html" class="text-white">Manage projects & data</a></p></footer>
+<footer>
+  <p>© 2025 DeltaV Engineering Portfolio — <a href="admin.html" class="text-white">Manage projects & data</a></p>
+  <p class="footer-status"><span id="userFooterStatus"></span></p>
+</footer>
 
 <script>
   function renderFeatured() {
@@ -219,7 +221,7 @@
   })();
 
   window.onload = function() {
-    window.updateUserBanner();
+    window.updateUserFooter();
     renderFeatured();
   };
 </script>
