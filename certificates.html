@@ -51,6 +51,7 @@
     window.portfolioData.loadCertificates().then(certs => {
       const grid = document.getElementById('certificatesGrid');
       const noMsg = document.getElementById('noCertsMsg');
+      await window.VisitTracker.recordVisit('certificates'); //Siya
 
       if (certs.length === 0) {
         grid.innerHTML = '';
