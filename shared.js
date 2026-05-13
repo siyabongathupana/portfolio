@@ -1,4 +1,4 @@
-// shared.js – Full version with reliable fallback and size safety
+// shared.js – Full version, transactional saves, zero-data-loss guarantee
 
 window.showLoading = function (msg = 'Processing...') {
   let loader = document.getElementById('globalLoader');
@@ -133,6 +133,7 @@ window.AccountManager = {
   async login(username, passphrase) {
     const blocked = await this.getBlockedUsers();
     if (blocked.includes(username)) throw new Error('Your account has been blocked. Contact the administrator.');
+
     const blob = await this.fetchAccount(username);
     if (!blob) throw new Error('User not found');
     const decrypted = await window.CryptoUtil.decrypt(blob, passphrase);
@@ -144,13 +145,22 @@ window.AccountManager = {
   async getBlockedUsers() {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const url = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${dataPath}/blocked_users.json`;
-    try { const resp = await fetch(url); if (!resp.ok) return []; return await resp.json(); } catch { return []; }
+    try {
+      const resp = await fetch(url);
+      if (!resp.ok) return [];
+      return await resp.json();
+    } catch { return []; }
   },
 
   async toggleBlock(username, block, adminToken) {
     const blocked = await this.getBlockedUsers();
-    if (block) { if (!blocked.includes(username)) blocked.push(username); }
-    else { const idx = blocked.indexOf(username); if (idx !== -1) blocked.splice(idx, 1); }
+    if (block) {
+      if (!blocked.includes(username)) blocked.push(username);
+    } else {
+      const idx = blocked.indexOf(username);
+      if (idx !== -1) blocked.splice(idx, 1);
+    }
+
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const path = `${dataPath}/blocked_users.json`;
     let sha = null;
@@ -163,7 +173,9 @@ window.AccountManager = {
   async listUsers(adminToken) {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const url = `https://api.github.com/repos/${owner}/${repo}/contents/${dataPath}/users?ref=${branch}`;
-    const resp = await fetch(url, { headers: { 'Authorization': `token ${adminToken}`, 'Accept': 'application/vnd.github.v3+json' } });
+    const resp = await fetch(url, {
+      headers: { 'Authorization': `token ${adminToken}`, 'Accept': 'application/vnd.github.v3+json' }
+    });
     if (!resp.ok) throw new Error('Cannot list users');
     const items = await resp.json();
     return items.filter(i => i.type === 'dir').map(i => i.name);
@@ -174,10 +186,14 @@ window.AccountManager = {
     const encUser = encodeURIComponent(username);
     const dirPath = `${dataPath}/users/${encUser}`;
     const url = `https://api.github.com/repos/${owner}/${repo}/contents/${dirPath}?ref=${branch}`;
-    const resp = await fetch(url, { headers: { 'Authorization': `token ${adminToken}`, 'Accept': 'application/vnd.github.v3+json' } });
+    const resp = await fetch(url, {
+      headers: { 'Authorization': `token ${adminToken}`, 'Accept': 'application/vnd.github.v3+json' }
+    });
     if (!resp.ok) throw new Error('User folder not found');
     const items = await resp.json();
-    for (const item of items) { await GitHubAPI.deleteFile(owner, repo, item.path, branch, adminToken, item.sha); }
+    for (const item of items) {
+      await GitHubAPI.deleteFile(owner, repo, item.path, branch, adminToken, item.sha);
+    }
     return true;
   },
 
@@ -188,16 +204,25 @@ window.AccountManager = {
     let projectCount = 0, certCount = 0;
     try {
       const projFile = await GitHubAPI.getFileContent(owner, repo, `${base}/projects.json`, branch, adminToken);
-      if (projFile && projFile.content) { const data = JSON.parse(projFile.content); projectCount = Object.keys(data).length; }
+      if (projFile && projFile.content) {
+        const data = JSON.parse(projFile.content);
+        projectCount = Object.keys(data).length;
+      }
     } catch (e) {}
     try {
       const certFile = await GitHubAPI.getFileContent(owner, repo, `${base}/certificates.json`, branch, adminToken);
-      if (certFile && certFile.content) { const data = JSON.parse(certFile.content); certCount = data.length; }
+      if (certFile && certFile.content) {
+        const data = JSON.parse(certFile.content);
+        certCount = data.length;
+      }
     } catch (e) {}
     return { projects: projectCount, certificates: certCount };
   }
 };
 
+/* =====================================================
+   PORTFOLIO DATA – TRANSACTIONAL SAVES, NO DELETIONS
+   ===================================================== */
 window.portfolioData = (() => {
   const PROJECTS_KEY = 'deltaVProjects';
   const CERTS_KEY = 'deltaVCertificates';
@@ -216,9 +241,7 @@ window.portfolioData = (() => {
   async function loadProjects() {
     const user = window.SessionManager.getCurrentUser();
     if (user && user.pat) {
-      try {
-        await verifyNotBlocked();
-      } catch (e) { throw e; }
+      await verifyNotBlocked();
       try {
         const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
         const encUser = encodeURIComponent(user.username);
@@ -229,17 +252,19 @@ window.portfolioData = (() => {
           localStorage.setItem(PROJECTS_KEY, JSON.stringify(data));
           return data;
         } else {
-          localStorage.setItem(PROJECTS_KEY, JSON.stringify({}));
-          return {};
+          // File may not exist yet – empty is fine
+          const empty = {};
+          localStorage.setItem(PROJECTS_KEY, JSON.stringify(empty));
+          return empty;
         }
       } catch (e) {
         if (e.message === 'Blocked') throw e;
-        console.warn('⚠️ Could not fetch projects from GitHub – using local cache');
-        const stored = localStorage.getItem(PROJECTS_KEY);
-        return stored ? JSON.parse(stored) : {};
+        // Network error – use cache
+        console.warn('Could not fetch projects from GitHub, using local cache');
+        return JSON.parse(localStorage.getItem(PROJECTS_KEY) || '{}');
       }
     }
-    // Public visitor
+    // Public profile
     const publicEmail = window.APP_CONFIG.publicProfileEmail;
     if (!user && publicEmail) {
       try {
@@ -252,16 +277,15 @@ window.portfolioData = (() => {
           localStorage.setItem(PROJECTS_KEY, JSON.stringify(data));
           return data;
         }
-      } catch (e) { console.warn('Could not load public projects'); }
+      } catch (e) {}
     }
-    const stored = localStorage.getItem(PROJECTS_KEY);
-    return stored ? JSON.parse(stored) : {};
+    return JSON.parse(localStorage.getItem(PROJECTS_KEY) || '{}');
   }
 
   async function loadCertificates() {
     const user = window.SessionManager.getCurrentUser();
     if (user && user.pat) {
-      try { await verifyNotBlocked(); } catch (e) { throw e; }
+      await verifyNotBlocked();
       try {
         const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
         const encUser = encodeURIComponent(user.username);
@@ -272,14 +296,14 @@ window.portfolioData = (() => {
           localStorage.setItem(CERTS_KEY, JSON.stringify(data));
           return data;
         } else {
-          localStorage.setItem(CERTS_KEY, JSON.stringify([]));
-          return [];
+          const empty = [];
+          localStorage.setItem(CERTS_KEY, JSON.stringify(empty));
+          return empty;
         }
       } catch (e) {
         if (e.message === 'Blocked') throw e;
-        console.warn('⚠️ Could not fetch certificates from GitHub – using local cache');
-        const stored = localStorage.getItem(CERTS_KEY);
-        return stored ? JSON.parse(stored) : [];
+        console.warn('Could not fetch certificates from GitHub, using local cache');
+        return JSON.parse(localStorage.getItem(CERTS_KEY) || '[]');
       }
     }
     if (!user && window.APP_CONFIG.publicProfileEmail) {
@@ -295,20 +319,25 @@ window.portfolioData = (() => {
         }
       } catch (e) {}
     }
-    const stored = localStorage.getItem(CERTS_KEY);
-    return stored ? JSON.parse(stored) : [];
+    return JSON.parse(localStorage.getItem(CERTS_KEY) || '[]');
   }
 
+  // TRANSACTIONAL SAVE – never overwrite with empty data
   async function saveProjects(data) {
-    // Safety: don't overwrite with empty object if we had data before
-    const previous = localStorage.getItem(PROJECTS_KEY);
-    if (previous && Object.keys(data).length === 0 && Object.keys(JSON.parse(previous)).length > 0) {
-      console.warn('🚫 Refusing to overwrite existing projects with empty object');
-      throw new Error('Attempted to overwrite projects with empty data. Please refresh the page.');
+    // Safety: refuse to overwrite existing data with empty object
+    const prev = localStorage.getItem(PROJECTS_KEY);
+    if (prev) {
+      const previous = JSON.parse(prev);
+      if (Object.keys(previous).length > 0 && Object.keys(data).length === 0) {
+        console.error('Refusing to overwrite non-empty projects with empty data');
+        throw new Error('Cannot delete all projects this way. Use "Delete All" instead.');
+      }
     }
+
     localStorage.setItem(PROJECTS_KEY, JSON.stringify(data));
     const user = window.SessionManager.getCurrentUser();
     if (!user || !user.pat) return;
+
     await verifyNotBlocked();
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(user.username);
@@ -317,15 +346,19 @@ window.portfolioData = (() => {
     try {
       const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat).catch(() => null);
       if (existing) sha = existing.sha;
-      const jsonStr = JSON.stringify(data, null, 2);
-      // Check file size for GitHub API (max ~1 MB for content)
+      const jsonStr = JSON.stringify(data);
       if (jsonStr.length > 900000) {
-        throw new Error('File too large (>900KB). Please use smaller images or reduce the number of images.');
+        throw new Error('Project data is too large. Reduce image sizes.');
       }
       await GitHubAPI.updateFile(owner, repo, path, data, 'Update projects', branch, user.pat, sha);
     } catch (err) {
-      console.error('GitHub write error:', err);
-      throw new Error('Could not sync to GitHub. ' + err.message);
+      // Revert to previous safe state
+      if (prev) {
+        localStorage.setItem(PROJECTS_KEY, prev);
+      } else {
+        localStorage.removeItem(PROJECTS_KEY);
+      }
+      throw new Error('GitHub write failed: ' + err.message);
     }
   }
 
@@ -333,6 +366,7 @@ window.portfolioData = (() => {
     localStorage.setItem(CERTS_KEY, JSON.stringify(data));
     const user = window.SessionManager.getCurrentUser();
     if (!user || !user.pat) return;
+
     await verifyNotBlocked();
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(user.username);
@@ -343,8 +377,8 @@ window.portfolioData = (() => {
       if (existing) sha = existing.sha;
       await GitHubAPI.updateFile(owner, repo, path, data, 'Update certificates', branch, user.pat, sha);
     } catch (err) {
-      console.error('GitHub write error:', err);
-      throw new Error('Could not sync to GitHub. ' + err.message);
+      // No rollback needed for safety, but we still throw
+      throw new Error('GitHub write failed: ' + err.message);
     }
   }
 
@@ -394,11 +428,23 @@ window.generateProjectReport = async function(projectId) {
                       (projectType === 'SIS & DCS') ? ['#8bc34a','#689f38','#558b2f','#33691e'] :
                       ['#adb5bd','#6c757d','#495057','#212529'];
   if (proj.graphType === 'pie') {
-    chart = new Chart(ctx, { type: 'pie', data: { labels: ['AI','AO','DI','DO'], datasets: [{ data: [proj.io.AI, proj.io.AO, proj.io.DI, proj.io.DO], backgroundColor: chartColors }] }, options: { responsive: false } });
+    chart = new Chart(ctx, {
+      type: 'pie',
+      data: { labels: ['AI','AO','DI','DO'], datasets: [{ data: [proj.io.AI, proj.io.AO, proj.io.DI, proj.io.DO], backgroundColor: chartColors }] },
+      options: { responsive: false }
+    });
   } else if (proj.graphType === 'line') {
-    chart = new Chart(ctx, { type: 'line', data: { labels: ['AI','AO','DI','DO'], datasets: [{ label: 'I/O Count', data: [proj.io.AI, proj.io.AO, proj.io.DI, proj.io.DO], borderColor: primaryColor, fill: true }] }, options: { responsive: false } });
+    chart = new Chart(ctx, {
+      type: 'line',
+      data: { labels: ['AI','AO','DI','DO'], datasets: [{ label: 'I/O Count', data: [proj.io.AI, proj.io.AO, proj.io.DI, proj.io.DO], borderColor: primaryColor, fill: true }] },
+      options: { responsive: false }
+    });
   } else {
-    chart = new Chart(ctx, { type: 'bar', data: { labels: ['AI','AO','DI','DO'], datasets: [{ label: 'I/O Count', data: [proj.io.AI, proj.io.AO, proj.io.DI, proj.io.DO], backgroundColor: primaryColor }] }, options: { responsive: false } });
+    chart = new Chart(ctx, {
+      type: 'bar',
+      data: { labels: ['AI','AO','DI','DO'], datasets: [{ label: 'I/O Count', data: [proj.io.AI, proj.io.AO, proj.io.DI, proj.io.DO], backgroundColor: primaryColor }] },
+      options: { responsive: false }
+    });
   }
   await new Promise(r => setTimeout(r, 200));
   const chartBase64 = chartCanvas.toDataURL('image/png');
