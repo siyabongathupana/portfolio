@@ -48,6 +48,10 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const pat = await window.AccountManager.login(username, passphrase);
       window.SessionManager.setCurrentUser(username, pat);
+      // Increment login count
+      try {
+        await window.AccountManager._incrementLoginCount(username, pat);
+      } catch(e) { console.warn('Login count update failed', e); }
       showSuccess('Login successful! Redirecting...');
       setTimeout(() => { window.location.href = 'admin.html'; }, 1000);
     } catch (err) {
