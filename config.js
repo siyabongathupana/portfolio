@@ -11,10 +11,9 @@ window.APP_CONFIG = {
   appName: "DeltaV Engineering Portfolio",
   defaultThumb: "https://picsum.photos/id/100/300/200",
   maxFeatured: 6,
-  adminUsers: ["siyabongatshem@gmail.com"],       // users with admin rights
-  publicProfileEmail: "siyabongatshem@gmail.com", // whose projects visitors see
+  adminUsers: ["siyabongatshem@gmail.com"],
+  publicProfileEmail: "siyabongatshem@gmail.com",
 
-  // EmailJS – create an account at emailjs.com and fill these in
   emailjs: {
     publicKey: "YOUR_EMAILJS_PUBLIC_KEY",
     serviceID: "YOUR_SERVICE_ID",
