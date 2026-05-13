@@ -116,6 +116,7 @@
       const projectsArray = Object.values(data);
       const grid = document.getElementById('featuredGrid');
       const noMsg = document.getElementById('noProjectsMsg');
+      await window.VisitTracker.recordVisit('index'); //SIYA
 
       if (projectsArray.length === 0) {
         grid.innerHTML = '';
