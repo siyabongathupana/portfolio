@@ -43,10 +43,10 @@
   },
   "proj_1778636963394": {
     "id": "proj_1778636963394",
-    "title": "Test 3",
-    "controllerType": "MD",
-    "projectType": "Other",
-    "deltaVVersion": "",
+    "title": "Steam Station 1 Boiler 6",
+    "controllerType": "SZ",
+    "projectType": "SIS",
+    "deltaVVersion": "v14.3.1",
     "cabinetCount": 1,
     "io": {
       "AI": 0,
@@ -60,11 +60,11 @@
       "ifat": "",
       "cfat": ""
     },
-    "siteLocation": "",
+    "siteLocation": "Sasolburg ",
     "team": {
-      "lead": "",
-      "engineer": "",
-      "technician": ""
+      "lead": "Llwellyn Remy",
+      "engineer": "Siyabonga Thupana",
+      "technician": "-"
     },
     "description": "",
     "graphType": "bar",
