@@ -49,6 +49,7 @@
       const projects = Object.values(data);
       const grid = document.getElementById('allProjectsGrid');
       const noMsg = document.getElementById('noProjectsMsg');
+      await window.VisitTracker.recordVisit('projects'); //SIYA
 
       if (projects.length === 0) {
         grid.innerHTML = '';
