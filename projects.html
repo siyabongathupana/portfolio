@@ -13,10 +13,8 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <style>#userBanner { background:#e9f2fa; color:#0b2b3b; padding:6px 20px; font-size:0.9rem; text-align:center; }</style>
 </head>
 <body>
-<div id="userBanner"></div>
 <nav class="navbar navbar-expand-lg custom_nav-container pt-3" style="background:#0b2b3b; padding:15px 0;">
   <div class="container"><a class="navbar-brand" href="index.html"><span>ΔV</span> Engineering</a>
     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navAll"><span class="fa fa-bars text-white"></span></button>
@@ -25,7 +23,7 @@
         <li class="nav-item"><a class="nav-link" href="index.html">Home</a></li>
         <li class="nav-item active"><a class="nav-link" href="projects.html">All Projects</a></li>
         <li class="nav-item"><a class="nav-link" href="certificates.html">Certificates</a></li>
-        <li class="nav-item"><a class="nav-link" href="admin.html" target="_blank"><i class="fa fa-cog"></i> Manage</a></li>
+        <li class="nav-item"><a class="nav-link" href="admin.html" target="_blank">Manage</a></li>
       </ul>
     </div>
   </div>
@@ -39,7 +37,10 @@
     <p>Add your first project in the <a href="admin.html">Admin Panel</a>.</p>
   </div>
 </div>
-<footer><p>© 2025 DeltaV Engineering Portfolio</p></footer>
+<footer>
+  <p>© 2025 DeltaV Engineering Portfolio</p>
+  <p class="footer-status"><span id="userFooterStatus"></span></p>
+</footer>
 
 <script>
   function renderAllProjects() {
@@ -112,7 +113,7 @@
   }
 
   window.onload = function() {
-    window.updateUserBanner();
+    window.updateUserFooter();
     renderAllProjects();
   };
 </script>
