@@ -1,4 +1,4 @@
-// shared.js – Full version, transactional saves, zero-data-loss guarantee
+// shared.js – Full version with lazy loading and performance optimizations
 
 window.showLoading = function (msg = 'Processing...') {
   let loader = document.getElementById('globalLoader');
@@ -252,19 +252,16 @@ window.portfolioData = (() => {
           localStorage.setItem(PROJECTS_KEY, JSON.stringify(data));
           return data;
         } else {
-          // File may not exist yet – empty is fine
           const empty = {};
           localStorage.setItem(PROJECTS_KEY, JSON.stringify(empty));
           return empty;
         }
       } catch (e) {
         if (e.message === 'Blocked') throw e;
-        // Network error – use cache
         console.warn('Could not fetch projects from GitHub, using local cache');
         return JSON.parse(localStorage.getItem(PROJECTS_KEY) || '{}');
       }
     }
-    // Public profile
     const publicEmail = window.APP_CONFIG.publicProfileEmail;
     if (!user && publicEmail) {
       try {
@@ -322,9 +319,7 @@ window.portfolioData = (() => {
     return JSON.parse(localStorage.getItem(CERTS_KEY) || '[]');
   }
 
-  // TRANSACTIONAL SAVE – never overwrite with empty data
   async function saveProjects(data) {
-    // Safety: refuse to overwrite existing data with empty object
     const prev = localStorage.getItem(PROJECTS_KEY);
     if (prev) {
       const previous = JSON.parse(prev);
@@ -333,11 +328,9 @@ window.portfolioData = (() => {
         throw new Error('Cannot delete all projects this way. Use "Delete All" instead.');
       }
     }
-
     localStorage.setItem(PROJECTS_KEY, JSON.stringify(data));
     const user = window.SessionManager.getCurrentUser();
     if (!user || !user.pat) return;
-
     await verifyNotBlocked();
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(user.username);
@@ -348,16 +341,12 @@ window.portfolioData = (() => {
       if (existing) sha = existing.sha;
       const jsonStr = JSON.stringify(data);
       if (jsonStr.length > 900000) {
-        throw new Error('Project data is too large. Reduce image sizes.');
+        throw new Error('Project data is too large. Reduce image sizes or number of images.');
       }
       await GitHubAPI.updateFile(owner, repo, path, data, 'Update projects', branch, user.pat, sha);
     } catch (err) {
-      // Revert to previous safe state
-      if (prev) {
-        localStorage.setItem(PROJECTS_KEY, prev);
-      } else {
-        localStorage.removeItem(PROJECTS_KEY);
-      }
+      if (prev) localStorage.setItem(PROJECTS_KEY, prev);
+      else localStorage.removeItem(PROJECTS_KEY);
       throw new Error('GitHub write failed: ' + err.message);
     }
   }
@@ -366,7 +355,6 @@ window.portfolioData = (() => {
     localStorage.setItem(CERTS_KEY, JSON.stringify(data));
     const user = window.SessionManager.getCurrentUser();
     if (!user || !user.pat) return;
-
     await verifyNotBlocked();
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(user.username);
@@ -377,7 +365,6 @@ window.portfolioData = (() => {
       if (existing) sha = existing.sha;
       await GitHubAPI.updateFile(owner, repo, path, data, 'Update certificates', branch, user.pat, sha);
     } catch (err) {
-      // No rollback needed for safety, but we still throw
       throw new Error('GitHub write failed: ' + err.message);
     }
   }
@@ -398,6 +385,32 @@ window.portfolioData = (() => {
 
   return { loadProjects, saveProjects, loadCertificates, saveCertificates, exportData };
 })();
+
+// Lazy loading for images (improves page speed)
+window.lazyLoadImages = function() {
+  if ('IntersectionObserver' in window) {
+    const imgObserver = new IntersectionObserver((entries, observer) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const img = entry.target;
+          const src = img.dataset.src;
+          if (src) {
+            img.src = src;
+            img.removeAttribute('data-src');
+          }
+          observer.unobserve(img);
+        }
+      });
+    });
+    document.querySelectorAll('img[data-src]').forEach(img => imgObserver.observe(img));
+  } else {
+    // Fallback: load all immediately
+    document.querySelectorAll('img[data-src]').forEach(img => {
+      img.src = img.dataset.src;
+      img.removeAttribute('data-src');
+    });
+  }
+};
 
 window.protectImages = function () {
   document.querySelectorAll('.project-img, .modal-carousel-img').forEach(img => {
@@ -456,7 +469,7 @@ window.generateProjectReport = async function(projectId) {
     proj.selectedImages.forEach(img => {
       imagesHtml += `
         <div style="flex:0 0 calc(50% - 5px); text-align:center; background:#f8f9fa; border-radius:8px; padding:5px;">
-          <img src="${img.url}" style="width:100%; max-height:150px; object-fit:cover; border-radius:8px;" />
+          <img src="${img.url}" style="width:100%; max-height:150px; object-fit:cover; border-radius:8px;" loading="lazy" />
           <div style="font-size:10px; color:#555; margin-top:4px;">${img.caption || ''}</div>
         </div>`;
     });
