@@ -48,6 +48,7 @@ h1,h2,h3,h4,.navbar-brand { font-weight:700; letter-spacing:-0.02em; }
 
 /* FOOTER */
 footer { background:#051f29; color:#bdd3e0; text-align:center; padding:24px; }
+.footer-status { margin-top:8px; font-size:0.85rem; }
 
 /* ADMIN CONTAINERS */
 .admin-container,.certificates-container { max-width:1200px; margin:40px auto; background:white; border-radius:32px; padding:30px; box-shadow:0 10px 30px rgba(0,0,0,0.08); }
