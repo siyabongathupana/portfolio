@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard | Portfolio</title>
+  <title>Dashboard | DeltaV Portfolio</title>
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -37,7 +37,7 @@
 <div id="dashboard" style="display:none;">
   <div class="container admin-container">
     <div class="d-flex justify-content-between align-items-center flex-wrap">
-      <h1><i class="fa fa-dashboard"></i> Portfolio Dashboard</h1>
+      <h1><i class="fa fa-dashboard"></i> DeltaV Portfolio Dashboard</h1>
       <div class="d-flex align-items-center">
         <span class="user-badge mr-3" id="currentUserDisplay"></span>
         <button class="btn btn-outline-danger btn-sm mr-2" id="logoutBtn"><i class="fa fa-sign-out"></i> Logout</button>
@@ -265,10 +265,12 @@
       });
     };
 
+    // FIXED: Certificate thumbnail compression now uses larger dimensions and higher quality
     window.handleCertThumbUpload = function(el) {
       const file = el.files[0];
       if (!file) return;
-      compressImage(file, 300, 200, 0.6).then(dataUrl => {
+      // Increased max dimensions to 1000x800, quality 0.9 (was 300x200, 0.6)
+      compressImage(file, 1000, 800, 0.9).then(dataUrl => {
         document.getElementById('certThumb').value = dataUrl;
         const preview = document.getElementById('thumbPreview');
         preview.src = dataUrl;
