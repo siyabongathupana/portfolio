@@ -10,10 +10,8 @@
   <link rel="stylesheet" href="styles.css">
   <script src="config.js"></script>
   <script src="shared.js"></script>
-  <style>#userBanner { background:#e9f2fa; color:#0b2b3b; padding:6px 20px; font-size:0.9rem; text-align:center; }</style>
 </head>
 <body>
-<div id="userBanner"></div>
 <nav class="navbar navbar-expand-lg custom_nav-container pt-3" style="background:#0b2b3b; padding:15px 0;">
   <div class="container"><a class="navbar-brand" href="index.html"><span>ΔV</span> Engineering</a>
     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navCert"><span class="fa fa-bars text-white"></span></button>
@@ -42,7 +40,10 @@
     <a href="admin.html" class="btn btn-outline-delta"><i class="fa fa-plus"></i> Add/Edit Certificates (Admin)</a>
   </div>
 </div>
-<footer><p>© 2025 DeltaV Engineering Portfolio</p></footer>
+<footer>
+  <p>© 2025 DeltaV Engineering Portfolio</p>
+  <p class="footer-status"><span id="userFooterStatus"></span></p>
+</footer>
 
 <script>
   function renderCertificates() {
@@ -94,7 +95,7 @@
   }
 
   window.onload = function() {
-    window.updateUserBanner();
+    window.updateUserFooter();
     renderCertificates();
   };
 </script>
