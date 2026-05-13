@@ -1,4 +1,4 @@
-// shared.js – Full version, transactional saves, zero-data-loss guarantee
+// shared.js – Full version, transactional saves, login counting, visit tracker
 
 window.showLoading = function (msg = 'Processing...') {
   let loader = document.getElementById('globalLoader');
@@ -16,17 +16,14 @@ window.showLoading = function (msg = 'Processing...') {
     loader.style.display = 'flex';
   }
 };
-
 window.hideLoading = function () {
   const loader = document.getElementById('globalLoader');
   if (loader) loader.style.display = 'none';
 };
-
 window.escapeHtml = function (str) {
   if (!str) return '';
   return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m] || m);
 };
-
 window.updateUserFooter = function () {
   const user = window.SessionManager.getCurrentUser();
   const el = document.getElementById('userFooterStatus');
@@ -142,6 +139,24 @@ window.AccountManager = {
     return data.token;
   },
 
+  async _incrementLoginCount(username, token) {
+    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+    const encUser = encodeURIComponent(username);
+    const path = `${dataPath}/users/${encUser}/stats.json`;
+    let stats = { logins: 0 };
+    try {
+      const file = await GitHubAPI.getFileContent(owner, repo, path, branch, token).catch(() => null);
+      if (file && file.content) stats = JSON.parse(file.content);
+    } catch(e) {}
+    stats.logins = (stats.logins || 0) + 1;
+    let sha = null;
+    try {
+      const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, token).catch(() => null);
+      if (existing) sha = existing.sha;
+      await GitHubAPI.updateFile(owner, repo, path, stats, 'Update login count', branch, token, sha);
+    } catch(e) { console.warn('Could not update login count', e); }
+  },
+
   async getBlockedUsers() {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const url = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${dataPath}/blocked_users.json`;
@@ -201,7 +216,7 @@ window.AccountManager = {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(username);
     const base = `${dataPath}/users/${encUser}`;
-    let projectCount = 0, certCount = 0;
+    let projectCount = 0, certCount = 0, loginCount = 0;
     try {
       const projFile = await GitHubAPI.getFileContent(owner, repo, `${base}/projects.json`, branch, adminToken);
       if (projFile && projFile.content) {
@@ -216,13 +231,45 @@ window.AccountManager = {
         certCount = data.length;
       }
     } catch (e) {}
-    return { projects: projectCount, certificates: certCount };
+    try {
+      const statsFile = await GitHubAPI.getFileContent(owner, repo, `${base}/stats.json`, branch, adminToken);
+      if (statsFile && statsFile.content) {
+        const s = JSON.parse(statsFile.content);
+        loginCount = s.logins || 0;
+      }
+    } catch(e) {}
+    return { projects: projectCount, certificates: certCount, loginCount };
   }
 };
 
-/* =====================================================
-   PORTFOLIO DATA – TRANSACTIONAL SAVES, NO DELETIONS
-   ===================================================== */
+/* ---------- VISIT TRACKER ---------- */
+window.VisitTracker = {
+  _getStats() {
+    return JSON.parse(localStorage.getItem('siteStats') || '{"total":0,"pages":{}}');
+  },
+  async recordVisit(page) {
+    const stats = this._getStats();
+    stats.total = (stats.total || 0) + 1;
+    stats.pages[page] = (stats.pages[page] || 0) + 1;
+    localStorage.setItem('siteStats', JSON.stringify(stats));
+    const user = window.SessionManager.getCurrentUser();
+    if (user && user.pat) {
+      try {
+        const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+        const path = `${dataPath}/site_stats.json`;
+        let sha = null;
+        const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat).catch(() => null);
+        if (existing) sha = existing.sha;
+        await GitHubAPI.updateFile(owner, repo, path, stats, 'Update site stats', branch, user.pat, sha);
+      } catch(e) {}
+    }
+  },
+  getStats() {
+    return this._getStats();
+  }
+};
+
+/* ========== PORTFOLIO DATA ========== */
 window.portfolioData = (() => {
   const PROJECTS_KEY = 'deltaVProjects';
   const CERTS_KEY = 'deltaVCertificates';
@@ -252,19 +299,15 @@ window.portfolioData = (() => {
           localStorage.setItem(PROJECTS_KEY, JSON.stringify(data));
           return data;
         } else {
-          // File may not exist yet – empty is fine
-          const empty = {};
-          localStorage.setItem(PROJECTS_KEY, JSON.stringify(empty));
-          return empty;
+          localStorage.setItem(PROJECTS_KEY, JSON.stringify({}));
+          return {};
         }
       } catch (e) {
         if (e.message === 'Blocked') throw e;
-        // Network error – use cache
         console.warn('Could not fetch projects from GitHub, using local cache');
         return JSON.parse(localStorage.getItem(PROJECTS_KEY) || '{}');
       }
     }
-    // Public profile
     const publicEmail = window.APP_CONFIG.publicProfileEmail;
     if (!user && publicEmail) {
       try {
@@ -296,9 +339,8 @@ window.portfolioData = (() => {
           localStorage.setItem(CERTS_KEY, JSON.stringify(data));
           return data;
         } else {
-          const empty = [];
-          localStorage.setItem(CERTS_KEY, JSON.stringify(empty));
-          return empty;
+          localStorage.setItem(CERTS_KEY, JSON.stringify([]));
+          return [];
         }
       } catch (e) {
         if (e.message === 'Blocked') throw e;
@@ -322,22 +364,17 @@ window.portfolioData = (() => {
     return JSON.parse(localStorage.getItem(CERTS_KEY) || '[]');
   }
 
-  // TRANSACTIONAL SAVE – never overwrite with empty data
   async function saveProjects(data) {
-    // Safety: refuse to overwrite existing data with empty object
     const prev = localStorage.getItem(PROJECTS_KEY);
     if (prev) {
       const previous = JSON.parse(prev);
       if (Object.keys(previous).length > 0 && Object.keys(data).length === 0) {
-        console.error('Refusing to overwrite non-empty projects with empty data');
-        throw new Error('Cannot delete all projects this way. Use "Delete All" instead.');
+        throw new Error('Cannot overwrite existing projects with empty data.');
       }
     }
-
     localStorage.setItem(PROJECTS_KEY, JSON.stringify(data));
     const user = window.SessionManager.getCurrentUser();
     if (!user || !user.pat) return;
-
     await verifyNotBlocked();
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(user.username);
@@ -347,17 +384,10 @@ window.portfolioData = (() => {
       const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat).catch(() => null);
       if (existing) sha = existing.sha;
       const jsonStr = JSON.stringify(data);
-      if (jsonStr.length > 900000) {
-        throw new Error('Project data is too large. Reduce image sizes.');
-      }
+      if (jsonStr.length > 900000) throw new Error('Data too large, reduce images.');
       await GitHubAPI.updateFile(owner, repo, path, data, 'Update projects', branch, user.pat, sha);
     } catch (err) {
-      // Revert to previous safe state
-      if (prev) {
-        localStorage.setItem(PROJECTS_KEY, prev);
-      } else {
-        localStorage.removeItem(PROJECTS_KEY);
-      }
+      if (prev) localStorage.setItem(PROJECTS_KEY, prev);
       throw new Error('GitHub write failed: ' + err.message);
     }
   }
@@ -366,7 +396,6 @@ window.portfolioData = (() => {
     localStorage.setItem(CERTS_KEY, JSON.stringify(data));
     const user = window.SessionManager.getCurrentUser();
     if (!user || !user.pat) return;
-
     await verifyNotBlocked();
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(user.username);
@@ -377,7 +406,6 @@ window.portfolioData = (() => {
       if (existing) sha = existing.sha;
       await GitHubAPI.updateFile(owner, repo, path, data, 'Update certificates', branch, user.pat, sha);
     } catch (err) {
-      // No rollback needed for safety, but we still throw
       throw new Error('GitHub write failed: ' + err.message);
     }
   }
