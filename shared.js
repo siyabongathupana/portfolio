@@ -1,4 +1,4 @@
-// shared.js – Data management, accounts, blocked users, email, banner, PDF, image protection
+// shared.js – Full version, no placeholders
 
 window.showLoading = function (msg = 'Processing...') {
   let loader = document.getElementById('globalLoader');
@@ -38,7 +38,6 @@ window.updateUserFooter = function () {
   }
 };
 
-/* ========== Session Manager ========== */
 window.SessionManager = (() => {
   let current = null;
   return {
@@ -61,7 +60,6 @@ window.SessionManager = (() => {
   };
 })();
 
-/* ========== Account Manager ========== */
 window.AccountManager = {
   async _ensureEmailJS() {
     if (typeof emailjs === 'undefined') {
@@ -75,10 +73,12 @@ window.AccountManager = {
       emailjs.init(window.APP_CONFIG.emailjs.publicKey);
     }
   },
+
   async _sendEmail(templateID, params) {
     await this._ensureEmailJS();
     return emailjs.send(window.APP_CONFIG.emailjs.serviceID, templateID, params);
   },
+
   async _notifyAdminNewUser(userEmail) {
     const cfg = window.APP_CONFIG.emailjs;
     if (!cfg || !cfg.publicKey || !cfg.adminTemplateID) return;
@@ -90,6 +90,7 @@ window.AccountManager = {
       });
     } catch (e) { console.warn('Admin email failed', e); }
   },
+
   async _notifyUserConfirmation(userEmail) {
     const cfg = window.APP_CONFIG.emailjs;
     if (!cfg || !cfg.publicKey || !cfg.userTemplateID) return;
@@ -101,6 +102,7 @@ window.AccountManager = {
       });
     } catch (e) { console.warn('User email failed', e); }
   },
+
   async fetchAccount(username) {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(username);
@@ -111,22 +113,27 @@ window.AccountManager = {
       return await resp.json();
     } catch { return null; }
   },
+
   async register(username, passphrase, pat) {
     const payload = JSON.stringify({ test: 'VALID', token: pat });
     const encrypted = await window.CryptoUtil.encrypt(payload, passphrase);
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(username);
     const path = `${dataPath}/users/${encUser}/account.json`;
+
     const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, pat).catch(() => null);
     if (existing) throw new Error('An account with this email already exists on GitHub.');
+
     await GitHubAPI.updateFile(owner, repo, path, encrypted, `Register ${username}`, branch, pat);
     this._notifyAdminNewUser(username);
     this._notifyUserConfirmation(username);
     return true;
   },
+
   async login(username, passphrase) {
     const blocked = await this.getBlockedUsers();
     if (blocked.includes(username)) throw new Error('Your account has been blocked. Contact the administrator.');
+
     const blob = await this.fetchAccount(username);
     if (!blob) throw new Error('User not found');
     const decrypted = await window.CryptoUtil.decrypt(blob, passphrase);
@@ -134,6 +141,7 @@ window.AccountManager = {
     if (data.test !== 'VALID') throw new Error('Corrupted account');
     return data.token;
   },
+
   async getBlockedUsers() {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const url = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${dataPath}/blocked_users.json`;
@@ -143,10 +151,16 @@ window.AccountManager = {
       return await resp.json();
     } catch { return []; }
   },
+
   async toggleBlock(username, block, adminToken) {
     const blocked = await this.getBlockedUsers();
-    if (block) { if (!blocked.includes(username)) blocked.push(username); }
-    else { const idx = blocked.indexOf(username); if (idx !== -1) blocked.splice(idx, 1); }
+    if (block) {
+      if (!blocked.includes(username)) blocked.push(username);
+    } else {
+      const idx = blocked.indexOf(username);
+      if (idx !== -1) blocked.splice(idx, 1);
+    }
+
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const path = `${dataPath}/blocked_users.json`;
     let sha = null;
@@ -155,20 +169,26 @@ window.AccountManager = {
     await GitHubAPI.updateFile(owner, repo, path, blocked, 'Update blocked users', branch, adminToken, sha);
     return true;
   },
+
   async listUsers(adminToken) {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const url = `https://api.github.com/repos/${owner}/${repo}/contents/${dataPath}/users?ref=${branch}`;
-    const resp = await fetch(url, { headers: { 'Authorization': `token ${adminToken}`, 'Accept': 'application/vnd.github.v3+json' } });
+    const resp = await fetch(url, {
+      headers: { 'Authorization': `token ${adminToken}`, 'Accept': 'application/vnd.github.v3+json' }
+    });
     if (!resp.ok) throw new Error('Cannot list users');
     const items = await resp.json();
     return items.filter(i => i.type === 'dir').map(i => i.name);
   },
+
   async deleteUser(username, adminToken) {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(username);
     const dirPath = `${dataPath}/users/${encUser}`;
     const url = `https://api.github.com/repos/${owner}/${repo}/contents/${dirPath}?ref=${branch}`;
-    const resp = await fetch(url, { headers: { 'Authorization': `token ${adminToken}`, 'Accept': 'application/vnd.github.v3+json' } });
+    const resp = await fetch(url, {
+      headers: { 'Authorization': `token ${adminToken}`, 'Accept': 'application/vnd.github.v3+json' }
+    });
     if (!resp.ok) throw new Error('User folder not found');
     const items = await resp.json();
     for (const item of items) {
@@ -176,6 +196,7 @@ window.AccountManager = {
     }
     return true;
   },
+
   async getUserStats(username, adminToken) {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(username);
@@ -198,10 +219,6 @@ window.AccountManager = {
     return { projects: projectCount, certificates: certCount };
   }
 };
-
-/* ========== Portfolio Data ========== */
-const defaultProjects = {};
-const defaultCertificates = [];
 
 window.portfolioData = (() => {
   const PROJECTS_KEY = 'deltaVProjects';
@@ -255,7 +272,7 @@ window.portfolioData = (() => {
     }
     const stored = localStorage.getItem(PROJECTS_KEY);
     if (stored) return JSON.parse(stored);
-    return defaultProjects;
+    return {};
   }
 
   async function loadCertificates() {
@@ -294,7 +311,7 @@ window.portfolioData = (() => {
     }
     const stored = localStorage.getItem(CERTS_KEY);
     if (stored) return JSON.parse(stored);
-    return defaultCertificates;
+    return [];
   }
 
   async function saveProjects(data) {
@@ -352,7 +369,6 @@ window.portfolioData = (() => {
   return { loadProjects, saveProjects, loadCertificates, saveCertificates, exportData };
 })();
 
-/* ========== Image Protection ========== */
 window.protectImages = function () {
   document.querySelectorAll('.project-img, .modal-carousel-img').forEach(img => {
     img.setAttribute('draggable', 'false');
@@ -361,7 +377,6 @@ window.protectImages = function () {
   });
 };
 
-/* ========== PDF Generation ========== */
 window.generateProjectReport = async function(projectId) {
   const data = await window.portfolioData.loadProjects();
   const proj = data[projectId];
