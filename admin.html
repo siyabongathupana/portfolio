@@ -30,11 +30,27 @@
     .user-badge { background:#2fc7ff; color:white; padding:4px 12px; border-radius:20px; font-size:0.9rem; }
     .admin-section { border-left:4px solid #ffc107; padding-left:15px; }
     .footer-status { font-size:0.85rem; }
+    .navbar-custom { background:#0b2b3b; padding:10px 0; border-radius:12px; }
+    .navbar-custom a { color:white; margin-right:15px; text-decoration:none; }
+    .navbar-custom a:hover { color:#2fc7ff; }
   </style>
 </head>
 <body style="background:#eef3fc;">
 
 <div id="dashboard" style="display:none;">
+  <!-- Top Navigation -->
+  <nav class="navbar navbar-expand navbar-custom mb-4">
+    <div class="container d-flex justify-content-between">
+      <a class="navbar-brand" href="index.html"><span style="color:#2fc7ff;">ΔV</span> Engineering</a>
+      <div>
+        <a href="index.html"><i class="fa fa-home"></i> Home</a>
+        <a href="projects.html"><i class="fa fa-folder"></i> All Projects</a>
+        <a href="certificates.html"><i class="fa fa-certificate"></i> Certificates</a>
+        <a href="admin.html"><i class="fa fa-cog"></i> Dashboard</a>
+      </div>
+    </div>
+  </nav>
+
   <div class="container admin-container">
     <div class="d-flex justify-content-between align-items-center flex-wrap">
       <h1><i class="fa fa-dashboard"></i> DeltaV Portfolio Dashboard</h1>
@@ -44,6 +60,29 @@
         <button class="btn btn-outline-success btn-sm mr-2" id="downloadDataBtn"><i class="fa fa-download"></i> Export</button>
       </div>
     </div>
+
+    <!-- Stats Row -->
+    <div class="row mt-3">
+      <div class="col-md-4">
+        <div class="card p-2 text-center">
+          <strong>Total Site Visits</strong>
+          <h3 id="totalVisits">0</h3>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card p-2 text-center">
+          <strong>Dashboard Visits</strong>
+          <h3 id="pageVisits">0</h3>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card p-2 text-center">
+          <strong>Your Logins</strong>
+          <h3 id="userLogins">0</h3>
+        </div>
+      </div>
+    </div>
+
     <hr>
     <ul class="nav nav-tabs" id="adminTabs">
       <li class="nav-item"><a class="nav-link active" data-toggle="tab" href="#projectsTab">Projects</a></li>
@@ -503,7 +542,6 @@
         graphType: document.getElementById('projGraphType').value,
         selectedImages
       };
-
       await safeSaveProject(project);
     });
 
@@ -555,7 +593,6 @@
       };
       if (idx !== '' && certs[idx]) certs[idx] = newCert;
       else certs.push(newCert);
-
       await safeSaveCertificate(certs);
     });
 
@@ -579,7 +616,7 @@
         } else {
           for (const username of usernames) {
             const isBlocked = blocked.includes(username);
-            let stats = { projects: 0, certificates: 0 };
+            let stats = { projects: 0, certificates: 0, loginCount: 0 };
             try {
               stats = await window.AccountManager.getUserStats(username, user.pat);
             } catch(e) {}
@@ -593,7 +630,7 @@
                     <strong>${window.escapeHtml(username)}</strong>
                     ${isBlocked ? '<span class="badge badge-danger ml-2">Blocked</span>' : '<span class="badge badge-success ml-2">Active</span>'}
                     <div class="small text-muted">
-                      Projects: ${stats.projects} | Certificates: ${stats.certificates}
+                      Projects: ${stats.projects} | Certs: ${stats.certificates} | Logins: ${stats.loginCount}
                     </div>
                   </div>
                   <div>
@@ -644,6 +681,20 @@
       hideLoading();
     }
 
+    // ---------- STATS LOADING & VISIT RECORDING ----------
+    async function loadStats() {
+      const siteStats = window.VisitTracker.getStats();
+      document.getElementById('totalVisits').textContent = siteStats.total || 0;
+      document.getElementById('pageVisits').textContent = (siteStats.pages && siteStats.pages['dashboard']) || 0;
+      try {
+        const userStats = await window.AccountManager.getUserStats(user.username, user.pat);
+        document.getElementById('userLogins').textContent = userStats.loginCount || 0;
+      } catch(e) {
+        document.getElementById('userLogins').textContent = '-';
+      }
+      await window.VisitTracker.recordVisit('dashboard');
+    }
+
     // ---------- BUTTON HANDLERS ----------
     document.getElementById('addProjectBtn').addEventListener('click', () => openProjectModal());
     document.getElementById('addCertBtn').addEventListener('click', () => openCertModal());
@@ -664,6 +715,7 @@
       showLoading('Syncing from GitHub...');
       await renderProjects();
       await renderCertificates();
+      loadStats();  // refresh stats after sync
       hideLoading();
       alert('Data refreshed.');
     });
@@ -687,6 +739,7 @@
     // Initial load
     await renderProjects();
     await renderCertificates();
+    await loadStats();
     hideLoading();
   }
 </script>
