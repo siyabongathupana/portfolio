@@ -19,17 +19,20 @@
   <style>
     .cert-thumb-preview { max-width:80px; max-height:80px; margin-top:8px; border-radius:12px; }
     .form-row.mt-2 { margin-top:12px!important; }
-    .image-input-group { margin-bottom:15px; background:#f8f9fa; padding:12px; border-radius:12px; display:flex; align-items:center; gap:12px; }
+    .image-input-group { margin-bottom:15px; background:#f8f9fa; padding:12px; border-radius:12px; display:flex; align-items:center; gap:12px; position:relative; }
     .image-input-group .img-preview-thumb { width:80px; height:80px; object-fit:cover; border-radius:8px; background:#e9ecef; }
     .image-input-group .img-details { flex:1; min-width:0; }
-    .image-input-group .remove-img-btn { font-size:1.2rem; color:#dc3545; cursor:pointer; }
+    .image-input-group .remove-img-btn { font-size:1.2rem; color:#dc3545; cursor:pointer; opacity:0.6; transition:0.2s; }
+    .image-input-group:hover .remove-img-btn { opacity:1; }
     .drop-zone { border:2px dashed #2fc7ff; border-radius:16px; padding:30px; text-align:center; color:#2fc7ff; margin-bottom:20px; cursor:pointer; transition:background 0.2s; }
     .drop-zone:hover, .drop-zone.dragover { background:#e6f7ff; }
     .drop-zone i { font-size:2rem; display:block; margin-bottom:8px; }
     .drop-zone .size-warning { font-size:0.75rem; color:#888; margin-top:5px; }
     .user-badge { background:#2fc7ff; color:white; padding:4px 12px; border-radius:20px; font-size:0.9rem; }
-    .admin-section { border-left:4px solid #ffc107; padding-left:15px; }
-    .footer-status { font-size:0.85rem; }
+    .progress-bar-container { width:100%; height:6px; background:#e0e0e0; border-radius:3px; margin:10px 0; overflow:hidden; }
+    .progress-bar-fill { width:0%; height:100%; background:#2fc7ff; transition:width 0.2s; }
+    .batch-actions { margin-top:15px; display:flex; gap:10px; align-items:center; }
+    .image-counter { font-size:0.8rem; color:#666; margin-left:10px; }
   </style>
 </head>
 <body style="background:#eef3fc;">
@@ -146,14 +149,22 @@
           </div>
 
           <div class="form-group">
-            <label>Images (drag & drop or browse, unlimited – images are automatically compressed)</label>
+            <label>Gallery Images (drag & drop or browse, unlimited – background compression, no UI freeze)</label>
             <div class="drop-zone" id="imageDropZone">
               <i class="fa fa-cloud-upload"></i>
-              <span>Drag & drop images here or click to browse</span>
-              <div class="size-warning">Large photos will be resized for web performance</div>
+              <span>Drop images here or click to browse</span>
+              <div class="size-warning">Images are resized to max 800px width/height, quality 70% – keeps JSON small</div>
               <input type="file" id="imageFileInput" multiple accept="image/*" style="display:none;">
             </div>
+            <div class="progress-bar-container" id="uploadProgressBar" style="display:none;">
+              <div class="progress-bar-fill" id="uploadProgressFill"></div>
+            </div>
             <div id="imagesContainer"></div>
+            <div class="batch-actions" id="batchActions" style="display:none;">
+              <button type="button" class="btn btn-sm btn-outline-danger" id="deleteSelectedImagesBtn"><i class="fa fa-trash"></i> Delete Selected</button>
+              <button type="button" class="btn btn-sm btn-outline-secondary" id="selectAllImagesBtn">Select All</button>
+              <span id="imageCountInfo" class="image-counter"></span>
+            </div>
           </div>
 
           <button type="submit" class="btn btn-delta mt-3">Save Project</button>
@@ -205,22 +216,25 @@
     initDashboard();
   }
 
-  function compressImage(file, maxW = 1200, maxH = 1200, quality = 0.7) {
+  // Optimized compression for gallery images (faster, smaller, good quality)
+  async function compressImage(file, maxW = 800, maxH = 800, quality = 0.7) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = e => {
         const img = new Image();
         img.onload = () => {
           let { width, height } = img;
-          if (width > maxW || height > maxH) {
-            const ratio = Math.min(maxW / width, maxH / height);
+          const ratio = Math.min(maxW / width, maxH / height);
+          if (ratio < 1) {
             width = Math.round(width * ratio);
             height = Math.round(height * ratio);
           }
           const canvas = document.createElement('canvas');
-          canvas.width = width; canvas.height = height;
+          canvas.width = width;
+          canvas.height = height;
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, width, height);
+          // Use JPEG for smaller size
           resolve(canvas.toDataURL('image/jpeg', quality));
         };
         img.onerror = reject;
@@ -235,12 +249,25 @@
     const imgContainer = document.getElementById('imagesContainer');
     const dropZone = document.getElementById('imageDropZone');
     const fileInput = document.getElementById('imageFileInput');
+    const progressBar = document.getElementById('uploadProgressBar');
+    const progressFill = document.getElementById('uploadProgressFill');
+    let pendingFiles = [];
+    let processedCount = 0;
+    let batchActions = document.getElementById('batchActions');
+    let imageCountInfo = document.getElementById('imageCountInfo');
 
-    function addImageRow(url = '', caption = '') {
+    function updateImageCounter() {
+      const count = imgContainer.querySelectorAll('.image-input-group').length;
+      imageCountInfo.textContent = `${count} image${count !== 1 ? 's' : ''}`;
+      batchActions.style.display = count > 0 ? 'flex' : 'none';
+    }
+
+    function addImageRow(url = '', caption = '', isNew = true) {
       const placeholder = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><rect width="80" height="80" fill="#ddd"/><text x="50%" y="50%" font-size="14" fill="#999" text-anchor="middle" dy=".3em">No Img</text></svg>');
       const row = document.createElement('div');
       row.className = 'image-input-group';
       row.innerHTML = `
+        <input type="checkbox" class="image-select-checkbox" style="margin-right:10px;">
         <img src="${url || placeholder}" class="img-preview-thumb" onerror="this.src='${placeholder}'">
         <div class="img-details">
           <input type="text" class="form-control img-url-input" placeholder="Image URL" value="${window.escapeHtml(url)}" readonly style="display:none;">
@@ -250,26 +277,25 @@
             <input type="file" accept="image/*" style="display:none;" onchange="window.updateImageRow(this)">
           </label>
         </div>
-        <i class="fa fa-times-circle remove-img-btn" onclick="this.closest('.image-input-group').remove()"></i>
+        <i class="fa fa-times-circle remove-img-btn" onclick="this.closest('.image-input-group').remove(); updateImageCounter();"></i>
       `;
       imgContainer.appendChild(row);
+      updateImageCounter();
+      return row;
     }
 
-    window.updateImageRow = function(el) {
+    window.updateImageRow = async function(el) {
       const file = el.files[0];
       if (!file) return;
-      compressImage(file).then(dataUrl => {
-        const row = el.closest('.image-input-group');
-        row.querySelector('.img-url-input').value = dataUrl;
-        row.querySelector('.img-preview-thumb').src = dataUrl;
-      });
+      const dataUrl = await compressImage(file);
+      const row = el.closest('.image-input-group');
+      row.querySelector('.img-url-input').value = dataUrl;
+      row.querySelector('.img-preview-thumb').src = dataUrl;
     };
 
-    // FIXED: Certificate thumbnail compression now uses larger dimensions and higher quality
     window.handleCertThumbUpload = function(el) {
       const file = el.files[0];
       if (!file) return;
-      // Increased max dimensions to 1000x800, quality 0.9 (was 300x200, 0.6)
       compressImage(file, 1000, 800, 0.9).then(dataUrl => {
         document.getElementById('certThumb').value = dataUrl;
         const preview = document.getElementById('thumbPreview');
@@ -277,6 +303,35 @@
         preview.style.display = 'inline-block';
       });
     };
+
+    // Batch upload with progress
+    async function processFileQueue() {
+      if (pendingFiles.length === 0) return;
+      progressBar.style.display = 'block';
+      processedCount = 0;
+      const total = pendingFiles.length;
+      for (const file of pendingFiles) {
+        const dataUrl = await compressImage(file);
+        addImageRow(dataUrl, '');
+        processedCount++;
+        const percent = (processedCount / total) * 100;
+        progressFill.style.width = percent + '%';
+        // Small delay to allow UI update
+        await new Promise(r => setTimeout(r, 10));
+      }
+      pendingFiles = [];
+      progressBar.style.display = 'none';
+      progressFill.style.width = '0%';
+    }
+
+    function addFilesToQueue(files) {
+      for (const file of files) {
+        if (file.type.startsWith('image/')) {
+          pendingFiles.push(file);
+        }
+      }
+      processFileQueue();
+    }
 
     dropZone.addEventListener('click', () => fileInput.click());
     ['dragenter','dragover','dragleave','drop'].forEach(ev => {
@@ -287,19 +342,29 @@
     dropZone.addEventListener('drop', e => {
       dropZone.classList.remove('dragover');
       const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
-      if (files.length) {
-        for (const file of files) compressImage(file).then(dataUrl => addImageRow(dataUrl, ''));
-      }
+      if (files.length) addFilesToQueue(files);
     });
     fileInput.addEventListener('change', () => {
-      const files = Array.from(fileInput.files);
+      const files = Array.from(fileInput.files).filter(f => f.type.startsWith('image/'));
       if (files.length) {
-        for (const file of files) compressImage(file).then(dataUrl => addImageRow(dataUrl, ''));
+        addFilesToQueue(files);
         fileInput.value = '';
       }
     });
 
-    // ---------- RENDER FUNCTIONS ----------
+    // Batch delete selected
+    document.getElementById('deleteSelectedImagesBtn')?.addEventListener('click', () => {
+      const checkboxes = imgContainer.querySelectorAll('.image-select-checkbox:checked');
+      checkboxes.forEach(cb => cb.closest('.image-input-group')?.remove());
+      updateImageCounter();
+    });
+    document.getElementById('selectAllImagesBtn')?.addEventListener('click', () => {
+      const checkboxes = imgContainer.querySelectorAll('.image-select-checkbox');
+      const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+      checkboxes.forEach(cb => cb.checked = !allChecked);
+    });
+
+    // ---------- RENDER FUNCTIONS (same as before, but using new image row) ----------
     async function renderProjects() {
       const projects = await window.portfolioData.loadProjects();
       const container = document.getElementById('projectsList');
@@ -360,9 +425,9 @@
 
     // ---------- SAFE DELETE / SAVE (transactional) ----------
     async function safeDeleteProject(id) {
-      showLoading('Deleting project...');
+      window.showLoading('Deleting project...');
       const current = await window.portfolioData.loadProjects();
-      if (!current[id]) { hideLoading(); return; }
+      if (!current[id]) { window.hideLoading(); return; }
       delete current[id];
       try {
         await window.portfolioData.saveProjects(current);
@@ -370,13 +435,13 @@
       } catch (err) {
         alert('Delete failed: ' + err.message);
       }
-      hideLoading();
+      window.hideLoading();
     }
 
     async function safeDeleteCertificate(idx) {
-      showLoading('Deleting certificate...');
+      window.showLoading('Deleting certificate...');
       const certs = await window.portfolioData.loadCertificates();
-      if (!certs[idx]) { hideLoading(); return; }
+      if (!certs[idx]) { window.hideLoading(); return; }
       certs.splice(idx, 1);
       try {
         await window.portfolioData.saveCertificates(certs);
@@ -384,11 +449,11 @@
       } catch (err) {
         alert('Delete failed: ' + err.message);
       }
-      hideLoading();
+      window.hideLoading();
     }
 
     async function safeSaveProject(project) {
-      showLoading('Saving project...');
+      window.showLoading('Saving project...');
       const allProjects = await window.portfolioData.loadProjects();
       allProjects[project.id] = project;
       try {
@@ -398,11 +463,11 @@
       } catch (err) {
         alert('Save failed: ' + err.message);
       }
-      hideLoading();
+      window.hideLoading();
     }
 
     async function safeSaveCertificate(certs) {
-      showLoading('Saving certificate...');
+      window.showLoading('Saving certificate...');
       try {
         await window.portfolioData.saveCertificates(certs);
         await renderCertificates();
@@ -410,7 +475,7 @@
       } catch (err) {
         alert('Save failed: ' + err.message);
       }
-      hideLoading();
+      window.hideLoading();
     }
 
     // ---------- PROJECT MODAL ----------
@@ -443,8 +508,9 @@
           document.getElementById('projGraphType').value = proj.graphType;
           imgContainer.innerHTML = '';
           if (proj.selectedImages && proj.selectedImages.length) {
-            proj.selectedImages.forEach(img => addImageRow(img.url, img.caption));
+            proj.selectedImages.forEach(img => addImageRow(img.url, img.caption, false));
           }
+          updateImageCounter();
         }
       } else {
         document.getElementById('projectId').value = '';
@@ -459,6 +525,7 @@
         document.getElementById('projGraphType').value = 'bar';
         ['projStart','projFinish','projIFAT','projCFAT'].forEach(id => document.getElementById(id).value = '');
         imgContainer.innerHTML = '';
+        updateImageCounter();
       }
       $('#projectModal').modal('show');
     }
@@ -505,7 +572,6 @@
         graphType: document.getElementById('projGraphType').value,
         selectedImages
       };
-
       await safeSaveProject(project);
     });
 
@@ -557,7 +623,6 @@
       };
       if (idx !== '' && certs[idx]) certs[idx] = newCert;
       else certs.push(newCert);
-
       await safeSaveCertificate(certs);
     });
 
@@ -570,7 +635,7 @@
     }
 
     async function loadUsers() {
-      showLoading('Loading users...');
+      window.showLoading('Loading users...');
       const container = document.getElementById('usersList');
       try {
         const usernames = await window.AccountManager.listUsers(user.pat);
@@ -585,7 +650,6 @@
             try {
               stats = await window.AccountManager.getUserStats(username, user.pat);
             } catch(e) {}
-
             const card = document.createElement('div');
             card.className = 'card mb-2';
             card.innerHTML = `
@@ -608,33 +672,31 @@
               </div>`;
             container.appendChild(card);
           }
-
           document.querySelectorAll('.toggle-block-btn').forEach(btn => {
             btn.addEventListener('click', async () => {
               const username = btn.dataset.username;
               const block = !blocked.includes(username);
               if (!confirm(`Are you sure you want to ${block ? 'block' : 'unblock'} "${username}"?`)) return;
-              showLoading(`${block ? 'Blocking' : 'Unblocking'} user...`);
+              window.showLoading(`${block ? 'Blocking' : 'Unblocking'} user...`);
               try {
                 await window.AccountManager.toggleBlock(username, block, user.pat);
                 await loadUsers();
               } catch(err) {
-                hideLoading();
+                window.hideLoading();
                 alert('Failed: ' + err.message);
               }
             });
           });
-
           document.querySelectorAll('.delete-user-btn').forEach(btn => {
             btn.addEventListener('click', async () => {
               const username = btn.dataset.username;
               if (!confirm(`Delete all data for "${username}"? This cannot be undone.`)) return;
-              showLoading('Deleting user...');
+              window.showLoading('Deleting user...');
               try {
                 await window.AccountManager.deleteUser(username, user.pat);
                 await loadUsers();
               } catch(err) {
-                hideLoading();
+                window.hideLoading();
                 alert('Failed: ' + err.message);
               }
             });
@@ -643,7 +705,7 @@
       } catch (err) {
         container.innerHTML = `<div class="alert alert-danger">Unable to load users: ${err.message}</div>`;
       }
-      hideLoading();
+      window.hideLoading();
     }
 
     // ---------- BUTTON HANDLERS ----------
@@ -652,33 +714,33 @@
     document.getElementById('downloadDataBtn').addEventListener('click', () => window.portfolioData.exportData());
     document.getElementById('deleteAllProjectsBtn').addEventListener('click', async () => {
       if (confirm('Permanently delete ALL your projects?')) {
-        showLoading('Deleting all projects...');
+        window.showLoading('Deleting all projects...');
         try {
           await window.portfolioData.saveProjects({});
           await renderProjects();
         } catch (err) {
           alert('Failed: ' + err.message);
         }
-        hideLoading();
+        window.hideLoading();
       }
     });
     document.getElementById('syncProjectsBtn').addEventListener('click', async () => {
-      showLoading('Syncing from GitHub...');
+      window.showLoading('Syncing from GitHub...');
       await renderProjects();
       await renderCertificates();
-      hideLoading();
+      window.hideLoading();
       alert('Data refreshed.');
     });
     document.getElementById('deleteAllCertsBtn').addEventListener('click', async () => {
       if (confirm('Delete all certificates?')) {
-        showLoading('Deleting all certificates...');
+        window.showLoading('Deleting all certificates...');
         try {
           await window.portfolioData.saveCertificates([]);
           await renderCertificates();
         } catch (err) {
           alert('Failed: ' + err.message);
         }
-        hideLoading();
+        window.hideLoading();
       }
     });
     document.getElementById('logoutBtn').addEventListener('click', () => {
@@ -689,7 +751,7 @@
     // Initial load
     await renderProjects();
     await renderCertificates();
-    hideLoading();
+    window.hideLoading();
   }
 </script>
 
