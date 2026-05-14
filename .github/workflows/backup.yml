@@ -23,7 +23,7 @@ jobs:
           echo "BACKUP_TIMESTAMP=$TIMESTAMP" >> $GITHUB_ENV
           echo "BACKUP_DIR=backups/$TIMESTAMP" >> $GITHUB_ENV
 
-      - name: Backup all user data (if exists)
+      - name: Backup all user data
         run: |
           if [ -d "data" ]; then
             cp -r data "$BACKUP_DIR/"
@@ -47,7 +47,7 @@ jobs:
           }
           EOF
 
-      - name: Create ZIP archive (instead of tar.gz)
+      - name: Create ZIP archive
         run: |
           cd backups
           zip -r "${BACKUP_TIMESTAMP}.zip" "${BACKUP_TIMESTAMP}"
@@ -55,8 +55,7 @@ jobs:
           cd ..
 
       - name: Delete backups older than 30 days
-        run: |
-          find backups/ -name "*.zip" -type f -mtime +30 -delete
+        run: find backups/ -name "*.zip" -type f -mtime +30 -delete
 
       - name: Commit and push backup
         run: |
