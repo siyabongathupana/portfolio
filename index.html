@@ -29,6 +29,7 @@
           <li class="nav-item active"><a class="nav-link" href="index.html">Home</a></li>
           <li class="nav-item"><a class="nav-link" href="projects.html">All Projects</a></li>
           <li class="nav-item"><a class="nav-link" href="certificates.html">Certificates</a></li>
+          <li class="nav-item"><a class="nav-link" href="timeline.html">Timeline</a></li>
           <li class="nav-item"><a class="nav-link" href="admin.html" target="_blank"><i class="fa fa-cog"></i> Manage</a></li>
         </ul>
       </div>
@@ -172,6 +173,8 @@
           </div>
         `;
         grid.innerHTML += card;
+        
+        // INCREMENT VIEW COUNT FOR THIS PROJECT
         incrementView('project', proj.id);
       });
       window.protectImages();
