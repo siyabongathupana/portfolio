@@ -1,5 +1,4 @@
-// shared.js – Full version with safety checks and transactional saves
-
+// shared.js
 window.showLoading = function (msg = 'Processing...') {
   let loader = document.getElementById('globalLoader');
   if (!loader) {
@@ -12,7 +11,8 @@ window.showLoading = function (msg = 'Processing...') {
       </div>`;
     document.body.appendChild(loader);
   } else {
-    loader.querySelector('.loader-text').textContent = msg;
+    const textEl = loader.querySelector('.loader-text');
+    if (textEl) textEl.textContent = msg;
     loader.style.display = 'flex';
   }
 };
@@ -70,18 +70,26 @@ window.AccountManager = {
         script.onerror = reject;
         document.head.appendChild(script);
       });
-      emailjs.init(window.APP_CONFIG.emailjs.publicKey);
+      const cfg = window.APP_CONFIG.emailjs;
+      if (cfg && cfg.publicKey && cfg.publicKey !== 'YOUR_EMAILJS_PUBLIC_KEY') {
+        emailjs.init(cfg.publicKey);
+      }
     }
   },
 
   async _sendEmail(templateID, params) {
     await this._ensureEmailJS();
-    return emailjs.send(window.APP_CONFIG.emailjs.serviceID, templateID, params);
+    const cfg = window.APP_CONFIG.emailjs;
+    if (!cfg || !cfg.serviceID || cfg.serviceID === 'YOUR_SERVICE_ID') {
+      console.warn('EmailJS not configured');
+      return;
+    }
+    return emailjs.send(cfg.serviceID, templateID, params);
   },
 
   async _notifyAdminNewUser(userEmail) {
     const cfg = window.APP_CONFIG.emailjs;
-    if (!cfg || !cfg.publicKey || !cfg.adminTemplateID) return;
+    if (!cfg || !cfg.adminTemplateID || cfg.adminTemplateID === 'YOUR_ADMIN_TEMPLATE_ID') return;
     try {
       await this._sendEmail(cfg.adminTemplateID, {
         to_email: cfg.adminEmail,
@@ -93,7 +101,7 @@ window.AccountManager = {
 
   async _notifyUserConfirmation(userEmail) {
     const cfg = window.APP_CONFIG.emailjs;
-    if (!cfg || !cfg.publicKey || !cfg.userTemplateID) return;
+    if (!cfg || !cfg.userTemplateID || cfg.userTemplateID === 'YOUR_USER_TEMPLATE_ID') return;
     try {
       await this._sendEmail(cfg.userTemplateID, {
         to_email: userEmail,
@@ -178,7 +186,7 @@ window.AccountManager = {
     });
     if (!resp.ok) throw new Error('Cannot list users');
     const items = await resp.json();
-    return items.filter(i => i.type === 'dir').map(i => i.name);
+    return items.filter(i => i.type === 'dir').map(i => decodeURIComponent(i.name));
   },
 
   async deleteUser(username, adminToken) {
@@ -220,9 +228,7 @@ window.AccountManager = {
   }
 };
 
-/* =====================================================
-   PORTFOLIO DATA – TRANSACTIONAL SAVES WITH SAFETY CHECKS
-   ===================================================== */
+/* PORTFOLIO DATA – TRANSACTIONAL SAVES */
 window.portfolioData = (() => {
   const PROJECTS_KEY = 'deltaVProjects';
   const CERTS_KEY = 'deltaVCertificates';
@@ -324,7 +330,6 @@ window.portfolioData = (() => {
     if (prev) {
       const previous = JSON.parse(prev);
       if (Object.keys(previous).length > 0 && Object.keys(data).length === 0) {
-        console.error('Refusing to overwrite non-empty projects with empty data');
         throw new Error('Cannot delete all projects this way. Use "Delete All" instead.');
       }
     }
@@ -352,20 +357,16 @@ window.portfolioData = (() => {
   }
 
   async function saveCertificates(data) {
-    // SAFETY: refuse to overwrite existing certificates with empty array
     const prev = localStorage.getItem(CERTS_KEY);
     if (prev) {
       const previous = JSON.parse(prev);
       if (previous.length > 0 && data.length === 0) {
-        console.error('Refusing to overwrite non-empty certificates with empty data');
         throw new Error('Cannot delete all certificates this way. Use "Delete All" instead.');
       }
     }
-
     localStorage.setItem(CERTS_KEY, JSON.stringify(data));
     const user = window.SessionManager.getCurrentUser();
     if (!user || !user.pat) return;
-
     await verifyNotBlocked();
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(user.username);
@@ -376,12 +377,8 @@ window.portfolioData = (() => {
       if (existing) sha = existing.sha;
       await GitHubAPI.updateFile(owner, repo, path, data, 'Update certificates', branch, user.pat, sha);
     } catch (err) {
-      // Revert local storage to previous state on failure
-      if (prev) {
-        localStorage.setItem(CERTS_KEY, prev);
-      } else {
-        localStorage.removeItem(CERTS_KEY);
-      }
+      if (prev) localStorage.setItem(CERTS_KEY, prev);
+      else localStorage.removeItem(CERTS_KEY);
       throw new Error('GitHub write failed: ' + err.message);
     }
   }
@@ -396,6 +393,7 @@ window.portfolioData = (() => {
         a.href = URL.createObjectURL(blob);
         a.download = `deltaV_data_${window.SessionManager.getCurrentUser()?.username || 'default'}.zip`;
         a.click();
+        URL.revokeObjectURL(a.href);
       });
     });
   }
@@ -403,33 +401,8 @@ window.portfolioData = (() => {
   return { loadProjects, saveProjects, loadCertificates, saveCertificates, exportData };
 })();
 
-// Lazy loading for images
-window.lazyLoadImages = function() {
-  if ('IntersectionObserver' in window) {
-    const imgObserver = new IntersectionObserver((entries, observer) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          const img = entry.target;
-          const src = img.dataset.src;
-          if (src) {
-            img.src = src;
-            img.removeAttribute('data-src');
-          }
-          observer.unobserve(img);
-        }
-      });
-    });
-    document.querySelectorAll('img[data-src]').forEach(img => imgObserver.observe(img));
-  } else {
-    document.querySelectorAll('img[data-src]').forEach(img => {
-      img.src = img.dataset.src;
-      img.removeAttribute('data-src');
-    });
-  }
-};
-
 window.protectImages = function () {
-  document.querySelectorAll('.project-img, .modal-carousel-img').forEach(img => {
+  document.querySelectorAll('.project-img, .modal-carousel-img, .cert-card img').forEach(img => {
     img.setAttribute('draggable', 'false');
     img.addEventListener('contextmenu', e => e.preventDefault());
     img.addEventListener('dragstart', e => e.preventDefault());
@@ -487,8 +460,8 @@ window.generateProjectReport = async function(projectId) {
     proj.selectedImages.forEach(img => {
       imagesHtml += `
         <div style="flex:0 0 calc(50% - 5px); text-align:center; background:#f8f9fa; border-radius:8px; padding:5px;">
-          <img src="${img.url}" style="width:100%; max-height:150px; object-fit:cover; border-radius:8px;" loading="lazy" />
-          <div style="font-size:10px; color:#555; margin-top:4px;">${img.caption || ''}</div>
+          <img src="${img.url}" style="width:100%; max-height:150px; object-fit:cover; border-radius:8px;" loading="lazy" draggable="false" />
+          <div style="font-size:10px; color:#555; margin-top:4px;">${window.escapeHtml(img.caption || '')}</div>
         </div>`;
     });
     imagesHtml += `</div>`;
@@ -503,7 +476,7 @@ window.generateProjectReport = async function(projectId) {
     <div style="font-family:Inter, sans-serif; padding:20px; background:white; max-width:680px; margin:0 auto; color:#1e2a3e;">
       <div style="border-bottom:4px solid ${primaryColor}; padding-bottom:10px; margin-bottom:20px;">
         <h1 style="color:#0f4c5f; margin:0;">DeltaV Engineering Report</h1>
-        <p style="color:#5a7d9a; margin:5px 0 0;">${proj.title} | Technical Summary</p>
+        <p style="color:#5a7d9a; margin:5px 0 0;">${window.escapeHtml(proj.title)} | Technical Summary</p>
         <span style="display:inline-block; background:${primaryColor}; color:white; padding:3px 12px; border-radius:20px; font-size:0.8rem; margin-top:8px;">
           ${projectType} ${proj.deltaVVersion ? '· DeltaV ' + proj.deltaVVersion : ''}
         </span>
@@ -511,11 +484,11 @@ window.generateProjectReport = async function(projectId) {
       <div style="background:${bgColor}; padding:20px; border-radius:16px; margin:20px 0;">
         <h3>Project Overview</h3>
         <table style="width:100%">
-          <tr><td><strong>Title:</strong></td><td>${proj.title}</td></tr>
-          <tr><td><strong>Location:</strong></td><td>${proj.siteLocation||'N/A'}</td></tr>
-          <tr><td><strong>Controllers:</strong></td><td>${controllerDisplay}</td></tr>
+          <tr><td><strong>Title:</strong></td><td>${window.escapeHtml(proj.title)}</td></tr>
+          <tr><td><strong>Location:</strong></td><td>${window.escapeHtml(proj.siteLocation||'N/A')}</td></tr>
+          <tr><td><strong>Controllers:</strong></td><td>${window.escapeHtml(controllerDisplay)}</td></tr>
           <tr><td><strong>Cabinets:</strong></td><td>${proj.cabinetCount}</td></tr>
-          ${proj.deltaVVersion ? `<tr><td><strong>DeltaV Version:</strong></td><td>${proj.deltaVVersion}</td></tr>` : ''}
+          ${proj.deltaVVersion ? `<tr><td><strong>DeltaV Version:</strong></td><td>${window.escapeHtml(proj.deltaVVersion)}</td></tr>` : ''}
           <tr><td><strong>Start Date:</strong></td><td>${proj.dates?.start || 'N/A'}</td></tr>
           <tr><td><strong>Finish Date:</strong></td><td>${proj.dates?.finish || 'N/A'}</td></tr>
           <tr><td><strong>IFAT:</strong></td><td>${ifatText}</td></tr>
@@ -523,7 +496,7 @@ window.generateProjectReport = async function(projectId) {
         </table>
       </div>
       <div style="background:${bgColor}; padding:20px; border-radius:16px; margin-bottom:20px;">
-        <h3>Description</h3><p>${proj.description}</p>
+        <h3>Description</h3><p>${window.escapeHtml(proj.description)}</p>
       </div>
       <div style="background:${bgColor}; padding:20px; border-radius:16px; margin-bottom:20px;">
         <h3>I/O Configuration</h3>
@@ -538,9 +511,9 @@ window.generateProjectReport = async function(projectId) {
       </div>
       <div style="background:${bgColor}; padding:20px; border-radius:16px; margin-bottom:20px;">
         <h3>Team Members</h3>
-        <p><strong>Lead Engineer:</strong> ${proj.team?.lead || ''}<br>
-        <strong>Project Engineer:</strong> ${proj.team?.engineer || ''}<br>
-        <strong>Technician:</strong> ${proj.team?.technician || ''}</p>
+        <p><strong>Lead Engineer:</strong> ${window.escapeHtml(proj.team?.lead || '')}<br>
+        <strong>Project Engineer:</strong> ${window.escapeHtml(proj.team?.engineer || '')}<br>
+        <strong>Technician:</strong> ${window.escapeHtml(proj.team?.technician || '')}</p>
       </div>
       <div style="background:${bgColor}; padding:20px; border-radius:16px; margin-bottom:20px;">
         <h3>Project Images</h3>${imagesHtml}
