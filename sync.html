@@ -1,3 +1,4 @@
+<!-- sync.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -62,7 +63,6 @@
     setTimeout(() => { box.style.display = 'none'; }, 6000);
   }
 
-  // Load saved config
   const saved = JSON.parse(localStorage.getItem(GH_CONFIG_KEY) || 'null');
   if (saved) {
     document.getElementById('ghOwner').value = saved.owner || '';
@@ -80,12 +80,10 @@
     };
   }
 
-  // Save config to localStorage
   function saveConfigToStorage(config) {
     localStorage.setItem(GH_CONFIG_KEY, JSON.stringify(config));
   }
 
-  // Test connection
   document.getElementById('testGhConnectionBtn').addEventListener('click', async () => {
     const config = getConfig();
     if (!config.token || !config.owner || !config.repo) {
@@ -108,10 +106,8 @@
     }
   });
 
-  // Generic sync function
   async function syncFile(config, path, content) {
     const url = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/${path}`;
-    // 1) Get current SHA
     let sha = null;
     try {
       const getResp = await fetch(url, {
@@ -127,7 +123,6 @@
       throw e;
     }
 
-    // 2) PUT
     const body = {
       message: `Update ${path} via sync page`,
       content: btoa(unescape(encodeURIComponent(content))),
@@ -149,10 +144,9 @@
     }
   }
 
-  // Sync both files
-  async function syncAll(config, force = false) {
-    const projects = window.portfolioData.loadProjects();
-    const certs = window.portfolioData.loadCertificates();
+  async function syncAll(config) {
+    const projects = await window.portfolioData.loadProjects();
+    const certs = await window.portfolioData.loadCertificates();
 
     try {
       await syncFile(config, 'data/projects.json', JSON.stringify(projects, null, 2));
@@ -182,7 +176,7 @@
       return;
     }
     showStatus('Force pushing…', 'warning');
-    await syncAll(config, true);
+    await syncAll(config);
   });
 </script>
 </body>
