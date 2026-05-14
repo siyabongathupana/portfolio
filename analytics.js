@@ -1,6 +1,4 @@
 // analytics.js – Visitor analytics using CountAPI (free, no auth)
-// Docs: https://countapi.xyz/
-
 const ANALYTICS_NAMESPACE = 'deltaV_portfolio';
 
 async function incrementView(type, id) {
@@ -30,12 +28,9 @@ async function getViewCount(type, id) {
 }
 
 async function getAllViewCounts(type, ids) {
-  // Parallel requests for better performance
   const promises = ids.map(id => getViewCount(type, id));
   const countsArray = await Promise.all(promises);
   const counts = {};
-  ids.forEach((id, idx) => {
-    counts[id] = countsArray[idx];
-  });
+  ids.forEach((id, idx) => { counts[id] = countsArray[idx]; });
   return counts;
 }
