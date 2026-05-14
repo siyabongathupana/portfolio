@@ -1,4 +1,4 @@
-// shared.js – Full version with safety checks and transactional saves
+// shared.js – Full version with safety checks and download statistics
 
 window.showLoading = function (msg = 'Processing...') {
   let loader = document.getElementById('globalLoader');
@@ -217,6 +217,45 @@ window.AccountManager = {
       }
     } catch (e) {}
     return { projects: projectCount, certificates: certCount };
+  },
+
+  // NEW: Get download statistics for a user
+  async getUserDownloadStats(username, adminToken) {
+    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+    const encUser = encodeURIComponent(username);
+    const path = `${dataPath}/users/${encUser}/download_stats.json`;
+    try {
+      const file = await GitHubAPI.getFileContent(owner, repo, path, branch, adminToken);
+      if (file && file.content) {
+        return JSON.parse(file.content);
+      }
+    } catch (e) {}
+    return { totalDownloads: 0, downloads: {} };
+  },
+
+  // NEW: Log a download
+  async logDownload(username, projectTitle, projectId, token) {
+    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+    const encUser = encodeURIComponent(username);
+    const path = `${dataPath}/users/${encUser}/download_stats.json`;
+    let stats = { totalDownloads: 0, downloads: {} };
+    let sha = null;
+    try {
+      const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, token);
+      if (existing && existing.content) {
+        stats = JSON.parse(existing.content);
+        sha = existing.sha;
+      }
+    } catch (e) {}
+    
+    stats.totalDownloads = (stats.totalDownloads || 0) + 1;
+    if (!stats.downloads[projectId]) {
+      stats.downloads[projectId] = { title: projectTitle, count: 0 };
+    }
+    stats.downloads[projectId].count++;
+    
+    await GitHubAPI.updateFile(owner, repo, path, stats, `Log download: ${projectTitle}`, branch, token, sha);
+    return stats;
   }
 };
 
@@ -352,7 +391,6 @@ window.portfolioData = (() => {
   }
 
   async function saveCertificates(data) {
-    // SAFETY: refuse to overwrite existing certificates with empty array
     const prev = localStorage.getItem(CERTS_KEY);
     if (prev) {
       const previous = JSON.parse(prev);
@@ -361,11 +399,9 @@ window.portfolioData = (() => {
         throw new Error('Cannot delete all certificates this way. Use "Delete All" instead.');
       }
     }
-
     localStorage.setItem(CERTS_KEY, JSON.stringify(data));
     const user = window.SessionManager.getCurrentUser();
     if (!user || !user.pat) return;
-
     await verifyNotBlocked();
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(user.username);
@@ -376,12 +412,8 @@ window.portfolioData = (() => {
       if (existing) sha = existing.sha;
       await GitHubAPI.updateFile(owner, repo, path, data, 'Update certificates', branch, user.pat, sha);
     } catch (err) {
-      // Revert local storage to previous state on failure
-      if (prev) {
-        localStorage.setItem(CERTS_KEY, prev);
-      } else {
-        localStorage.removeItem(CERTS_KEY);
-      }
+      if (prev) localStorage.setItem(CERTS_KEY, prev);
+      else localStorage.removeItem(CERTS_KEY);
       throw new Error('GitHub write failed: ' + err.message);
     }
   }
@@ -562,6 +594,15 @@ window.generateProjectReport = async function(projectId) {
 
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF('p', 'mm', 'a4');
+  
+  // Log download if user is logged in
+  const currentUser = window.SessionManager.getCurrentUser();
+  if (currentUser && currentUser.pat) {
+    try {
+      await window.AccountManager.logDownload(currentUser.username, proj.title, projectId, currentUser.pat);
+    } catch(e) { console.warn('Failed to log download', e); }
+  }
+  
   await pdf.html(container.firstElementChild, {
     callback: function (doc) { doc.save(`${proj.title.replace(/\s/g, '_')}_Report.pdf`); },
     x: 15, y: 15, width: 180, windowWidth: 680
