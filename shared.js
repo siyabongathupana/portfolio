@@ -1,4 +1,4 @@
-// shared.js – Full version with safety checks and download statistics
+// shared.js – with robust certificate saving (no more deletions)
 
 window.showLoading = function (msg = 'Processing...') {
   let loader = document.getElementById('globalLoader');
@@ -219,7 +219,6 @@ window.AccountManager = {
     return { projects: projectCount, certificates: certCount };
   },
 
-  // NEW: Get download statistics for a user
   async getUserDownloadStats(username, adminToken) {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(username);
@@ -233,7 +232,6 @@ window.AccountManager = {
     return { totalDownloads: 0, downloads: {} };
   },
 
-  // NEW: Log a download
   async logDownload(username, projectTitle, projectId, token) {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(username);
@@ -260,7 +258,7 @@ window.AccountManager = {
 };
 
 /* =====================================================
-   PORTFOLIO DATA – TRANSACTIONAL SAVES WITH SAFETY CHECKS
+   PORTFOLIO DATA – WITH ROBUST CERTIFICATE SAVING
    ===================================================== */
 window.portfolioData = (() => {
   const PROJECTS_KEY = 'deltaVProjects';
@@ -329,8 +327,16 @@ window.portfolioData = (() => {
         const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
         if (file && file.content) {
           const data = JSON.parse(file.content);
-          localStorage.setItem(CERTS_KEY, JSON.stringify(data));
-          return data;
+          // Validate it's an array
+          if (Array.isArray(data)) {
+            localStorage.setItem(CERTS_KEY, JSON.stringify(data));
+            return data;
+          } else {
+            console.warn('Certificates file is not an array, resetting');
+            const empty = [];
+            localStorage.setItem(CERTS_KEY, JSON.stringify(empty));
+            return empty;
+          }
         } else {
           const empty = [];
           localStorage.setItem(CERTS_KEY, JSON.stringify(empty));
@@ -339,7 +345,14 @@ window.portfolioData = (() => {
       } catch (e) {
         if (e.message === 'Blocked') throw e;
         console.warn('Could not fetch certificates from GitHub, using local cache');
-        return JSON.parse(localStorage.getItem(CERTS_KEY) || '[]');
+        const cached = localStorage.getItem(CERTS_KEY);
+        if (cached) {
+          try {
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed)) return parsed;
+          } catch(e) {}
+        }
+        return [];
       }
     }
     if (!user && window.APP_CONFIG.publicProfileEmail) {
@@ -350,12 +363,21 @@ window.portfolioData = (() => {
         const resp = await fetch(rawUrl);
         if (resp.ok) {
           const data = await resp.json();
-          localStorage.setItem(CERTS_KEY, JSON.stringify(data));
-          return data;
+          if (Array.isArray(data)) {
+            localStorage.setItem(CERTS_KEY, JSON.stringify(data));
+            return data;
+          }
         }
       } catch (e) {}
     }
-    return JSON.parse(localStorage.getItem(CERTS_KEY) || '[]');
+    const cached = localStorage.getItem(CERTS_KEY);
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed)) return parsed;
+      } catch(e) {}
+    }
+    return [];
   }
 
   async function saveProjects(data) {
@@ -390,31 +412,69 @@ window.portfolioData = (() => {
     }
   }
 
-  async function saveCertificates(data) {
-    const prev = localStorage.getItem(CERTS_KEY);
-    if (prev) {
-      const previous = JSON.parse(prev);
-      if (previous.length > 0 && data.length === 0) {
-        console.error('Refusing to overwrite non-empty certificates with empty data');
-        throw new Error('Cannot delete all certificates this way. Use "Delete All" instead.');
-      }
-    }
-    localStorage.setItem(CERTS_KEY, JSON.stringify(data));
+  // ROBUST SAVE CERTIFICATES – always fetches latest from GitHub first
+  async function saveCertificates(localData) {
     const user = window.SessionManager.getCurrentUser();
-    if (!user || !user.pat) return;
+    if (!user || !user.pat) {
+      // Not logged in – just save to localStorage
+      localStorage.setItem(CERTS_KEY, JSON.stringify(localData));
+      return;
+    }
+
     await verifyNotBlocked();
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(user.username);
     const path = `${dataPath}/users/${encUser}/certificates.json`;
+
+    // 1. Always fetch the latest from GitHub first (to avoid overwriting)
+    let latestData = [];
     let sha = null;
     try {
-      const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat).catch(() => null);
-      if (existing) sha = existing.sha;
-      await GitHubAPI.updateFile(owner, repo, path, data, 'Update certificates', branch, user.pat, sha);
-    } catch (err) {
-      if (prev) localStorage.setItem(CERTS_KEY, prev);
-      else localStorage.removeItem(CERTS_KEY);
-      throw new Error('GitHub write failed: ' + err.message);
+      const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
+      if (existing && existing.content) {
+        latestData = JSON.parse(existing.content);
+        sha = existing.sha;
+        // Ensure it's an array
+        if (!Array.isArray(latestData)) latestData = [];
+      }
+    } catch (e) {
+      // File may not exist yet – that's fine
+      console.log('No existing certificates file, will create new');
+    }
+
+    // 2. Merge strategy: We trust the incoming localData (user's intended changes)
+    //    but we also want to preserve any changes that might have happened on GitHub
+    //    since we last loaded. For certificates, a simple overwrite is safe because
+    //    the user is editing the whole list. But to prevent accidental empty overwrites:
+    if (localData.length === 0 && latestData.length > 0) {
+      // User is trying to delete all certificates – require confirmation
+      throw new Error('Cannot save empty certificates list unless you use "Delete All" button.');
+    }
+
+    // 3. Save to GitHub with retry on SHA conflict
+    let retries = 3;
+    while (retries > 0) {
+      try {
+        await GitHubAPI.updateFile(owner, repo, path, localData, 'Update certificates', branch, user.pat, sha);
+        // Success: update local storage
+        localStorage.setItem(CERTS_KEY, JSON.stringify(localData));
+        return;
+      } catch (err) {
+        if (err.message.includes('sha') && retries > 1) {
+          // SHA conflict – fetch latest and retry
+          console.warn('SHA conflict, retrying...');
+          const fresh = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
+          if (fresh && fresh.content) {
+            latestData = JSON.parse(fresh.content);
+            sha = fresh.sha;
+            // Merge: keep user's changes (localData) as the source of truth
+            // but we simply retry with same localData
+          }
+          retries--;
+        } else {
+          throw err;
+        }
+      }
     }
   }
 
@@ -595,7 +655,6 @@ window.generateProjectReport = async function(projectId) {
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF('p', 'mm', 'a4');
   
-  // Log download if user is logged in
   const currentUser = window.SessionManager.getCurrentUser();
   if (currentUser && currentUser.pat) {
     try {
