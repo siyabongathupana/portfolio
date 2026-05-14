@@ -33,7 +33,6 @@
     .progress-bar-fill { width:0%; height:100%; background:#2fc7ff; transition:width 0.2s; }
     .batch-actions { margin-top:15px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
     .image-counter { font-size:0.8rem; color:#666; margin-left:10px; }
-    /* Restore tab styles */
     .backup-list { max-height: 300px; overflow-y: auto; }
     .backup-item { cursor: pointer; transition: background 0.2s; }
     .backup-item:hover { background: #f0f7ff; }
@@ -568,9 +567,17 @@
       try { await window.portfolioData.saveProjects(allProjects); await renderProjects(); $('#projectModal').modal('hide'); } catch (err) { alert('Save failed: ' + err.message); }
       window.hideLoading();
     }
+
+    // ROBUST CERTIFICATE SAVE – uses the shared.js method which already merges
     async function safeSaveCertificate(certs) {
       window.showLoading('Saving certificate...');
-      try { await window.portfolioData.saveCertificates(certs); await renderCertificates(); $('#certModal').modal('hide'); } catch (err) { alert('Save failed: ' + err.message); }
+      try {
+        await window.portfolioData.saveCertificates(certs);
+        await renderCertificates();
+        $('#certModal').modal('hide');
+      } catch (err) {
+        alert('Save failed: ' + err.message);
+      }
       window.hideLoading();
     }
 
@@ -727,10 +734,10 @@
         updatedCerts = [...certs, newCert];
       }
       try {
-        await window.portfolioData.saveCertificates(updatedCerts);
-        await renderCertificates();
-        $('#certModal').modal('hide');
-      } catch (err) { alert('Save failed: ' + err.message); }
+        await safeSaveCertificate(updatedCerts);
+      } catch (err) {
+        // Error already handled in safeSaveCertificate
+      }
     });
 
     const isAdmin = window.APP_CONFIG.adminUsers && window.APP_CONFIG.adminUsers.includes(user.username);
@@ -850,7 +857,9 @@
     }
     async function restore(type) {
       if (!extractedData) { alert('No backup loaded. Select a backup first.'); return; }
-      const confirmMsg = type === 'certificates' ? 'Restore certificates only? This will REPLACE all current certificates.' : type === 'projects' ? 'Restore projects only? This will REPLACE all current projects.' : 'Restore BOTH certificates and projects? This will replace all your current data.';
+      const confirmMsg = type === 'certificates' ? 'Restore certificates only? This will REPLACE all current certificates.' :
+                         type === 'projects' ? 'Restore projects only? This will REPLACE all current projects.' :
+                         'Restore BOTH certificates and projects? This will replace all your current data.';
       if (!confirm(confirmMsg + ' Continue?')) return;
       window.showLoading(`Restoring ${type}...`);
       try {
@@ -858,7 +867,9 @@
         if (type === 'projects' || type === 'both') await window.portfolioData.saveProjects(extractedData.projects);
         alert('Restore completed! Refreshing...');
         window.location.reload();
-      } catch (err) { alert('Restore failed: ' + err.message); }
+      } catch (err) {
+        alert('Restore failed: ' + err.message);
+      }
       window.hideLoading();
     }
     document.getElementById('restoreCertsBtn')?.addEventListener('click', () => restore('certificates'));
