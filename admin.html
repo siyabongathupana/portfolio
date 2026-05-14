@@ -43,6 +43,7 @@
       <h1><i class="fa fa-dashboard"></i> DeltaV Portfolio Dashboard</h1>
       <div class="d-flex align-items-center">
         <span class="user-badge mr-3" id="currentUserDisplay"></span>
+        <button class="btn btn-outline-info btn-sm mr-2" onclick="window.open('admin-analytics.html','_blank')"><i class="fa fa-line-chart"></i> Analytics</button>
         <button class="btn btn-outline-danger btn-sm mr-2" id="logoutBtn"><i class="fa fa-sign-out"></i> Logout</button>
         <button class="btn btn-outline-success btn-sm mr-2" id="downloadDataBtn"><i class="fa fa-download"></i> Export</button>
       </div>
@@ -90,7 +91,7 @@
   </div>
 </div>
 
-<!-- Project Modal -->
+<!-- Project Modal (unchanged from your current version) -->
 <div class="modal fade" id="projectModal" tabindex="-1">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
@@ -174,7 +175,7 @@
   </div>
 </div>
 
-<!-- Certificate Modal -->
+<!-- Certificate Modal (unchanged) -->
 <div class="modal fade" id="certModal" tabindex="-1">
   <div class="modal-dialog modal-md">
     <div class="modal-content">
@@ -234,7 +235,6 @@
           canvas.height = height;
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, width, height);
-          // Use JPEG for smaller size
           resolve(canvas.toDataURL('image/jpeg', quality));
         };
         img.onerror = reject;
@@ -304,7 +304,6 @@
       });
     };
 
-    // Batch upload with progress
     async function processFileQueue() {
       if (pendingFiles.length === 0) return;
       progressBar.style.display = 'block';
@@ -316,7 +315,6 @@
         processedCount++;
         const percent = (processedCount / total) * 100;
         progressFill.style.width = percent + '%';
-        // Small delay to allow UI update
         await new Promise(r => setTimeout(r, 10));
       }
       pendingFiles = [];
@@ -352,7 +350,6 @@
       }
     });
 
-    // Batch delete selected
     document.getElementById('deleteSelectedImagesBtn')?.addEventListener('click', () => {
       const checkboxes = imgContainer.querySelectorAll('.image-select-checkbox:checked');
       checkboxes.forEach(cb => cb.closest('.image-input-group')?.remove());
@@ -364,7 +361,6 @@
       checkboxes.forEach(cb => cb.checked = !allChecked);
     });
 
-    // ---------- RENDER FUNCTIONS (same as before, but using new image row) ----------
     async function renderProjects() {
       const projects = await window.portfolioData.loadProjects();
       const container = document.getElementById('projectsList');
@@ -423,7 +419,6 @@
       }));
     }
 
-    // ---------- SAFE DELETE / SAVE (transactional) ----------
     async function safeDeleteProject(id) {
       window.showLoading('Deleting project...');
       const current = await window.portfolioData.loadProjects();
@@ -478,7 +473,6 @@
       window.hideLoading();
     }
 
-    // ---------- PROJECT MODAL ----------
     async function openProjectModal(projectId = null) {
       const isEdit = projectId !== null;
       document.getElementById('projectModalTitle').innerText = isEdit ? 'Edit Project' : 'New Project';
@@ -575,7 +569,6 @@
       await safeSaveProject(project);
     });
 
-    // ---------- CERTIFICATE MODAL ----------
     async function openCertModal(index = null) {
       const certs = await window.portfolioData.loadCertificates();
       const isEdit = index !== null && certs[index];
@@ -626,7 +619,6 @@
       await safeSaveCertificate(certs);
     });
 
-    // ---------- USER MANAGEMENT (Admin only) ----------
     const isAdmin = window.APP_CONFIG.adminUsers && window.APP_CONFIG.adminUsers.includes(user.username);
     if (isAdmin) {
       document.getElementById('usersTabNav').style.display = 'block';
@@ -708,7 +700,6 @@
       window.hideLoading();
     }
 
-    // ---------- BUTTON HANDLERS ----------
     document.getElementById('addProjectBtn').addEventListener('click', () => openProjectModal());
     document.getElementById('addCertBtn').addEventListener('click', () => openCertModal());
     document.getElementById('downloadDataBtn').addEventListener('click', () => window.portfolioData.exportData());
@@ -748,7 +739,6 @@
       window.location.href = 'login.html';
     });
 
-    // Initial load
     await renderProjects();
     await renderCertificates();
     window.hideLoading();
