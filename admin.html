@@ -77,9 +77,10 @@
 
       <!-- Certificates Tab -->
       <div class="tab-pane fade" id="certificatesTab">
-        <div class="mb-3 d-flex">
+        <div class="mb-3 d-flex flex-wrap">
           <button class="btn btn-delta mr-2" id="addCertBtn"><i class="fa fa-plus"></i> Add Certificate</button>
-          <button class="btn btn-outline-danger" id="deleteAllCertsBtn"><i class="fa fa-trash"></i> Delete All</button>
+          <button class="btn btn-outline-danger mr-2" id="deleteAllCertsBtn"><i class="fa fa-trash"></i> Delete All</button>
+          <button class="btn btn-outline-info mr-2" id="forceReloadCertsBtn"><i class="fa fa-refresh"></i> Force Reload</button>
         </div>
         <div id="certificatesList"></div>
       </div>
@@ -756,7 +757,11 @@
           for (const username of usernames) {
             const isBlocked = blocked.includes(username);
             let stats = { projects: 0, certificates: 0 };
-            try { stats = await window.AccountManager.getUserStats(username, user.pat); } catch(e) {}
+            try { 
+              stats = await window.AccountManager.getUserStats(username, user.pat); 
+            } catch(e) { 
+              console.error(`Error loading stats for ${username}:`, e); 
+            }
             const card = document.createElement('div');
             card.className = 'card mb-2';
             card.innerHTML = `
@@ -840,7 +845,6 @@
         let certFile = null, projFile = null;
         for (const [path, file] of Object.entries(zip.files)) {
           if (file.dir) continue;
-          // More robust detection: include path
           if (path.includes(`/data/users/${encodedEmail}/certificates.json`)) {
             certFile = file;
           }
@@ -849,12 +853,31 @@
           }
         }
         let certificates = [], projects = {};
-        if (certFile) { const content = await certFile.async('string'); certificates = JSON.parse(content); }
-        if (projFile) { const content = await projFile.async('string'); projects = JSON.parse(content); }
+        if (certFile) {
+          const content = await certFile.async('string');
+          certificates = JSON.parse(content);
+          // Sanitize dates to avoid "invalid date"
+          certificates = certificates.map(cert => ({
+            ...cert,
+            date: cert.date && typeof cert.date === 'string' ? cert.date : ''
+          }));
+        }
+        if (projFile) {
+          const content = await projFile.async('string');
+          projects = JSON.parse(content);
+        }
         extractedData = { certificates, projects };
-        const previewHtml = `<div><strong>📜 Certificates:</strong> ${certificates.length}</div><ul class="small">${certificates.slice(0,5).map(c => `<li>${window.escapeHtml(c.title)} (${c.date||'no date'})</li>`).join('')}${certificates.length>5 ? `<li>... and ${certificates.length-5} more</li>` : ''}</ul><div><strong>📁 Projects:</strong> ${Object.keys(projects).length}</div><ul class="small">${Object.values(projects).slice(0,5).map(p => `<li>${window.escapeHtml(p.title)}</li>`).join('')}${Object.keys(projects).length>5 ? `<li>... and ${Object.keys(projects).length-5} more</li>` : ''}</ul>`;
+        const previewHtml = `
+          <div><strong>📜 Certificates:</strong> ${certificates.length}</div>
+          <ul class="small">${certificates.slice(0,5).map(c => `<li>${window.escapeHtml(c.title)} (${c.date || 'no date'})</li>`).join('')}${certificates.length>5 ? `<li>... and ${certificates.length-5} more</li>` : ''}</ul>
+          <div><strong>📁 Projects:</strong> ${Object.keys(projects).length}</div>
+          <ul class="small">${Object.values(projects).slice(0,5).map(p => `<li>${window.escapeHtml(p.title)}</li>`).join('')}${Object.keys(projects).length>5 ? `<li>... and ${Object.keys(projects).length-5} more</li>` : ''}</ul>
+        `;
         document.getElementById('previewContent').innerHTML = previewHtml;
-      } catch (err) { document.getElementById('previewContent').innerHTML = `<div class="alert alert-danger">Failed to read backup: ${err.message}</div>`; }
+      } catch (err) {
+        console.error('Restore load error:', err);
+        document.getElementById('previewContent').innerHTML = `<div class="alert alert-danger">Failed to read backup: ${err.message}</div>`;
+      }
     }
     async function restore(type) {
       if (!extractedData) { alert('No backup loaded. Select a backup first.'); return; }
@@ -877,7 +900,22 @@
     document.getElementById('restoreProjectsBtn')?.addEventListener('click', () => restore('projects'));
     document.getElementById('restoreBothBtn')?.addEventListener('click', () => restore('both'));
 
-    // BUTTON HANDLERS (with forceEmpty)
+    // Force Reload Certificates button
+    document.getElementById('forceReloadCertsBtn')?.addEventListener('click', async () => {
+      window.showLoading('Force reloading certificates from GitHub...');
+      try {
+        localStorage.removeItem('deltaVCertificates');
+        const certs = await window.portfolioData.loadCertificates();
+        await renderCertificates();
+        alert(`Loaded ${certs.length} certificates.`);
+      } catch (err) {
+        alert('Failed: ' + err.message);
+      } finally {
+        window.hideLoading();
+      }
+    });
+
+    // BUTTON HANDLERS
     document.getElementById('addProjectBtn').addEventListener('click', () => openProjectModal());
     document.getElementById('addCertBtn').addEventListener('click', () => openCertModal());
     document.getElementById('downloadDataBtn').addEventListener('click', () => window.portfolioData.exportData());
@@ -885,7 +923,7 @@
       if (confirm('Permanently delete ALL your projects?')) {
         window.showLoading('Deleting all projects...');
         try {
-          await window.portfolioData.saveProjects({}, true); // forceEmpty = true
+          await window.portfolioData.saveProjects({}, true);
           await renderProjects();
         } catch (err) {
           alert('Failed: ' + err.message);
@@ -897,7 +935,7 @@
       if (confirm('Delete all certificates?')) {
         window.showLoading('Deleting all certificates...');
         try {
-          await window.portfolioData.saveCertificates([], true); // forceEmpty = true
+          await window.portfolioData.saveCertificates([], true);
           await renderCertificates();
         } catch (err) {
           alert('Failed: ' + err.message);
@@ -917,7 +955,7 @@
       window.location.href = 'login.html';
     });
 
-    // Initialize
+    // Initialize everything
     await loadBackups();
     await renderProjects();
     await renderCertificates();
