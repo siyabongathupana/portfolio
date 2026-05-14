@@ -10,7 +10,6 @@
   <link rel="stylesheet" href="styles.css">
   <script src="config.js"></script>
   <script src="shared.js"></script>
-  <script src="analytics.js"></script>
 </head>
 <body>
 <nav class="navbar navbar-expand-lg custom_nav-container pt-3" style="background:#0b2b3b; padding:15px 0;">
@@ -21,7 +20,6 @@
         <li class="nav-item"><a class="nav-link" href="index.html">Home</a></li>
         <li class="nav-item"><a class="nav-link" href="projects.html">Projects</a></li>
         <li class="nav-item active"><a class="nav-link" href="certificates.html">Certificates</a></li>
-        <li class="nav-item"><a class="nav-link" href="timeline.html">Timeline</a></li>
         <li class="nav-item"><a class="nav-link" href="admin.html" target="_blank">Manage</a></li>
       </ul>
     </div>
@@ -87,9 +85,6 @@
           </div>
         `;
         grid.innerHTML += card;
-        
-        // INCREMENT VIEW COUNT FOR THIS CERTIFICATE
-        incrementView('certificate', cert.id);
       });
       window.protectImages();
       window.hideLoading();
