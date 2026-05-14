@@ -14,6 +14,9 @@ window.APP_CONFIG = {
   adminUsers: ["siyabongatshem@gmail.com"],
   publicProfileEmail: "siyabongatshem@gmail.com",
 
+  // Get your free API key from https://api.imgbb.com
+  imgbbApiKey: "393ab44e4c3c9ca17143ec4249e6b475",
+
   emailjs: {
     publicKey: "YOUR_EMAILJS_PUBLIC_KEY",
     serviceID: "YOUR_SERVICE_ID",
