@@ -12,7 +12,7 @@ jobs:
       contents: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -57,12 +57,12 @@ jobs:
           }
           EOF
 
-      - name: Create ZIP archive
+      - name: Create ZIP archive (flattened)
         run: |
-          cd backups
-          zip -r "${BACKUP_TIMESTAMP}.zip" "${BACKUP_TIMESTAMP}"
-          rm -rf "${BACKUP_TIMESTAMP}"
-          cd ..
+          cd backups/${{ env.BACKUP_TIMESTAMP }}
+          zip -r "../${{ env.BACKUP_TIMESTAMP }}.zip" .
+          cd ../..
+          rm -rf backups/${{ env.BACKUP_TIMESTAMP }}
 
       - name: Delete backups older than 30 days
         run: find backups/ -name "*.zip" -type f -mtime +30 -delete
