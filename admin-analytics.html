@@ -8,7 +8,6 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="config.js"></script>
   <script src="crypto.js"></script>
   <script src="api.js"></script>
@@ -75,18 +74,15 @@
   async function loadAnalytics() {
     window.showLoading('Loading analytics...');
     
-    // 1. Load all projects and certificates
     const projects = await window.portfolioData.loadProjects();
     const certs = await window.portfolioData.loadCertificates();
     
     const projectIds = Object.keys(projects);
     const certIds = certs.map(c => c.id);
     
-    // 2. Get view counts from CountAPI
     const projectViews = await getAllViewCounts('project', projectIds);
     const certViews = await getAllViewCounts('certificate', certIds);
     
-    // 3. Sort and display top projects
     const sortedProjects = Object.entries(projectViews)
       .sort((a,b) => b[1] - a[1])
       .slice(0, 10);
@@ -97,7 +93,6 @@
     }).join('');
     document.getElementById('topProjectsList').innerHTML = topProjectsHtml || '<div class="list-group-item">No views yet</div>';
     
-    // 4. Top certificates
     const certMap = {};
     certs.forEach(c => { certMap[c.id] = c.title; });
     const sortedCerts = Object.entries(certViews)
@@ -109,8 +104,6 @@
     }).join('');
     document.getElementById('topCertsList').innerHTML = topCertsHtml || '<div class="list-group-item">No views yet</div>';
     
-    // 5. Download statistics per user
-    // Fetch all users, then for each user read their stats.json
     const usernames = await window.AccountManager.listUsers(user.pat).catch(() => []);
     const downloadStats = [];
     
@@ -127,13 +120,17 @@
           <tr><th>User</th><th>Total Downloads</th><th>Most Downloaded Project</th></tr>
         </thead>
         <tbody>
-          ${downloadStats.map(stat => `
-            <tr>
-              <td>${escapeHtml(stat.username)}</td>
-              <td>${stat.totalDownloads || 0}</td>
-              <td>${escapeHtml(stat.mostDownloaded || '—')}</td>
-            </tr>
-          `).join('')}
+          ${downloadStats.map(stat => {
+            let mostDownloaded = '—';
+            if (stat.downloads) {
+              const entries = Object.entries(stat.downloads);
+              if (entries.length) {
+                const top = entries.sort((a,b) => b[1].count - a[1].count)[0];
+                mostDownloaded = top[1].title;
+              }
+            }
+            return `<tr><td>${escapeHtml(stat.username)}</td><td>${stat.totalDownloads || 0}</td><td>${escapeHtml(mostDownloaded)}</td></tr>`;
+          }).join('')}
           ${downloadStats.length === 0 ? '<tr><td colspan="3">No download data yet</td></tr>' : ''}
         </tbody>
       </table>
