@@ -2,7 +2,10 @@
   "proj_1778636937752": {
     "id": "proj_1778636937752",
     "title": "Omnia Phase 3",
-    "controllerTypes": [],
+    "controllerTypes": [
+      "PK",
+      "SQ"
+    ],
     "projectType": "SIS & DCS",
     "deltaVVersion": "v13.3.1",
     "cabinetCount": 5,
