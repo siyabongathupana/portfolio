@@ -34,6 +34,8 @@
     .batch-actions { margin-top:15px; display:flex; gap:10px; align-items:center; }
     .image-counter { font-size:0.8rem; color:#666; margin-left:10px; }
     .worker-status { font-size:0.8rem; color:#2fc7ff; margin-left:10px; }
+    .backup-card { background:#f8f9fa; border-radius:16px; padding:15px; margin-bottom:15px; transition:0.2s; }
+    .backup-card:hover { background:#e9ecef; }
   </style>
 </head>
 <body style="background:#eef3fc;">
@@ -52,6 +54,7 @@
     <ul class="nav nav-tabs" id="adminTabs">
       <li class="nav-item"><a class="nav-link active" data-toggle="tab" href="#projectsTab">Projects</a></li>
       <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#certificatesTab">Certificates</a></li>
+      <li class="nav-item" id="backupsTabNav" style="display:none;"><a class="nav-link" data-toggle="tab" href="#backupsTab">Backups</a></li>
       <li class="nav-item" id="usersTabNav" style="display:none;"><a class="nav-link" data-toggle="tab" href="#usersTab">Users</a></li>
     </ul>
 
@@ -73,6 +76,21 @@
         <div id="certificatesList"></div>
       </div>
 
+      <!-- Backups Tab -->
+      <div class="tab-pane fade" id="backupsTab">
+        <div class="mb-3 d-flex justify-content-between align-items-center">
+          <div>
+            <button class="btn btn-delta mr-2" id="refreshBackupsBtn"><i class="fa fa-refresh"></i> Refresh List</button>
+            <span class="text-muted">Daily backups are created automatically at midnight UTC.</span>
+          </div>
+          <button class="btn btn-outline-secondary" id="triggerBackupNowBtn" style="display:none;"><i class="fa fa-play"></i> Run Backup Now (GitHub Actions)</button>
+        </div>
+        <div id="backupsList" style="max-height: 600px; overflow-y: auto;">
+          <div class="text-center py-5"><i class="fa fa-spinner fa-spin"></i> Loading backups...</div>
+        </div>
+      </div>
+
+      <!-- Users Tab (admin only) -->
       <div class="tab-pane fade" id="usersTab">
         <div class="mb-3 d-flex align-items-center">
           <button class="btn btn-delta mr-2" id="refreshUsersBtn"><i class="fa fa-refresh"></i> Refresh List</button>
@@ -259,7 +277,6 @@
     return new Worker(URL.createObjectURL(blob));
   }
 
-  // Fallback compression (if worker fails)
   async function compressImageFallback(file, maxW = 1200, maxH = 1200, quality = 0.7) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -302,7 +319,6 @@
     let currentWorker = null;
     let useWorker = true;
 
-    // Try to create worker, fallback if fails
     try {
       currentWorker = createCompressionWorker();
       currentWorker.onerror = () => { useWorker = false; workerStatusSpan.textContent = 'Using fallback compression'; };
@@ -370,19 +386,12 @@
       });
     };
 
-    // Process queue with worker (if available) or fallback, with concurrency control
     async function processFileQueue() {
-      if (pendingFiles.length === 0 && activeCompressions === 0) {
-        if (totalToProcess > 0 && processedCount === totalToProcess) {
-          // finished
-        }
-        return;
-      }
+      if (pendingFiles.length === 0 && activeCompressions === 0) return;
       if (progressBar.style.display !== 'block') {
         progressBar.style.display = 'block';
         progressFill.style.width = '0%';
       }
-      
       const maxConcurrent = 3;
       while (pendingFiles.length > 0 && activeCompressions < maxConcurrent) {
         const file = pendingFiles.shift();
@@ -393,11 +402,8 @@
             if (useWorker && currentWorker) {
               dataUrl = await new Promise((resolve, reject) => {
                 const handler = (e) => {
-                  if (e.data.success) {
-                    resolve(e.data.dataUrl);
-                  } else {
-                    reject(new Error(e.data.error));
-                  }
+                  if (e.data.success) resolve(e.data.dataUrl);
+                  else reject(new Error(e.data.error));
                   currentWorker.removeEventListener('message', handler);
                 };
                 currentWorker.addEventListener('message', handler);
@@ -409,14 +415,12 @@
             addImageRow(dataUrl, '');
           } catch (err) {
             console.warn('Image compression failed for', file.name, err);
-            // Add a placeholder row with error indicator
             const row = addImageRow('', '[Error loading image]');
             row.querySelector('.img-preview-thumb').style.border = '2px solid red';
           } finally {
             activeCompressions--;
             processedCount++;
             updateProgress();
-            // Continue processing queue
             processFileQueue();
           }
         })();
@@ -435,7 +439,6 @@
       processFileQueue();
     }
 
-    // Reset queue when modal is closed (optional)
     function resetUploadQueue() {
       pendingFiles = [];
       activeCompressions = 0;
@@ -444,7 +447,6 @@
       progressBar.style.display = 'none';
     }
 
-    // Event listeners for drag & drop
     dropZone.addEventListener('click', () => fileInput.click());
     ['dragenter','dragover','dragleave','drop'].forEach(ev => {
       dropZone.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); });
@@ -475,7 +477,7 @@
       checkboxes.forEach(cb => cb.checked = !allChecked);
     });
 
-    // --- RENDER FUNCTIONS (same as before) ---
+    // ---------- PROJECTS & CERTIFICATES CRUD ----------
     async function renderProjects() {
       const projects = await window.portfolioData.loadProjects();
       const container = document.getElementById('projectsList');
@@ -735,10 +737,177 @@
       await safeSaveCertificate(certs);
     });
 
+    // ---------- BACKUPS & RESTORE ----------
+    async function listBackups() {
+      const config = window.REPO_CONFIG;
+      const token = user.pat;
+      const url = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/backups?ref=${config.branch}`;
+      try {
+        const resp = await fetch(url, { headers: { Authorization: `token ${token}` } });
+        if (!resp.ok) {
+          if (resp.status === 404) return [];
+          throw new Error(`GitHub error: ${resp.status}`);
+        }
+        const files = await resp.json();
+        return files.filter(f => f.name.endsWith('.zip') && f.type === 'file')
+                    .sort((a,b) => b.name.localeCompare(a.name));
+      } catch (err) {
+        console.warn('Failed to list backups', err);
+        return [];
+      }
+    }
+
+    async function getBackupInfo(zipFileUrl) {
+      try {
+        const resp = await fetch(zipFileUrl);
+        if (!resp.ok) throw new Error('Failed to download backup');
+        const blob = await resp.blob();
+        const zip = await JSZip.loadAsync(blob);
+        const infoFile = zip.file("backup_info.json");
+        if (!infoFile) return null;
+        const content = await infoFile.async("string");
+        return JSON.parse(content);
+      } catch (err) {
+        console.warn('Could not read backup info', err);
+        return null;
+      }
+    }
+
+    async function downloadBackupData(zipFileUrl, type) {
+      const resp = await fetch(zipFileUrl);
+      const blob = await resp.blob();
+      const zip = await JSZip.loadAsync(blob);
+      const currentUser = window.SessionManager.getCurrentUser().username;
+      const encUser = encodeURIComponent(currentUser);
+      let projects = null, certificates = null;
+      if (type === 'projects' || type === 'both') {
+        const projFile = zip.file(`data/users/${encUser}/projects.json`);
+        if (projFile) {
+          const content = await projFile.async("string");
+          projects = JSON.parse(content);
+        }
+      }
+      if (type === 'certificates' || type === 'both') {
+        const certFile = zip.file(`data/users/${encUser}/certificates.json`);
+        if (certFile) {
+          const content = await certFile.async("string");
+          certificates = JSON.parse(content);
+        }
+      }
+      return { projects, certificates };
+    }
+
+    async function restoreFromBackup(zipUrl, restoreProjects, restoreCertificates) {
+      const msg = [];
+      if (restoreProjects) msg.push("Projects");
+      if (restoreCertificates) msg.push("Certificates");
+      if (msg.length === 0) return;
+      if (!confirm(`Are you sure you want to restore ${msg.join(" and ")} from this backup? Current data will be overwritten.`)) return;
+      
+      window.showLoading(`Restoring ${msg.join(" and ")}...`);
+      try {
+        const { projects, certificates } = await downloadBackupData(zipUrl, restoreProjects && restoreCertificates ? 'both' : (restoreProjects ? 'projects' : 'certificates'));
+        let error = false;
+        if (restoreProjects && projects !== null) {
+          await window.portfolioData.saveProjects(projects);
+        } else if (restoreProjects && projects === null) {
+          throw new Error('Backup does not contain projects.json for your user');
+        }
+        if (restoreCertificates && certificates !== null) {
+          await window.portfolioData.saveCertificates(certificates);
+        } else if (restoreCertificates && certificates === null) {
+          throw new Error('Backup does not contain certificates.json for your user');
+        }
+        window.hideLoading();
+        alert(`Successfully restored ${msg.join(" and ")}.`);
+        await renderProjects();
+        await renderCertificates();
+        await loadBackups();
+      } catch (err) {
+        window.hideLoading();
+        alert(`Restore failed: ${err.message}`);
+      }
+    }
+
+    async function loadBackups() {
+      const container = document.getElementById('backupsList');
+      container.innerHTML = '<div class="text-center py-5"><i class="fa fa-spinner fa-spin"></i> Loading backups...</div>';
+      const backups = await listBackups();
+      if (backups.length === 0) {
+        container.innerHTML = '<div class="empty-state"><i class="fa fa-database"></i><h5>No backups found</h5><p>Daily backups will appear here once the GitHub Action runs.</p></div>';
+        return;
+      }
+      let html = '';
+      for (const backup of backups) {
+        let info = await getBackupInfo(backup.download_url);
+        const timestamp = backup.name.replace('.zip', '');
+        const projectsCount = info?.projects_count ?? '?';
+        const certsCount = info?.certificates_count ?? '?';
+        html += `
+          <div class="backup-card">
+            <div class="d-flex justify-content-between align-items-center flex-wrap">
+              <div>
+                <strong><i class="fa fa-calendar"></i> ${timestamp}</strong><br>
+                <small class="text-muted">Total projects in backup: ${projectsCount} | Certificates: ${certsCount}</small>
+              </div>
+              <div class="mt-2 mt-sm-0">
+                <button class="btn btn-sm btn-outline-primary restore-projects-btn" data-url="${backup.download_url}">Restore My Projects</button>
+                <button class="btn btn-sm btn-outline-success restore-certs-btn" data-url="${backup.download_url}">Restore My Certificates</button>
+                <button class="btn btn-sm btn-outline-danger restore-both-btn" data-url="${backup.download_url}">Restore Both</button>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+      container.innerHTML = html;
+      document.querySelectorAll('.restore-projects-btn').forEach(btn => {
+        btn.addEventListener('click', () => restoreFromBackup(btn.dataset.url, true, false));
+      });
+      document.querySelectorAll('.restore-certs-btn').forEach(btn => {
+        btn.addEventListener('click', () => restoreFromBackup(btn.dataset.url, false, true));
+      });
+      document.querySelectorAll('.restore-both-btn').forEach(btn => {
+        btn.addEventListener('click', () => restoreFromBackup(btn.dataset.url, true, true));
+      });
+    }
+
+    async function triggerBackupWorkflow() {
+      const config = window.REPO_CONFIG;
+      const token = user.pat;
+      const url = `https://api.github.com/repos/${config.owner}/${config.repo}/actions/workflows/backup.yml/dispatches`;
+      try {
+        const resp = await fetch(url, {
+          method: 'POST',
+          headers: {
+            Authorization: `token ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ ref: config.branch })
+        });
+        if (resp.ok) {
+          alert('Backup triggered! It may take a few minutes to appear.');
+          setTimeout(() => loadBackups(), 10000);
+        } else {
+          const err = await resp.json();
+          alert(`Cannot trigger workflow: ${err.message}. You may need to add "actions:write" permission to your token.`);
+        }
+      } catch (err) {
+        alert('Failed to trigger backup: ' + err.message);
+      }
+    }
+
+    // ---------- USER MANAGEMENT (admin only) ----------
     const isAdmin = window.APP_CONFIG.adminUsers && window.APP_CONFIG.adminUsers.includes(user.username);
     if (isAdmin) {
+      document.getElementById('backupsTabNav').style.display = 'block';
       document.getElementById('usersTabNav').style.display = 'block';
+      document.getElementById('refreshBackupsBtn').addEventListener('click', loadBackups);
       document.getElementById('refreshUsersBtn').addEventListener('click', loadUsers);
+      if (user.pat && (user.pat.startsWith('github_pat_') || user.pat.length > 40)) {
+        document.getElementById('triggerBackupNowBtn').style.display = 'inline-block';
+      }
+      document.getElementById('triggerBackupNowBtn').addEventListener('click', triggerBackupWorkflow);
+      loadBackups();
       loadUsers();
     }
 
@@ -816,6 +985,7 @@
       window.hideLoading();
     }
 
+    // ---------- BUTTON HANDLERS ----------
     document.getElementById('addProjectBtn').addEventListener('click', () => openProjectModal());
     document.getElementById('addCertBtn').addEventListener('click', () => openCertModal());
     document.getElementById('downloadDataBtn').addEventListener('click', () => window.portfolioData.exportData());
