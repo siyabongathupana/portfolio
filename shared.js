@@ -1,4 +1,4 @@
-// shared.js – Fully robust with merge logic and no data loss
+// shared.js – Full version with robust stats and certificate loading
 
 window.showLoading = function (msg = 'Processing...') {
   let loader = document.getElementById('globalLoader');
@@ -193,14 +193,18 @@ window.AccountManager = {
         const data = JSON.parse(projFile.content);
         projectCount = Object.keys(data).length;
       }
-    } catch (e) {}
+    } catch (e) { 
+      console.warn(`Could not load projects for ${username}:`, e); 
+    }
     try {
       const certFile = await GitHubAPI.getFileContent(owner, repo, `${base}/certificates.json`, branch, adminToken);
       if (certFile && certFile.content) {
         const data = JSON.parse(certFile.content);
         certCount = data.length;
       }
-    } catch (e) {}
+    } catch (e) { 
+      console.warn(`Could not load certificates for ${username}:`, e); 
+    }
     return { projects: projectCount, certificates: certCount };
   },
   async getUserDownloadStats(username, adminToken) {
@@ -237,7 +241,7 @@ window.AccountManager = {
 };
 
 /* =====================================================
-   PORTFOLIO DATA – ROBUST SAVE WITH MERGE
+   PORTFOLIO DATA – WITH forceEmpty FLAG AND CACHE-BUSTING
    ===================================================== */
 window.portfolioData = (() => {
   const PROJECTS_KEY = 'deltaVProjects';
@@ -316,6 +320,7 @@ window.portfolioData = (() => {
         console.warn('Could not fetch certificates from GitHub, using local cache');
       }
     }
+    // Fallback to public profile or local cache
     if (!user && window.APP_CONFIG.publicProfileEmail) {
       try {
         const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
@@ -341,10 +346,13 @@ window.portfolioData = (() => {
     return [];
   }
 
-  async function saveProjects(data) {
+  async function saveProjects(data, forceEmpty = false) {
     const prev = localStorage.getItem(PROJECTS_KEY);
-    if (prev && Object.keys(JSON.parse(prev)).length > 0 && Object.keys(data).length === 0) {
-      throw new Error('Cannot delete all projects this way. Use "Delete All" button.');
+    if (prev) {
+      const previous = JSON.parse(prev);
+      if (!forceEmpty && Object.keys(previous).length > 0 && Object.keys(data).length === 0) {
+        throw new Error('Cannot delete all projects this way. Use "Delete All" button.');
+      }
     }
     localStorage.setItem(PROJECTS_KEY, JSON.stringify(data));
     const user = window.SessionManager.getCurrentUser();
@@ -355,7 +363,7 @@ window.portfolioData = (() => {
     const path = `${dataPath}/users/${encUser}/projects.json`;
     let sha = null;
     try {
-      const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat).catch(() => null);
+      const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
       if (existing) sha = existing.sha;
       await GitHubAPI.updateFile(owner, repo, path, data, 'Update projects', branch, user.pat, sha);
     } catch (err) {
@@ -364,45 +372,33 @@ window.portfolioData = (() => {
     }
   }
 
-  // ROBUST CERTIFICATE SAVE: always fetch latest, then merge (replace by id)
-  async function saveCertificates(newCertArray) {
-    // newCertArray is the complete desired array (what the user sees in UI)
-    // But we must ensure we don't lose data if we got stale UI state.
+  async function saveCertificates(localData, forceEmpty = false) {
     const user = window.SessionManager.getCurrentUser();
     if (!user || !user.pat) {
-      localStorage.setItem(CERTS_KEY, JSON.stringify(newCertArray));
+      localStorage.setItem(CERTS_KEY, JSON.stringify(localData));
       return;
     }
-
     await verifyNotBlocked();
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(user.username);
     const path = `${dataPath}/users/${encUser}/certificates.json`;
 
-    // Fetch latest from GitHub
-    let latestCerts = [];
+    let latestData = [];
     let sha = null;
     try {
       const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
       if (existing && existing.content) {
-        latestCerts = JSON.parse(existing.content);
+        latestData = JSON.parse(existing.content);
         sha = existing.sha;
-        if (!Array.isArray(latestCerts)) latestCerts = [];
+        if (!Array.isArray(latestData)) latestData = [];
       }
-    } catch (e) {
-      // File does not exist – will create new
-    }
+    } catch (e) {}
 
-    // Merge: we trust the UI's array (newCertArray) because it represents user's intention.
-    // But to be extra safe, we can compare lengths and warn if the UI has fewer items than GitHub.
-    if (newCertArray.length === 0 && latestCerts.length > 0) {
+    if (!forceEmpty && localData.length === 0 && latestData.length > 0) {
       throw new Error('Cannot save empty certificates unless you click "Delete All".');
     }
 
-    // Use the UI array as the source of truth (user just edited).
-    const finalCerts = newCertArray;
-
-    // Retry logic for SHA conflicts
+    const finalCerts = localData;
     let retries = 3;
     while (retries > 0) {
       try {
@@ -411,10 +407,9 @@ window.portfolioData = (() => {
         return;
       } catch (err) {
         if (err.message.includes('sha') && retries > 1) {
-          // Refresh SHA and latest data
           const fresh = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
           if (fresh && fresh.content) {
-            latestCerts = JSON.parse(fresh.content);
+            latestData = JSON.parse(fresh.content);
             sha = fresh.sha;
           }
           retries--;
