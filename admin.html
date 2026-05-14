@@ -36,6 +36,7 @@
     .worker-status { font-size:0.8rem; color:#2fc7ff; margin-left:10px; }
     .backup-card { background:#f8f9fa; border-radius:16px; padding:15px; margin-bottom:15px; transition:0.2s; }
     .backup-card:hover { background:#e9ecef; }
+    .backup-card button { margin: 5px; }
   </style>
 </head>
 <body style="background:#eef3fc;">
@@ -233,7 +234,7 @@
     initDashboard();
   }
 
-  // --- Web Worker for image compression (inline blob) ---
+  // ---------- WEB WORKER FOR IMAGE COMPRESSION ----------
   function createCompressionWorker() {
     const workerCode = `
       self.onmessage = async function(e) {
@@ -249,24 +250,16 @@
             image.src = url;
           });
           URL.revokeObjectURL(url);
-          
-          let width = img.width;
-          let height = img.height;
+          let width = img.width, height = img.height;
           const ratio = Math.min(maxWidth / width, maxHeight / height);
-          if (ratio < 1) {
-            width = Math.round(width * ratio);
-            height = Math.round(height * ratio);
-          }
-          
+          if (ratio < 1) { width = Math.round(width * ratio); height = Math.round(height * ratio); }
           const canvas = new OffscreenCanvas(width, height);
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, width, height);
           const compressedBlob = await canvas.convertToBlob({ type: 'image/jpeg', quality: quality });
           const reader = new FileReader();
-          reader.onload = () => {
-            self.postMessage({ success: true, dataUrl: reader.result, originalName: file.name });
-          };
-          reader.onerror = () => self.postMessage({ success: false, error: 'Failed to read compressed blob' });
+          reader.onload = () => self.postMessage({ success: true, dataUrl: reader.result });
+          reader.onerror = () => self.postMessage({ success: false, error: 'Read failed' });
           reader.readAsDataURL(compressedBlob);
         } catch (err) {
           self.postMessage({ success: false, error: err.message });
@@ -285,13 +278,9 @@
         img.onload = () => {
           let width = img.width, height = img.height;
           const ratio = Math.min(maxW / width, maxH / height);
-          if (ratio < 1) {
-            width = Math.round(width * ratio);
-            height = Math.round(height * ratio);
-          }
+          if (ratio < 1) { width = Math.round(width * ratio); height = Math.round(height * ratio); }
           const canvas = document.createElement('canvas');
-          canvas.width = width;
-          canvas.height = height;
+          canvas.width = width; canvas.height = height;
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, width, height);
           resolve(canvas.toDataURL('image/jpeg', quality));
@@ -305,6 +294,7 @@
   }
 
   async function initDashboard() {
+    // DOM elements
     const imgContainer = document.getElementById('imagesContainer');
     const dropZone = document.getElementById('imageDropZone');
     const fileInput = document.getElementById('imageFileInput');
@@ -414,7 +404,7 @@
             }
             addImageRow(dataUrl, '');
           } catch (err) {
-            console.warn('Image compression failed for', file.name, err);
+            console.warn('Image compression failed', file.name, err);
             const row = addImageRow('', '[Error loading image]');
             row.querySelector('.img-preview-thumb').style.border = '2px solid red';
           } finally {
@@ -504,8 +494,10 @@
         container.appendChild(card);
       }
       document.querySelectorAll('.edit-project').forEach(btn => btn.addEventListener('click', () => openProjectModal(btn.dataset.id)));
-      document.querySelectorAll('.delete-project').forEach(btn => btn.addEventListener('click', () => {
-        if (confirm('Delete this project?')) safeDeleteProject(btn.dataset.id);
+      document.querySelectorAll('.delete-project').forEach(btn => btn.addEventListener('click', async () => {
+        if (confirm(`Delete project "${btn.closest('.card')?.querySelector('h5')?.innerText || 'this project'}"?`)) {
+          await safeDeleteProject(btn.dataset.id);
+        }
       }));
     }
 
@@ -737,7 +729,7 @@
       await safeSaveCertificate(certs);
     });
 
-    // ---------- BACKUPS & RESTORE ----------
+    // ---------- BACKUPS & RESTORE (FIXED) ----------
     async function listBackups() {
       const config = window.REPO_CONFIG;
       const token = user.pat;
@@ -773,6 +765,7 @@
       }
     }
 
+    // Resilient function to find user's files inside any ZIP structure
     async function downloadBackupData(zipFileUrl, type) {
       const resp = await fetch(zipFileUrl);
       const blob = await resp.blob();
@@ -780,20 +773,43 @@
       const currentUser = window.SessionManager.getCurrentUser().username;
       const encUser = encodeURIComponent(currentUser);
       let projects = null, certificates = null;
+
+      function findFile(zip, suffix) {
+        const files = Object.keys(zip.files);
+        for (const filePath of files) {
+          if (filePath.endsWith(suffix) && !zip.files[filePath].dir) {
+            return zip.file(filePath);
+          }
+        }
+        return null;
+      }
+
       if (type === 'projects' || type === 'both') {
-        const projFile = zip.file(`data/users/${encUser}/projects.json`);
+        let projFile = zip.file(`data/users/${encUser}/projects.json`);
+        if (!projFile) projFile = findFile(zip, `users/${encUser}/projects.json`);
+        if (!projFile) {
+          const possible = Object.keys(zip.files).filter(p => p.endsWith('projects.json') && p.includes(encUser));
+          if (possible.length) projFile = zip.file(possible[0]);
+        }
         if (projFile) {
           const content = await projFile.async("string");
           projects = JSON.parse(content);
         }
       }
+
       if (type === 'certificates' || type === 'both') {
-        const certFile = zip.file(`data/users/${encUser}/certificates.json`);
+        let certFile = zip.file(`data/users/${encUser}/certificates.json`);
+        if (!certFile) certFile = findFile(zip, `users/${encUser}/certificates.json`);
+        if (!certFile) {
+          const possible = Object.keys(zip.files).filter(p => p.endsWith('certificates.json') && p.includes(encUser));
+          if (possible.length) certFile = zip.file(possible[0]);
+        }
         if (certFile) {
           const content = await certFile.async("string");
           certificates = JSON.parse(content);
         }
       }
+
       return { projects, certificates };
     }
 
@@ -802,27 +818,22 @@
       if (restoreProjects) msg.push("Projects");
       if (restoreCertificates) msg.push("Certificates");
       if (msg.length === 0) return;
-      if (!confirm(`Are you sure you want to restore ${msg.join(" and ")} from this backup? Current data will be overwritten.`)) return;
+      if (!confirm(`⚠️ WARNING: Restoring ${msg.join(" and ")} will OVERWRITE your current ${msg.join(" and ")}. Continue?`)) return;
       
       window.showLoading(`Restoring ${msg.join(" and ")}...`);
       try {
         const { projects, certificates } = await downloadBackupData(zipUrl, restoreProjects && restoreCertificates ? 'both' : (restoreProjects ? 'projects' : 'certificates'));
-        let error = false;
-        if (restoreProjects && projects !== null) {
-          await window.portfolioData.saveProjects(projects);
-        } else if (restoreProjects && projects === null) {
-          throw new Error('Backup does not contain projects.json for your user');
-        }
-        if (restoreCertificates && certificates !== null) {
-          await window.portfolioData.saveCertificates(certificates);
-        } else if (restoreCertificates && certificates === null) {
-          throw new Error('Backup does not contain certificates.json for your user');
-        }
+        if (restoreProjects && projects === null) throw new Error('Backup does not contain projects.json for your user');
+        if (restoreCertificates && certificates === null) throw new Error('Backup does not contain certificates.json for your user');
+        
+        if (restoreProjects) await window.portfolioData.saveProjects(projects);
+        if (restoreCertificates) await window.portfolioData.saveCertificates(certificates);
+        
         window.hideLoading();
-        alert(`Successfully restored ${msg.join(" and ")}.`);
+        alert(`✅ Successfully restored ${msg.join(" and ")}.`);
         await renderProjects();
         await renderCertificates();
-        await loadBackups();
+        await loadBackups(); // refresh list (shows counts unchanged)
       } catch (err) {
         window.hideLoading();
         alert(`Restore failed: ${err.message}`);
@@ -878,10 +889,7 @@
       try {
         const resp = await fetch(url, {
           method: 'POST',
-          headers: {
-            Authorization: `token ${token}`,
-            'Content-Type': 'application/json'
-          },
+          headers: { Authorization: `token ${token}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ ref: config.branch })
         });
         if (resp.ok) {
@@ -924,9 +932,7 @@
           for (const username of usernames) {
             const isBlocked = blocked.includes(username);
             let stats = { projects: 0, certificates: 0 };
-            try {
-              stats = await window.AccountManager.getUserStats(username, user.pat);
-            } catch(e) {}
+            try { stats = await window.AccountManager.getUserStats(username, user.pat); } catch(e) {}
             const card = document.createElement('div');
             card.className = 'card mb-2';
             card.innerHTML = `
@@ -935,14 +941,10 @@
                   <div>
                     <strong>${window.escapeHtml(username)}</strong>
                     ${isBlocked ? '<span class="badge badge-danger ml-2">Blocked</span>' : '<span class="badge badge-success ml-2">Active</span>'}
-                    <div class="small text-muted">
-                      Projects: ${stats.projects} | Certificates: ${stats.certificates}
-                    </div>
+                    <div class="small text-muted">Projects: ${stats.projects} | Certificates: ${stats.certificates}</div>
                   </div>
                   <div>
-                    <button class="btn btn-sm ${isBlocked ? 'btn-success' : 'btn-warning'} toggle-block-btn" data-username="${username}">
-                      ${isBlocked ? 'Unblock' : 'Block'}
-                    </button>
+                    <button class="btn btn-sm ${isBlocked ? 'btn-success' : 'btn-warning'} toggle-block-btn" data-username="${username}">${isBlocked ? 'Unblock' : 'Block'}</button>
                     <button class="btn btn-sm btn-danger delete-user-btn" data-username="${username}">Delete</button>
                   </div>
                 </div>
@@ -958,10 +960,7 @@
               try {
                 await window.AccountManager.toggleBlock(username, block, user.pat);
                 await loadUsers();
-              } catch(err) {
-                window.hideLoading();
-                alert('Failed: ' + err.message);
-              }
+              } catch(err) { window.hideLoading(); alert('Failed: ' + err.message); }
             });
           });
           document.querySelectorAll('.delete-user-btn').forEach(btn => {
@@ -972,10 +971,7 @@
               try {
                 await window.AccountManager.deleteUser(username, user.pat);
                 await loadUsers();
-              } catch(err) {
-                window.hideLoading();
-                alert('Failed: ' + err.message);
-              }
+              } catch(err) { window.hideLoading(); alert('Failed: ' + err.message); }
             });
           });
         }
@@ -989,18 +985,18 @@
     document.getElementById('addProjectBtn').addEventListener('click', () => openProjectModal());
     document.getElementById('addCertBtn').addEventListener('click', () => openCertModal());
     document.getElementById('downloadDataBtn').addEventListener('click', () => window.portfolioData.exportData());
+    
     document.getElementById('deleteAllProjectsBtn').addEventListener('click', async () => {
-      if (confirm('Permanently delete ALL your projects?')) {
+      if (confirm('⚠️ PERMANENT: Delete ALL your projects? This cannot be undone.')) {
         window.showLoading('Deleting all projects...');
         try {
           await window.portfolioData.saveProjects({});
           await renderProjects();
-        } catch (err) {
-          alert('Failed: ' + err.message);
-        }
+        } catch (err) { alert('Failed: ' + err.message); }
         window.hideLoading();
       }
     });
+    
     document.getElementById('syncProjectsBtn').addEventListener('click', async () => {
       window.showLoading('Syncing from GitHub...');
       await renderProjects();
@@ -1008,31 +1004,58 @@
       window.hideLoading();
       alert('Data refreshed.');
     });
-    document.getElementById('deleteAllCertsBtn').addEventListener('click', async () => {
-      if (confirm('Delete all certificates?')) {
-        window.showLoading('Deleting all certificates...');
+    
+    document.getElementById('deleteAllC('deleteAllCertsBtnertsBtn').addEventListener('click',').addEventListener(' async ()click', async () => => {
+      if {
+      if (confirm (confirm('⚠️ PER('⚠MANENT: Delete️ PERMANENT: Delete ALL your certificates? ALL your certificates? This cannot This cannot be undone be undone.')).')) {
+        window.show {
+       Loading(' window.showDeleLoading('Deleting allting all certificates...');
+        try certificates...');
         try {
           await window.portfolioData.saveCertificates([]);
           await renderCertificates();
-        } catch (err) {
-          alert('Failed: ' + err.message);
-        }
+        {
+          await window.portfolioData.saveCertificates([]);
+          await renderCertificates();
+        } catch (err } catch (err) {) { alert('Failed: alert('Failed: ' + ' + err.message err.message); }
+); }
         window.hideLoading();
+             window.hideLoading();
       }
+    }
     });
-    document.getElementById('logoutBtn').addEventListener('click', () => {
-      if (currentWorker) currentWorker.terminate();
-      window.SessionManager.logout();
-      window.location.href = 'login.html';
+    
+    });
+    
+    document.getElementById document.getElementById('logout('logoutBtn').Btn').addEventListener('clickaddEventListener('click', ()', () => => {
+      if (current {
+      if (currentWorker)Worker) currentWorker currentWorker.termin.terminate();
+      windowate();
+      window.Session.SessionManager.logManager.logout();
+      windowout();
+      window.location.h.location.href =ref = 'login.html 'login.html';
+   ';
     });
 
-    await renderProjects();
+    await });
+
+    await renderProjects renderProjects();
     await renderCertificates();
-    window.hideLoading();
+    await renderCertificates();
+   ();
+    window.h window.hideLoadingideLoading();
+ ();
   }
-</script>
-<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script>
-<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-</body>
+</ }
+</scriptscript>
+<script src="https>
+<script src="https://code://code.jquery.jquery.com/jquery-3.com/jquery-3.5.5.1.1.min.js"></script.min.js>
+<script"></script>
+<script src="https:// src="https://cdn.jscdn.jsdelivr.netdeliv/npmr.net/npm/po/popper.jspper.js@1.16@1.16.0/dist/umd/popper.min.js"></script>
+<script src="https.0/dist/umd/popper.min.js"></script>
+<script src://stack="httpspath.b://stackpath.bootstrapcdnootstrapcdn.com/bootstrap/4.com/bootstrap/4.5.5.2.2/js/bootstrap.min.js/js/bootstrap"></script.min.js"></script>
+</>
+</bodybody>
 </html>
+</html>
+>
