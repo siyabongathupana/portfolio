@@ -286,7 +286,6 @@
   // Upload to ImgBB (if key provided) or fallback to compression
   async function uploadToImgBB(file, apiKey) {
     if (!apiKey || apiKey === 'YOUR_IMGBB_API_KEY') {
-      // Fallback: compress and return data URL
       return compressImage(file);
     }
     const formData = new FormData();
@@ -568,7 +567,6 @@
       window.hideLoading();
     }
 
-    // ROBUST CERTIFICATE SAVE – uses the shared.js method which already merges
     async function safeSaveCertificate(certs) {
       window.showLoading('Saving certificate...');
       try {
@@ -735,9 +733,7 @@
       }
       try {
         await safeSaveCertificate(updatedCerts);
-      } catch (err) {
-        // Error already handled in safeSaveCertificate
-      }
+      } catch (err) {}
     });
 
     const isAdmin = window.APP_CONFIG.adminUsers && window.APP_CONFIG.adminUsers.includes(user.username);
@@ -844,14 +840,19 @@
         let certFile = null, projFile = null;
         for (const [path, file] of Object.entries(zip.files)) {
           if (file.dir) continue;
-          if (path.endsWith(`/data/users/${encodedEmail}/certificates.json`)) certFile = file;
-          if (path.endsWith(`/data/users/${encodedEmail}/projects.json`)) projFile = file;
+          // More robust detection: include path
+          if (path.includes(`/data/users/${encodedEmail}/certificates.json`)) {
+            certFile = file;
+          }
+          if (path.includes(`/data/users/${encodedEmail}/projects.json`)) {
+            projFile = file;
+          }
         }
         let certificates = [], projects = {};
         if (certFile) { const content = await certFile.async('string'); certificates = JSON.parse(content); }
         if (projFile) { const content = await projFile.async('string'); projects = JSON.parse(content); }
         extractedData = { certificates, projects };
-        const previewHtml = `<div><strong>📜 Certificates:</strong> ${certificates.length}</div><ul class="small">${certificates.slice(0,5).map(c => `<li>${escapeHtml(c.title)} (${c.date||'no date'})</li>`).join('')}${certificates.length>5 ? `<li>... and ${certificates.length-5} more</li>` : ''}</ul><div><strong>📁 Projects:</strong> ${Object.keys(projects).length}</div><ul class="small">${Object.values(projects).slice(0,5).map(p => `<li>${escapeHtml(p.title)}</li>`).join('')}${Object.keys(projects).length>5 ? `<li>... and ${Object.keys(projects).length-5} more</li>` : ''}</ul>`;
+        const previewHtml = `<div><strong>📜 Certificates:</strong> ${certificates.length}</div><ul class="small">${certificates.slice(0,5).map(c => `<li>${window.escapeHtml(c.title)} (${c.date||'no date'})</li>`).join('')}${certificates.length>5 ? `<li>... and ${certificates.length-5} more</li>` : ''}</ul><div><strong>📁 Projects:</strong> ${Object.keys(projects).length}</div><ul class="small">${Object.values(projects).slice(0,5).map(p => `<li>${window.escapeHtml(p.title)}</li>`).join('')}${Object.keys(projects).length>5 ? `<li>... and ${Object.keys(projects).length-5} more</li>` : ''}</ul>`;
         document.getElementById('previewContent').innerHTML = previewHtml;
       } catch (err) { document.getElementById('previewContent').innerHTML = `<div class="alert alert-danger">Failed to read backup: ${err.message}</div>`; }
     }
@@ -863,8 +864,8 @@
       if (!confirm(confirmMsg + ' Continue?')) return;
       window.showLoading(`Restoring ${type}...`);
       try {
-        if (type === 'certificates' || type === 'both') await window.portfolioData.saveCertificates(extractedData.certificates);
-        if (type === 'projects' || type === 'both') await window.portfolioData.saveProjects(extractedData.projects);
+        if (type === 'certificates' || type === 'both') await window.portfolioData.saveCertificates(extractedData.certificates, true);
+        if (type === 'projects' || type === 'both') await window.portfolioData.saveProjects(extractedData.projects, true);
         alert('Restore completed! Refreshing...');
         window.location.reload();
       } catch (err) {
@@ -875,9 +876,48 @@
     document.getElementById('restoreCertsBtn')?.addEventListener('click', () => restore('certificates'));
     document.getElementById('restoreProjectsBtn')?.addEventListener('click', () => restore('projects'));
     document.getElementById('restoreBothBtn')?.addEventListener('click', () => restore('both'));
-    function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m] || m); }
 
-    // Initialize everything
+    // BUTTON HANDLERS (with forceEmpty)
+    document.getElementById('addProjectBtn').addEventListener('click', () => openProjectModal());
+    document.getElementById('addCertBtn').addEventListener('click', () => openCertModal());
+    document.getElementById('downloadDataBtn').addEventListener('click', () => window.portfolioData.exportData());
+    document.getElementById('deleteAllProjectsBtn').addEventListener('click', async () => {
+      if (confirm('Permanently delete ALL your projects?')) {
+        window.showLoading('Deleting all projects...');
+        try {
+          await window.portfolioData.saveProjects({}, true); // forceEmpty = true
+          await renderProjects();
+        } catch (err) {
+          alert('Failed: ' + err.message);
+        }
+        window.hideLoading();
+      }
+    });
+    document.getElementById('deleteAllCertsBtn').addEventListener('click', async () => {
+      if (confirm('Delete all certificates?')) {
+        window.showLoading('Deleting all certificates...');
+        try {
+          await window.portfolioData.saveCertificates([], true); // forceEmpty = true
+          await renderCertificates();
+        } catch (err) {
+          alert('Failed: ' + err.message);
+        }
+        window.hideLoading();
+      }
+    });
+    document.getElementById('syncProjectsBtn').addEventListener('click', async () => {
+      window.showLoading('Syncing from GitHub...');
+      await renderProjects();
+      await renderCertificates();
+      window.hideLoading();
+      alert('Data refreshed.');
+    });
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      window.SessionManager.logout();
+      window.location.href = 'login.html';
+    });
+
+    // Initialize
     await loadBackups();
     await renderProjects();
     await renderCertificates();
