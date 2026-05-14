@@ -4,13 +4,12 @@
 const ANALYTICS_NAMESPACE = 'deltaV_portfolio';
 
 async function incrementView(type, id) {
-  // type: 'project' or 'certificate'
   const key = `${type}_${id}`;
   const url = `https://countapi.xyz/update/${ANALYTICS_NAMESPACE}/${key}?amount=1`;
   try {
     const response = await fetch(url);
     const data = await response.json();
-    return data.value; // new count
+    return data.value;
   } catch (err) {
     console.warn('Analytics increment failed:', err);
     return null;
@@ -31,10 +30,12 @@ async function getViewCount(type, id) {
 }
 
 async function getAllViewCounts(type, ids) {
-  // ids: array of project ids or certificate ids
+  // Parallel requests for better performance
+  const promises = ids.map(id => getViewCount(type, id));
+  const countsArray = await Promise.all(promises);
   const counts = {};
-  for (const id of ids) {
-    counts[id] = await getViewCount(type, id);
-  }
+  ids.forEach((id, idx) => {
+    counts[id] = countsArray[idx];
+  });
   return counts;
 }
