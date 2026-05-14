@@ -1,4 +1,4 @@
-// shared.js – Full version with lazy loading and performance optimizations
+// shared.js – Full version with safety checks and transactional saves
 
 window.showLoading = function (msg = 'Processing...') {
   let loader = document.getElementById('globalLoader');
@@ -221,7 +221,7 @@ window.AccountManager = {
 };
 
 /* =====================================================
-   PORTFOLIO DATA – TRANSACTIONAL SAVES, NO DELETIONS
+   PORTFOLIO DATA – TRANSACTIONAL SAVES WITH SAFETY CHECKS
    ===================================================== */
 window.portfolioData = (() => {
   const PROJECTS_KEY = 'deltaVProjects';
@@ -352,9 +352,20 @@ window.portfolioData = (() => {
   }
 
   async function saveCertificates(data) {
+    // SAFETY: refuse to overwrite existing certificates with empty array
+    const prev = localStorage.getItem(CERTS_KEY);
+    if (prev) {
+      const previous = JSON.parse(prev);
+      if (previous.length > 0 && data.length === 0) {
+        console.error('Refusing to overwrite non-empty certificates with empty data');
+        throw new Error('Cannot delete all certificates this way. Use "Delete All" instead.');
+      }
+    }
+
     localStorage.setItem(CERTS_KEY, JSON.stringify(data));
     const user = window.SessionManager.getCurrentUser();
     if (!user || !user.pat) return;
+
     await verifyNotBlocked();
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(user.username);
@@ -365,6 +376,12 @@ window.portfolioData = (() => {
       if (existing) sha = existing.sha;
       await GitHubAPI.updateFile(owner, repo, path, data, 'Update certificates', branch, user.pat, sha);
     } catch (err) {
+      // Revert local storage to previous state on failure
+      if (prev) {
+        localStorage.setItem(CERTS_KEY, prev);
+      } else {
+        localStorage.removeItem(CERTS_KEY);
+      }
       throw new Error('GitHub write failed: ' + err.message);
     }
   }
@@ -386,7 +403,7 @@ window.portfolioData = (() => {
   return { loadProjects, saveProjects, loadCertificates, saveCertificates, exportData };
 })();
 
-// Lazy loading for images (improves page speed)
+// Lazy loading for images
 window.lazyLoadImages = function() {
   if ('IntersectionObserver' in window) {
     const imgObserver = new IntersectionObserver((entries, observer) => {
@@ -404,7 +421,6 @@ window.lazyLoadImages = function() {
     });
     document.querySelectorAll('img[data-src]').forEach(img => imgObserver.observe(img));
   } else {
-    // Fallback: load all immediately
     document.querySelectorAll('img[data-src]').forEach(img => {
       img.src = img.dataset.src;
       img.removeAttribute('data-src');
@@ -432,6 +448,8 @@ window.generateProjectReport = async function(projectId) {
   else if (projectType === 'SIS & DCS') { primaryColor = '#8bc34a'; bgColor = '#f1f8e9'; }
   else { primaryColor = '#6c757d'; bgColor = '#f8f9fa'; }
 
+  const io = proj.io || { AI: 0, AO: 0, DI: 0, DO: 0 };
+  
   const chartCanvas = document.createElement('canvas');
   chartCanvas.width = 500; chartCanvas.height = 250;
   const ctx = chartCanvas.getContext('2d');
@@ -443,19 +461,19 @@ window.generateProjectReport = async function(projectId) {
   if (proj.graphType === 'pie') {
     chart = new Chart(ctx, {
       type: 'pie',
-      data: { labels: ['AI','AO','DI','DO'], datasets: [{ data: [proj.io.AI, proj.io.AO, proj.io.DI, proj.io.DO], backgroundColor: chartColors }] },
+      data: { labels: ['AI','AO','DI','DO'], datasets: [{ data: [io.AI, io.AO, io.DI, io.DO], backgroundColor: chartColors }] },
       options: { responsive: false }
     });
   } else if (proj.graphType === 'line') {
     chart = new Chart(ctx, {
       type: 'line',
-      data: { labels: ['AI','AO','DI','DO'], datasets: [{ label: 'I/O Count', data: [proj.io.AI, proj.io.AO, proj.io.DI, proj.io.DO], borderColor: primaryColor, fill: true }] },
+      data: { labels: ['AI','AO','DI','DO'], datasets: [{ label: 'I/O Count', data: [io.AI, io.AO, io.DI, io.DO], borderColor: primaryColor, fill: true }] },
       options: { responsive: false }
     });
   } else {
     chart = new Chart(ctx, {
       type: 'bar',
-      data: { labels: ['AI','AO','DI','DO'], datasets: [{ label: 'I/O Count', data: [proj.io.AI, proj.io.AO, proj.io.DI, proj.io.DO], backgroundColor: primaryColor }] },
+      data: { labels: ['AI','AO','DI','DO'], datasets: [{ label: 'I/O Count', data: [io.AI, io.AO, io.DI, io.DO], backgroundColor: primaryColor }] },
       options: { responsive: false }
     });
   }
@@ -464,7 +482,7 @@ window.generateProjectReport = async function(projectId) {
   chart.destroy();
 
   let imagesHtml = '';
-  if (proj.selectedImages.length) {
+  if (proj.selectedImages && proj.selectedImages.length) {
     imagesHtml = `<div style="display: flex; flex-wrap: wrap; gap:10px; margin-top:10px;">`;
     proj.selectedImages.forEach(img => {
       imagesHtml += `
@@ -476,6 +494,10 @@ window.generateProjectReport = async function(projectId) {
     imagesHtml += `</div>`;
   } else { imagesHtml = '<p>No images selected.</p>'; }
 
+  const controllerDisplay = proj.controllerTypes ? proj.controllerTypes.join(', ') : (proj.controllerType || 'N/A');
+  const ifatText = proj.dates?.ifatStart ? `${proj.dates.ifatStart} to ${proj.dates.ifatEnd || ''}` : (proj.dates?.ifat || 'N/A');
+  const cfatText = proj.dates?.cfatStart ? `${proj.dates.cfatStart} to ${proj.dates.cfatEnd || ''}` : (proj.dates?.cfat || 'N/A');
+  
   const dateStr = new Date().toLocaleDateString();
   const reportHTML = `
     <div style="font-family:Inter, sans-serif; padding:20px; background:white; max-width:680px; margin:0 auto; color:#1e2a3e;">
@@ -491,9 +513,13 @@ window.generateProjectReport = async function(projectId) {
         <table style="width:100%">
           <tr><td><strong>Title:</strong></td><td>${proj.title}</td></tr>
           <tr><td><strong>Location:</strong></td><td>${proj.siteLocation||'N/A'}</td></tr>
-          <tr><td><strong>Controller:</strong></td><td>${proj.controllerType}</td></tr>
+          <tr><td><strong>Controllers:</strong></td><td>${controllerDisplay}</td></tr>
           <tr><td><strong>Cabinets:</strong></td><td>${proj.cabinetCount}</td></tr>
           ${proj.deltaVVersion ? `<tr><td><strong>DeltaV Version:</strong></td><td>${proj.deltaVVersion}</td></tr>` : ''}
+          <tr><td><strong>Start Date:</strong></td><td>${proj.dates?.start || 'N/A'}</td></tr>
+          <tr><td><strong>Finish Date:</strong></td><td>${proj.dates?.finish || 'N/A'}</td></tr>
+          <tr><td><strong>IFAT:</strong></td><td>${ifatText}</td></tr>
+          <tr><td><strong>CFAT:</strong></td><td>${cfatText}</td></tr>
         </table>
       </div>
       <div style="background:${bgColor}; padding:20px; border-radius:16px; margin-bottom:20px;">
@@ -503,7 +529,7 @@ window.generateProjectReport = async function(projectId) {
         <h3>I/O Configuration</h3>
         <table style="width:100%; text-align:center; border-collapse:collapse;">
           <tr style="background:${primaryColor}; color:white;"><th>AI</th><th>AO</th><th>DI</th><th>DO</th></tr>
-          <tr><td>${proj.io.AI}</td><td>${proj.io.AO}</td><td>${proj.io.DI}</td><td>${proj.io.DO}</td></tr>
+          <tr><td>${io.AI}</td><td>${io.AO}</td><td>${io.DI}</td><td>${io.DO}</td></tr>
         </table>
       </div>
       <div style="background:${bgColor}; padding:20px; border-radius:16px; margin-bottom:20px; text-align:center;">
@@ -512,9 +538,9 @@ window.generateProjectReport = async function(projectId) {
       </div>
       <div style="background:${bgColor}; padding:20px; border-radius:16px; margin-bottom:20px;">
         <h3>Team Members</h3>
-        <p><strong>Lead Engineer:</strong> ${proj.team.lead}<br>
-        <strong>Project Engineer:</strong> ${proj.team.engineer}<br>
-        <strong>Technician:</strong> ${proj.team.technician}</p>
+        <p><strong>Lead Engineer:</strong> ${proj.team?.lead || ''}<br>
+        <strong>Project Engineer:</strong> ${proj.team?.engineer || ''}<br>
+        <strong>Technician:</strong> ${proj.team?.technician || ''}</p>
       </div>
       <div style="background:${bgColor}; padding:20px; border-radius:16px; margin-bottom:20px;">
         <h3>Project Images</h3>${imagesHtml}
