@@ -1,3 +1,4 @@
+<!-- projects.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -65,7 +66,7 @@
           const carouselItems = proj.selectedImages.map((img, idx) => `
             <div class="carousel-item ${idx === 0 ? 'active' : ''}">
               <div class="carousel-caption-top">${window.escapeHtml(img.caption || '')}</div>
-              <img src="${img.url}" class="d-block w-100 modal-carousel-img" loading="lazy">
+              <img src="${img.url}" class="d-block w-100 modal-carousel-img" loading="lazy" draggable="false">
             </div>`).join('');
           const modalHtml = `
             <div class="modal fade" id="${modalId}" tabindex="-1">
@@ -90,7 +91,7 @@
         const card = `
           <div class="col-lg-4 col-md-6 mb-4">
             <div class="project-card">
-              <img src="${firstImg}" class="project-img">
+              <img src="${firstImg}" class="project-img" draggable="false">
               <h4>${window.escapeHtml(proj.title)}</h4>
               <div><span class="tech-tag">${proj.controllerType}</span><span class="tech-tag">${proj.cabinetCount} cabinets</span><span class="tech-tag">${proj.siteLocation || ''}</span></div>
               <p>${window.escapeHtml(proj.description.substring(0, 100))}...</p>
