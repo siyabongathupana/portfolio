@@ -18,25 +18,21 @@
   <script src="shared.js"></script>
   <style>
     .cert-thumb-preview { max-width:80px; max-height:80px; margin-top:8px; border-radius:12px; }
-    .form-row.mt-2 { margin-top:12px!important; }
     .image-input-group { margin-bottom:15px; background:#f8f9fa; padding:12px; border-radius:12px; display:flex; align-items:center; gap:12px; position:relative; }
     .image-input-group .img-preview-thumb { width:80px; height:80px; object-fit:cover; border-radius:8px; background:#e9ecef; }
-    .image-input-group .img-details { flex:1; min-width:0; }
-    .image-input-group .remove-img-btn { font-size:1.2rem; color:#dc3545; cursor:pointer; opacity:0.6; transition:0.2s; }
+    .image-input-group .img-details { flex:1; }
+    .image-input-group .remove-img-btn { font-size:1.2rem; color:#dc3545; cursor:pointer; opacity:0.6; }
     .image-input-group:hover .remove-img-btn { opacity:1; }
     .drop-zone { border:2px dashed #2fc7ff; border-radius:16px; padding:30px; text-align:center; color:#2fc7ff; margin-bottom:20px; cursor:pointer; transition:background 0.2s; }
     .drop-zone:hover, .drop-zone.dragover { background:#e6f7ff; }
     .drop-zone i { font-size:2rem; display:block; margin-bottom:8px; }
-    .drop-zone .size-warning { font-size:0.75rem; color:#888; margin-top:5px; }
     .user-badge { background:#2fc7ff; color:white; padding:4px 12px; border-radius:20px; font-size:0.9rem; }
     .progress-bar-container { width:100%; height:6px; background:#e0e0e0; border-radius:3px; margin:10px 0; overflow:hidden; }
     .progress-bar-fill { width:0%; height:100%; background:#2fc7ff; transition:width 0.2s; }
     .batch-actions { margin-top:15px; display:flex; gap:10px; align-items:center; }
     .image-counter { font-size:0.8rem; color:#666; margin-left:10px; }
-    .worker-status { font-size:0.8rem; color:#2fc7ff; margin-left:10px; }
-    .backup-card { background:#f8f9fa; border-radius:16px; padding:15px; margin-bottom:15px; transition:0.2s; }
+    .backup-card { background:#f8f9fa; border-radius:16px; padding:15px; margin-bottom:15px; }
     .backup-card:hover { background:#e9ecef; }
-    .backup-card button { margin: 5px; }
   </style>
 </head>
 <body style="background:#eef3fc;">
@@ -77,33 +73,24 @@
         <div id="certificatesList"></div>
       </div>
 
-      <!-- Backups Tab -->
       <div class="tab-pane fade" id="backupsTab">
         <div class="mb-3 d-flex justify-content-between align-items-center">
           <div>
             <button class="btn btn-delta mr-2" id="refreshBackupsBtn"><i class="fa fa-refresh"></i> Refresh List</button>
-            <span class="text-muted">Daily backups are created automatically at midnight UTC.</span>
+            <span class="text-muted">Daily backups created at midnight UTC.</span>
           </div>
-          <button class="btn btn-outline-secondary" id="triggerBackupNowBtn" style="display:none;"><i class="fa fa-play"></i> Run Backup Now (GitHub Actions)</button>
+          <button class="btn btn-outline-secondary" id="triggerBackupNowBtn" style="display:none;"><i class="fa fa-play"></i> Run Backup Now</button>
         </div>
-        <div id="backupsList" style="max-height: 600px; overflow-y: auto;">
-          <div class="text-center py-5"><i class="fa fa-spinner fa-spin"></i> Loading backups...</div>
-        </div>
+        <div id="backupsList" style="max-height: 600px; overflow-y: auto;">Loading backups...</div>
       </div>
 
-      <!-- Users Tab (admin only) -->
       <div class="tab-pane fade" id="usersTab">
-        <div class="mb-3 d-flex align-items-center">
-          <button class="btn btn-delta mr-2" id="refreshUsersBtn"><i class="fa fa-refresh"></i> Refresh List</button>
-          <span class="text-muted">Blocked users cannot log in. Deleting a user permanently removes all their data.</span>
-        </div>
+        <div class="mb-3"><button class="btn btn-delta" id="refreshUsersBtn"><i class="fa fa-refresh"></i> Refresh Users</button></div>
         <div id="usersList"></div>
       </div>
     </div>
     <hr>
-    <div class="text-center footer-status">
-      <span id="userFooterStatus"></span>
-    </div>
+    <div class="text-center footer-status"><span id="userFooterStatus"></span></div>
   </div>
 </div>
 
@@ -117,25 +104,11 @@
           <input type="hidden" id="projectId">
           <div class="form-row">
             <div class="col-md-6"><label>Title *</label><input type="text" id="projTitle" class="form-control" required></div>
-            <div class="col-md-6"><label>Controller Type</label>
-              <select id="projController" class="form-control">
-                <option value="PK">PK</option><option value="SQ">SQ</option><option value="MD">MD</option>
-                <option value="SD">SD</option><option value="IQ">IQ</option><option value="MQ">MQ</option>
-                <option value="SX">SX</option><option value="SZ">SZ</option>
-              </select>
-            </div>
+            <div class="col-md-6"><label>Controller Type</label><select id="projController" class="form-control"><option>PK</option><option>SQ</option><option>MD</option><option>SD</option><option>IQ</option><option>MQ</option><option>SX</option><option>SZ</option></select></div>
           </div>
           <div class="form-row mt-2">
-            <div class="col-md-6"><label>Project Type</label>
-              <select id="projType" class="form-control">
-                <option value="">Select...</option>
-                <option value="DCS">DCS</option>
-                <option value="SIS">SIS</option>
-                <option value="SIS & DCS">SIS & DCS</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
-            <div class="col-md-6"><label>DeltaV Version</label><input type="text" id="projVersion" class="form-control" placeholder="v14.3"></div>
+            <div class="col-md-6"><label>Project Type</label><select id="projType" class="form-control"><option value="">Select...</option><option>DCS</option><option>SIS</option><option>SIS & DCS</option><option>Other</option></select></div>
+            <div class="col-md-6"><label>DeltaV Version</label><input type="text" id="projVersion" class="form-control"></div>
           </div>
           <div class="form-row mt-2">
             <div class="col-md-6"><label># Cabinets</label><input type="number" id="projCabinet" class="form-control"></div>
@@ -159,32 +132,19 @@
             <div class="col-md-4"><label>Technician</label><input type="text" id="projTech" class="form-control"></div>
           </div>
           <div class="form-group mt-2"><label>Description</label><textarea id="projDesc" rows="3" class="form-control"></textarea></div>
-          <div class="form-group"><label>Graph Type</label>
-            <select id="projGraphType" class="form-control">
-              <option value="bar">Bar Chart</option><option value="pie">Pie Chart</option><option value="line">Line Chart</option>
-            </select>
-          </div>
+          <div class="form-group"><label>Graph Type</label><select id="projGraphType" class="form-control"><option>bar</option><option>pie</option><option>line</option></select></div>
 
           <div class="form-group">
-            <label>Gallery Images (drag & drop or browse, unlimited – background compression, no UI freeze)</label>
-            <div class="drop-zone" id="imageDropZone">
-              <i class="fa fa-cloud-upload"></i>
-              <span>Drop images here or click to browse</span>
-              <div class="size-warning">Images are resized to max 1200px width/height, quality 70% – keeps JSON small</div>
-              <input type="file" id="imageFileInput" multiple accept="image/*" style="display:none;">
-            </div>
-            <div class="progress-bar-container" id="uploadProgressBar" style="display:none;">
-              <div class="progress-bar-fill" id="uploadProgressFill"></div>
-            </div>
+            <label>Gallery Images (drag & drop or browse)</label>
+            <div class="drop-zone" id="imageDropZone"><i class="fa fa-cloud-upload"></i> Drop images or click to browse<input type="file" id="imageFileInput" multiple accept="image/*" style="display:none;"></div>
+            <div class="progress-bar-container" id="uploadProgressBar" style="display:none;"><div class="progress-bar-fill" id="uploadProgressFill"></div></div>
             <div id="imagesContainer"></div>
             <div class="batch-actions" id="batchActions" style="display:none;">
               <button type="button" class="btn btn-sm btn-outline-danger" id="deleteSelectedImagesBtn"><i class="fa fa-trash"></i> Delete Selected</button>
               <button type="button" class="btn btn-sm btn-outline-secondary" id="selectAllImagesBtn">Select All</button>
               <span id="imageCountInfo" class="image-counter"></span>
-              <span id="workerStatus" class="worker-status"></span>
             </div>
           </div>
-
           <button type="submit" class="btn btn-delta mt-3">Save Project</button>
         </form>
       </div>
@@ -203,15 +163,12 @@
           <div><label>Title *</label><input type="text" id="certTitle" class="form-control" required></div>
           <div class="mt-2"><label>Issuer</label><input type="text" id="certIssuer" class="form-control"></div>
           <div class="mt-2"><label>Date (YYYY-MM)</label><input type="text" id="certDate" class="form-control" placeholder="2024-01"></div>
-          <div class="mt-2"><label>PDF / Google Drive Link</label><input type="url" id="certLink" class="form-control" placeholder="https://drive.google.com/file/d/.../preview"></div>
+          <div class="mt-2"><label>PDF / Google Drive Link</label><input type="url" id="certLink" class="form-control"></div>
           <div class="mt-2">
             <label>Thumbnail Image</label>
             <div class="input-group">
-              <input type="url" id="certThumb" class="form-control" placeholder="https://... or choose file">
-              <div class="input-group-append">
-                <label class="btn btn-outline-secondary mb-0" for="certThumbFile"><i class="fa fa-folder-open"></i> Browse</label>
-                <input type="file" id="certThumbFile" accept="image/*" style="display:none" onchange="window.handleCertThumbUpload(this)">
-              </div>
+              <input type="url" id="certThumb" class="form-control" placeholder="URL or upload">
+              <div class="input-group-append"><label class="btn btn-outline-secondary mb-0" for="certThumbFile">Browse</label><input type="file" id="certThumbFile" accept="image/*" style="display:none" onchange="handleCertThumbUpload(this)"></div>
             </div>
             <img id="thumbPreview" class="cert-thumb-preview" style="display:none;">
           </div>
@@ -223,54 +180,8 @@
 </div>
 
 <script>
-  const user = window.SessionManager?.getCurrentUser();
-  if (!user) {
-    window.location.href = 'login.html';
-  } else {
-    document.getElementById('dashboard').style.display = 'block';
-    document.getElementById('currentUserDisplay').textContent = user.username;
-    window.updateUserFooter();
-    window.showLoading('Loading your projects...');
-    initDashboard();
-  }
-
-  // ---------- WEB WORKER FOR IMAGE COMPRESSION ----------
-  function createCompressionWorker() {
-    const workerCode = `
-      self.onmessage = async function(e) {
-        const { file, maxWidth, maxHeight, quality } = e.data;
-        try {
-          const arrayBuffer = await file.arrayBuffer();
-          const blob = new Blob([arrayBuffer], { type: file.type });
-          const url = URL.createObjectURL(blob);
-          const img = await new Promise((resolve, reject) => {
-            const image = new Image();
-            image.onload = () => resolve(image);
-            image.onerror = reject;
-            image.src = url;
-          });
-          URL.revokeObjectURL(url);
-          let width = img.width, height = img.height;
-          const ratio = Math.min(maxWidth / width, maxHeight / height);
-          if (ratio < 1) { width = Math.round(width * ratio); height = Math.round(height * ratio); }
-          const canvas = new OffscreenCanvas(width, height);
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, width, height);
-          const compressedBlob = await canvas.convertToBlob({ type: 'image/jpeg', quality: quality });
-          const reader = new FileReader();
-          reader.onload = () => self.postMessage({ success: true, dataUrl: reader.result });
-          reader.onerror = () => self.postMessage({ success: false, error: 'Read failed' });
-          reader.readAsDataURL(compressedBlob);
-        } catch (err) {
-          self.postMessage({ success: false, error: err.message });
-        }
-      };
-    `;
-    const blob = new Blob([workerCode], { type: 'application/javascript' });
-    return new Worker(URL.createObjectURL(blob));
-  }
-
-  async function compressImageFallback(file, maxW = 1200, maxH = 1200, quality = 0.7) {
+  // Compression function (fallback, reliable)
+  async function compressImage(file, maxW = 1200, maxH = 1200, quality = 0.7) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = e => {
@@ -293,6 +204,28 @@
     });
   }
 
+  window.handleCertThumbUpload = function(input) {
+    const file = input.files[0];
+    if (!file) return;
+    compressImage(file, 800, 600, 0.9).then(dataUrl => {
+      document.getElementById('certThumb').value = dataUrl;
+      document.getElementById('thumbPreview').src = dataUrl;
+      document.getElementById('thumbPreview').style.display = 'inline-block';
+    });
+  };
+
+  // Initialize after login check
+  const user = window.SessionManager?.getCurrentUser();
+  if (!user) {
+    window.location.href = 'login.html';
+  } else {
+    document.getElementById('dashboard').style.display = 'block';
+    document.getElementById('currentUserDisplay').textContent = user.username;
+    window.updateUserFooter();
+    window.showLoading('Loading...');
+    initDashboard();
+  }
+
   async function initDashboard() {
     // DOM elements
     const imgContainer = document.getElementById('imagesContainer');
@@ -300,38 +233,22 @@
     const fileInput = document.getElementById('imageFileInput');
     const progressBar = document.getElementById('uploadProgressBar');
     const progressFill = document.getElementById('uploadProgressFill');
-    const workerStatusSpan = document.getElementById('workerStatus');
     
     let pendingFiles = [];
-    let activeCompressions = 0;
-    let totalToProcess = 0;
-    let processedCount = 0;
-    let currentWorker = null;
-    let useWorker = true;
-
-    try {
-      currentWorker = createCompressionWorker();
-      currentWorker.onerror = () => { useWorker = false; workerStatusSpan.textContent = 'Using fallback compression'; };
-    } catch(e) {
-      useWorker = false;
-      workerStatusSpan.textContent = 'Using fallback compression';
-    }
+    let active = 0;
+    let total = 0;
+    let processed = 0;
 
     function updateProgress() {
-      const percent = totalToProcess === 0 ? 0 : (processedCount / totalToProcess) * 100;
+      const percent = total === 0 ? 0 : (processed / total) * 100;
       progressFill.style.width = percent + '%';
-      if (processedCount === totalToProcess && totalToProcess > 0) {
-        setTimeout(() => { progressBar.style.display = 'none'; }, 500);
-        workerStatusSpan.textContent = '';
-      }
+      if (processed === total && total > 0) setTimeout(() => progressBar.style.display = 'none', 500);
     }
 
     function updateImageCounter() {
       const count = imgContainer.querySelectorAll('.image-input-group').length;
-      const infoSpan = document.getElementById('imageCountInfo');
-      if (infoSpan) infoSpan.textContent = `${count} image${count !== 1 ? 's' : ''}`;
-      const batchDiv = document.getElementById('batchActions');
-      if (batchDiv) batchDiv.style.display = count > 0 ? 'flex' : 'none';
+      document.getElementById('imageCountInfo').textContent = `${count} image${count !== 1 ? 's' : ''}`;
+      document.getElementById('batchActions').style.display = count > 0 ? 'flex' : 'none';
     }
 
     function addImageRow(url = '', caption = '') {
@@ -342,12 +259,9 @@
         <input type="checkbox" class="image-select-checkbox" style="margin-right:10px;">
         <img src="${url || placeholder}" class="img-preview-thumb" onerror="this.src='${placeholder}'">
         <div class="img-details">
-          <input type="text" class="form-control img-url-input" placeholder="Image URL" value="${window.escapeHtml(url)}" readonly style="display:none;">
+          <input type="text" class="form-control img-url-input" value="${window.escapeHtml(url)}" readonly style="display:none;">
           <input type="text" class="form-control img-caption-input" placeholder="Caption" value="${window.escapeHtml(caption)}">
-          <label class="local-upload-btn" style="cursor:pointer; color:#2fc7ff;">
-            <i class="fa fa-folder-open"></i> Change
-            <input type="file" accept="image/*" style="display:none;" onchange="window.updateImageRow(this)">
-          </label>
+          <label class="local-upload-btn" style="cursor:pointer; color:#2fc7ff;">Change<input type="file" accept="image/*" style="display:none;" onchange="updateImageRow(this)"></label>
         </div>
         <i class="fa fa-times-circle remove-img-btn" onclick="this.closest('.image-input-group').remove(); updateImageCounter();"></i>
       `;
@@ -356,126 +270,67 @@
       return row;
     }
 
-    window.updateImageRow = async function(el) {
-      const file = el.files[0];
+    window.updateImageRow = async function(input) {
+      const file = input.files[0];
       if (!file) return;
-      const dataUrl = await compressImageFallback(file, 1200, 1200, 0.7);
-      const row = el.closest('.image-input-group');
+      const dataUrl = await compressImage(file);
+      const row = input.closest('.image-input-group');
       row.querySelector('.img-url-input').value = dataUrl;
       row.querySelector('.img-preview-thumb').src = dataUrl;
     };
 
-    window.handleCertThumbUpload = function(el) {
-      const file = el.files[0];
-      if (!file) return;
-      compressImageFallback(file, 1000, 800, 0.9).then(dataUrl => {
-        document.getElementById('certThumb').value = dataUrl;
-        const preview = document.getElementById('thumbPreview');
-        preview.src = dataUrl;
-        preview.style.display = 'inline-block';
-      });
-    };
-
-    async function processFileQueue() {
-      if (pendingFiles.length === 0 && activeCompressions === 0) return;
-      if (progressBar.style.display !== 'block') {
-        progressBar.style.display = 'block';
-        progressFill.style.width = '0%';
-      }
+    async function processQueue() {
+      if (pendingFiles.length === 0 && active === 0) return;
+      if (progressBar.style.display !== 'block') progressBar.style.display = 'block';
       const maxConcurrent = 3;
-      while (pendingFiles.length > 0 && activeCompressions < maxConcurrent) {
+      while (pendingFiles.length > 0 && active < maxConcurrent) {
         const file = pendingFiles.shift();
-        activeCompressions++;
+        active++;
         (async () => {
           try {
-            let dataUrl;
-            if (useWorker && currentWorker) {
-              dataUrl = await new Promise((resolve, reject) => {
-                const handler = (e) => {
-                  if (e.data.success) resolve(e.data.dataUrl);
-                  else reject(new Error(e.data.error));
-                  currentWorker.removeEventListener('message', handler);
-                };
-                currentWorker.addEventListener('message', handler);
-                currentWorker.postMessage({ file, maxWidth: 1200, maxHeight: 1200, quality: 0.7 });
-              });
-            } else {
-              dataUrl = await compressImageFallback(file, 1200, 1200, 0.7);
-            }
+            const dataUrl = await compressImage(file);
             addImageRow(dataUrl, '');
-          } catch (err) {
-            console.warn('Image compression failed', file.name, err);
-            const row = addImageRow('', '[Error loading image]');
-            row.querySelector('.img-preview-thumb').style.border = '2px solid red';
-          } finally {
-            activeCompressions--;
-            processedCount++;
-            updateProgress();
-            processFileQueue();
-          }
+          } catch (err) { console.warn(err); addImageRow('', 'Error'); }
+          finally { active--; processed++; updateProgress(); processQueue(); }
         })();
       }
     }
 
-    function addFilesToQueue(files) {
-      const imageFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
-      if (imageFiles.length === 0) return;
-      pendingFiles.push(...imageFiles);
-      totalToProcess += imageFiles.length;
-      if (activeCompressions === 0) {
-        processedCount = totalToProcess - pendingFiles.length - activeCompressions;
-        updateProgress();
-      }
-      processFileQueue();
-    }
-
-    function resetUploadQueue() {
-      pendingFiles = [];
-      activeCompressions = 0;
-      totalToProcess = 0;
-      processedCount = 0;
-      progressBar.style.display = 'none';
+    function addFiles(files) {
+      const imgs = Array.from(files).filter(f => f.type.startsWith('image/'));
+      if (!imgs.length) return;
+      pendingFiles.push(...imgs);
+      total += imgs.length;
+      if (active === 0) { processed = total - pendingFiles.length - active; updateProgress(); }
+      processQueue();
     }
 
     dropZone.addEventListener('click', () => fileInput.click());
-    ['dragenter','dragover','dragleave','drop'].forEach(ev => {
-      dropZone.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); });
-    });
+    ['dragenter','dragover','dragleave','drop'].forEach(ev => dropZone.addEventListener(ev, e => e.preventDefault()));
     dropZone.addEventListener('dragover', () => dropZone.classList.add('dragover'));
     dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
     dropZone.addEventListener('drop', e => {
       dropZone.classList.remove('dragover');
-      const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
-      if (files.length) addFilesToQueue(files);
+      addFiles(e.dataTransfer.files);
     });
-    fileInput.addEventListener('change', () => {
-      const files = Array.from(fileInput.files).filter(f => f.type.startsWith('image/'));
-      if (files.length) {
-        addFilesToQueue(files);
-        fileInput.value = '';
-      }
-    });
+    fileInput.addEventListener('change', () => { addFiles(fileInput.files); fileInput.value = ''; });
 
-    document.getElementById('deleteSelectedImagesBtn')?.addEventListener('click', () => {
-      const checkboxes = imgContainer.querySelectorAll('.image-select-checkbox:checked');
-      checkboxes.forEach(cb => cb.closest('.image-input-group')?.remove());
+    document.getElementById('deleteSelectedImagesBtn').onclick = () => {
+      document.querySelectorAll('.image-select-checkbox:checked').forEach(cb => cb.closest('.image-input-group').remove());
       updateImageCounter();
-    });
-    document.getElementById('selectAllImagesBtn')?.addEventListener('click', () => {
-      const checkboxes = imgContainer.querySelectorAll('.image-select-checkbox');
-      const allChecked = Array.from(checkboxes).every(cb => cb.checked);
-      checkboxes.forEach(cb => cb.checked = !allChecked);
-    });
+    };
+    document.getElementById('selectAllImagesBtn').onclick = () => {
+      const cbs = document.querySelectorAll('.image-select-checkbox');
+      const all = Array.from(cbs).every(cb => cb.checked);
+      cbs.forEach(cb => cb.checked = !all);
+    };
 
-    // ---------- PROJECTS & CERTIFICATES CRUD ----------
+    // ---- CRUD Functions ----
     async function renderProjects() {
       const projects = await window.portfolioData.loadProjects();
       const container = document.getElementById('projectsList');
       container.innerHTML = '';
-      if (Object.keys(projects).length === 0) {
-        container.innerHTML = '<div class="empty-state"><i class="fa fa-folder-open-o"></i><h5>No projects yet</h5></div>';
-        return;
-      }
+      if (Object.keys(projects).length === 0) { container.innerHTML = '<div class="empty-state"><i class="fa fa-folder-open-o"></i><h5>No projects yet</h5></div>'; return; }
       for (const [id, proj] of Object.entries(projects)) {
         const card = document.createElement('div');
         card.className = 'card mb-3';
@@ -483,114 +338,71 @@
           <div class="card-body">
             <div class="d-flex justify-content-between">
               <h5>${window.escapeHtml(proj.title)}</h5>
-              <div>
-                <button class="btn btn-sm btn-outline-primary edit-project" data-id="${id}">Edit</button>
-                <button class="btn btn-sm btn-outline-danger delete-project" data-id="${id}">Delete</button>
-              </div>
+              <div><button class="btn btn-sm btn-outline-primary edit-project" data-id="${id}">Edit</button><button class="btn btn-sm btn-outline-danger delete-project" data-id="${id}">Delete</button></div>
             </div>
             <p><strong>Controller:</strong> ${proj.controllerType} | <strong>Cabinets:</strong> ${proj.cabinetCount} | <strong>Location:</strong> ${proj.siteLocation || ''}</p>
-            <small>${window.escapeHtml(proj.description.substring(0, 120))}...</small>
+            <small>${window.escapeHtml(proj.description.substring(0,120))}...</small>
           </div>`;
         container.appendChild(card);
       }
-      document.querySelectorAll('.edit-project').forEach(btn => btn.addEventListener('click', () => openProjectModal(btn.dataset.id)));
-      document.querySelectorAll('.delete-project').forEach(btn => btn.addEventListener('click', async () => {
-        if (confirm(`Delete project "${btn.closest('.card')?.querySelector('h5')?.innerText || 'this project'}"?`)) {
-          await safeDeleteProject(btn.dataset.id);
-        }
-      }));
+      document.querySelectorAll('.edit-project').forEach(btn => btn.onclick = () => openProjectModal(btn.dataset.id));
+      document.querySelectorAll('.delete-project').forEach(btn => btn.onclick = () => { if(confirm('Delete project?')) safeDeleteProject(btn.dataset.id); });
     }
 
     async function renderCertificates() {
       const certs = await window.portfolioData.loadCertificates();
       const container = document.getElementById('certificatesList');
       container.innerHTML = '';
-      if (certs.length === 0) {
-        container.innerHTML = '<div class="empty-state"><i class="fa fa-certificate"></i><h5>No certificates added</h5></div>';
-        return;
-      }
+      if (certs.length === 0) { container.innerHTML = '<div class="empty-state"><i class="fa fa-certificate"></i><h5>No certificates</h5></div>'; return; }
       certs.forEach((cert, idx) => {
         const card = document.createElement('div');
         card.className = 'card mb-2';
         card.innerHTML = `
-          <div class="card-body d-flex justify-content-between align-items-center">
+          <div class="card-body d-flex justify-content-between">
             <div><strong>${window.escapeHtml(cert.title)}</strong> - ${window.escapeHtml(cert.issuer)} (${cert.date})</div>
-            <div>
-              <button class="btn btn-sm btn-outline-primary edit-cert" data-index="${idx}">Edit</button>
-              <button class="btn btn-sm btn-outline-danger delete-cert" data-index="${idx}">Delete</button>
-            </div>
+            <div><button class="btn btn-sm btn-outline-primary edit-cert" data-index="${idx}">Edit</button><button class="btn btn-sm btn-outline-danger delete-cert" data-index="${idx}">Delete</button></div>
           </div>`;
         container.appendChild(card);
       });
-      document.querySelectorAll('.edit-cert').forEach(btn => btn.addEventListener('click', () => openCertModal(parseInt(btn.dataset.index))));
-      document.querySelectorAll('.delete-cert').forEach(btn => btn.addEventListener('click', () => {
-        if (confirm('Delete this certificate?')) safeDeleteCertificate(parseInt(btn.dataset.index));
-      }));
+      document.querySelectorAll('.edit-cert').forEach(btn => btn.onclick = () => openCertModal(parseInt(btn.dataset.index)));
+      document.querySelectorAll('.delete-cert').forEach(btn => btn.onclick = () => { if(confirm('Delete certificate?')) safeDeleteCertificate(parseInt(btn.dataset.index)); });
     }
 
     async function safeDeleteProject(id) {
-      window.showLoading('Deleting project...');
-      const current = await window.portfolioData.loadProjects();
-      if (!current[id]) { window.hideLoading(); return; }
-      delete current[id];
-      try {
-        await window.portfolioData.saveProjects(current);
-        await renderProjects();
-      } catch (err) {
-        alert('Delete failed: ' + err.message);
-      }
+      window.showLoading('Deleting...');
+      const curr = await window.portfolioData.loadProjects();
+      delete curr[id];
+      try { await window.portfolioData.saveProjects(curr); await renderProjects(); } catch(e) { alert(e.message); }
       window.hideLoading();
     }
-
     async function safeDeleteCertificate(idx) {
-      window.showLoading('Deleting certificate...');
+      window.showLoading('Deleting...');
       const certs = await window.portfolioData.loadCertificates();
-      if (!certs[idx]) { window.hideLoading(); return; }
-      certs.splice(idx, 1);
-      try {
-        await window.portfolioData.saveCertificates(certs);
-        await renderCertificates();
-      } catch (err) {
-        alert('Delete failed: ' + err.message);
-      }
+      certs.splice(idx,1);
+      try { await window.portfolioData.saveCertificates(certs); await renderCertificates(); } catch(e) { alert(e.message); }
       window.hideLoading();
     }
-
-    async function safeSaveProject(project) {
-      window.showLoading('Saving project...');
-      const allProjects = await window.portfolioData.loadProjects();
-      allProjects[project.id] = project;
-      try {
-        await window.portfolioData.saveProjects(allProjects);
-        await renderProjects();
-        $('#projectModal').modal('hide');
-      } catch (err) {
-        alert('Save failed: ' + err.message);
-      }
+    async function safeSaveProject(proj) {
+      window.showLoading('Saving...');
+      const all = await window.portfolioData.loadProjects();
+      all[proj.id] = proj;
+      try { await window.portfolioData.saveProjects(all); await renderProjects(); $('#projectModal').modal('hide'); } catch(e) { alert(e.message); }
       window.hideLoading();
     }
-
     async function safeSaveCertificate(certs) {
-      window.showLoading('Saving certificate...');
-      try {
-        await window.portfolioData.saveCertificates(certs);
-        await renderCertificates();
-        $('#certModal').modal('hide');
-      } catch (err) {
-        alert('Save failed: ' + err.message);
-      }
+      window.showLoading('Saving...');
+      try { await window.portfolioData.saveCertificates(certs); await renderCertificates(); $('#certModal').modal('hide'); } catch(e) { alert(e.message); }
       window.hideLoading();
     }
 
-    async function openProjectModal(projectId = null) {
-      resetUploadQueue();
-      const isEdit = projectId !== null;
+    async function openProjectModal(id=null) {
+      const isEdit = !!id;
       document.getElementById('projectModalTitle').innerText = isEdit ? 'Edit Project' : 'New Project';
       if (isEdit) {
         const projects = await window.portfolioData.loadProjects();
-        const proj = projects[projectId];
+        const proj = projects[id];
         if (proj) {
-          document.getElementById('projectId').value = projectId;
+          document.getElementById('projectId').value = id;
           document.getElementById('projTitle').value = proj.title;
           document.getElementById('projController').value = proj.controllerType;
           document.getElementById('projType').value = proj.projectType || '';
@@ -611,9 +423,7 @@
           document.getElementById('projDesc').value = proj.description;
           document.getElementById('projGraphType').value = proj.graphType;
           imgContainer.innerHTML = '';
-          if (proj.selectedImages && proj.selectedImages.length) {
-            proj.selectedImages.forEach(img => addImageRow(img.url, img.caption));
-          }
+          if (proj.selectedImages) proj.selectedImages.forEach(img => addImageRow(img.url, img.caption));
           updateImageCounter();
         }
       } else {
@@ -634,64 +444,45 @@
       $('#projectModal').modal('show');
     }
 
-    document.getElementById('projectForm').addEventListener('submit', async (e) => {
+    document.getElementById('projectForm').onsubmit = async (e) => {
       e.preventDefault();
-      const projectId = document.getElementById('projectId').value;
-      const newId = projectId || ('proj_' + Date.now());
-      const imgGroups = document.querySelectorAll('#imagesContainer .image-input-group');
-      const selectedImages = [];
-      imgGroups.forEach(group => {
-        const urlInput = group.querySelector('.img-url-input');
-        const capInput = group.querySelector('.img-caption-input');
-        if (urlInput && urlInput.value) {
-          selectedImages.push({ url: urlInput.value, caption: capInput.value });
-        }
+      const id = document.getElementById('projectId').value || ('proj_'+Date.now());
+      const images = [];
+      document.querySelectorAll('#imagesContainer .image-input-group').forEach(g => {
+        const url = g.querySelector('.img-url-input').value;
+        if (url) images.push({ url, caption: g.querySelector('.img-caption-input').value });
       });
-      const project = {
-        id: newId,
-        title: document.getElementById('projTitle').value,
+      const proj = {
+        id, title: document.getElementById('projTitle').value,
         controllerType: document.getElementById('projController').value,
         projectType: document.getElementById('projType').value || 'Other',
         deltaVVersion: document.getElementById('projVersion').value,
         cabinetCount: parseInt(document.getElementById('projCabinet').value) || 0,
-        io: {
-          AI: parseInt(document.getElementById('projAI').value) || 0,
-          AO: parseInt(document.getElementById('projAO').value) || 0,
-          DI: parseInt(document.getElementById('projDI').value) || 0,
-          DO: parseInt(document.getElementById('projDO').value) || 0
-        },
-        dates: {
-          start: document.getElementById('projStart').value,
-          finish: document.getElementById('projFinish').value,
-          ifat: document.getElementById('projIFAT').value,
-          cfat: document.getElementById('projCFAT').value
-        },
+        io: { AI: +document.getElementById('projAI').value||0, AO: +document.getElementById('projAO').value||0, DI: +document.getElementById('projDI').value||0, DO: +document.getElementById('projDO').value||0 },
+        dates: { start: document.getElementById('projStart').value, finish: document.getElementById('projFinish').value, ifat: document.getElementById('projIFAT').value, cfat: document.getElementById('projCFAT').value },
         siteLocation: document.getElementById('projLocation').value,
-        team: {
-          lead: document.getElementById('projLead').value,
-          engineer: document.getElementById('projEngineer').value,
-          technician: document.getElementById('projTech').value
-        },
+        team: { lead: document.getElementById('projLead').value, engineer: document.getElementById('projEngineer').value, technician: document.getElementById('projTech').value },
         description: document.getElementById('projDesc').value,
         graphType: document.getElementById('projGraphType').value,
-        selectedImages
+        selectedImages: images
       };
-      await safeSaveProject(project);
-    });
+      await safeSaveProject(proj);
+    };
 
-    async function openCertModal(index = null) {
+    async function openCertModal(idx=null) {
       const certs = await window.portfolioData.loadCertificates();
-      const isEdit = index !== null && certs[index];
+      const isEdit = idx !== null && certs[idx];
       document.getElementById('certModalTitle').innerText = isEdit ? 'Edit Certificate' : 'New Certificate';
       if (isEdit) {
-        const cert = certs[index];
-        document.getElementById('certIndex').value = index;
-        document.getElementById('certTitle').value = cert.title;
-        document.getElementById('certIssuer').value = cert.issuer;
-        document.getElementById('certDate').value = cert.date;
-        document.getElementById('certLink').value = cert.link || '';
-        document.getElementById('certThumb').value = cert.thumbnail || '';
-        updateThumbPreview(cert.thumbnail);
+        const c = certs[idx];
+        document.getElementById('certIndex').value = idx;
+        document.getElementById('certTitle').value = c.title;
+        document.getElementById('certIssuer').value = c.issuer;
+        document.getElementById('certDate').value = c.date;
+        document.getElementById('certLink').value = c.link || '';
+        document.getElementById('certThumb').value = c.thumbnail || '';
+        if(c.thumbnail) { document.getElementById('thumbPreview').src = c.thumbnail; document.getElementById('thumbPreview').style.display = 'inline-block'; }
+        else document.getElementById('thumbPreview').style.display = 'none';
       } else {
         document.getElementById('certIndex').value = '';
         document.getElementById('certTitle').value = '';
@@ -699,25 +490,17 @@
         document.getElementById('certDate').value = '';
         document.getElementById('certLink').value = '';
         document.getElementById('certThumb').value = '';
-        updateThumbPreview('');
+        document.getElementById('thumbPreview').style.display = 'none';
       }
       $('#certModal').modal('show');
     }
 
-    function updateThumbPreview(url) {
-      const preview = document.getElementById('thumbPreview');
-      if (url) { preview.src = url; preview.style.display = 'inline-block'; }
-      else preview.style.display = 'none';
-    }
-
-    document.getElementById('certThumb').addEventListener('input', e => updateThumbPreview(e.target.value));
-
-    document.getElementById('certForm').addEventListener('submit', async (e) => {
+    document.getElementById('certForm').onsubmit = async (e) => {
       e.preventDefault();
       const certs = await window.portfolioData.loadCertificates();
       const idx = document.getElementById('certIndex').value;
       const newCert = {
-        id: (idx !== '' && certs[idx]) ? certs[idx].id : ('cert_' + Date.now()),
+        id: (idx !== '' && certs[idx]) ? certs[idx].id : ('cert_'+Date.now()),
         title: document.getElementById('certTitle').value,
         issuer: document.getElementById('certIssuer').value,
         date: document.getElementById('certDate').value,
@@ -727,334 +510,158 @@
       if (idx !== '' && certs[idx]) certs[idx] = newCert;
       else certs.push(newCert);
       await safeSaveCertificate(certs);
-    });
+    };
 
-    // ---------- BACKUPS & RESTORE (FIXED) ----------
+    // ---- Backup & Restore ----
     async function listBackups() {
-      const config = window.REPO_CONFIG;
-      const token = user.pat;
-      const url = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/backups?ref=${config.branch}`;
+      const cfg = window.REPO_CONFIG;
+      const url = `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/backups?ref=${cfg.branch}`;
       try {
-        const resp = await fetch(url, { headers: { Authorization: `token ${token}` } });
-        if (!resp.ok) {
-          if (resp.status === 404) return [];
-          throw new Error(`GitHub error: ${resp.status}`);
-        }
-        const files = await resp.json();
-        return files.filter(f => f.name.endsWith('.zip') && f.type === 'file')
-                    .sort((a,b) => b.name.localeCompare(a.name));
-      } catch (err) {
-        console.warn('Failed to list backups', err);
-        return [];
-      }
+        const res = await fetch(url, { headers: { Authorization: `token ${user.pat}` } });
+        if (!res.ok) return [];
+        const files = await res.json();
+        return files.filter(f => f.name.endsWith('.zip')).sort((a,b)=>b.name.localeCompare(a.name));
+      } catch { return []; }
     }
 
-    async function getBackupInfo(zipFileUrl) {
+    async function getBackupInfo(zipUrl) {
       try {
-        const resp = await fetch(zipFileUrl);
-        if (!resp.ok) throw new Error('Failed to download backup');
-        const blob = await resp.blob();
-        const zip = await JSZip.loadAsync(blob);
-        const infoFile = zip.file("backup_info.json");
-        if (!infoFile) return null;
-        const content = await infoFile.async("string");
-        return JSON.parse(content);
-      } catch (err) {
-        console.warn('Could not read backup info', err);
-        return null;
-      }
+        const resp = await fetch(zipUrl);
+        const zip = await JSZip.loadAsync(await resp.blob());
+        const info = zip.file("backup_info.json");
+        if (info) return JSON.parse(await info.async("string"));
+      } catch(e) {}
+      return null;
     }
 
-    // Resilient function to find user's files inside any ZIP structure
-    async function downloadBackupData(zipFileUrl, type) {
-      const resp = await fetch(zipFileUrl);
-      const blob = await resp.blob();
-      const zip = await JSZip.loadAsync(blob);
-      const currentUser = window.SessionManager.getCurrentUser().username;
-      const encUser = encodeURIComponent(currentUser);
-      let projects = null, certificates = null;
-
-      function findFile(zip, suffix) {
-        const files = Object.keys(zip.files);
-        for (const filePath of files) {
-          if (filePath.endsWith(suffix) && !zip.files[filePath].dir) {
-            return zip.file(filePath);
-          }
-        }
-        return null;
-      }
-
+    async function downloadBackupData(zipUrl, type) {
+      const resp = await fetch(zipUrl);
+      const zip = await JSZip.loadAsync(await resp.blob());
+      const encUser = encodeURIComponent(user.username);
+      let projects=null, certs=null;
+      const findFile = (suffix) => Object.keys(zip.files).find(p => p.endsWith(suffix) && !zip.files[p].dir);
       if (type === 'projects' || type === 'both') {
-        let projFile = zip.file(`data/users/${encUser}/projects.json`);
-        if (!projFile) projFile = findFile(zip, `users/${encUser}/projects.json`);
-        if (!projFile) {
-          const possible = Object.keys(zip.files).filter(p => p.endsWith('projects.json') && p.includes(encUser));
-          if (possible.length) projFile = zip.file(possible[0]);
-        }
-        if (projFile) {
-          const content = await projFile.async("string");
-          projects = JSON.parse(content);
-        }
+        let path = findFile(`users/${encUser}/projects.json`);
+        if (!path) path = findFile(`projects.json`);
+        if (path) projects = JSON.parse(await zip.file(path).async("string"));
       }
-
       if (type === 'certificates' || type === 'both') {
-        let certFile = zip.file(`data/users/${encUser}/certificates.json`);
-        if (!certFile) certFile = findFile(zip, `users/${encUser}/certificates.json`);
-        if (!certFile) {
-          const possible = Object.keys(zip.files).filter(p => p.endsWith('certificates.json') && p.includes(encUser));
-          if (possible.length) certFile = zip.file(possible[0]);
-        }
-        if (certFile) {
-          const content = await certFile.async("string");
-          certificates = JSON.parse(content);
-        }
+        let path = findFile(`users/${encUser}/certificates.json`);
+        if (!path) path = findFile(`certificates.json`);
+        if (path) certs = JSON.parse(await zip.file(path).async("string"));
       }
-
-      return { projects, certificates };
+      return { projects, certificates: certs };
     }
 
-    async function restoreFromBackup(zipUrl, restoreProjects, restoreCertificates) {
-      const msg = [];
-      if (restoreProjects) msg.push("Projects");
-      if (restoreCertificates) msg.push("Certificates");
-      if (msg.length === 0) return;
-      if (!confirm(`⚠️ WARNING: Restoring ${msg.join(" and ")} will OVERWRITE your current ${msg.join(" and ")}. Continue?`)) return;
-      
-      window.showLoading(`Restoring ${msg.join(" and ")}...`);
+    async function restoreFromBackup(zipUrl, restoreProj, restoreCert) {
+      const actions = [];
+      if (restoreProj) actions.push("Projects");
+      if (restoreCert) actions.push("Certificates");
+      if (!actions.length) return;
+      if (!confirm(`⚠️ Restoring ${actions.join(" and ")} will OVERWRITE your current ${actions.join(" and ")}. Continue?`)) return;
+      window.showLoading(`Restoring ${actions.join(" and ")}...`);
       try {
-        const { projects, certificates } = await downloadBackupData(zipUrl, restoreProjects && restoreCertificates ? 'both' : (restoreProjects ? 'projects' : 'certificates'));
-        if (restoreProjects && projects === null) throw new Error('Backup does not contain projects.json for your user');
-        if (restoreCertificates && certificates === null) throw new Error('Backup does not contain certificates.json for your user');
-        
-        if (restoreProjects) await window.portfolioData.saveProjects(projects);
-        if (restoreCertificates) await window.portfolioData.saveCertificates(certificates);
-        
-        window.hideLoading();
-        alert(`✅ Successfully restored ${msg.join(" and ")}.`);
-        await renderProjects();
-        await renderCertificates();
-        await loadBackups(); // refresh list (shows counts unchanged)
-      } catch (err) {
-        window.hideLoading();
-        alert(`Restore failed: ${err.message}`);
-      }
+        const { projects, certificates } = await downloadBackupData(zipUrl, restoreProj && restoreCert ? 'both' : (restoreProj ? 'projects' : 'certificates'));
+        if (restoreProj && !projects) throw new Error('No projects found in backup for your user');
+        if (restoreCert && !certificates) throw new Error('No certificates found in backup for your user');
+        if (restoreProj) await window.portfolioData.saveProjects(projects);
+        if (restoreCert) await window.portfolioData.saveCertificates(certificates);
+        await renderProjects(); await renderCertificates();
+        alert('Restore successful!');
+      } catch(err) { alert('Restore failed: '+err.message); }
+      window.hideLoading();
     }
 
     async function loadBackups() {
       const container = document.getElementById('backupsList');
-      container.innerHTML = '<div class="text-center py-5"><i class="fa fa-spinner fa-spin"></i> Loading backups...</div>';
+      container.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Loading...';
       const backups = await listBackups();
-      if (backups.length === 0) {
-        container.innerHTML = '<div class="empty-state"><i class="fa fa-database"></i><h5>No backups found</h5><p>Daily backups will appear here once the GitHub Action runs.</p></div>';
-        return;
-      }
+      if (!backups.length) { container.innerHTML = '<div class="empty-state">No backups found</div>'; return; }
       let html = '';
-      for (const backup of backups) {
-        let info = await getBackupInfo(backup.download_url);
-        const timestamp = backup.name.replace('.zip', '');
-        const projectsCount = info?.projects_count ?? '?';
-        const certsCount = info?.certificates_count ?? '?';
-        html += `
-          <div class="backup-card">
-            <div class="d-flex justify-content-between align-items-center flex-wrap">
-              <div>
-                <strong><i class="fa fa-calendar"></i> ${timestamp}</strong><br>
-                <small class="text-muted">Total projects in backup: ${projectsCount} | Certificates: ${certsCount}</small>
-              </div>
-              <div class="mt-2 mt-sm-0">
-                <button class="btn btn-sm btn-outline-primary restore-projects-btn" data-url="${backup.download_url}">Restore My Projects</button>
-                <button class="btn btn-sm btn-outline-success restore-certs-btn" data-url="${backup.download_url}">Restore My Certificates</button>
-                <button class="btn btn-sm btn-outline-danger restore-both-btn" data-url="${backup.download_url}">Restore Both</button>
-              </div>
-            </div>
-          </div>
-        `;
+      for (const b of backups) {
+        const info = await getBackupInfo(b.download_url);
+        const ts = b.name.replace('.zip','');
+        html += `<div class="backup-card"><div><strong>${ts}</strong><br><small>Projects: ${info?.projects_count||'?'} | Certs: ${info?.certificates_count||'?'}</small></div>
+        <div><button class="btn btn-sm btn-outline-primary restore-proj" data-url="${b.download_url}">Restore My Projects</button>
+        <button class="btn btn-sm btn-outline-success restore-cert" data-url="${b.download_url}">Restore My Certificates</button>
+        <button class="btn btn-sm btn-outline-danger restore-both" data-url="${b.download_url}">Restore Both</button></div></div>`;
       }
       container.innerHTML = html;
-      document.querySelectorAll('.restore-projects-btn').forEach(btn => {
-        btn.addEventListener('click', () => restoreFromBackup(btn.dataset.url, true, false));
-      });
-      document.querySelectorAll('.restore-certs-btn').forEach(btn => {
-        btn.addEventListener('click', () => restoreFromBackup(btn.dataset.url, false, true));
-      });
-      document.querySelectorAll('.restore-both-btn').forEach(btn => {
-        btn.addEventListener('click', () => restoreFromBackup(btn.dataset.url, true, true));
-      });
+      document.querySelectorAll('.restore-proj').forEach(btn => btn.onclick = () => restoreFromBackup(btn.dataset.url, true, false));
+      document.querySelectorAll('.restore-cert').forEach(btn => btn.onclick = () => restoreFromBackup(btn.dataset.url, false, true));
+      document.querySelectorAll('.restore-both').forEach(btn => btn.onclick = () => restoreFromBackup(btn.dataset.url, true, true));
     }
 
-    async function triggerBackupWorkflow() {
-      const config = window.REPO_CONFIG;
-      const token = user.pat;
-      const url = `https://api.github.com/repos/${config.owner}/${config.repo}/actions/workflows/backup.yml/dispatches`;
+    async function triggerBackup() {
+      const cfg = window.REPO_CONFIG;
+      const url = `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/actions/workflows/backup.yml/dispatches`;
       try {
-        const resp = await fetch(url, {
-          method: 'POST',
-          headers: { Authorization: `token ${token}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ref: config.branch })
-        });
-        if (resp.ok) {
-          alert('Backup triggered! It may take a few minutes to appear.');
-          setTimeout(() => loadBackups(), 10000);
-        } else {
-          const err = await resp.json();
-          alert(`Cannot trigger workflow: ${err.message}. You may need to add "actions:write" permission to your token.`);
-        }
-      } catch (err) {
-        alert('Failed to trigger backup: ' + err.message);
-      }
+        const res = await fetch(url, { method:'POST', headers:{ Authorization:`token ${user.pat}`,'Content-Type':'application/json'}, body:JSON.stringify({ ref: cfg.branch }) });
+        if(res.ok) alert('Backup triggered! It may take a minute.'); else alert('Failed: '+ (await res.json()).message);
+      } catch(e) { alert(e.message); }
     }
 
-    // ---------- USER MANAGEMENT (admin only) ----------
+    // Admin features
     const isAdmin = window.APP_CONFIG.adminUsers && window.APP_CONFIG.adminUsers.includes(user.username);
     if (isAdmin) {
       document.getElementById('backupsTabNav').style.display = 'block';
       document.getElementById('usersTabNav').style.display = 'block';
-      document.getElementById('refreshBackupsBtn').addEventListener('click', loadBackups);
-      document.getElementById('refreshUsersBtn').addEventListener('click', loadUsers);
-      if (user.pat && (user.pat.startsWith('github_pat_') || user.pat.length > 40)) {
-        document.getElementById('triggerBackupNowBtn').style.display = 'inline-block';
-      }
-      document.getElementById('triggerBackupNowBtn').addEventListener('click', triggerBackupWorkflow);
+      document.getElementById('refreshBackupsBtn').onclick = loadBackups;
+      document.getElementById('refreshUsersBtn').onclick = loadUsers;
+      if (user.pat && (user.pat.startsWith('github_pat_') || user.pat.length>40)) document.getElementById('triggerBackupNowBtn').style.display = 'inline-block';
+      document.getElementById('triggerBackupNowBtn').onclick = triggerBackup;
       loadBackups();
       loadUsers();
     }
 
     async function loadUsers() {
-      window.showLoading('Loading users...');
       const container = document.getElementById('usersList');
+      window.showLoading('Loading users...');
       try {
-        const usernames = await window.AccountManager.listUsers(user.pat);
+        const users = await window.AccountManager.listUsers(user.pat);
         const blocked = await window.AccountManager.getBlockedUsers();
         container.innerHTML = '';
-        if (usernames.length === 0) {
-          container.innerHTML = '<div class="empty-state"><i class="fa fa-users"></i><h5>No registered users yet.</h5></div>';
-        } else {
-          for (const username of usernames) {
-            const isBlocked = blocked.includes(username);
-            let stats = { projects: 0, certificates: 0 };
-            try { stats = await window.AccountManager.getUserStats(username, user.pat); } catch(e) {}
-            const card = document.createElement('div');
-            card.className = 'card mb-2';
-            card.innerHTML = `
-              <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                  <div>
-                    <strong>${window.escapeHtml(username)}</strong>
-                    ${isBlocked ? '<span class="badge badge-danger ml-2">Blocked</span>' : '<span class="badge badge-success ml-2">Active</span>'}
-                    <div class="small text-muted">Projects: ${stats.projects} | Certificates: ${stats.certificates}</div>
-                  </div>
-                  <div>
-                    <button class="btn btn-sm ${isBlocked ? 'btn-success' : 'btn-warning'} toggle-block-btn" data-username="${username}">${isBlocked ? 'Unblock' : 'Block'}</button>
-                    <button class="btn btn-sm btn-danger delete-user-btn" data-username="${username}">Delete</button>
-                  </div>
-                </div>
-              </div>`;
-            container.appendChild(card);
-          }
-          document.querySelectorAll('.toggle-block-btn').forEach(btn => {
-            btn.addEventListener('click', async () => {
-              const username = btn.dataset.username;
-              const block = !blocked.includes(username);
-              if (!confirm(`Are you sure you want to ${block ? 'block' : 'unblock'} "${username}"?`)) return;
-              window.showLoading(`${block ? 'Blocking' : 'Unblocking'} user...`);
-              try {
-                await window.AccountManager.toggleBlock(username, block, user.pat);
-                await loadUsers();
-              } catch(err) { window.hideLoading(); alert('Failed: ' + err.message); }
-            });
-          });
-          document.querySelectorAll('.delete-user-btn').forEach(btn => {
-            btn.addEventListener('click', async () => {
-              const username = btn.dataset.username;
-              if (!confirm(`Delete all data for "${username}"? This cannot be undone.`)) return;
-              window.showLoading('Deleting user...');
-              try {
-                await window.AccountManager.deleteUser(username, user.pat);
-                await loadUsers();
-              } catch(err) { window.hideLoading(); alert('Failed: ' + err.message); }
-            });
-          });
+        for (const u of users) {
+          const stats = await window.AccountManager.getUserStats(u, user.pat);
+          const isBlocked = blocked.includes(u);
+          container.innerHTML += `<div class="card mb-2"><div class="card-body d-flex justify-content-between"><div><strong>${window.escapeHtml(u)}</strong> ${isBlocked?'<span class="badge badge-danger">Blocked</span>':'<span class="badge badge-success">Active</span>'}<br><small>Projects: ${stats.projects} | Certs: ${stats.certificates}</small></div>
+          <div><button class="btn btn-sm ${isBlocked?'btn-success':'btn-warning'} toggle-block" data-user="${u}">${isBlocked?'Unblock':'Block'}</button>
+          <button class="btn btn-sm btn-danger delete-user" data-user="${u}">Delete</button></div></div></div>`;
         }
-      } catch (err) {
-        container.innerHTML = `<div class="alert alert-danger">Unable to load users: ${err.message}</div>`;
-      }
+        document.querySelectorAll('.toggle-block').forEach(btn => btn.onclick = async () => {
+          const username = btn.dataset.user;
+          const block = !blocked.includes(username);
+          if (confirm(`${block?'Block':'Unblock'} ${username}?`)) {
+            await window.AccountManager.toggleBlock(username, block, user.pat);
+            loadUsers();
+          }
+        });
+        document.querySelectorAll('.delete-user').forEach(btn => btn.onclick = async () => {
+          if (confirm(`Permanently delete ${btn.dataset.user}?`)) {
+            await window.AccountManager.deleteUser(btn.dataset.user, user.pat);
+            loadUsers();
+          }
+        });
+      } catch(e) { container.innerHTML = `<div class="alert alert-danger">${e.message}</div>`; }
       window.hideLoading();
     }
 
-    // ---------- BUTTON HANDLERS ----------
-    document.getElementById('addProjectBtn').addEventListener('click', () => openProjectModal());
-    document.getElementById('addCertBtn').addEventListener('click', () => openCertModal());
-    document.getElementById('downloadDataBtn').addEventListener('click', () => window.portfolioData.exportData());
-    
-    document.getElementById('deleteAllProjectsBtn').addEventListener('click', async () => {
-      if (confirm('⚠️ PERMANENT: Delete ALL your projects? This cannot be undone.')) {
-        window.showLoading('Deleting all projects...');
-        try {
-          await window.portfolioData.saveProjects({});
-          await renderProjects();
-        } catch (err) { alert('Failed: ' + err.message); }
-        window.hideLoading();
-      }
-    });
-    
-    document.getElementById('syncProjectsBtn').addEventListener('click', async () => {
-      window.showLoading('Syncing from GitHub...');
-      await renderProjects();
-      await renderCertificates();
-      window.hideLoading();
-      alert('Data refreshed.');
-    });
-    
-    document.getElementById('deleteAllC('deleteAllCertsBtnertsBtn').addEventListener('click',').addEventListener(' async ()click', async () => => {
-      if {
-      if (confirm (confirm('⚠️ PER('⚠MANENT: Delete️ PERMANENT: Delete ALL your certificates? ALL your certificates? This cannot This cannot be undone be undone.')).')) {
-        window.show {
-       Loading(' window.showDeleLoading('Deleting allting all certificates...');
-        try certificates...');
-        try {
-          await window.portfolioData.saveCertificates([]);
-          await renderCertificates();
-        {
-          await window.portfolioData.saveCertificates([]);
-          await renderCertificates();
-        } catch (err } catch (err) {) { alert('Failed: alert('Failed: ' + ' + err.message err.message); }
-); }
-        window.hideLoading();
-             window.hideLoading();
-      }
-    }
-    });
-    
-    });
-    
-    document.getElementById document.getElementById('logout('logoutBtn').Btn').addEventListener('clickaddEventListener('click', ()', () => => {
-      if (current {
-      if (currentWorker)Worker) currentWorker currentWorker.termin.terminate();
-      windowate();
-      window.Session.SessionManager.logManager.logout();
-      windowout();
-      window.location.h.location.href =ref = 'login.html 'login.html';
-   ';
-    });
+    // Buttons
+    document.getElementById('addProjectBtn').onclick = () => openProjectModal();
+    document.getElementById('addCertBtn').onclick = () => openCertModal();
+    document.getElementById('downloadDataBtn').onclick = () => window.portfolioData.exportData();
+    document.getElementById('deleteAllProjectsBtn').onclick = async () => { if(confirm('PERMANENT: Delete ALL your projects?')) { await window.portfolioData.saveProjects({}); renderProjects(); } };
+    document.getElementById('syncProjectsBtn').onclick = async () => { await renderProjects(); await renderCertificates(); alert('Synced'); };
+    document.getElementById('deleteAllCertsBtn').onclick = async () => { if(confirm('PERMANENT: Delete ALL certificates?')) { await window.portfolioData.saveCertificates([]); renderCertificates(); } };
+    document.getElementById('logoutBtn').onclick = () => { window.SessionManager.logout(); location.href='login.html'; };
 
-    await });
-
-    await renderProjects renderProjects();
+    await renderProjects();
     await renderCertificates();
-    await renderCertificates();
-   ();
-    window.h window.hideLoadingideLoading();
- ();
+    window.hideLoading();
   }
-</ }
-</scriptscript>
-<script src="https>
-<script src="https://code://code.jquery.jquery.com/jquery-3.com/jquery-3.5.5.1.1.min.js"></script.min.js>
-<script"></script>
-<script src="https:// src="https://cdn.jscdn.jsdelivr.netdeliv/npmr.net/npm/po/popper.jspper.js@1.16@1.16.0/dist/umd/popper.min.js"></script>
-<script src="https.0/dist/umd/popper.min.js"></script>
-<script src://stack="httpspath.b://stackpath.bootstrapcdnootstrapcdn.com/bootstrap/4.com/bootstrap/4.5.5.2.2/js/bootstrap.min.js/js/bootstrap"></script.min.js"></script>
-</>
-</bodybody>
+</script>
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
 </html>
-
