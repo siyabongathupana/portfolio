@@ -1,4 +1,5 @@
-// api.js – GitHub API operations
+// api.js – GitHub API operations (fixed SHA handling)
+
 const GitHubAPI = (() => {
   function getAuthHeaders(token) {
     return {
@@ -13,7 +14,7 @@ const GitHubAPI = (() => {
     const resp = await fetch(url, { headers: getAuthHeaders(token) });
     if (!resp.ok) {
       if (resp.status === 404) return null;
-      throw new Error(`GitHub API error: ${resp.status}`);
+      throw new Error(`GitHub API error: ${resp.status} - ${resp.statusText}`);
     }
     const data = await resp.json();
     return {
@@ -31,6 +32,7 @@ const GitHubAPI = (() => {
       branch: branch
     };
     if (sha) body.sha = sha;
+    
     const resp = await fetch(url, {
       method: 'PUT',
       headers: getAuthHeaders(token),
