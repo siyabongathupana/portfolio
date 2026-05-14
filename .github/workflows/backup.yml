@@ -2,14 +2,14 @@ name: Daily Backup
 
 on:
   schedule:
-    - cron: '0 0 * * *'   # Runs every day at 00:00 UTC
-  workflow_dispatch:       # Allows manual trigger from GitHub Actions tab
+    - cron: '0 0 * * *'
+  workflow_dispatch:
 
 jobs:
   backup:
     runs-on: ubuntu-latest
     permissions:
-      contents: write      # Needed to push backup files to repo
+      contents: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -25,24 +25,18 @@ jobs:
 
       - name: Backup all user data (if exists)
         run: |
-          # Copy data folder only if it exists
           if [ -d "data" ]; then
             cp -r data "$BACKUP_DIR/"
           else
             echo "No data folder found – skipping"
           fi
-          
-          # Copy config if exists
           if [ -f "config.js" ]; then
             cp config.js "$BACKUP_DIR/"
           fi
-          
-          # Count users safely
           USER_COUNT=0
           if [ -d "data/users" ]; then
             USER_COUNT=$(ls -1 data/users/ 2>/dev/null | wc -l)
           fi
-          
           cat > "$BACKUP_DIR/backup_info.json" << EOF
           {
             "timestamp": "$BACKUP_TIMESTAMP",
@@ -53,16 +47,16 @@ jobs:
           }
           EOF
 
-      - name: Compress backup (saves space)
+      - name: Create ZIP archive (instead of tar.gz)
         run: |
           cd backups
-          tar -czf "${BACKUP_TIMESTAMP}.tar.gz" "${BACKUP_TIMESTAMP}"
-          rm -rf "${BACKUP_TIMESTAMP}" || true
+          zip -r "${BACKUP_TIMESTAMP}.zip" "${BACKUP_TIMESTAMP}"
+          rm -rf "${BACKUP_TIMESTAMP}"
           cd ..
 
       - name: Delete backups older than 30 days
         run: |
-          find backups/ -name "*.tar.gz" -type f -mtime +30 -delete
+          find backups/ -name "*.zip" -type f -mtime +30 -delete
 
       - name: Commit and push backup
         run: |
@@ -70,5 +64,4 @@ jobs:
           git config user.email "backup@deltaV-portfolio.local"
           git add backups/
           git commit -m "Automated daily backup: ${{ env.BACKUP_TIMESTAMP }}" || echo "No changes to commit"
-          # Push to the current branch (main or whatever)
           git push origin HEAD:${GITHUB_REF_NAME:-main}
