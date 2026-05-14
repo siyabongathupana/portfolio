@@ -12,7 +12,7 @@ jobs:
       contents: write      # Needed to push backup files to repo
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
