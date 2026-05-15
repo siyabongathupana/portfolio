@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Certificates | DeltaV Engineer</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="config.js"></script>
+  <script src="shared.js"></script>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg custom_nav-container pt-3" style="background:#0b2b3b; padding:15px 0;">
+  <div class="container"><a class="navbar-brand" href="index.html"><span>ΔV</span> Engineering</a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navCert"><span class="fa fa-bars text-white"></span></button>
+    <div class="collapse navbar-collapse" id="navCert">
+      <ul class="navbar-nav ml-auto">
+        <li class="nav-item"><a class="nav-link" href="index.html">Home</a></li>
+        <li class="nav-item"><a class="nav-link" href="projects.html">Projects</a></li>
+        <li class="nav-item active"><a class="nav-link" href="certificates.html">Certificates</a></li>
+        <li class="nav-item"><a class="nav-link" href="admin.html" target="_blank">Manage</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+<div class="container py-4">
+  <div class="text-center mb-5">
+    <h2><span style="color:#2fc7ff;">Professional</span> Certifications</h2>
+    <p>Credentials and training achievements</p>
+  </div>
+  <div class="row" id="certificatesGrid"></div>
+  <div id="noCertsMsg" class="empty-state" style="display: none;">
+    <i class="fa fa-certificate"></i>
+    <h4>No certificates added yet</h4>
+    <p>Visit the <a href="admin.html">Admin Panel</a> to add your certifications.</p>
+  </div>
+  <div class="text-center mt-5">
+    <a href="admin.html" class="btn btn-outline-delta"><i class="fa fa-plus"></i> Add/Edit Certificates (Admin)</a>
+  </div>
+</div>
+<footer>
+  <p>© 2025 DeltaV Engineering Portfolio</p>
+  <p class="footer-status"><span id="userFooterStatus"></span></p>
+</footer>
+
+<script>
+  function renderCertificates() {
+    window.showLoading('Loading certificates...');
+    window.portfolioData.loadCertificates().then(certs => {
+      const grid = document.getElementById('certificatesGrid');
+      const noMsg = document.getElementById('noCertsMsg');
+
+      if (certs.length === 0) {
+        grid.innerHTML = '';
+        noMsg.style.display = 'block';
+        window.hideLoading();
+        return;
+      }
+      noMsg.style.display = 'none';
+      grid.innerHTML = '';
+
+      certs.forEach(cert => {
+        let driveId = null;
+        if (cert.link && cert.link.includes('drive.google.com')) {
+          const match = cert.link.match(/\/d\/(.+?)\//);
+          if (match) driveId = match[1];
+        }
+        const viewLink = driveId ? `https://drive.google.com/file/d/${driveId}/preview` : cert.link;
+        const thumb = cert.thumbnail || window.APP_CONFIG.defaultThumb;
+
+        const card = `
+          <div class="col-lg-4 col-md-6 mb-4">
+            <div class="cert-card">
+              <img src="${thumb}" alt="${window.escapeHtml(cert.title)}">
+              <div class="cert-info">
+                <div>
+                  <h5>${window.escapeHtml(cert.title)}</h5>
+                  <p class="text-muted" style="font-size:0.9rem;">${window.escapeHtml(cert.issuer)} • ${cert.date}</p>
+                </div>
+                <a href="${viewLink}" target="_blank" class="btn btn-sm btn-delta mt-2"><i class="fa fa-file-pdf-o"></i> View / Download</a>
+              </div>
+            </div>
+          </div>
+        `;
+        grid.innerHTML += card;
+      });
+      window.protectImages();
+      window.hideLoading();
+    }).catch(e => {
+      console.error(e);
+      window.hideLoading();
+    });
+  }
+
+  window.onload = function() {
+    window.updateUserFooter();
+    renderCertificates();
+  };
+</script>
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>
