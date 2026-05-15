@@ -2,9 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Timesheet | Your Portfolio</title>
-  <link rel="icon" type="image/png" href="favicon.png">
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -16,13 +15,13 @@
   <script src="api.js"></script>
   <script src="shared.js"></script>
   <style>
-    /* Additional timesheet styles – compact and professional */
+    /* Professional timesheet – mobile first */
     .timesheet-container {
       max-width: 1400px;
-      margin: 30px auto;
+      margin: 20px auto;
       background: white;
       border-radius: 24px;
-      padding: 25px;
+      padding: 20px;
       box-shadow: 0 8px 20px rgba(0,0,0,0.05);
     }
     .quick-log-card {
@@ -35,9 +34,9 @@
     .progress-bar-container {
       background: #e2e8f0;
       border-radius: 30px;
-      height: 28px;
+      height: 32px;
       overflow: hidden;
-      margin: 10px 0;
+      margin: 15px 0;
     }
     .progress-fill {
       background: #2fc7ff;
@@ -51,18 +50,19 @@
       padding-right: 12px;
       color: white;
       font-weight: 600;
-      font-size: 0.8rem;
+      font-size: 0.85rem;
     }
     .chart-card {
       background: #ffffff;
       border-radius: 16px;
       padding: 15px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-      height: 100%;
+      margin-bottom: 20px;
       text-align: center;
     }
     .chart-card canvas {
-      max-width: 280px;
+      max-width: 100%;
+      height: auto;
       margin: 0 auto;
     }
     .filter-bar {
@@ -70,21 +70,72 @@
       padding: 12px 15px;
       border-radius: 16px;
       margin-bottom: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: space-between;
+      align-items: center;
     }
-    .history-table th {
-      background: #0b2b3b;
-      color: white;
-      font-weight: 600;
-      font-size: 0.85rem;
+    .filter-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
     }
-    .history-table td {
-      font-size: 0.85rem;
-      vertical-align: middle;
+    .history-table {
+      font-size: 0.8rem;
+    }
+    .history-table th, .history-table td {
+      padding: 8px 6px;
+      white-space: nowrap;
+    }
+    .table-responsive {
+      overflow-x: auto;
     }
     .total-row {
       background: #e9f2fa;
       font-weight: bold;
     }
+    /* Mobile overrides */
+    @media (max-width: 768px) {
+      .timesheet-container {
+        padding: 12px;
+        margin: 10px;
+        border-radius: 16px;
+      }
+      .quick-log-card {
+        padding: 15px;
+      }
+      .form-control, .btn {
+        font-size: 0.9rem;
+        min-height: 44px; /* better touch targets */
+      }
+      .btn-sm {
+        min-height: 38px;
+      }
+      .progress-bar-container {
+        height: 40px;
+      }
+      .progress-fill {
+        font-size: 0.75rem;
+        padding-right: 8px;
+      }
+      .chart-card canvas {
+        max-width: 220px;
+      }
+      .filter-bar {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .filter-controls {
+        justify-content: space-between;
+      }
+      .history-table th, .history-table td {
+        font-size: 0.7rem;
+        padding: 6px 4px;
+      }
+    }
+    /* Print layout – clean & professional */
     @media print {
       body {
         background: white;
@@ -103,11 +154,12 @@
       .history-table {
         width: 100%;
         border-collapse: collapse;
+        font-size: 10pt;
       }
       .history-table th, .history-table td {
         border: 1px solid #000;
-        padding: 8px;
-        font-size: 10pt;
+        padding: 6px;
+        white-space: normal;
       }
       .history-table th {
         background: #f0f0f0 !important;
@@ -118,12 +170,8 @@
       }
       @page {
         size: landscape;
-        margin: 1cm;
+        margin: 1.5cm;
       }
-    }
-    @media (max-width: 768px) {
-      .timesheet-container { padding: 15px; }
-      .chart-card canvas { max-width: 200px; }
     }
   </style>
 </head>
@@ -151,61 +199,61 @@
   <div class="d-flex justify-content-between align-items-center flex-wrap mb-3">
     <h3><i class="fa fa-clock-o"></i> Timesheet</h3>
     <div>
-      <button id="exportCsvBtn" class="btn btn-sm btn-success mr-2"><i class="fa fa-file-excel-o"></i> Export CSV</button>
-      <button id="printBtn" class="btn btn-sm btn-secondary"><i class="fa fa-print"></i> Print / PDF</button>
+      <button id="exportCsvBtn" class="btn btn-sm btn-success mr-2"><i class="fa fa-file-excel-o"></i> CSV</button>
+      <button id="printBtn" class="btn btn-sm btn-secondary"><i class="fa fa-print"></i> Print</button>
     </div>
   </div>
 
-  <!-- Quick Log Form (compact) -->
+  <!-- Quick Log Form – full width on mobile -->
   <div class="quick-log-card">
     <h6 class="mb-3"><i class="fa fa-pencil-square-o"></i> Log Task</h6>
-    <div class="row">
-      <div class="col-md-2">
+    <div class="form-row">
+      <div class="col-12 col-md-2 mb-2">
         <label>Date</label>
-        <input type="date" id="logDate" class="form-control form-control-sm">
+        <input type="date" id="logDate" class="form-control">
       </div>
-      <div class="col-md-2">
+      <div class="col-6 col-md-2 mb-2">
         <label>Start</label>
-        <div class="input-group input-group-sm">
+        <div class="input-group">
           <input type="time" id="startTime" class="form-control">
           <div class="input-group-append">
-            <button class="btn btn-outline-secondary btn-sm" id="nowStartBtn" type="button">Now</button>
+            <button class="btn btn-outline-secondary" id="nowStartBtn" type="button">Now</button>
           </div>
         </div>
       </div>
-      <div class="col-md-2">
+      <div class="col-6 col-md-2 mb-2">
         <label>End</label>
-        <div class="input-group input-group-sm">
+        <div class="input-group">
           <input type="time" id="endTime" class="form-control">
           <div class="input-group-append">
-            <button class="btn btn-outline-secondary btn-sm" id="nowEndBtn" type="button">Now</button>
+            <button class="btn btn-outline-secondary" id="nowEndBtn" type="button">Now</button>
           </div>
         </div>
       </div>
-      <div class="col-md-1">
+      <div class="col-4 col-md-1 mb-2">
         <label>Hours</label>
-        <input type="text" id="hoursAuto" class="form-control form-control-sm" readonly placeholder="0.00">
+        <input type="text" id="hoursAuto" class="form-control" readonly placeholder="0.00">
       </div>
-      <div class="col-md-2">
+      <div class="col-8 col-md-2 mb-2">
         <label>Category</label>
-        <select id="taskCategory" class="form-control form-control-sm">
+        <select id="taskCategory" class="form-control">
           <option>Development</option><option>Meetings</option><option>Admin</option>
           <option>CodeReview</option><option>Learning</option><option>Other</option>
         </select>
       </div>
-      <div class="col-md-1">
+      <div class="col-4 col-md-1 mb-2">
         <label>Billable</label>
-        <select id="billable" class="form-control form-control-sm">
+        <select id="billable" class="form-control">
           <option value="yes">Yes</option><option value="no">No</option>
         </select>
       </div>
-      <div class="col-md-2">
+      <div class="col-8 col-md-2 mb-2">
         <label>Notes / Ticket #</label>
-        <input type="text" id="taskNotes" class="form-control form-control-sm" placeholder="JIRA-123">
+        <input type="text" id="taskNotes" class="form-control" placeholder="JIRA-123">
       </div>
     </div>
-    <div class="mt-3">
-      <button id="addEntryBtn" class="btn btn-delta btn-sm"><i class="fa fa-plus"></i> Add Entry</button>
+    <div class="mt-2">
+      <button id="addEntryBtn" class="btn btn-delta btn-block btn-md"><i class="fa fa-plus"></i> Add Entry</button>
     </div>
   </div>
 
@@ -217,15 +265,15 @@
     </div>
   </div>
 
-  <!-- Two small charts side by side -->
+  <!-- Two small charts – side by side on desktop, stacked on mobile -->
   <div class="row mb-4">
-    <div class="col-md-6">
+    <div class="col-12 col-md-6 mb-3">
       <div class="chart-card">
         <h6>Category Breakdown (filtered)</h6>
         <canvas id="categoryChart" width="280" height="200"></canvas>
       </div>
     </div>
-    <div class="col-md-6">
+    <div class="col-12 col-md-6 mb-3">
       <div class="chart-card">
         <h6>Billable vs Non-Billable</h6>
         <canvas id="billableChart" width="280" height="200"></canvas>
@@ -233,16 +281,16 @@
     </div>
   </div>
 
-  <!-- Filter Bar -->
-  <div class="filter-bar d-flex flex-wrap align-items-center justify-content-between">
-    <div class="d-flex align-items-center">
-      <label class="mr-2 mb-0">View:</label>
-      <select id="filterRange" class="form-control form-control-sm mr-3" style="width:100px;">
+  <!-- Filter Bar – responsive -->
+  <div class="filter-bar">
+    <div class="filter-controls">
+      <label class="mb-0 mr-2">View:</label>
+      <select id="filterRange" class="form-control form-control-sm" style="width:100px;">
         <option value="day">Today</option>
         <option value="week" selected>This Week</option>
         <option value="month">This Month</option>
       </select>
-      <label class="mr-2 mb-0">Category:</label>
+      <label class="mb-0 mr-2 ml-2">Category:</label>
       <select id="filterCategory" class="form-control form-control-sm" style="width:140px;">
         <option value="all">All</option>
         <option value="Development">Development</option>
@@ -256,7 +304,7 @@
     <button id="refreshHistoryBtn" class="btn btn-sm btn-outline-info"><i class="fa fa-refresh"></i> Refresh</button>
   </div>
 
-  <!-- History Table -->
+  <!-- History Table (horizontally scrollable on mobile) -->
   <div class="table-responsive">
     <table class="table table-bordered history-table">
       <thead>
@@ -266,16 +314,16 @@
         </tr>
       </thead>
       <tbody id="historyBody">
-        <tr><td colspan="8" class="text-center">Loading...</td><th>?
+        <tr><td colspan="8" class="text-center">Loading...<\/td><\/tr>
       </tbody>
       <tfoot id="historyFoot" style="display:none;">
-        <tr><td colspan="3" class="text-right"><strong>Total:</strong></td>
-        <td id="totalHoursCell"><strong>0.00</strong></td><td colspan="4"></td>
-      </tr>
-      </tfoot>
-    </table>
-  </div>
-</div>
+        <tr><td colspan="3" class="text-right"><strong>Total:<\/strong><\/td>
+        <td id="totalHoursCell"><strong>0.00<\/strong><\/td><td colspan="4"><\/td>
+      <\/tr>
+      <\/tfoot>
+    <\/table>
+  <\/div>
+<\/div>
 
 <footer>
   <p>© 2025 Your Portfolio</p>
