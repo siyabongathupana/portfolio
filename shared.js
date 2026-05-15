@@ -1,4 +1,5 @@
 // shared.js – Full version with safety checks, GitHub image upload, backup/restore
+// FIXED: Admin user now sees public certificates if their own file is empty
 
 window.showLoading = function (msg = 'Processing...') {
   let loader = document.getElementById('globalLoader');
@@ -138,7 +139,7 @@ window.compressImage = function(file, maxW = 1600, maxH = 1600, quality = 0.85) 
   });
 };
 
-// ---------- ACCOUNT MANAGER (fully implemented) ----------
+// ---------- ACCOUNT MANAGER ----------
 window.AccountManager = {
   async _ensureEmailJS() {
     if (typeof emailjs === 'undefined') {
@@ -284,7 +285,7 @@ window.AccountManager = {
   }
 };
 
-// ---------- PORTFOLIO DATA (with force-clear support and backup/restore) ----------
+// ---------- PORTFOLIO DATA (with public fallback for admin) ----------
 window.portfolioData = (() => {
   const PROJECTS_KEY = 'deltaVProjects';
   const CERTS_KEY = 'deltaVCertificates';
@@ -298,6 +299,22 @@ window.portfolioData = (() => {
       window.location.href = 'login.html?blocked=1';
       throw new Error('Blocked');
     }
+  }
+
+  // Helper: fetch public data (unauthenticated) for a given email
+  async function fetchPublicData(email, type) {
+    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+    const encUser = encodeURIComponent(email);
+    const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${dataPath}/users/${encUser}/${type}.json`;
+    try {
+      const resp = await fetch(rawUrl);
+      if (resp.ok) {
+        const data = await resp.json();
+        if (type === 'projects') return data;
+        if (type === 'certificates') return data;
+      }
+    } catch (e) {}
+    return type === 'projects' ? {} : [];
   }
 
   async function loadProjects() {
@@ -314,6 +331,15 @@ window.portfolioData = (() => {
           localStorage.setItem(PROJECTS_KEY, JSON.stringify(data));
           return data;
         } else {
+          // If user's own file is empty, try to load public data (if same as public profile)
+          if (user.username === window.APP_CONFIG.publicProfileEmail) {
+            const publicData = await fetchPublicData(user.username, 'projects');
+            if (Object.keys(publicData).length > 0) {
+              console.warn('Using public projects as fallback for admin user');
+              localStorage.setItem(PROJECTS_KEY, JSON.stringify(publicData));
+              return publicData;
+            }
+          }
           const empty = {};
           localStorage.setItem(PROJECTS_KEY, JSON.stringify(empty));
           return empty;
@@ -326,17 +352,7 @@ window.portfolioData = (() => {
     }
     const publicEmail = window.APP_CONFIG.publicProfileEmail;
     if (!user && publicEmail) {
-      try {
-        const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-        const encUser = encodeURIComponent(publicEmail);
-        const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${dataPath}/users/${encUser}/projects.json`;
-        const resp = await fetch(rawUrl);
-        if (resp.ok) {
-          const data = await resp.json();
-          localStorage.setItem(PROJECTS_KEY, JSON.stringify(data));
-          return data;
-        }
-      } catch (e) {}
+      return await fetchPublicData(publicEmail, 'projects');
     }
     return JSON.parse(localStorage.getItem(PROJECTS_KEY) || '{}');
   }
@@ -355,6 +371,16 @@ window.portfolioData = (() => {
           localStorage.setItem(CERTS_KEY, JSON.stringify(data));
           return data;
         } else {
+          // Fallback: if user is the public profile owner and their file is empty,
+          // load the public certificates (so admin sees same as homepage)
+          if (user.username === window.APP_CONFIG.publicProfileEmail) {
+            const publicCerts = await fetchPublicData(user.username, 'certificates');
+            if (publicCerts.length > 0) {
+              console.warn('Using public certificates as fallback for admin user – save to make them permanent.');
+              localStorage.setItem(CERTS_KEY, JSON.stringify(publicCerts));
+              return publicCerts;
+            }
+          }
           const empty = [];
           localStorage.setItem(CERTS_KEY, JSON.stringify(empty));
           return empty;
@@ -366,17 +392,7 @@ window.portfolioData = (() => {
       }
     }
     if (!user && window.APP_CONFIG.publicProfileEmail) {
-      try {
-        const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-        const encUser = encodeURIComponent(window.APP_CONFIG.publicProfileEmail);
-        const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${dataPath}/users/${encUser}/certificates.json`;
-        const resp = await fetch(rawUrl);
-        if (resp.ok) {
-          const data = await resp.json();
-          localStorage.setItem(CERTS_KEY, JSON.stringify(data));
-          return data;
-        }
-      } catch (e) {}
+      return await fetchPublicData(window.APP_CONFIG.publicProfileEmail, 'certificates');
     }
     return JSON.parse(localStorage.getItem(CERTS_KEY) || '[]');
   }
@@ -484,7 +500,6 @@ window.portfolioData = (() => {
       throw new Error('Only admin can restore backups.');
     }
 
-    // Reject tar.gz backups (daily GitHub Actions archives) because they contain a folder structure, not plain JSON files.
     const fileName = file.name;
     const isTarGz = fileName.endsWith('.tar.gz') || fileName.endsWith('.tgz');
     if (isTarGz) {
