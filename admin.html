@@ -33,6 +33,8 @@
     .cert-thumb-preview { max-width:80px; max-height:80px; margin-top:8px; border-radius:12px; }
     .view-portfolio-btn { background: #28a745; color: white; border-radius: 20px; padding: 6px 16px; margin-right: 10px; transition: 0.2s; }
     .view-portfolio-btn:hover { background: #218838; color: white; text-decoration: none; }
+    .log-viewer { background: #1e1e1e; color: #d4d4d4; font-family: monospace; font-size: 12px; padding: 15px; border-radius: 8px; max-height: 500px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; }
+    .log-controls { margin-bottom: 15px; }
   </style>
 </head>
 <body style="background:#eef3fc;">
@@ -43,7 +45,7 @@
       <h1><i class="fa fa-dashboard"></i> DeltaV Portfolio Dashboard</h1>
       <div class="d-flex align-items-center">
         <span class="user-badge mr-3" id="currentUserDisplay"></span>
-        <a href="index.html" class="btn view-portfolio-btn mr-2"><i class="fa fa-eye"></i> View Portfolio</a>      
+        <a href="index.html" class="btn view-portfolio-btn mr-2"><i class="fa fa-eye"></i> View Portfolio</a>
         <button class="btn btn-outline-danger btn-sm mr-2" id="logoutBtn"><i class="fa fa-sign-out"></i> Logout</button>
         <button class="btn btn-outline-success btn-sm mr-2" id="downloadDataBtn"><i class="fa fa-download"></i> Export</button>
       </div>
@@ -52,6 +54,7 @@
     <ul class="nav nav-tabs" id="adminTabs">
       <li class="nav-item"><a class="nav-link active" data-toggle="tab" href="#projectsTab">Projects</a></li>
       <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#certificatesTab">Certificates</a></li>
+      <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#logsTab">Logs</a></li>
       <li class="nav-item" id="usersTabNav" style="display:none;"><a class="nav-link" data-toggle="tab" href="#usersTab">Users</a></li>
     </ul>
 
@@ -79,6 +82,31 @@
         <div id="certificatesList"></div>
       </div>
 
+      <!-- Logs Tab -->
+      <div class="tab-pane fade" id="logsTab">
+        <div class="log-controls">
+          <div class="row">
+            <div class="col-md-6">
+              <label>Select User:</label>
+              <select id="logUserSelect" class="form-control">
+                <option value="">-- Loading users --</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label>&nbsp;</label><br>
+              <button id="refreshLogsBtn" class="btn btn-primary"><i class="fa fa-refresh"></i> Refresh Logs</button>
+            </div>
+            <div class="col-md-3">
+              <label>&nbsp;</label><br>
+              <button id="clearLogsBtn" class="btn btn-danger" style="display:none;"><i class="fa fa-trash"></i> Clear Logs (Admin only)</button>
+            </div>
+          </div>
+        </div>
+        <div id="logViewerContainer">
+          <pre id="logContent" class="log-viewer">Select a user to view logs.</pre>
+        </div>
+      </div>
+
       <!-- Users Tab (Admin only) -->
       <div class="tab-pane fade" id="usersTab">
         <div class="mb-3 d-flex align-items-center">
@@ -97,6 +125,7 @@
 
 <!-- Project Modal -->
 <div class="modal fade" id="projectModal" tabindex="-1">
+  <!-- same as before -->
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <div class="modal-header"><h5 id="projectModalTitle">Project</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div>
@@ -263,6 +292,7 @@
           progressFill.style.width = (uploadedCount / (uploadedCount + pendingUploads.length + activeUploads)) * 100 + '%';
         }).catch(err => {
           alert(`Failed to upload ${file.name}: ${err.message}`);
+          window.Logger.log('error', `Image upload failed: ${err.message}`, 'ERROR');
         }).finally(() => {
           activeUploads--;
           processUploadQueue();
@@ -317,6 +347,7 @@
         if (oldUrl && oldUrl.startsWith('https://raw.githubusercontent.com')) {
           try { await window.deleteImageFromGitHub(oldUrl, user); } catch(e) { console.warn(e); }
         }
+        window.Logger.log('image_replace', `Replaced image in project`);
       } catch (err) {
         alert('Replace failed: ' + err.message);
       }
@@ -325,7 +356,6 @@
 
     window.updateImageCounter = updateImageCounter;
 
-    // Certificate thumbnail upload
     document.getElementById('certThumbFile').addEventListener('change', async (e) => {
       const file = e.target.files[0];
       if (!file) return;
@@ -335,12 +365,12 @@
         const preview = document.getElementById('thumbPreview');
         preview.src = url;
         preview.style.display = 'inline-block';
+        window.Logger.log('cert_thumb_upload', `Uploaded certificate thumbnail`);
       } catch (err) {
         alert('Thumb upload failed: ' + err.message);
       }
     });
 
-    // Drag & drop handling
     dropZone.addEventListener('click', () => fileInput.click());
     ['dragenter','dragover','dragleave','drop'].forEach(ev => {
       dropZone.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); });
@@ -360,7 +390,6 @@
       }
     });
 
-    // Batch actions
     document.getElementById('deleteSelectedImagesBtn')?.addEventListener('click', async () => {
       const checkboxes = imgContainer.querySelectorAll('.image-select-checkbox:checked');
       if (checkboxes.length === 0) return;
@@ -374,6 +403,7 @@
         row.remove();
       }
       updateImageCounter();
+      window.Logger.log('delete_selected_images', `Deleted ${checkboxes.length} images`);
     });
     document.getElementById('selectAllImagesBtn')?.addEventListener('click', () => {
       const checkboxes = imgContainer.querySelectorAll('.image-select-checkbox');
@@ -381,7 +411,6 @@
       checkboxes.forEach(cb => cb.checked = !allChecked);
     });
 
-    // ---------- RENDER FUNCTIONS ----------
     async function renderProjects() {
       const projects = await window.portfolioData.loadProjects();
       const container = document.getElementById('projectsList');
@@ -440,7 +469,6 @@
       }));
     }
 
-    // ---------- SAFE DELETE / SAVE ----------
     async function safeDeleteProject(id) {
       window.showLoading('Deleting project...');
       const current = await window.portfolioData.loadProjects();
@@ -455,6 +483,7 @@
       try {
         await window.portfolioData.saveProjects(current);
         await renderProjects();
+        window.Logger.log('delete_project', `Deleted project: ${id} (${current[id]?.title || 'unknown'})`);
       } catch (err) { alert('Delete failed: ' + err.message); }
       window.hideLoading();
     }
@@ -467,10 +496,12 @@
       if (thumb && thumb.startsWith('https://raw.githubusercontent.com')) {
         try { await window.deleteImageFromGitHub(thumb, user); } catch(e) { console.warn(e); }
       }
+      const certTitle = certs[idx].title;
       certs.splice(idx, 1);
       try {
         await window.portfolioData.saveCertificates(certs);
         await renderCertificates();
+        window.Logger.log('delete_certificate', `Deleted certificate: ${certTitle}`);
       } catch (err) { alert('Delete failed: ' + err.message); }
       window.hideLoading();
     }
@@ -478,11 +509,13 @@
     async function safeSaveProject(project) {
       window.showLoading('Saving project...');
       const allProjects = await window.portfolioData.loadProjects();
+      const isNew = !allProjects[project.id];
       allProjects[project.id] = project;
       try {
         await window.portfolioData.saveProjects(allProjects);
         await renderProjects();
         $('#projectModal').modal('hide');
+        window.Logger.log(isNew ? 'create_project' : 'edit_project', `${isNew ? 'Created' : 'Edited'} project: ${project.title} (${project.id})`);
       } catch (err) { alert('Save failed: ' + err.message); }
       window.hideLoading();
     }
@@ -493,11 +526,11 @@
         await window.portfolioData.saveCertificates(certs);
         await renderCertificates();
         $('#certModal').modal('hide');
+        window.Logger.log('save_certificate', `Saved ${certs.length} certificates`);
       } catch (err) { alert('Save failed: ' + err.message); }
       window.hideLoading();
     }
 
-    // ---------- PROJECT MODAL ----------
     async function openProjectModal(projectId = null) {
       const isEdit = projectId !== null;
       document.getElementById('projectModalTitle').innerText = isEdit ? 'Edit Project' : 'New Project';
@@ -594,7 +627,6 @@
       await safeSaveProject(project);
     });
 
-    // ---------- CERTIFICATE MODAL ----------
     async function openCertModal(index = null) {
       const certs = await window.portfolioData.loadCertificates();
       const isEdit = index !== null && certs[index];
@@ -638,7 +670,6 @@
       await safeSaveCertificate(certs);
     });
 
-    // ---------- USER MANAGEMENT (Admin only) ----------
     const isAdmin = window.APP_CONFIG.adminUsers && window.APP_CONFIG.adminUsers.includes(user.username);
     if (isAdmin) {
       document.getElementById('usersTabNav').style.display = 'block';
@@ -647,6 +678,69 @@
       document.getElementById('backupBtn').style.display = 'inline-block';
       document.getElementById('restoreLabel').style.display = 'inline-flex';
     }
+
+    // Logs functionality
+    async function loadLogsForUser(username) {
+      window.showLoading('Loading logs...');
+      try {
+        let logs;
+        if (isAdmin && username !== user.username) {
+          // Admin viewing another user's logs
+          logs = await window.Logger.getLogsForUser(username, user.pat);
+        } else {
+          // User viewing their own logs
+          logs = await window.Logger.getLogsForUser(user.username, user.pat);
+        }
+        document.getElementById('logContent').textContent = logs;
+      } catch (err) {
+        document.getElementById('logContent').textContent = `Error loading logs: ${err.message}`;
+      } finally {
+        window.hideLoading();
+      }
+    }
+
+    async function populateUserSelect() {
+      if (!isAdmin) {
+        // Non-admin: only show themselves
+        const select = document.getElementById('logUserSelect');
+        select.innerHTML = `<option value="${user.username}">${user.username} (you)</option>`;
+        await loadLogsForUser(user.username);
+        return;
+      }
+      // Admin: show all users
+      try {
+        const users = await window.AccountManager.listUsers(user.pat);
+        const select = document.getElementById('logUserSelect');
+        select.innerHTML = '<option value="">-- Select user --</option>';
+        for (const u of users) {
+          select.innerHTML += `<option value="${u}">${u}</option>`;
+        }
+        // Select the admin by default
+        select.value = user.username;
+        await loadLogsForUser(user.username);
+      } catch (err) {
+        console.error('Failed to load user list for logs', err);
+      }
+    }
+
+    document.getElementById('logUserSelect').addEventListener('change', async (e) => {
+      const selected = e.target.value;
+      if (selected) {
+        await loadLogsForUser(selected);
+      }
+    });
+
+    document.getElementById('refreshLogsBtn').addEventListener('click', async () => {
+      const selected = document.getElementById('logUserSelect').value;
+      if (selected) {
+        await loadLogsForUser(selected);
+      }
+    });
+
+    // For admin clear logs (optional) - not implemented to avoid accidental deletion, but could be added later
+    // For now, we skip clear button
+
+    await populateUserSelect();
 
     async function loadUsers() {
       window.showLoading('Loading users...');
@@ -712,11 +806,11 @@
       window.hideLoading();
     }
 
-    // ---------- BACKUP & RESTORE HANDLERS ----------
     document.getElementById('backupBtn').addEventListener('click', async () => {
       try {
         window.showLoading('Creating backup...');
         await window.portfolioData.downloadBackup();
+        window.Logger.log('backup_download', 'Downloaded backup ZIP');
       } catch (err) {
         alert('Backup failed: ' + err.message);
       } finally {
@@ -737,6 +831,7 @@
         await renderProjects();
         await renderCertificates();
         alert('Restore completed successfully!');
+        window.Logger.log('restore_backup', `Restored from ${file.name}`);
       } catch (err) {
         alert('Restore failed: ' + err.message);
       } finally {
@@ -745,7 +840,6 @@
       }
     });
 
-    // ---------- BUTTON HANDLERS ----------
     document.getElementById('addProjectBtn').addEventListener('click', () => openProjectModal());
     document.getElementById('addCertBtn').addEventListener('click', () => openCertModal());
     document.getElementById('downloadDataBtn').addEventListener('click', () => window.portfolioData.exportData());
@@ -764,6 +858,7 @@
           }
           await window.portfolioData.saveProjects({}, true);
           await renderProjects();
+          window.Logger.log('delete_all_projects', 'Deleted all projects');
         } catch (err) { alert('Failed: ' + err.message); }
         window.hideLoading();
       }
@@ -781,6 +876,7 @@
           }
           await window.portfolioData.saveCertificates([], true);
           await renderCertificates();
+          window.Logger.log('delete_all_certificates', 'Deleted all certificates');
         } catch (err) { alert('Failed: ' + err.message); }
         window.hideLoading();
       }
@@ -792,14 +888,15 @@
       await renderCertificates();
       window.hideLoading();
       alert('Data refreshed.');
+      window.Logger.log('sync', 'Manually synced from GitHub');
     });
 
     document.getElementById('logoutBtn').addEventListener('click', () => {
+      window.Logger.log('logout', 'User logged out');
       window.SessionManager.logout();
       window.location.href = 'login.html';
     });
 
-    // Initial load
     await renderProjects();
     await renderCertificates();
     window.hideLoading();
