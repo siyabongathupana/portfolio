@@ -12,6 +12,8 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="config.js"></script>
+  <script src="crypto.js"></script>
+  <script src="api.js"></script>
   <script src="shared.js"></script>
 </head>
 <body>
@@ -41,7 +43,7 @@
 <section class="container py-5" id="projects">
   <div class="text-center mb-5">
     <h2><span style="color:#2fc7ff;">Featured</span> Projects</h2>
-    <p class="text-muted">Recent DeltaV automation projects (latest 6 shown)</p>
+    <p class="text-muted" id="featuredSubtext">Recent automation projects (latest 6 shown)</p>
   </div>
   <div class="row" id="featuredGrid"></div>
   <div id="noProjectsMsg" class="empty-state" style="display: none;">
@@ -112,10 +114,19 @@
 <script>
   function renderFeatured() {
     window.showLoading('Loading portfolio...');
-    window.portfolioData.loadProjects().then(data => {
+    window.portfolioData.loadProjectsForView().then(data => {
       const projectsArray = Object.values(data);
       const grid = document.getElementById('featuredGrid');
       const noMsg = document.getElementById('noProjectsMsg');
+      const user = window.SessionManager.getCurrentUser();
+      
+      // Update subtext based on login state
+      const subtext = document.getElementById('featuredSubtext');
+      if (user) {
+        subtext.innerHTML = `Showing YOUR projects (${projectsArray.length} total) | <a href="admin.html" style="color:#2fc7ff;">Add more</a>`;
+      } else {
+        subtext.innerHTML = 'Recent automation projects (latest 6 shown)';
+      }
 
       if (projectsArray.length === 0) {
         grid.innerHTML = '';
@@ -130,7 +141,7 @@
       latest.forEach(proj => {
         const modalId = `galleryModal-${proj.id}`;
         if (!document.getElementById(modalId)) {
-          const carouselItems = proj.selectedImages.map((img, idx) => `
+          const carouselItems = (proj.selectedImages || []).map((img, idx) => `
             <div class="carousel-item ${idx === 0 ? 'active' : ''}">
               <div class="carousel-caption-top">${window.escapeHtml(img.caption || '')}</div>
               <img src="${img.url}" class="d-block w-100 modal-carousel-img" loading="lazy">
@@ -153,7 +164,7 @@
           `;
           document.body.insertAdjacentHTML('beforeend', modalHtml);
         }
-        const firstImg = proj.selectedImages[0]?.url || 'https://picsum.photos/id/40/400/200';
+        const firstImg = (proj.selectedImages && proj.selectedImages[0])?.url || 'https://picsum.photos/id/40/400/200';
         const badgeText = `${proj.projectType || 'DCS'} · DeltaV ${proj.deltaVVersion || 'N/A'}`;
         const card = `
           <div class="col-lg-4 col-md-6 mb-4">
@@ -161,7 +172,7 @@
               <img src="${firstImg}" class="project-img" alt="${window.escapeHtml(proj.title)}">
               <h4 class="mt-3">${window.escapeHtml(proj.title)}</h4>
               <div><span class="tech-tag">${proj.controllerType}</span><span class="tech-tag">${proj.cabinetCount} cabinets</span><span class="tech-tag">${proj.siteLocation || ''}</span></div>
-              <p class="mt-2">${window.escapeHtml(proj.description.substring(0, 100))}...</p>
+              <p class="mt-2">${window.escapeHtml(proj.description?.substring(0, 100) || '')}...</p>
               <div class="d-flex justify-content-between align-items-center mt-auto">
                 <button class="btn btn-sm btn-outline-delta" data-toggle="modal" data-target="#${modalId}"><i class="fa fa-image"></i> Gallery</button>
                 <button class="btn btn-sm btn-delta" onclick="window.generateProjectReport('${proj.id}')"><i class="fa fa-file-pdf-o"></i> PDF Report</button>
@@ -183,7 +194,7 @@
   // Contact form via EmailJS
   (async function() {
     const cfg = window.APP_CONFIG.emailjs;
-    if (cfg && cfg.publicKey) {
+    if (cfg && cfg.publicKey && cfg.publicKey !== 'YOUR_EMAILJS_PUBLIC_KEY') {
       if (typeof emailjs === 'undefined') {
         const script = document.createElement('script');
         script.src = 'https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js';
@@ -191,33 +202,33 @@
         await new Promise(r => script.onload = r);
         emailjs.init(cfg.publicKey);
       }
+      document.getElementById('contactForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const name = document.getElementById('contactName').value.trim();
+        const email = document.getElementById('contactEmail').value.trim();
+        const msg = document.getElementById('contactMsg').value.trim();
+        if (!name || !email || !msg) return;
+        if (typeof emailjs === 'undefined') {
+          document.getElementById('contactError').textContent = 'Email service not configured.';
+          document.getElementById('contactError').style.display = 'block';
+          return;
+        }
+        try {
+          await emailjs.send(cfg.serviceID, cfg.adminTemplateID, {
+            to_email: cfg.adminEmail,
+            from_name: name,
+            from_email: email,
+            message: msg,
+            subject: 'Portfolio contact from ' + name
+          });
+          document.getElementById('contactSuccess').style.display = 'block';
+          document.getElementById('contactForm').reset();
+        } catch (err) {
+          document.getElementById('contactError').textContent = 'Failed to send message.';
+          document.getElementById('contactError').style.display = 'block';
+        }
+      });
     }
-    document.getElementById('contactForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const name = document.getElementById('contactName').value.trim();
-      const email = document.getElementById('contactEmail').value.trim();
-      const msg = document.getElementById('contactMsg').value.trim();
-      if (!name || !email || !msg) return;
-      if (typeof emailjs === 'undefined') {
-        document.getElementById('contactError').textContent = 'Email service not configured.';
-        document.getElementById('contactError').style.display = 'block';
-        return;
-      }
-      try {
-        await emailjs.send(cfg.serviceID, cfg.adminTemplateID, {
-          to_email: cfg.adminEmail,
-          from_name: name,
-          from_email: email,
-          message: msg,
-          subject: 'Portfolio contact from ' + name
-        });
-        document.getElementById('contactSuccess').style.display = 'block';
-        document.getElementById('contactForm').reset();
-      } catch (err) {
-        document.getElementById('contactError').textContent = 'Failed to send message.';
-        document.getElementById('contactError').style.display = 'block';
-      }
-    });
   })();
 
   window.onload = function() {
