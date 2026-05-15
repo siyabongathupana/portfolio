@@ -8,7 +8,7 @@ window.REPO_CONFIG = {
 };
 
 window.APP_CONFIG = {
-  appName: "DeltaV Engineering Portfolio",
+  appName: "Your Portfolio",
   defaultThumb: "https://picsum.photos/id/100/300/200",
   maxFeatured: 6,
   adminUsers: ["siyabongatshem@gmail.com"],
