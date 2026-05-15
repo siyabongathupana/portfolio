@@ -1,5 +1,15 @@
 [
   {
+    "id": 1778880005334,
+    "date": "2026-05-15",
+    "start": "23:19",
+    "end": "02:23",
+    "hours": 3.07,
+    "category": "Learning",
+    "billable": "yes",
+    "notes": "Testing"
+  },
+  {
     "id": 1778879923053,
     "date": "2026-05-15",
     "start": "23:18",
