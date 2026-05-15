@@ -117,7 +117,7 @@
     "issuer": "",
     "date": "",
     "link": "",
-    "thumbnail": ""
+    "thumbnail": "https://raw.githubusercontent.com/siyabongathupana/portfolio/main/data/users/siyabongatshem%40gmail.com/cert_thumbnails/1778871602660_WIN_20260506_20_54_16_Pro.jpg"
   },
   {
     "id": "cert_1778864249601",
@@ -138,14 +138,6 @@
   {
     "id": "cert_1778871338400",
     "title": "cert what what",
-    "issuer": "",
-    "date": "",
-    "link": "",
-    "thumbnail": ""
-  },
-  {
-    "id": "cert_1778871550648",
-    "title": "Cyber",
     "issuer": "",
     "date": "",
     "link": "",
