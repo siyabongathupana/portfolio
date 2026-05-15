@@ -1,543 +1,810 @@
-// shared.js – Full version with safety checks and transactional saves
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard | DeltaV Portfolio</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="config.js"></script>
+  <script src="crypto.js"></script>
+  <script src="api.js"></script>
+  <script src="shared.js"></script>
+  <style>
+    /* same styles as before */
+    .cert-thumb-preview { max-width:80px; max-height:80px; margin-top:8px; border-radius:12px; }
+    .image-input-group { margin-bottom:15px; background:#f8f9fa; padding:12px; border-radius:12px; display:flex; align-items:center; gap:12px; position:relative; }
+    .image-input-group .img-preview-thumb { width:80px; height:80px; object-fit:cover; border-radius:8px; background:#e9ecef; }
+    .image-input-group .img-details { flex:1; }
+    .image-input-group .remove-img-btn { font-size:1.2rem; color:#dc3545; cursor:pointer; opacity:0.6; }
+    .image-input-group:hover .remove-img-btn { opacity:1; }
+    .drop-zone { border:2px dashed #2fc7ff; border-radius:16px; padding:30px; text-align:center; color:#2fc7ff; margin-bottom:20px; cursor:pointer; transition:background 0.2s; }
+    .drop-zone:hover, .drop-zone.dragover { background:#e6f7ff; }
+    .drop-zone i { font-size:2rem; display:block; margin-bottom:8px; }
+    .user-badge { background:#2fc7ff; color:white; padding:4px 12px; border-radius:20px; font-size:0.9rem; }
+    .progress-bar-container { width:100%; height:6px; background:#e0e0e0; border-radius:3px; margin:10px 0; overflow:hidden; }
+    .progress-bar-fill { width:0%; height:100%; background:#2fc7ff; transition:width 0.2s; }
+    .batch-actions { margin-top:15px; display:flex; gap:10px; align-items:center; }
+    .image-counter { font-size:0.8rem; color:#666; margin-left:10px; }
+    .backup-card { background:#f8f9fa; border-radius:16px; padding:15px; margin-bottom:15px; }
+    .backup-card:hover { background:#e9ecef; }
+    .user-selector { max-width: 300px; margin-bottom: 20px; }
+    .imgbb-uploading { font-size:0.8rem; color:#2fc7ff; margin-left:10px; }
+  </style>
+</head>
+<body style="background:#eef3fc;">
 
-window.showLoading = function (msg = 'Processing...') {
-  let loader = document.getElementById('globalLoader');
-  if (!loader) {
-    loader = document.createElement('div');
-    loader.id = 'globalLoader';
-    loader.innerHTML = `
-      <div class="loader-overlay">
-        <div class="loader-spinner"></div>
-        <p class="loader-text">${msg}</p>
-      </div>`;
-    document.body.appendChild(loader);
-  } else {
-    const textEl = loader.querySelector('.loader-text');
-    if (textEl) textEl.textContent = msg;
-    loader.style.display = 'flex';
-  }
-};
-
-window.hideLoading = function () {
-  const loader = document.getElementById('globalLoader');
-  if (loader) loader.style.display = 'none';
-};
-
-window.escapeHtml = function (str) {
-  if (!str) return '';
-  return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m] || m);
-};
-
-window.updateUserFooter = function () {
-  const user = window.SessionManager.getCurrentUser();
-  const el = document.getElementById('userFooterStatus');
-  if (!el) return;
-  if (user) {
-    el.innerHTML = `Logged in as: <strong>${window.escapeHtml(user.username)}</strong>`;
-  } else {
-    el.innerHTML = `Visitor – viewing portfolio of <strong>${window.APP_CONFIG.publicProfileEmail}</strong>`;
-  }
-};
-
-window.SessionManager = (() => {
-  let current = null;
-  return {
-    getCurrentUser: () => {
-      if (current) return current;
-      const stored = sessionStorage.getItem('deltaVUser');
-      if (stored) {
-        try { current = JSON.parse(stored); } catch(e) {}
-      }
-      return current;
-    },
-    setCurrentUser: (username, pat) => {
-      current = { username, pat };
-      sessionStorage.setItem('deltaVUser', JSON.stringify(current));
-    },
-    logout: () => {
-      current = null;
-      sessionStorage.removeItem('deltaVUser');
-    }
-  };
-})();
-
-window.AccountManager = {
-  async _ensureEmailJS() {
-    if (typeof emailjs === 'undefined') {
-      await new Promise((resolve, reject) => {
-        const script = document.createElement('script');
-        script.src = 'https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js';
-        script.onload = resolve;
-        script.onerror = reject;
-        document.head.appendChild(script);
-      });
-      const cfg = window.APP_CONFIG.emailjs;
-      if (cfg && cfg.publicKey && cfg.publicKey !== 'YOUR_EMAILJS_PUBLIC_KEY') {
-        emailjs.init(cfg.publicKey);
-      }
-    }
-  },
-
-  async _sendEmail(templateID, params) {
-    await this._ensureEmailJS();
-    const cfg = window.APP_CONFIG.emailjs;
-    if (!cfg || !cfg.serviceID || cfg.serviceID === 'YOUR_SERVICE_ID') {
-      console.warn('EmailJS not configured');
-      return;
-    }
-    return emailjs.send(cfg.serviceID, templateID, params);
-  },
-
-  async _notifyAdminNewUser(userEmail) {
-    const cfg = window.APP_CONFIG.emailjs;
-    if (!cfg || !cfg.adminTemplateID || cfg.adminTemplateID === 'YOUR_ADMIN_TEMPLATE_ID') return;
-    try {
-      await this._sendEmail(cfg.adminTemplateID, {
-        to_email: cfg.adminEmail,
-        subject: `New user: ${userEmail}`,
-        message: `New account created: ${userEmail}`
-      });
-    } catch (e) { console.warn('Admin email failed', e); }
-  },
-
-  async _notifyUserConfirmation(userEmail) {
-    const cfg = window.APP_CONFIG.emailjs;
-    if (!cfg || !cfg.userTemplateID || cfg.userTemplateID === 'YOUR_USER_TEMPLATE_ID') return;
-    try {
-      await this._sendEmail(cfg.userTemplateID, {
-        to_email: userEmail,
-        subject: 'Welcome to DeltaV Portfolio',
-        message: `Your account (${userEmail}) has been created. You can now log in and manage your projects.`
-      });
-    } catch (e) { console.warn('User email failed', e); }
-  },
-
-  async fetchAccount(username) {
-    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const encUser = encodeURIComponent(username);
-    const url = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${dataPath}/users/${encUser}/account.json`;
-    try {
-      const resp = await fetch(url);
-      if (!resp.ok) return null;
-      return await resp.json();
-    } catch { return null; }
-  },
-
-  async register(username, passphrase, pat) {
-    const payload = JSON.stringify({ test: 'VALID', token: pat });
-    const encrypted = await window.CryptoUtil.encrypt(payload, passphrase);
-    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const encUser = encodeURIComponent(username);
-    const path = `${dataPath}/users/${encUser}/account.json`;
-
-    const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, pat).catch(() => null);
-    if (existing) throw new Error('An account with this email already exists on GitHub.');
-
-    await GitHubAPI.updateFile(owner, repo, path, encrypted, `Register ${username}`, branch, pat);
-    this._notifyAdminNewUser(username);
-    this._notifyUserConfirmation(username);
-    return true;
-  },
-
-  async login(username, passphrase) {
-    const blocked = await this.getBlockedUsers();
-    if (blocked.includes(username)) throw new Error('Your account has been blocked. Contact the administrator.');
-
-    const blob = await this.fetchAccount(username);
-    if (!blob) throw new Error('User not found');
-    const decrypted = await window.CryptoUtil.decrypt(blob, passphrase);
-    const data = JSON.parse(decrypted);
-    if (data.test !== 'VALID') throw new Error('Corrupted account');
-    return data.token;
-  },
-
-  async getBlockedUsers() {
-    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const url = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${dataPath}/blocked_users.json`;
-    try {
-      const resp = await fetch(url);
-      if (!resp.ok) return [];
-      return await resp.json();
-    } catch { return []; }
-  },
-
-  async toggleBlock(username, block, adminToken) {
-    const blocked = await this.getBlockedUsers();
-    if (block) {
-      if (!blocked.includes(username)) blocked.push(username);
-    } else {
-      const idx = blocked.indexOf(username);
-      if (idx !== -1) blocked.splice(idx, 1);
-    }
-
-    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const path = `${dataPath}/blocked_users.json`;
-    let sha = null;
-    const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, adminToken).catch(() => null);
-    if (existing) sha = existing.sha;
-    await GitHubAPI.updateFile(owner, repo, path, blocked, 'Update blocked users', branch, adminToken, sha);
-    return true;
-  },
-
-  async listUsers(adminToken) {
-    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const url = `https://api.github.com/repos/${owner}/${repo}/contents/${dataPath}/users?ref=${branch}`;
-    const resp = await fetch(url, {
-      headers: { 'Authorization': `token ${adminToken}`, 'Accept': 'application/vnd.github.v3+json' }
-    });
-    if (!resp.ok) throw new Error('Cannot list users');
-    const items = await resp.json();
-    return items.filter(i => i.type === 'dir').map(i => decodeURIComponent(i.name));
-  },
-
-  async deleteUser(username, adminToken) {
-    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const encUser = encodeURIComponent(username);
-    const dirPath = `${dataPath}/users/${encUser}`;
-    const url = `https://api.github.com/repos/${owner}/${repo}/contents/${dirPath}?ref=${branch}`;
-    const resp = await fetch(url, {
-      headers: { 'Authorization': `token ${adminToken}`, 'Accept': 'application/vnd.github.v3+json' }
-    });
-    if (!resp.ok) throw new Error('User folder not found');
-    const items = await resp.json();
-    for (const item of items) {
-      await GitHubAPI.deleteFile(owner, repo, item.path, branch, adminToken, item.sha);
-    }
-    return true;
-  },
-
-  async getUserStats(username, adminToken) {
-    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const encUser = encodeURIComponent(username);
-    const base = `${dataPath}/users/${encUser}`;
-    let projectCount = 0, certCount = 0;
-    try {
-      const projFile = await GitHubAPI.getFileContent(owner, repo, `${base}/projects.json`, branch, adminToken);
-      if (projFile && projFile.content) {
-        const data = JSON.parse(projFile.content);
-        projectCount = Object.keys(data).length;
-      }
-    } catch (e) {}
-    try {
-      const certFile = await GitHubAPI.getFileContent(owner, repo, `${base}/certificates.json`, branch, adminToken);
-      if (certFile && certFile.content) {
-        const data = JSON.parse(certFile.content);
-        certCount = data.length;
-      }
-    } catch (e) {}
-    return { projects: projectCount, certificates: certCount };
-  }
-};
-
-/* PORTFOLIO DATA – TRANSACTIONAL SAVES */
-window.portfolioData = (() => {
-  const PROJECTS_KEY = 'deltaVProjects';
-  const CERTS_KEY = 'deltaVCertificates';
-
-  async function verifyNotBlocked() {
-    const user = window.SessionManager.getCurrentUser();
-    if (!user) return;
-    const blocked = await window.AccountManager.getBlockedUsers();
-    if (blocked.includes(user.username)) {
-      window.SessionManager.logout();
-      window.location.href = 'login.html?blocked=1';
-      throw new Error('Blocked');
-    }
-  }
-
-  async function loadProjects() {
-    const user = window.SessionManager.getCurrentUser();
-    if (user && user.pat) {
-      await verifyNotBlocked();
-      try {
-        const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-        const encUser = encodeURIComponent(user.username);
-        const path = `${dataPath}/users/${encUser}/projects.json`;
-        const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
-        if (file && file.content) {
-          const data = JSON.parse(file.content);
-          localStorage.setItem(PROJECTS_KEY, JSON.stringify(data));
-          return data;
-        } else {
-          const empty = {};
-          localStorage.setItem(PROJECTS_KEY, JSON.stringify(empty));
-          return empty;
-        }
-      } catch (e) {
-        if (e.message === 'Blocked') throw e;
-        console.warn('Could not fetch projects from GitHub, using local cache');
-        return JSON.parse(localStorage.getItem(PROJECTS_KEY) || '{}');
-      }
-    }
-    const publicEmail = window.APP_CONFIG.publicProfileEmail;
-    if (!user && publicEmail) {
-      try {
-        const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-        const encUser = encodeURIComponent(publicEmail);
-        const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${dataPath}/users/${encUser}/projects.json`;
-        const resp = await fetch(rawUrl);
-        if (resp.ok) {
-          const data = await resp.json();
-          localStorage.setItem(PROJECTS_KEY, JSON.stringify(data));
-          return data;
-        }
-      } catch (e) {}
-    }
-    return JSON.parse(localStorage.getItem(PROJECTS_KEY) || '{}');
-  }
-
-  async function loadCertificates() {
-    const user = window.SessionManager.getCurrentUser();
-    if (user && user.pat) {
-      await verifyNotBlocked();
-      try {
-        const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-        const encUser = encodeURIComponent(user.username);
-        const path = `${dataPath}/users/${encUser}/certificates.json`;
-        const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
-        if (file && file.content) {
-          const data = JSON.parse(file.content);
-          localStorage.setItem(CERTS_KEY, JSON.stringify(data));
-          return data;
-        } else {
-          const empty = [];
-          localStorage.setItem(CERTS_KEY, JSON.stringify(empty));
-          return empty;
-        }
-      } catch (e) {
-        if (e.message === 'Blocked') throw e;
-        console.warn('Could not fetch certificates from GitHub, using local cache');
-        return JSON.parse(localStorage.getItem(CERTS_KEY) || '[]');
-      }
-    }
-    if (!user && window.APP_CONFIG.publicProfileEmail) {
-      try {
-        const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-        const encUser = encodeURIComponent(window.APP_CONFIG.publicProfileEmail);
-        const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${dataPath}/users/${encUser}/certificates.json`;
-        const resp = await fetch(rawUrl);
-        if (resp.ok) {
-          const data = await resp.json();
-          localStorage.setItem(CERTS_KEY, JSON.stringify(data));
-          return data;
-        }
-      } catch (e) {}
-    }
-    return JSON.parse(localStorage.getItem(CERTS_KEY) || '[]');
-  }
-
-  async function saveProjects(data) {
-    const prev = localStorage.getItem(PROJECTS_KEY);
-    if (prev) {
-      const previous = JSON.parse(prev);
-      if (Object.keys(previous).length > 0 && Object.keys(data).length === 0) {
-        throw new Error('Cannot delete all projects this way. Use "Delete All" instead.');
-      }
-    }
-    localStorage.setItem(PROJECTS_KEY, JSON.stringify(data));
-    const user = window.SessionManager.getCurrentUser();
-    if (!user || !user.pat) return;
-    await verifyNotBlocked();
-    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const encUser = encodeURIComponent(user.username);
-    const path = `${dataPath}/users/${encUser}/projects.json`;
-    let sha = null;
-    try {
-      const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat).catch(() => null);
-      if (existing) sha = existing.sha;
-      const jsonStr = JSON.stringify(data);
-      if (jsonStr.length > 900000) {
-        throw new Error('Project data is too large. Reduce image sizes or number of images.');
-      }
-      await GitHubAPI.updateFile(owner, repo, path, data, 'Update projects', branch, user.pat, sha);
-    } catch (err) {
-      if (prev) localStorage.setItem(PROJECTS_KEY, prev);
-      else localStorage.removeItem(PROJECTS_KEY);
-      throw new Error('GitHub write failed: ' + err.message);
-    }
-  }
-
-  async function saveCertificates(data) {
-    const prev = localStorage.getItem(CERTS_KEY);
-    if (prev) {
-      const previous = JSON.parse(prev);
-      if (previous.length > 0 && data.length === 0) {
-        throw new Error('Cannot delete all certificates this way. Use "Delete All" instead.');
-      }
-    }
-    localStorage.setItem(CERTS_KEY, JSON.stringify(data));
-    const user = window.SessionManager.getCurrentUser();
-    if (!user || !user.pat) return;
-    await verifyNotBlocked();
-    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const encUser = encodeURIComponent(user.username);
-    const path = `${dataPath}/users/${encUser}/certificates.json`;
-    let sha = null;
-    try {
-      const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat).catch(() => null);
-      if (existing) sha = existing.sha;
-      await GitHubAPI.updateFile(owner, repo, path, data, 'Update certificates', branch, user.pat, sha);
-    } catch (err) {
-      if (prev) localStorage.setItem(CERTS_KEY, prev);
-      else localStorage.removeItem(CERTS_KEY);
-      throw new Error('GitHub write failed: ' + err.message);
-    }
-  }
-
-  function exportData() {
-    Promise.all([loadProjects(), loadCertificates()]).then(([projects, certs]) => {
-      const zip = new JSZip();
-      zip.file("projects.json", JSON.stringify(projects, null, 2));
-      zip.file("certificates.json", JSON.stringify(certs, null, 2));
-      zip.generateAsync({ type: "blob" }).then(blob => {
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = `deltaV_data_${window.SessionManager.getCurrentUser()?.username || 'default'}.zip`;
-        a.click();
-        URL.revokeObjectURL(a.href);
-      });
-    });
-  }
-
-  return { loadProjects, saveProjects, loadCertificates, saveCertificates, exportData };
-})();
-
-window.protectImages = function () {
-  document.querySelectorAll('.project-img, .modal-carousel-img, .cert-card img').forEach(img => {
-    img.setAttribute('draggable', 'false');
-    img.addEventListener('contextmenu', e => e.preventDefault());
-    img.addEventListener('dragstart', e => e.preventDefault());
-  });
-};
-
-window.generateProjectReport = async function(projectId) {
-  const data = await window.portfolioData.loadProjects();
-  const proj = data[projectId];
-  if (!proj) { alert("Project not found!"); return; }
-
-  let projectType = proj.projectType || 'Other';
-  let primaryColor, bgColor;
-  if (projectType === 'DCS') { primaryColor = '#2fc7ff'; bgColor = '#f9fbfd'; }
-  else if (projectType === 'SIS') { primaryColor = '#ffc107'; bgColor = '#fffdf0'; }
-  else if (projectType === 'SIS & DCS') { primaryColor = '#8bc34a'; bgColor = '#f1f8e9'; }
-  else { primaryColor = '#6c757d'; bgColor = '#f8f9fa'; }
-
-  const io = proj.io || { AI: 0, AO: 0, DI: 0, DO: 0 };
-  
-  const chartCanvas = document.createElement('canvas');
-  chartCanvas.width = 500; chartCanvas.height = 250;
-  const ctx = chartCanvas.getContext('2d');
-  let chart;
-  const chartColors = (projectType === 'DCS') ? ['#2fc7ff','#1d9fcf','#0f5c6b','#0a4b59'] :
-                      (projectType === 'SIS') ? ['#ffc107','#ffb300','#ff8f00','#ff6f00'] :
-                      (projectType === 'SIS & DCS') ? ['#8bc34a','#689f38','#558b2f','#33691e'] :
-                      ['#adb5bd','#6c757d','#495057','#212529'];
-  if (proj.graphType === 'pie') {
-    chart = new Chart(ctx, {
-      type: 'pie',
-      data: { labels: ['AI','AO','DI','DO'], datasets: [{ data: [io.AI, io.AO, io.DI, io.DO], backgroundColor: chartColors }] },
-      options: { responsive: false }
-    });
-  } else if (proj.graphType === 'line') {
-    chart = new Chart(ctx, {
-      type: 'line',
-      data: { labels: ['AI','AO','DI','DO'], datasets: [{ label: 'I/O Count', data: [io.AI, io.AO, io.DI, io.DO], borderColor: primaryColor, fill: true }] },
-      options: { responsive: false }
-    });
-  } else {
-    chart = new Chart(ctx, {
-      type: 'bar',
-      data: { labels: ['AI','AO','DI','DO'], datasets: [{ label: 'I/O Count', data: [io.AI, io.AO, io.DI, io.DO], backgroundColor: primaryColor }] },
-      options: { responsive: false }
-    });
-  }
-  await new Promise(r => setTimeout(r, 200));
-  const chartBase64 = chartCanvas.toDataURL('image/png');
-  chart.destroy();
-
-  let imagesHtml = '';
-  if (proj.selectedImages && proj.selectedImages.length) {
-    imagesHtml = `<div style="display: flex; flex-wrap: wrap; gap:10px; margin-top:10px;">`;
-    proj.selectedImages.forEach(img => {
-      imagesHtml += `
-        <div style="flex:0 0 calc(50% - 5px); text-align:center; background:#f8f9fa; border-radius:8px; padding:5px;">
-          <img src="${img.url}" style="width:100%; max-height:150px; object-fit:cover; border-radius:8px;" loading="lazy" draggable="false" />
-          <div style="font-size:10px; color:#555; margin-top:4px;">${window.escapeHtml(img.caption || '')}</div>
-        </div>`;
-    });
-    imagesHtml += `</div>`;
-  } else { imagesHtml = '<p>No images selected.</p>'; }
-
-  const controllerDisplay = proj.controllerTypes ? proj.controllerTypes.join(', ') : (proj.controllerType || 'N/A');
-  const ifatText = proj.dates?.ifatStart ? `${proj.dates.ifatStart} to ${proj.dates.ifatEnd || ''}` : (proj.dates?.ifat || 'N/A');
-  const cfatText = proj.dates?.cfatStart ? `${proj.dates.cfatStart} to ${proj.dates.cfatEnd || ''}` : (proj.dates?.cfat || 'N/A');
-  
-  const dateStr = new Date().toLocaleDateString();
-  const reportHTML = `
-    <div style="font-family:Inter, sans-serif; padding:20px; background:white; max-width:680px; margin:0 auto; color:#1e2a3e;">
-      <div style="border-bottom:4px solid ${primaryColor}; padding-bottom:10px; margin-bottom:20px;">
-        <h1 style="color:#0f4c5f; margin:0;">DeltaV Engineering Report</h1>
-        <p style="color:#5a7d9a; margin:5px 0 0;">${window.escapeHtml(proj.title)} | Technical Summary</p>
-        <span style="display:inline-block; background:${primaryColor}; color:white; padding:3px 12px; border-radius:20px; font-size:0.8rem; margin-top:8px;">
-          ${projectType} ${proj.deltaVVersion ? '· DeltaV ' + proj.deltaVVersion : ''}
-        </span>
-      </div>
-      <div style="background:${bgColor}; padding:20px; border-radius:16px; margin:20px 0;">
-        <h3>Project Overview</h3>
-        <table style="width:100%">
-          <tr><td><strong>Title:</strong></td><td>${window.escapeHtml(proj.title)}</td></tr>
-          <tr><td><strong>Location:</strong></td><td>${window.escapeHtml(proj.siteLocation||'N/A')}</td></tr>
-          <tr><td><strong>Controllers:</strong></td><td>${window.escapeHtml(controllerDisplay)}</td></tr>
-          <tr><td><strong>Cabinets:</strong></td><td>${proj.cabinetCount}</td></tr>
-          ${proj.deltaVVersion ? `<tr><td><strong>DeltaV Version:</strong></td><td>${window.escapeHtml(proj.deltaVVersion)}</td></tr>` : ''}
-          <tr><td><strong>Start Date:</strong></td><td>${proj.dates?.start || 'N/A'}</td></tr>
-          <tr><td><strong>Finish Date:</strong></td><td>${proj.dates?.finish || 'N/A'}</td></tr>
-          <tr><td><strong>IFAT:</strong></td><td>${ifatText}</td></tr>
-          <tr><td><strong>CFAT:</strong></td><td>${cfatText}</td></tr>
-        </table>
-      </div>
-      <div style="background:${bgColor}; padding:20px; border-radius:16px; margin-bottom:20px;">
-        <h3>Description</h3><p>${window.escapeHtml(proj.description)}</p>
-      </div>
-      <div style="background:${bgColor}; padding:20px; border-radius:16px; margin-bottom:20px;">
-        <h3>I/O Configuration</h3>
-        <table style="width:100%; text-align:center; border-collapse:collapse;">
-          <tr style="background:${primaryColor}; color:white;"><th>AI</th><th>AO</th><th>DI</th><th>DO</th></tr>
-          <tr><td>${io.AI}</td><td>${io.AO}</td><td>${io.DI}</td><td>${io.DO}</td></tr>
-        </table>
-      </div>
-      <div style="background:${bgColor}; padding:20px; border-radius:16px; margin-bottom:20px; text-align:center;">
-        <h3>I/O Distribution (${proj.graphType})</h3>
-        <img src="${chartBase64}" style="max-width:100%; margin-top:10px;" />
-      </div>
-      <div style="background:${bgColor}; padding:20px; border-radius:16px; margin-bottom:20px;">
-        <h3>Team Members</h3>
-        <p><strong>Lead Engineer:</strong> ${window.escapeHtml(proj.team?.lead || '')}<br>
-        <strong>Project Engineer:</strong> ${window.escapeHtml(proj.team?.engineer || '')}<br>
-        <strong>Technician:</strong> ${window.escapeHtml(proj.team?.technician || '')}</p>
-      </div>
-      <div style="background:${bgColor}; padding:20px; border-radius:16px; margin-bottom:20px;">
-        <h3>Project Images</h3>${imagesHtml}
-      </div>
-      <div style="margin-top:30px; font-size:10px; color:#999; text-align:center;">
-        Generated ${dateStr} | DeltaV Portfolio
+<div id="dashboard" style="display:none;">
+  <div class="container admin-container">
+    <div class="d-flex justify-content-between align-items-center flex-wrap">
+      <h1><i class="fa fa-dashboard"></i> DeltaV Portfolio Dashboard</h1>
+      <div class="d-flex align-items-center">
+        <span class="user-badge mr-3" id="currentUserDisplay"></span>
+        <button class="btn btn-outline-danger btn-sm mr-2" id="logoutBtn"><i class="fa fa-sign-out"></i> Logout</button>
+        <button class="btn btn-outline-success btn-sm mr-2" id="downloadDataBtn"><i class="fa fa-download"></i> Export</button>
       </div>
     </div>
-  `;
+    <hr>
+    <ul class="nav nav-tabs" id="adminTabs">
+      <li class="nav-item"><a class="nav-link active" data-toggle="tab" href="#projectsTab">Projects</a></li>
+      <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#certificatesTab">Certificates</a></li>
+      <li class="nav-item" id="backupsTabNav" style="display:none;"><a class="nav-link" data-toggle="tab" href="#backupsTab">Backups</a></li>
+      <li class="nav-item" id="usersTabNav" style="display:none;"><a class="nav-link" data-toggle="tab" href="#usersTab">Users</a></li>
+    </ul>
 
-  let container = document.getElementById('reportTempContainer');
-  if (!container) {
-    container = document.createElement('div');
-    container.id = 'reportTempContainer';
-    container.style.position = 'fixed'; container.style.top = '-9999px'; container.style.left = '-9999px'; container.style.width = '680px';
-    document.body.appendChild(container);
+    <div class="tab-content mt-4">
+      <div class="tab-pane fade show active" id="projectsTab">
+        <div class="mb-3 d-flex flex-wrap">
+          <button class="btn btn-delta mr-2" id="addProjectBtn"><i class="fa fa-plus"></i> Add New Project</button>
+          <button class="btn btn-outline-danger mr-2" id="deleteAllProjectsBtn"><i class="fa fa-trash"></i> Delete All</button>
+          <button class="btn btn-outline-info" id="syncProjectsBtn"><i class="fa fa-refresh"></i> Sync from GitHub</button>
+        </div>
+        <div id="projectsList"></div>
+      </div>
+
+      <div class="tab-pane fade" id="certificatesTab">
+        <div class="mb-3 d-flex">
+          <button class="btn btn-delta mr-2" id="addCertBtn"><i class="fa fa-plus"></i> Add Certificate</button>
+          <button class="btn btn-outline-danger" id="deleteAllCertsBtn"><i class="fa fa-trash"></i> Delete All</button>
+        </div>
+        <div id="certificatesList"></div>
+      </div>
+
+      <!-- Backups Tab -->
+      <div class="tab-pane fade" id="backupsTab">
+        <div class="mb-3 d-flex justify-content-between align-items-center flex-wrap">
+          <div>
+            <button class="btn btn-delta mr-2" id="refreshBackupsBtn"><i class="fa fa-refresh"></i> Refresh List</button>
+            <span class="text-muted">Daily backups created at midnight UTC.</span>
+          </div>
+          <button class="btn btn-outline-secondary" id="triggerBackupNowBtn" style="display:none;"><i class="fa fa-play"></i> Run Backup Now</button>
+        </div>
+        <div id="backupUserSelectorDiv" class="user-selector" style="display:none;">
+          <label>Restore data for user:</label>
+          <select id="restoreUserSelect" class="form-control">
+            <option value="">-- Select user --</option>
+          </select>
+        </div>
+        <div id="backupsList" style="max-height: 600px; overflow-y: auto;">Loading backups...</div>
+      </div>
+
+      <div class="tab-pane fade" id="usersTab">
+        <div class="mb-3"><button class="btn btn-delta" id="refreshUsersBtn"><i class="fa fa-refresh"></i> Refresh Users</button></div>
+        <div id="usersList"></div>
+      </div>
+    </div>
+    <hr>
+    <div class="text-center footer-status"><span id="userFooterStatus"></span></div>
+  </div>
+</div>
+
+<!-- Project Modal (same as before) -->
+<div class="modal fade" id="projectModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header"><h5 id="projectModalTitle">Project</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div>
+      <div class="modal-body">
+        <form id="projectForm">
+          <input type="hidden" id="projectId">
+          <div class="form-row">
+            <div class="col-md-6"><label>Title *</label><input type="text" id="projTitle" class="form-control" required></div>
+            <div class="col-md-6"><label>Controller Type</label><select id="projController" class="form-control"><option>PK</option><option>SQ</option><option>MD</option><option>SD</option><option>IQ</option><option>MQ</option><option>SX</option><option>SZ</option></select></div>
+          </div>
+          <div class="form-row mt-2">
+            <div class="col-md-6"><label>Project Type</label><select id="projType" class="form-control"><option value="">Select...</option><option>DCS</option><option>SIS</option><option>SIS & DCS</option><option>Other</option></select></div>
+            <div class="col-md-6"><label>DeltaV Version</label><input type="text" id="projVersion" class="form-control"></div>
+          </div>
+          <div class="form-row mt-2">
+            <div class="col-md-6"><label># Cabinets</label><input type="number" id="projCabinet" class="form-control"></div>
+            <div class="col-md-6"><label>Site Location</label><input type="text" id="projLocation" class="form-control"></div>
+          </div>
+          <div class="form-row mt-2">
+            <div class="col-md-3"><label>AI</label><input type="number" id="projAI" class="form-control"></div>
+            <div class="col-md-3"><label>AO</label><input type="number" id="projAO" class="form-control"></div>
+            <div class="col-md-3"><label>DI</label><input type="number" id="projDI" class="form-control"></div>
+            <div class="col-md-3"><label>DO</label><input type="number" id="projDO" class="form-control"></div>
+          </div>
+          <div class="form-row mt-2">
+            <div class="col-md-3"><label>Start Date</label><input type="date" id="projStart" class="form-control"></div>
+            <div class="col-md-3"><label>Finish Date</label><input type="date" id="projFinish" class="form-control"></div>
+            <div class="col-md-3"><label>IFAT</label><input type="date" id="projIFAT" class="form-control"></div>
+            <div class="col-md-3"><label>CFAT</label><input type="date" id="projCFAT" class="form-control"></div>
+          </div>
+          <div class="form-row mt-2">
+            <div class="col-md-4"><label>Lead Engineer</label><input type="text" id="projLead" class="form-control"></div>
+            <div class="col-md-4"><label>Project Engineer</label><input type="text" id="projEngineer" class="form-control"></div>
+            <div class="col-md-4"><label>Technician</label><input type="text" id="projTech" class="form-control"></div>
+          </div>
+          <div class="form-group mt-2"><label>Description</label><textarea id="projDesc" rows="3" class="form-control"></textarea></div>
+          <div class="form-group"><label>Graph Type</label><select id="projGraphType" class="form-control"><option>bar</option><option>pie</option><option>line</option></select></div>
+
+          <div class="form-group">
+            <label>Gallery Images (drag & drop or browse)</label>
+            <div class="drop-zone" id="imageDropZone"><i class="fa fa-cloud-upload"></i> Drop images or click to browse (max 32MB each)<input type="file" id="imageFileInput" multiple accept="image/*" style="display:none;"></div>
+            <div class="progress-bar-container" id="uploadProgressBar" style="display:none;"><div class="progress-bar-fill" id="uploadProgressFill"></div></div>
+            <div id="imagesContainer"></div>
+            <div class="batch-actions" id="batchActions" style="display:none;">
+              <button type="button" class="btn btn-sm btn-outline-danger" id="deleteSelectedImagesBtn"><i class="fa fa-trash"></i> Delete Selected</button>
+              <button type="button" class="btn btn-sm btn-outline-secondary" id="selectAllImagesBtn">Select All</button>
+              <span id="imageCountInfo" class="image-counter"></span>
+              <span id="imgbbStatus" class="imgbb-uploading"></span>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-delta mt-3">Save Project</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Certificate Modal -->
+<div class="modal fade" id="certModal" tabindex="-1">
+  <div class="modal-dialog modal-md">
+    <div class="modal-content">
+      <div class="modal-header"><h5 id="certModalTitle">Certificate</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div>
+      <div class="modal-body">
+        <form id="certForm">
+          <input type="hidden" id="certIndex">
+          <div><label>Title *</label><input type="text" id="certTitle" class="form-control" required></div>
+          <div class="mt-2"><label>Issuer</label><input type="text" id="certIssuer" class="form-control"></div>
+          <div class="mt-2"><label>Date (YYYY-MM)</label><input type="text" id="certDate" class="form-control" placeholder="2024-01"></div>
+          <div class="mt-2"><label>PDF / Google Drive Link</label><input type="url" id="certLink" class="form-control"></div>
+          <div class="mt-2">
+            <label>Thumbnail Image</label>
+            <div class="input-group">
+              <input type="url" id="certThumb" class="form-control" placeholder="URL or upload">
+              <div class="input-group-append"><label class="btn btn-outline-secondary mb-0" for="certThumbFile">Browse</label><input type="file" id="certThumbFile" accept="image/*" style="display:none" onchange="handleCertThumbUpload(this)"></div>
+            </div>
+            <img id="thumbPreview" class="cert-thumb-preview" style="display:none;">
+          </div>
+          <button type="submit" class="btn btn-delta mt-3">Save Certificate</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ImgBB upload (same as before)
+  const IMGBB_API_KEY = "393ab44e4c3c9ca17143ec4249e6b475";
+  const IMGBB_UPLOAD_URL = "https://api.imgbb.com/1/upload";
+
+  async function uploadToImgBB(file) {
+    const formData = new FormData();
+    formData.append("image", file);
+    formData.append("key", IMGBB_API_KEY);
+    try {
+      const response = await fetch(IMGBB_UPLOAD_URL, { method: "POST", body: formData });
+      const data = await response.json();
+      if (data.success) {
+        return data.data.url;
+      } else {
+        throw new Error(data.error?.message || "ImgBB upload failed");
+      }
+    } catch (err) {
+      console.error("ImgBB upload error", err);
+      throw err;
+    }
   }
-  container.innerHTML = reportHTML;
 
-  const { jsPDF } = window.jspdf;
-  const pdf = new jsPDF('p', 'mm', 'a4');
-  await pdf.html(container.firstElementChild, {
-    callback: function (doc) { doc.save(`${proj.title.replace(/\s/g, '_')}_Report.pdf`); },
-    x: 15, y: 15, width: 180, windowWidth: 680
-  });
-};
+  async function compressImage(file, maxW = 1200, maxH = 1200, quality = 0.7) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = e => {
+        const img = new Image();
+        img.onload = () => {
+          let width = img.width, height = img.height;
+          const ratio = Math.min(maxW / width, maxH / height);
+          if (ratio < 1) { width = Math.round(width * ratio); height = Math.round(height * ratio); }
+          const canvas = document.createElement('canvas');
+          canvas.width = width; canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.onerror = reject;
+        img.src = e.target.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function processImage(file, useImgBB = true) {
+    if (useImgBB && file.size > 50000) {
+      const statusSpan = document.getElementById('imgbbStatus');
+      if (statusSpan) statusSpan.textContent = `Uploading ${file.name}...`;
+      try {
+        const url = await uploadToImgBB(file);
+        if (statusSpan) statusSpan.textContent = '';
+        return url;
+      } catch (err) {
+        console.warn(`ImgBB failed for ${file.name}, falling back to compression`);
+        if (statusSpan) statusSpan.textContent = '';
+        return await compressImage(file);
+      }
+    } else {
+      return await compressImage(file);
+    }
+  }
+
+  window.handleCertThumbUpload = async function(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const statusSpan = document.getElementById('imgbbStatus');
+    if (statusSpan) statusSpan.textContent = 'Uploading thumbnail...';
+    try {
+      const url = await processImage(file);
+      document.getElementById('certThumb').value = url;
+      document.getElementById('thumbPreview').src = url;
+      document.getElementById('thumbPreview').style.display = 'inline-block';
+    } catch (err) {
+      alert('Thumbnail upload failed: ' + err.message);
+    } finally {
+      if (statusSpan) statusSpan.textContent = '';
+    }
+  };
+
+  const user = window.SessionManager?.getCurrentUser();
+  if (!user) {
+    window.location.href = 'login.html';
+  } else {
+    document.getElementById('dashboard').style.display = 'block';
+    document.getElementById('currentUserDisplay').textContent = user.username;
+    window.updateUserFooter();
+    window.showLoading('Loading...');
+    initDashboard();
+  }
+
+  async function initDashboard() {
+    // Image upload logic (same as before, kept concise)
+    const imgContainer = document.getElementById('imagesContainer');
+    const dropZone = document.getElementById('imageDropZone');
+    const fileInput = document.getElementById('imageFileInput');
+    const progressBar = document.getElementById('uploadProgressBar');
+    const progressFill = document.getElementById('uploadProgressFill');
+    let pendingFiles = [], active = 0, total = 0, processed = 0;
+    function updateProgress() { const percent = total === 0 ? 0 : (processed / total) * 100; progressFill.style.width = percent + '%'; if (processed === total && total > 0) setTimeout(() => progressBar.style.display = 'none', 500); }
+    function updateImageCounter() { const count = imgContainer.querySelectorAll('.image-input-group').length; document.getElementById('imageCountInfo').textContent = `${count} image${count !== 1 ? 's' : ''}`; document.getElementById('batchActions').style.display = count > 0 ? 'flex' : 'none'; }
+    function addImageRow(url = '', caption = '') {
+      const placeholder = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><rect width="80" height="80" fill="#ddd"/><text x="50%" y="50%" font-size="14" fill="#999" text-anchor="middle" dy=".3em">No Img</text></svg>');
+      const row = document.createElement('div');
+      row.className = 'image-input-group';
+      row.innerHTML = `
+        <input type="checkbox" class="image-select-checkbox" style="margin-right:10px;">
+        <img src="${url || placeholder}" class="img-preview-thumb" onerror="this.src='${placeholder}'">
+        <div class="img-details">
+          <input type="text" class="form-control img-url-input" value="${window.escapeHtml(url)}" readonly style="display:none;">
+          <input type="text" class="form-control img-caption-input" placeholder="Caption" value="${window.escapeHtml(caption)}">
+          <label class="local-upload-btn" style="cursor:pointer; color:#2fc7ff;">Change<input type="file" accept="image/*" style="display:none;" onchange="updateImageRow(this)"></label>
+        </div>
+        <i class="fa fa-times-circle remove-img-btn" onclick="this.closest('.image-input-group').remove(); updateImageCounter();"></i>
+      `;
+      imgContainer.appendChild(row);
+      updateImageCounter();
+      return row;
+    }
+    window.updateImageRow = async function(input) {
+      const file = input.files[0];
+      if (!file) return;
+      const url = await processImage(file);
+      const row = input.closest('.image-input-group');
+      row.querySelector('.img-url-input').value = url;
+      row.querySelector('.img-preview-thumb').src = url;
+    };
+    async function processQueue() {
+      if (pendingFiles.length === 0 && active === 0) return;
+      if (progressBar.style.display !== 'block') progressBar.style.display = 'block';
+      const maxConcurrent = 3;
+      while (pendingFiles.length > 0 && active < maxConcurrent) {
+        const file = pendingFiles.shift();
+        active++;
+        (async () => {
+          try {
+            const url = await processImage(file);
+            addImageRow(url, '');
+          } catch (err) { console.warn(err); addImageRow('', 'Error'); }
+          finally { active--; processed++; updateProgress(); processQueue(); }
+        })();
+      }
+    }
+    function addFiles(files) {
+      const imgs = Array.from(files).filter(f => f.type.startsWith('image/'));
+      if (!imgs.length) return;
+      pendingFiles.push(...imgs);
+      total += imgs.length;
+      if (active === 0) { processed = total - pendingFiles.length - active; updateProgress(); }
+      processQueue();
+    }
+    dropZone.addEventListener('click', () => fileInput.click());
+    ['dragenter','dragover','dragleave','drop'].forEach(ev => dropZone.addEventListener(ev, e => e.preventDefault()));
+    dropZone.addEventListener('dragover', () => dropZone.classList.add('dragover'));
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('drop', e => {
+      dropZone.classList.remove('dragover');
+      addFiles(e.dataTransfer.files);
+    });
+    fileInput.addEventListener('change', () => { addFiles(fileInput.files); fileInput.value = ''; });
+
+    document.getElementById('deleteSelectedImagesBtn').onclick = () => {
+      document.querySelectorAll('.image-select-checkbox:checked').forEach(cb => cb.closest('.image-input-group').remove());
+      updateImageCounter();
+    };
+    document.getElementById('selectAllImagesBtn').onclick = () => {
+      const cbs = document.querySelectorAll('.image-select-checkbox');
+      const all = Array.from(cbs).every(cb => cb.checked);
+      cbs.forEach(cb => cb.checked = !all);
+    };
+
+    // ---- CRUD Functions (same as before) ----
+    async function renderProjects() {
+      const projects = await window.portfolioData.loadProjects();
+      const container = document.getElementById('projectsList');
+      container.innerHTML = '';
+      if (Object.keys(projects).length === 0) { container.innerHTML = '<div class="empty-state"><i class="fa fa-folder-open-o"></i><h5>No projects yet</h5></div>'; return; }
+      for (const [id, proj] of Object.entries(projects)) {
+        const card = document.createElement('div');
+        card.className = 'card mb-3';
+        card.innerHTML = `
+          <div class="card-body">
+            <div class="d-flex justify-content-between">
+              <h5>${window.escapeHtml(proj.title)}</h5>
+              <div><button class="btn btn-sm btn-outline-primary edit-project" data-id="${id}">Edit</button><button class="btn btn-sm btn-outline-danger delete-project" data-id="${id}">Delete</button></div>
+            </div>
+            <p><strong>Controller:</strong> ${proj.controllerType} | <strong>Cabinets:</strong> ${proj.cabinetCount} | <strong>Location:</strong> ${proj.siteLocation || ''}</p>
+            <small>${window.escapeHtml(proj.description.substring(0,120))}...</small>
+          </div>`;
+        container.appendChild(card);
+      }
+      document.querySelectorAll('.edit-project').forEach(btn => btn.onclick = () => openProjectModal(btn.dataset.id));
+      document.querySelectorAll('.delete-project').forEach(btn => btn.onclick = () => { if(confirm('Delete project?')) safeDeleteProject(btn.dataset.id); });
+    }
+
+    async function renderCertificates() {
+      const certs = await window.portfolioData.loadCertificates();
+      const container = document.getElementById('certificatesList');
+      container.innerHTML = '';
+      if (certs.length === 0) { container.innerHTML = '<div class="empty-state"><i class="fa fa-certificate"></i><h5>No certificates</h5></div>'; return; }
+      certs.forEach((cert, idx) => {
+        const card = document.createElement('div');
+        card.className = 'card mb-2';
+        card.innerHTML = `
+          <div class="card-body d-flex justify-content-between">
+            <div><strong>${window.escapeHtml(cert.title)}</strong> - ${window.escapeHtml(cert.issuer)} (${cert.date})</div>
+            <div><button class="btn btn-sm btn-outline-primary edit-cert" data-index="${idx}">Edit</button><button class="btn btn-sm btn-outline-danger delete-cert" data-index="${idx}">Delete</button></div>
+          </div>`;
+        container.appendChild(card);
+      });
+      document.querySelectorAll('.edit-cert').forEach(btn => btn.onclick = () => openCertModal(parseInt(btn.dataset.index)));
+      document.querySelectorAll('.delete-cert').forEach(btn => btn.onclick = () => { if(confirm('Delete certificate?')) safeDeleteCertificate(parseInt(btn.dataset.index)); });
+    }
+
+    async function safeDeleteProject(id) {
+      window.showLoading('Deleting...');
+      const curr = await window.portfolioData.loadProjects();
+      delete curr[id];
+      try { await window.portfolioData.saveProjects(curr); await renderProjects(); } catch(e) { alert(e.message); }
+      window.hideLoading();
+    }
+    async function safeDeleteCertificate(idx) {
+      window.showLoading('Deleting...');
+      const certs = await window.portfolioData.loadCertificates();
+      certs.splice(idx,1);
+      try { await window.portfolioData.saveCertificates(certs); await renderCertificates(); } catch(e) { alert(e.message); }
+      window.hideLoading();
+    }
+    async function safeSaveProject(proj) {
+      window.showLoading('Saving...');
+      const all = await window.portfolioData.loadProjects();
+      all[proj.id] = proj;
+      try { await window.portfolioData.saveProjects(all); await renderProjects(); $('#projectModal').modal('hide'); } catch(e) { alert(e.message); }
+      window.hideLoading();
+    }
+    async function safeSaveCertificate(certs) {
+      window.showLoading('Saving...');
+      try { await window.portfolioData.saveCertificates(certs); await renderCertificates(); $('#certModal').modal('hide'); } catch(e) { alert(e.message); }
+      window.hideLoading();
+    }
+
+    async function openProjectModal(id=null) {
+      const isEdit = !!id;
+      document.getElementById('projectModalTitle').innerText = isEdit ? 'Edit Project' : 'New Project';
+      if (isEdit) {
+        const projects = await window.portfolioData.loadProjects();
+        const proj = projects[id];
+        if (proj) {
+          document.getElementById('projectId').value = id;
+          document.getElementById('projTitle').value = proj.title;
+          document.getElementById('projController').value = proj.controllerType;
+          document.getElementById('projType').value = proj.projectType || '';
+          document.getElementById('projVersion').value = proj.deltaVVersion || '';
+          document.getElementById('projCabinet').value = proj.cabinetCount;
+          document.getElementById('projLocation').value = proj.siteLocation || '';
+          document.getElementById('projAI').value = proj.io.AI;
+          document.getElementById('projAO').value = proj.io.AO;
+          document.getElementById('projDI').value = proj.io.DI;
+          document.getElementById('projDO').value = proj.io.DO;
+          document.getElementById('projStart').value = proj.dates.start;
+          document.getElementById('projFinish').value = proj.dates.finish;
+          document.getElementById('projIFAT').value = proj.dates.ifat;
+          document.getElementById('projCFAT').value = proj.dates.cfat;
+          document.getElementById('projLead').value = proj.team.lead;
+          document.getElementById('projEngineer').value = proj.team.engineer;
+          document.getElementById('projTech').value = proj.team.technician;
+          document.getElementById('projDesc').value = proj.description;
+          document.getElementById('projGraphType').value = proj.graphType;
+          imgContainer.innerHTML = '';
+          if (proj.selectedImages) proj.selectedImages.forEach(img => addImageRow(img.url, img.caption));
+          updateImageCounter();
+        }
+      } else {
+        document.getElementById('projectId').value = '';
+        ['projTitle','projLocation','projLead','projEngineer','projTech','projDesc','projVersion'].forEach(id => document.getElementById(id).value = '');
+        document.getElementById('projController').value = 'MD';
+        document.getElementById('projType').value = '';
+        document.getElementById('projCabinet').value = 1;
+        document.getElementById('projAI').value = 0;
+        document.getElementById('projAO').value = 0;
+        document.getElementById('projDI').value = 0;
+        document.getElementById('projDO').value = 0;
+        document.getElementById('projGraphType').value = 'bar';
+        ['projStart','projFinish','projIFAT','projCFAT'].forEach(id => document.getElementById(id).value = '');
+        imgContainer.innerHTML = '';
+        updateImageCounter();
+      }
+      $('#projectModal').modal('show');
+    }
+
+    document.getElementById('projectForm').onsubmit = async (e) => {
+      e.preventDefault();
+      const id = document.getElementById('projectId').value || ('proj_'+Date.now());
+      const images = [];
+      document.querySelectorAll('#imagesContainer .image-input-group').forEach(g => {
+        const url = g.querySelector('.img-url-input').value;
+        if (url) images.push({ url, caption: g.querySelector('.img-caption-input').value });
+      });
+      const proj = {
+        id, title: document.getElementById('projTitle').value,
+        controllerType: document.getElementById('projController').value,
+        projectType: document.getElementById('projType').value || 'Other',
+        deltaVVersion: document.getElementById('projVersion').value,
+        cabinetCount: parseInt(document.getElementById('projCabinet').value) || 0,
+        io: { AI: +document.getElementById('projAI').value||0, AO: +document.getElementById('projAO').value||0, DI: +document.getElementById('projDI').value||0, DO: +document.getElementById('projDO').value||0 },
+        dates: { start: document.getElementById('projStart').value, finish: document.getElementById('projFinish').value, ifat: document.getElementById('projIFAT').value, cfat: document.getElementById('projCFAT').value },
+        siteLocation: document.getElementById('projLocation').value,
+        team: { lead: document.getElementById('projLead').value, engineer: document.getElementById('projEngineer').value, technician: document.getElementById('projTech').value },
+        description: document.getElementById('projDesc').value,
+        graphType: document.getElementById('projGraphType').value,
+        selectedImages: images
+      };
+      await safeSaveProject(proj);
+    };
+
+    async function openCertModal(idx=null) {
+      const certs = await window.portfolioData.loadCertificates();
+      const isEdit = idx !== null && certs[idx];
+      document.getElementById('certModalTitle').innerText = isEdit ? 'Edit Certificate' : 'New Certificate';
+      if (isEdit) {
+        const c = certs[idx];
+        document.getElementById('certIndex').value = idx;
+        document.getElementById('certTitle').value = c.title;
+        document.getElementById('certIssuer').value = c.issuer;
+        document.getElementById('certDate').value = c.date;
+        document.getElementById('certLink').value = c.link || '';
+        document.getElementById('certThumb').value = c.thumbnail || '';
+        if(c.thumbnail) { document.getElementById('thumbPreview').src = c.thumbnail; document.getElementById('thumbPreview').style.display = 'inline-block'; }
+        else document.getElementById('thumbPreview').style.display = 'none';
+      } else {
+        document.getElementById('certIndex').value = '';
+        document.getElementById('certTitle').value = '';
+        document.getElementById('certIssuer').value = '';
+        document.getElementById('certDate').value = '';
+        document.getElementById('certLink').value = '';
+        document.getElementById('certThumb').value = '';
+        document.getElementById('thumbPreview').style.display = 'none';
+      }
+      $('#certModal').modal('show');
+    }
+
+    document.getElementById('certForm').onsubmit = async (e) => {
+      e.preventDefault();
+      const certs = await window.portfolioData.loadCertificates();
+      const idx = document.getElementById('certIndex').value;
+      const newCert = {
+        id: (idx !== '' && certs[idx]) ? certs[idx].id : ('cert_'+Date.now()),
+        title: document.getElementById('certTitle').value,
+        issuer: document.getElementById('certIssuer').value,
+        date: document.getElementById('certDate').value,
+        link: document.getElementById('certLink').value,
+        thumbnail: document.getElementById('certThumb').value
+      };
+      if (idx !== '' && certs[idx]) certs[idx] = newCert;
+      else certs.push(newCert);
+      await safeSaveCertificate(certs);
+    };
+
+    // ---- Backup & Restore with improved verification ----
+    async function listBackups() {
+      const cfg = window.REPO_CONFIG;
+      const url = `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/backups?ref=${cfg.branch}`;
+      try {
+        const res = await fetch(url, { headers: { Authorization: `token ${user.pat}` } });
+        if (!res.ok) return [];
+        const files = await res.json();
+        return files.filter(f => f.name.endsWith('.zip')).sort((a,b)=>b.name.localeCompare(a.name));
+      } catch { return []; }
+    }
+
+    async function getBackupInfo(zipUrl) {
+      try {
+        const resp = await fetch(zipUrl);
+        const zip = await JSZip.loadAsync(await resp.blob());
+        const info = zip.file("backup_info.json");
+        if (info) return JSON.parse(await info.async("string"));
+      } catch(e) {}
+      return null;
+    }
+
+    async function extractUserDataFromBackup(zipUrl, targetUser) {
+      const resp = await fetch(zipUrl);
+      const zip = await JSZip.loadAsync(await resp.blob());
+      const encUser = encodeURIComponent(targetUser);
+      let projects = null, certificates = null;
+      function findFile(suffix) {
+        const files = Object.keys(zip.files);
+        for (const p of files) {
+          if (p.endsWith(suffix) && !zip.files[p].dir) return zip.file(p);
+        }
+        return null;
+      }
+      let projFile = zip.file(`data/users/${encUser}/projects.json`);
+      if (!projFile) projFile = findFile(`users/${encUser}/projects.json`);
+      if (!projFile) projFile = findFile(`projects.json`);
+      if (projFile) projects = JSON.parse(await projFile.async("string"));
+      let certFile = zip.file(`data/users/${encUser}/certificates.json`);
+      if (!certFile) certFile = findFile(`users/${encUser}/certificates.json`);
+      if (!certFile) certFile = findFile(`certificates.json`);
+      if (certFile) certificates = JSON.parse(await certFile.async("string"));
+      return { projects, certificates };
+    }
+
+    // Improved verification: retry up to 3 times with delay, compare normalized JSON
+    async function verifyGitHubFile(owner, repo, path, branch, token, expectedContent, maxRetries = 3) {
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          await new Promise(r => setTimeout(r, 1000 * attempt)); // wait 1s, 2s, 3s
+          const file = await GitHubAPI.getFileContent(owner, repo, path, branch, token);
+          if (!file) return false;
+          const actual = JSON.parse(file.content);
+          const expectedStr = JSON.stringify(expectedContent);
+          const actualStr = JSON.stringify(actual);
+          if (expectedStr === actualStr) return true;
+          console.warn(`Verification attempt ${attempt} failed. Expected length: ${expectedStr.length}, Actual length: ${actualStr.length}`);
+        } catch (err) {
+          console.warn(`Verification attempt ${attempt} error:`, err);
+        }
+      }
+      return false;
+    }
+
+    async function restoreUserDataFromBackup(zipUrl, targetUser, restoreProjects, restoreCertificates) {
+      const actions = [];
+      if (restoreProjects) actions.push("Projects");
+      if (restoreCertificates) actions.push("Certificates");
+      if (!actions.length) return;
+      if (!confirm(`⚠️ Restoring ${actions.join(" and ")} for user ${targetUser} will OVERWRITE their current data. Continue?`)) return;
+
+      window.showLoading(`Extracting ${actions.join(" and ")} from backup...`);
+      let projects = null, certificates = null;
+      try {
+        const extracted = await extractUserDataFromBackup(zipUrl, targetUser);
+        projects = extracted.projects;
+        certificates = extracted.certificates;
+        if (restoreProjects && !projects) throw new Error(`No projects.json found in backup for user ${targetUser}`);
+        if (restoreCertificates && !certificates) throw new Error(`No certificates.json found in backup for user ${targetUser}`);
+      } catch (err) {
+        window.hideLoading();
+        alert(`Failed to read backup: ${err.message}`);
+        return;
+      }
+
+      window.showLoading(`Writing ${actions.join(" and ")} to GitHub for ${targetUser}...`);
+      const config = window.REPO_CONFIG;
+      const token = user.pat;
+      const encTarget = encodeURIComponent(targetUser);
+      try {
+        if (restoreProjects) {
+          const path = `${config.dataPath}/users/${encTarget}/projects.json`;
+          let sha = null;
+          try {
+            const existing = await GitHubAPI.getFileContent(config.owner, config.repo, path, config.branch, token);
+            if (existing) sha = existing.sha;
+          } catch(e) {}
+          await GitHubAPI.updateFile(config.owner, config.repo, path, projects, `Restore projects for ${targetUser} from backup`, config.branch, token, sha);
+          const verified = await verifyGitHubFile(config.owner, config.repo, path, config.branch, token, projects);
+          if (!verified) throw new Error(`Projects file verification failed for ${targetUser}`);
+        }
+        if (restoreCertificates) {
+          const path = `${config.dataPath}/users/${encTarget}/certificates.json`;
+          let sha = null;
+          try {
+            const existing = await GitHubAPI.getFileContent(config.owner, config.repo, path, config.branch, token);
+            if (existing) sha = existing.sha;
+          } catch(e) {}
+          await GitHubAPI.updateFile(config.owner, config.repo, path, certificates, `Restore certificates for ${targetUser} from backup`, config.branch, token, sha);
+          const verified = await verifyGitHubFile(config.owner, config.repo, path, config.branch, token, certificates);
+          if (!verified) throw new Error(`Certificates file verification failed for ${targetUser}`);
+        }
+
+        // Update local cache and UI if restoring current user
+        if (targetUser === user.username) {
+          if (restoreProjects) await window.portfolioData.saveProjects(projects);
+          if (restoreCertificates) await window.portfolioData.saveCertificates(certificates);
+          await renderProjects();
+          await renderCertificates();
+        }
+        alert(`✅ Successfully restored ${actions.join(" and ")} for ${targetUser} (verified on GitHub).`);
+        if (isAdmin && targetUser !== user.username) {
+          await loadUsers();
+        }
+      } catch (err) {
+        alert(`Restore FAILED: ${err.message}. No changes were applied.`);
+      }
+      window.hideLoading();
+    }
+
+    async function loadBackupsAndUsers() {
+      const container = document.getElementById('backupsList');
+      container.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Loading backups...';
+      const backups = await listBackups();
+      if (!backups.length) { container.innerHTML = '<div class="empty-state">No backups found</div>'; return; }
+
+      let allUsers = [];
+      if (isAdmin) {
+        try {
+          allUsers = await window.AccountManager.listUsers(user.pat);
+        } catch(e) { console.warn(e); }
+        const userSelect = document.getElementById('restoreUserSelect');
+        userSelect.innerHTML = '<option value="">-- Select user --</option>';
+        allUsers.forEach(u => {
+          userSelect.innerHTML += `<option value="${window.escapeHtml(u)}">${window.escapeHtml(u)}</option>`;
+        });
+      }
+
+      let html = '';
+      for (const b of backups) {
+        const info = await getBackupInfo(b.download_url);
+        const ts = b.name.replace('.zip','');
+        html += `<div class="backup-card">
+          <div><strong>${ts}</strong><br><small>Projects: ${info?.projects_count ?? '?'} | Certs: ${info?.certificates_count ?? '?'}</small></div>
+          <div>
+            <button class="btn btn-sm btn-outline-primary restore-proj" data-url="${b.download_url}">Restore Projects</button>
+            <button class="btn btn-sm btn-outline-success restore-cert" data-url="${b.download_url}">Restore Certificates</button>
+            <button class="btn btn-sm btn-outline-danger restore-both" data-url="${b.download_url}">Restore Both</button>
+          </div>
+        </div>`;
+      }
+      container.innerHTML = html;
+
+      const getUserToRestore = () => {
+        if (isAdmin) {
+          const select = document.getElementById('restoreUserSelect');
+          if (select && select.value) return select.value;
+        }
+        return user.username;
+      };
+
+      document.querySelectorAll('.restore-proj').forEach(btn => {
+        btn.onclick = () => restoreUserDataFromBackup(btn.dataset.url, getUserToRestore(), true, false);
+      });
+      document.querySelectorAll('.restore-cert').forEach(btn => {
+        btn.onclick = () => restoreUserDataFromBackup(btn.dataset.url, getUserToRestore(), false, true);
+      });
+      document.querySelectorAll('.restore-both').forEach(btn => {
+        btn.onclick = () => restoreUserDataFromBackup(btn.dataset.url, getUserToRestore(), true, true);
+      });
+    }
+
+    async function triggerBackup() {
+      const cfg = window.REPO_CONFIG;
+      const url = `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/actions/workflows/backup.yml/dispatches`;
+      try {
+        const res = await fetch(url, { method:'POST', headers:{ Authorization:`token ${user.pat}`,'Content-Type':'application/json'}, body:JSON.stringify({ ref: cfg.branch }) });
+        if(res.ok) alert('Backup triggered! It may take a minute.'); else alert('Failed: '+ (await res.json()).message);
+      } catch(e) { alert(e.message); }
+    }
+
+    const isAdmin = window.APP_CONFIG.adminUsers && window.APP_CONFIG.adminUsers.includes(user.username);
+    if (isAdmin) {
+      document.getElementById('backupsTabNav').style.display = 'block';
+      document.getElementById('usersTabNav').style.display = 'block';
+      document.getElementById('refreshBackupsBtn').onclick = loadBackupsAndUsers;
+      document.getElementById('refreshUsersBtn').onclick = loadUsers;
+      if (user.pat && (user.pat.startsWith('github_pat_') || user.pat.length>40)) document.getElementById('triggerBackupNowBtn').style.display = 'inline-block';
+      document.getElementById('triggerBackupNowBtn').onclick = triggerBackup;
+      document.getElementById('backupUserSelectorDiv').style.display = 'block';
+      loadBackupsAndUsers();
+      loadUsers();
+    } else {
+      document.getElementById('backupsTabNav').style.display = 'block';
+      document.getElementById('refreshBackupsBtn').onclick = async () => {
+        const container = document.getElementById('backupsList');
+        container.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Loading...';
+        const backups = await listBackups();
+        if (!backups.length) { container.innerHTML = '<div class="empty-state">No backups found</div>'; return; }
+        let html = '';
+        for (const b of backups) {
+          const info = await getBackupInfo(b.download_url);
+          const ts = b.name.replace('.zip','');
+          html += `<div class="backup-card"><div><strong>${ts}</strong><br><small>Projects: ${info?.projects_count ?? '?'} | Certs: ${info?.certificates_count ?? '?'}</small></div><div><button class="btn btn-sm btn-outline-primary restore-proj" data-url="${b.download_url}">Restore My Projects</button><button class="btn btn-sm btn-outline-success restore-cert" data-url="${b.download_url}">Restore My Certificates</button><button class="btn btn-sm btn-outline-danger restore-both" data-url="${b.download_url}">Restore Both</button></div></div>`;
+        }
+        container.innerHTML = html;
+        document.querySelectorAll('.restore-proj').forEach(btn => btn.onclick = () => restoreUserDataFromBackup(btn.dataset.url, user.username, true, false));
+        document.querySelectorAll('.restore-cert').forEach(btn => btn.onclick = () => restoreUserDataFromBackup(btn.dataset.url, user.username, false, true));
+        document.querySelectorAll('.restore-both').forEach(btn => btn.onclick = () => restoreUserDataFromBackup(btn.dataset.url, user.username, true, true));
+      };
+      document.getElementById('refreshBackupsBtn').click();
+    }
+
+    async function loadUsers() {
+      const container = document.getElementById('usersList');
+      window.showLoading('Loading users...');
+      try {
+        const users = await window.AccountManager.listUsers(user.pat);
+        const blocked = await window.AccountManager.getBlockedUsers();
+        container.innerHTML = '';
+        for (const u of users) {
+          const stats = await window.AccountManager.getUserStats(u, user.pat);
+          const isBlocked = blocked.includes(u);
+          container.innerHTML += `<div class="card mb-2"><div class="card-body d-flex justify-content-between"><div><strong>${window.escapeHtml(u)}</strong> ${isBlocked?'<span class="badge badge-danger">Blocked</span>':'<span class="badge badge-success">Active</span>'}<br><small>Projects: ${stats.projects} | Certs: ${stats.certificates}</small></div><div><button class="btn btn-sm ${isBlocked?'btn-success':'btn-warning'} toggle-block" data-user="${u}">${isBlocked?'Unblock':'Block'}</button><button class="btn btn-sm btn-danger delete-user" data-user="${u}">Delete</button></div></div></div>`;
+        }
+        document.querySelectorAll('.toggle-block').forEach(btn => btn.onclick = async () => { const username = btn.dataset.user; const block = !blocked.includes(username); if (confirm(`${block?'Block':'Unblock'} ${username}?`)) { await window.AccountManager.toggleBlock(username, block, user.pat); loadUsers(); } });
+        document.querySelectorAll('.delete-user').forEach(btn => btn.onclick = async () => { if (confirm(`Permanently delete ${btn.dataset.user}? This removes all their projects and certificates.`)) { await window.AccountManager.deleteUser(btn.dataset.user, user.pat); loadUsers(); if (document.getElementById('restoreUserSelect')) loadBackupsAndUsers(); } });
+      } catch(e) { container.innerHTML = `<div class="alert alert-danger">${e.message}</div>`; }
+      window.hideLoading();
+    }
+
+    document.getElementById('addProjectBtn').onclick = () => openProjectModal();
+    document.getElementById('addCertBtn').onclick = () => openCertModal();
+    document.getElementById('downloadDataBtn').onclick = () => window.portfolioData.exportData();
+    document.getElementById('deleteAllProjectsBtn').onclick = async () => { if(confirm('PERMANENT: Delete ALL your projects?')) { await window.portfolioData.saveProjects({}); renderProjects(); } };
+    document.getElementById('syncProjectsBtn').onclick = async () => { await renderProjects(); await renderCertificates(); alert('Synced'); };
+    document.getElementById('deleteAllCertsBtn').onclick = async () => { if(confirm('PERMANENT: Delete ALL certificates?')) { await window.portfolioData.saveCertificates([]); renderCertificates(); } };
+    document.getElementById('logoutBtn').onclick = () => { window.SessionManager.logout(); location.href='login.html'; };
+
+    await renderProjects();
+    await renderCertificates();
+    window.hideLoading();
+  }
+</script>
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>
