@@ -1,5 +1,5 @@
 // shared.js – Full version with safety checks, GitHub image upload, backup/restore
-// FIXED: getUserStats now correctly counts certificates for admin user
+// FIXED: getUserStats now correctly counts certificates using same fallback as projects
 
 window.showLoading = function (msg = 'Processing...') {
   let loader = document.getElementById('globalLoader');
@@ -268,14 +268,15 @@ window.AccountManager = {
     const base = `${dataPath}/users/${encUser}`;
     let projectCount = 0, certCount = 0;
     
-    // Load projects
+    // Load projects with fallback for public profile
     try {
       const projFile = await GitHubAPI.getFileContent(owner, repo, `${base}/projects.json`, branch, adminToken);
       if (projFile && projFile.content) {
         const data = JSON.parse(projFile.content);
         projectCount = Object.keys(data).length;
-      } else if (username === window.APP_CONFIG.publicProfileEmail) {
-        // Fallback to public projects if user's own file is empty
+      }
+      // If user is public profile and file was empty, check public data
+      if (projectCount === 0 && username === window.APP_CONFIG.publicProfileEmail) {
         const publicUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${base}/projects.json`;
         const resp = await fetch(publicUrl);
         if (resp.ok) {
@@ -285,14 +286,15 @@ window.AccountManager = {
       }
     } catch (e) { console.warn('Failed to load projects stats', e); }
     
-    // Load certificates
+    // Load certificates with the SAME fallback logic
     try {
       const certFile = await GitHubAPI.getFileContent(owner, repo, `${base}/certificates.json`, branch, adminToken);
       if (certFile && certFile.content) {
         const data = JSON.parse(certFile.content);
         certCount = data.length;
-      } else if (username === window.APP_CONFIG.publicProfileEmail) {
-        // Fallback to public certificates if user's own file is empty
+      }
+      // If user is public profile and file was empty, check public data
+      if (certCount === 0 && username === window.APP_CONFIG.publicProfileEmail) {
         const publicUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${base}/certificates.json`;
         const resp = await fetch(publicUrl);
         if (resp.ok) {
@@ -661,7 +663,7 @@ window.generateProjectReport = async function(projectId) {
       <div style="background:${bgColor}; padding:20px; border-radius:16px; margin:20px 0;">
         <h3>Project Overview</h3>
         <table style="width:100%">
-          <tr><td><strong>Title:</strong></td><td>${proj.title}</td></tr>
+          <tr><tr><strong>Title:</strong></td><td>${proj.title}</td></tr>
           <tr><td><strong>Location:</strong></td><td>${proj.siteLocation||'N/A'}</td></tr>
           <tr><td><strong>Controllers:</strong></td><td>${controllerDisplay}</td></tr>
           <tr><td><strong>Cabinets:</strong></td><td>${proj.cabinetCount}</td></tr>
