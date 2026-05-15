@@ -1,4 +1,5 @@
-// shared.js
+// shared.js – Full version with safety checks and transactional saves
+
 window.showLoading = function (msg = 'Processing...') {
   let loader = document.getElementById('globalLoader');
   if (!loader) {
