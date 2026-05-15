@@ -17,22 +17,20 @@
   <script src="api.js"></script>
   <script src="shared.js"></script>
   <style>
-    .cert-thumb-preview { max-width:80px; max-height:80px; margin-top:8px; border-radius:12px; }
-    .form-row.mt-2 { margin-top:12px!important; }
     .image-input-group { margin-bottom:15px; background:#f8f9fa; padding:12px; border-radius:12px; display:flex; align-items:center; gap:12px; position:relative; }
     .image-input-group .img-preview-thumb { width:80px; height:80px; object-fit:cover; border-radius:8px; background:#e9ecef; }
-    .image-input-group .img-details { flex:1; min-width:0; }
-    .image-input-group .remove-img-btn { font-size:1.2rem; color:#dc3545; cursor:pointer; opacity:0.6; transition:0.2s; }
+    .image-input-group .img-details { flex:1; }
+    .remove-img-btn { font-size:1.2rem; color:#dc3545; cursor:pointer; opacity:0.6; transition:0.2s; }
     .image-input-group:hover .remove-img-btn { opacity:1; }
     .drop-zone { border:2px dashed #2fc7ff; border-radius:16px; padding:30px; text-align:center; color:#2fc7ff; margin-bottom:20px; cursor:pointer; transition:background 0.2s; }
     .drop-zone:hover, .drop-zone.dragover { background:#e6f7ff; }
     .drop-zone i { font-size:2rem; display:block; margin-bottom:8px; }
-    .drop-zone .size-warning { font-size:0.75rem; color:#888; margin-top:5px; }
-    .user-badge { background:#2fc7ff; color:white; padding:4px 12px; border-radius:20px; font-size:0.9rem; }
     .progress-bar-container { width:100%; height:6px; background:#e0e0e0; border-radius:3px; margin:10px 0; overflow:hidden; }
     .progress-bar-fill { width:0%; height:100%; background:#2fc7ff; transition:width 0.2s; }
     .batch-actions { margin-top:15px; display:flex; gap:10px; align-items:center; }
     .image-counter { font-size:0.8rem; color:#666; margin-left:10px; }
+    .user-badge { background:#2fc7ff; color:white; padding:4px 12px; border-radius:20px; font-size:0.9rem; }
+    .cert-thumb-preview { max-width:80px; max-height:80px; margin-top:8px; border-radius:12px; }
   </style>
 </head>
 <body style="background:#eef3fc;">
@@ -67,9 +65,14 @@
 
       <!-- Certificates Tab -->
       <div class="tab-pane fade" id="certificatesTab">
-        <div class="mb-3 d-flex">
+        <div class="mb-3 d-flex flex-wrap">
           <button class="btn btn-delta mr-2" id="addCertBtn"><i class="fa fa-plus"></i> Add Certificate</button>
-          <button class="btn btn-outline-danger" id="deleteAllCertsBtn"><i class="fa fa-trash"></i> Delete All</button>
+          <button class="btn btn-outline-danger mr-2" id="deleteAllCertsBtn"><i class="fa fa-trash"></i> Delete All</button>
+          <!-- Backup / Restore buttons (visible only for admin) -->
+          <button class="btn btn-outline-primary mr-2" id="backupBtn" style="display:none;"><i class="fa fa-cloud-download"></i> Download Backup</button>
+          <label class="btn btn-outline-warning mb-0" id="restoreLabel" style="display:none; cursor:pointer;"><i class="fa fa-upload"></i> Restore from Backup
+            <input type="file" id="restoreFileInput" accept=".zip" style="display:none;">
+          </label>
         </div>
         <div id="certificatesList"></div>
       </div>
@@ -149,11 +152,11 @@
           </div>
 
           <div class="form-group">
-            <label>Gallery Images (drag & drop or browse, unlimited – background compression, no UI freeze)</label>
+            <label>Gallery Images (drag & drop or browse – uploaded to GitHub for high resolution & speed)</label>
             <div class="drop-zone" id="imageDropZone">
               <i class="fa fa-cloud-upload"></i>
               <span>Drop images here or click to browse</span>
-              <div class="size-warning">Images are resized to max 800px width/height, quality 70% – keeps JSON small</div>
+              <div class="size-warning">Images are compressed & uploaded to GitHub. Allows high-res without bloating JSON.</div>
               <input type="file" id="imageFileInput" multiple accept="image/*" style="display:none;">
             </div>
             <div class="progress-bar-container" id="uploadProgressBar" style="display:none;">
@@ -189,10 +192,10 @@
           <div class="mt-2">
             <label>Thumbnail Image</label>
             <div class="input-group">
-              <input type="url" id="certThumb" class="form-control" placeholder="https://... or choose file">
+              <input type="url" id="certThumb" class="form-control" placeholder="https://... or upload image">
               <div class="input-group-append">
-                <label class="btn btn-outline-secondary mb-0" for="certThumbFile"><i class="fa fa-folder-open"></i> Browse</label>
-                <input type="file" id="certThumbFile" accept="image/*" style="display:none" onchange="window.handleCertThumbUpload(this)">
+                <label class="btn btn-outline-secondary mb-0" for="certThumbFile"><i class="fa fa-folder-open"></i> Upload</label>
+                <input type="file" id="certThumbFile" accept="image/*" style="display:none">
               </div>
             </div>
             <img id="thumbPreview" class="cert-thumb-preview" style="display:none;">
@@ -216,53 +219,70 @@
     initDashboard();
   }
 
-  // Optimized compression for gallery images (faster, smaller, good quality)
-  async function compressImage(file, maxW = 800, maxH = 800, quality = 0.7) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = e => {
-        const img = new Image();
-        img.onload = () => {
-          let { width, height } = img;
-          const ratio = Math.min(maxW / width, maxH / height);
-          if (ratio < 1) {
-            width = Math.round(width * ratio);
-            height = Math.round(height * ratio);
-          }
-          const canvas = document.createElement('canvas');
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, width, height);
-          // Use JPEG for smaller size
-          resolve(canvas.toDataURL('image/jpeg', quality));
-        };
-        img.onerror = reject;
-        img.src = e.target.result;
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  }
-
   async function initDashboard() {
     const imgContainer = document.getElementById('imagesContainer');
     const dropZone = document.getElementById('imageDropZone');
     const fileInput = document.getElementById('imageFileInput');
     const progressBar = document.getElementById('uploadProgressBar');
     const progressFill = document.getElementById('uploadProgressFill');
-    let pendingFiles = [];
-    let processedCount = 0;
-    let batchActions = document.getElementById('batchActions');
-    let imageCountInfo = document.getElementById('imageCountInfo');
+    let pendingUploads = [];
+    let activeUploads = 0;
+    let uploadedCount = 0;
 
     function updateImageCounter() {
       const count = imgContainer.querySelectorAll('.image-input-group').length;
-      imageCountInfo.textContent = `${count} image${count !== 1 ? 's' : ''}`;
-      batchActions.style.display = count > 0 ? 'flex' : 'none';
+      document.getElementById('imageCountInfo').textContent = `${count} image${count !== 1 ? 's' : ''}`;
+      document.getElementById('batchActions').style.display = count > 0 ? 'flex' : 'none';
     }
 
-    function addImageRow(url = '', caption = '', isNew = true) {
+    async function uploadSingleImage(file) {
+      try {
+        const url = await window.uploadImageToGitHub(file, user, 'project_images');
+        return url;
+      } catch (err) {
+        console.error('Upload failed', err);
+        throw err;
+      }
+    }
+
+    async function processUploadQueue() {
+      if (pendingUploads.length === 0 && activeUploads === 0) {
+        progressBar.style.display = 'none';
+        return;
+      }
+      progressBar.style.display = 'block';
+      const concurrent = 3;
+      while (pendingUploads.length > 0 && activeUploads < concurrent) {
+        const file = pendingUploads.shift();
+        activeUploads++;
+        uploadSingleImage(file).then(url => {
+          addImageRow(url, '');
+          uploadedCount++;
+          progressFill.style.width = (uploadedCount / (uploadedCount + pendingUploads.length + activeUploads)) * 100 + '%';
+        }).catch(err => {
+          alert(`Failed to upload ${file.name}: ${err.message}`);
+        }).finally(() => {
+          activeUploads--;
+          processUploadQueue();
+        });
+      }
+      if (pendingUploads.length === 0 && activeUploads === 0) {
+        progressBar.style.display = 'none';
+        progressFill.style.width = '0%';
+        uploadedCount = 0;
+      }
+    }
+
+    function addFilesToQueue(files) {
+      for (const file of files) {
+        if (file.type.startsWith('image/')) {
+          pendingUploads.push(file);
+        }
+      }
+      processUploadQueue();
+    }
+
+    function addImageRow(url = '', caption = '') {
       const placeholder = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><rect width="80" height="80" fill="#ddd"/><text x="50%" y="50%" font-size="14" fill="#999" text-anchor="middle" dy=".3em">No Img</text></svg>');
       const row = document.createElement('div');
       row.className = 'image-input-group';
@@ -270,69 +290,55 @@
         <input type="checkbox" class="image-select-checkbox" style="margin-right:10px;">
         <img src="${url || placeholder}" class="img-preview-thumb" onerror="this.src='${placeholder}'">
         <div class="img-details">
-          <input type="text" class="form-control img-url-input" placeholder="Image URL" value="${window.escapeHtml(url)}" readonly style="display:none;">
-          <input type="text" class="form-control img-caption-input" placeholder="Caption" value="${window.escapeHtml(caption)}">
-          <label class="local-upload-btn" style="cursor:pointer; color:#2fc7ff;">
-            <i class="fa fa-folder-open"></i> Change
-            <input type="file" accept="image/*" style="display:none;" onchange="window.updateImageRow(this)">
+          <input type="text" class="form-control img-url-input" value="${window.escapeHtml(url)}" readonly>
+          <input type="text" class="form-control img-caption-input mt-1" placeholder="Caption" value="${window.escapeHtml(caption)}">
+          <label class="local-upload-btn" style="cursor:pointer; color:#2fc7ff; font-size:0.8rem; margin-top:5px;">
+            <i class="fa fa-folder-open"></i> Replace
+            <input type="file" accept="image/*" style="display:none;" onchange="window.replaceImage(this, '${url}')">
           </label>
         </div>
-        <i class="fa fa-times-circle remove-img-btn" onclick="this.closest('.image-input-group').remove(); updateImageCounter();"></i>
+        <i class="fa fa-times-circle remove-img-btn" onclick="if(confirm('Remove this image?')) this.closest('.image-input-group').remove(); updateImageCounter();"></i>
       `;
       imgContainer.appendChild(row);
       updateImageCounter();
       return row;
     }
 
-    window.updateImageRow = async function(el) {
-      const file = el.files[0];
+    window.replaceImage = async function(input, oldUrl) {
+      const file = input.files[0];
       if (!file) return;
-      const dataUrl = await compressImage(file);
-      const row = el.closest('.image-input-group');
-      row.querySelector('.img-url-input').value = dataUrl;
-      row.querySelector('.img-preview-thumb').src = dataUrl;
-    };
-
-    window.handleCertThumbUpload = function(el) {
-      const file = el.files[0];
-      if (!file) return;
-      compressImage(file, 1000, 800, 0.9).then(dataUrl => {
-        document.getElementById('certThumb').value = dataUrl;
-        const preview = document.getElementById('thumbPreview');
-        preview.src = dataUrl;
-        preview.style.display = 'inline-block';
-      });
-    };
-
-    // Batch upload with progress
-    async function processFileQueue() {
-      if (pendingFiles.length === 0) return;
-      progressBar.style.display = 'block';
-      processedCount = 0;
-      const total = pendingFiles.length;
-      for (const file of pendingFiles) {
-        const dataUrl = await compressImage(file);
-        addImageRow(dataUrl, '');
-        processedCount++;
-        const percent = (processedCount / total) * 100;
-        progressFill.style.width = percent + '%';
-        // Small delay to allow UI update
-        await new Promise(r => setTimeout(r, 10));
-      }
-      pendingFiles = [];
-      progressBar.style.display = 'none';
-      progressFill.style.width = '0%';
-    }
-
-    function addFilesToQueue(files) {
-      for (const file of files) {
-        if (file.type.startsWith('image/')) {
-          pendingFiles.push(file);
+      const row = input.closest('.image-input-group');
+      try {
+        const newUrl = await window.uploadImageToGitHub(file, user, 'project_images');
+        row.querySelector('.img-url-input').value = newUrl;
+        row.querySelector('.img-preview-thumb').src = newUrl;
+        if (oldUrl && oldUrl.startsWith('https://raw.githubusercontent.com')) {
+          try { await window.deleteImageFromGitHub(oldUrl, user); } catch(e) { console.warn(e); }
         }
+      } catch (err) {
+        alert('Replace failed: ' + err.message);
       }
-      processFileQueue();
-    }
+      input.value = '';
+    };
 
+    window.updateImageCounter = updateImageCounter;
+
+    // Certificate thumbnail upload
+    document.getElementById('certThumbFile').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      try {
+        const url = await window.uploadImageToGitHub(file, user, 'cert_thumbnails');
+        document.getElementById('certThumb').value = url;
+        const preview = document.getElementById('thumbPreview');
+        preview.src = url;
+        preview.style.display = 'inline-block';
+      } catch (err) {
+        alert('Thumb upload failed: ' + err.message);
+      }
+    });
+
+    // Drag & drop handling
     dropZone.addEventListener('click', () => fileInput.click());
     ['dragenter','dragover','dragleave','drop'].forEach(ev => {
       dropZone.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); });
@@ -352,10 +358,19 @@
       }
     });
 
-    // Batch delete selected
-    document.getElementById('deleteSelectedImagesBtn')?.addEventListener('click', () => {
+    // Batch actions
+    document.getElementById('deleteSelectedImagesBtn')?.addEventListener('click', async () => {
       const checkboxes = imgContainer.querySelectorAll('.image-select-checkbox:checked');
-      checkboxes.forEach(cb => cb.closest('.image-input-group')?.remove());
+      if (checkboxes.length === 0) return;
+      if (!confirm(`Delete ${checkboxes.length} selected image(s)?`)) return;
+      for (const cb of checkboxes) {
+        const row = cb.closest('.image-input-group');
+        const urlInput = row.querySelector('.img-url-input');
+        if (urlInput && urlInput.value && urlInput.value.startsWith('https://raw.githubusercontent.com')) {
+          try { await window.deleteImageFromGitHub(urlInput.value, user); } catch(e) { console.warn(e); }
+        }
+        row.remove();
+      }
       updateImageCounter();
     });
     document.getElementById('selectAllImagesBtn')?.addEventListener('click', () => {
@@ -364,7 +379,7 @@
       checkboxes.forEach(cb => cb.checked = !allChecked);
     });
 
-    // ---------- RENDER FUNCTIONS (same as before, but using new image row) ----------
+    // ---------- RENDER FUNCTIONS ----------
     async function renderProjects() {
       const projects = await window.portfolioData.loadProjects();
       const container = document.getElementById('projectsList');
@@ -423,18 +438,22 @@
       }));
     }
 
-    // ---------- SAFE DELETE / SAVE (transactional) ----------
+    // ---------- SAFE DELETE / SAVE ----------
     async function safeDeleteProject(id) {
       window.showLoading('Deleting project...');
       const current = await window.portfolioData.loadProjects();
       if (!current[id]) { window.hideLoading(); return; }
+      const images = current[id].selectedImages || [];
+      for (const img of images) {
+        if (img.url && img.url.startsWith('https://raw.githubusercontent.com')) {
+          try { await window.deleteImageFromGitHub(img.url, user); } catch(e) { console.warn(e); }
+        }
+      }
       delete current[id];
       try {
         await window.portfolioData.saveProjects(current);
         await renderProjects();
-      } catch (err) {
-        alert('Delete failed: ' + err.message);
-      }
+      } catch (err) { alert('Delete failed: ' + err.message); }
       window.hideLoading();
     }
 
@@ -442,13 +461,15 @@
       window.showLoading('Deleting certificate...');
       const certs = await window.portfolioData.loadCertificates();
       if (!certs[idx]) { window.hideLoading(); return; }
+      const thumb = certs[idx].thumbnail;
+      if (thumb && thumb.startsWith('https://raw.githubusercontent.com')) {
+        try { await window.deleteImageFromGitHub(thumb, user); } catch(e) { console.warn(e); }
+      }
       certs.splice(idx, 1);
       try {
         await window.portfolioData.saveCertificates(certs);
         await renderCertificates();
-      } catch (err) {
-        alert('Delete failed: ' + err.message);
-      }
+      } catch (err) { alert('Delete failed: ' + err.message); }
       window.hideLoading();
     }
 
@@ -460,9 +481,7 @@
         await window.portfolioData.saveProjects(allProjects);
         await renderProjects();
         $('#projectModal').modal('hide');
-      } catch (err) {
-        alert('Save failed: ' + err.message);
-      }
+      } catch (err) { alert('Save failed: ' + err.message); }
       window.hideLoading();
     }
 
@@ -472,9 +491,7 @@
         await window.portfolioData.saveCertificates(certs);
         await renderCertificates();
         $('#certModal').modal('hide');
-      } catch (err) {
-        alert('Save failed: ' + err.message);
-      }
+      } catch (err) { alert('Save failed: ' + err.message); }
       window.hideLoading();
     }
 
@@ -508,7 +525,7 @@
           document.getElementById('projGraphType').value = proj.graphType;
           imgContainer.innerHTML = '';
           if (proj.selectedImages && proj.selectedImages.length) {
-            proj.selectedImages.forEach(img => addImageRow(img.url, img.caption, false));
+            proj.selectedImages.forEach(img => addImageRow(img.url, img.caption));
           }
           updateImageCounter();
         }
@@ -536,13 +553,13 @@
       const newId = projectId || ('proj_' + Date.now());
       const imgGroups = document.querySelectorAll('#imagesContainer .image-input-group');
       const selectedImages = [];
-      imgGroups.forEach(group => {
+      for (const group of imgGroups) {
         const urlInput = group.querySelector('.img-url-input');
         const capInput = group.querySelector('.img-caption-input');
         if (urlInput && urlInput.value) {
           selectedImages.push({ url: urlInput.value, caption: capInput.value });
         }
-      });
+      }
       const project = {
         id: newId,
         title: document.getElementById('projTitle').value,
@@ -588,7 +605,8 @@
         document.getElementById('certDate').value = cert.date;
         document.getElementById('certLink').value = cert.link || '';
         document.getElementById('certThumb').value = cert.thumbnail || '';
-        updateThumbPreview(cert.thumbnail);
+        document.getElementById('thumbPreview').src = cert.thumbnail || '';
+        document.getElementById('thumbPreview').style.display = cert.thumbnail ? 'inline-block' : 'none';
       } else {
         document.getElementById('certIndex').value = '';
         document.getElementById('certTitle').value = '';
@@ -596,18 +614,10 @@
         document.getElementById('certDate').value = '';
         document.getElementById('certLink').value = '';
         document.getElementById('certThumb').value = '';
-        updateThumbPreview('');
+        document.getElementById('thumbPreview').style.display = 'none';
       }
       $('#certModal').modal('show');
     }
-
-    function updateThumbPreview(url) {
-      const preview = document.getElementById('thumbPreview');
-      if (url) { preview.src = url; preview.style.display = 'inline-block'; }
-      else preview.style.display = 'none';
-    }
-
-    document.getElementById('certThumb').addEventListener('input', e => updateThumbPreview(e.target.value));
 
     document.getElementById('certForm').addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -632,6 +642,9 @@
       document.getElementById('usersTabNav').style.display = 'block';
       document.getElementById('refreshUsersBtn').addEventListener('click', loadUsers);
       loadUsers();
+      // Show backup/restore buttons for admin
+      document.getElementById('backupBtn').style.display = 'inline-block';
+      document.getElementById('restoreLabel').style.display = 'inline-flex';
     }
 
     async function loadUsers() {
@@ -647,9 +660,7 @@
           for (const username of usernames) {
             const isBlocked = blocked.includes(username);
             let stats = { projects: 0, certificates: 0 };
-            try {
-              stats = await window.AccountManager.getUserStats(username, user.pat);
-            } catch(e) {}
+            try { stats = await window.AccountManager.getUserStats(username, user.pat); } catch(e) {}
             const card = document.createElement('div');
             card.className = 'card mb-2';
             card.innerHTML = `
@@ -658,14 +669,10 @@
                   <div>
                     <strong>${window.escapeHtml(username)}</strong>
                     ${isBlocked ? '<span class="badge badge-danger ml-2">Blocked</span>' : '<span class="badge badge-success ml-2">Active</span>'}
-                    <div class="small text-muted">
-                      Projects: ${stats.projects} | Certificates: ${stats.certificates}
-                    </div>
+                    <div class="small text-muted">Projects: ${stats.projects} | Certificates: ${stats.certificates}</div>
                   </div>
                   <div>
-                    <button class="btn btn-sm ${isBlocked ? 'btn-success' : 'btn-warning'} toggle-block-btn" data-username="${username}">
-                      ${isBlocked ? 'Unblock' : 'Block'}
-                    </button>
+                    <button class="btn btn-sm ${isBlocked ? 'btn-success' : 'btn-warning'} toggle-block-btn" data-username="${username}">${isBlocked ? 'Unblock' : 'Block'}</button>
                     <button class="btn btn-sm btn-danger delete-user-btn" data-username="${username}">Delete</button>
                   </div>
                 </div>
@@ -676,15 +683,13 @@
             btn.addEventListener('click', async () => {
               const username = btn.dataset.username;
               const block = !blocked.includes(username);
-              if (!confirm(`Are you sure you want to ${block ? 'block' : 'unblock'} "${username}"?`)) return;
-              window.showLoading(`${block ? 'Blocking' : 'Unblocking'} user...`);
+              if (!confirm(`${block ? 'Block' : 'Unblock'} "${username}"?`)) return;
+              window.showLoading('Updating...');
               try {
                 await window.AccountManager.toggleBlock(username, block, user.pat);
                 await loadUsers();
-              } catch(err) {
-                window.hideLoading();
-                alert('Failed: ' + err.message);
-              }
+              } catch(err) { alert('Failed: ' + err.message); }
+              window.hideLoading();
             });
           });
           document.querySelectorAll('.delete-user-btn').forEach(btn => {
@@ -695,10 +700,8 @@
               try {
                 await window.AccountManager.deleteUser(username, user.pat);
                 await loadUsers();
-              } catch(err) {
-                window.hideLoading();
-                alert('Failed: ' + err.message);
-              }
+              } catch(err) { alert('Failed: ' + err.message); }
+              window.hideLoading();
             });
           });
         }
@@ -708,22 +711,80 @@
       window.hideLoading();
     }
 
+    // ---------- BACKUP & RESTORE HANDLERS ----------
+    document.getElementById('backupBtn').addEventListener('click', async () => {
+      try {
+        window.showLoading('Creating backup...');
+        await window.portfolioData.downloadBackup();
+      } catch (err) {
+        alert('Backup failed: ' + err.message);
+      } finally {
+        window.hideLoading();
+      }
+    });
+
+    document.getElementById('restoreFileInput').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      if (!confirm('⚠️ Restoring will OVERWRITE all your current projects and certificates with the backup data. This cannot be undone. Continue?')) {
+        e.target.value = '';
+        return;
+      }
+      window.showLoading('Restoring from backup...');
+      try {
+        await window.portfolioData.restoreBackup(file);
+        await renderProjects();
+        await renderCertificates();
+        alert('Restore completed successfully!');
+      } catch (err) {
+        alert('Restore failed: ' + err.message);
+      } finally {
+        window.hideLoading();
+        e.target.value = '';
+      }
+    });
+
     // ---------- BUTTON HANDLERS ----------
     document.getElementById('addProjectBtn').addEventListener('click', () => openProjectModal());
     document.getElementById('addCertBtn').addEventListener('click', () => openCertModal());
     document.getElementById('downloadDataBtn').addEventListener('click', () => window.portfolioData.exportData());
+
     document.getElementById('deleteAllProjectsBtn').addEventListener('click', async () => {
-      if (confirm('Permanently delete ALL your projects?')) {
+      if (confirm('⚠️ PERMANENTLY delete ALL your projects? This action cannot be undone.')) {
         window.showLoading('Deleting all projects...');
         try {
-          await window.portfolioData.saveProjects({});
+          const projects = await window.portfolioData.loadProjects();
+          for (const proj of Object.values(projects)) {
+            for (const img of (proj.selectedImages || [])) {
+              if (img.url && img.url.startsWith('https://raw.githubusercontent.com')) {
+                try { await window.deleteImageFromGitHub(img.url, user); } catch(e) { console.warn(e); }
+              }
+            }
+          }
+          await window.portfolioData.saveProjects({}, true);
           await renderProjects();
-        } catch (err) {
-          alert('Failed: ' + err.message);
-        }
+        } catch (err) { alert('Failed: ' + err.message); }
         window.hideLoading();
       }
     });
+
+    document.getElementById('deleteAllCertsBtn').addEventListener('click', async () => {
+      if (confirm('⚠️ PERMANENTLY delete ALL certificates? This action cannot be undone.')) {
+        window.showLoading('Deleting all certificates...');
+        try {
+          const certs = await window.portfolioData.loadCertificates();
+          for (const cert of certs) {
+            if (cert.thumbnail && cert.thumbnail.startsWith('https://raw.githubusercontent.com')) {
+              try { await window.deleteImageFromGitHub(cert.thumbnail, user); } catch(e) { console.warn(e); }
+            }
+          }
+          await window.portfolioData.saveCertificates([], true);
+          await renderCertificates();
+        } catch (err) { alert('Failed: ' + err.message); }
+        window.hideLoading();
+      }
+    });
+
     document.getElementById('syncProjectsBtn').addEventListener('click', async () => {
       window.showLoading('Syncing from GitHub...');
       await renderProjects();
@@ -731,18 +792,7 @@
       window.hideLoading();
       alert('Data refreshed.');
     });
-    document.getElementById('deleteAllCertsBtn').addEventListener('click', async () => {
-      if (confirm('Delete all certificates?')) {
-        window.showLoading('Deleting all certificates...');
-        try {
-          await window.portfolioData.saveCertificates([]);
-          await renderCertificates();
-        } catch (err) {
-          alert('Failed: ' + err.message);
-        }
-        window.hideLoading();
-      }
-    });
+
     document.getElementById('logoutBtn').addEventListener('click', () => {
       window.SessionManager.logout();
       window.location.href = 'login.html';
