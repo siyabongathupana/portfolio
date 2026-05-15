@@ -1,4 +1,4 @@
-// shared.js – Full version with session persistence and logging
+// shared.js – Full version with HTML log generation, session persistence, backup/restore, image upload
 
 window.showLoading = function (msg = 'Processing...') {
   let loader = document.getElementById('globalLoader');
@@ -52,12 +52,12 @@ window.SessionManager = (() => {
   return {
     getCurrentUser: () => {
       if (current) return current;
-      const stored = sessionStorage.getItem('deltaVUser');
+      const stored = sessionStorage.getItem('portfolioUser');
       if (stored) {
         try { 
           current = JSON.parse(stored);
           if (current.timestamp && Date.now() - current.timestamp > 24 * 60 * 60 * 1000) {
-            sessionStorage.removeItem('deltaVUser');
+            sessionStorage.removeItem('portfolioUser');
             current = null;
           }
         } catch(e) { current = null; }
@@ -66,17 +66,17 @@ window.SessionManager = (() => {
     },
     setCurrentUser: (username, pat) => {
       current = { username, pat, timestamp: Date.now() };
-      sessionStorage.setItem('deltaVUser', JSON.stringify(current));
+      sessionStorage.setItem('portfolioUser', JSON.stringify(current));
       window.Logger.log('login', `User logged in as ${username}`);
     },
     logout: () => {
       current = null;
-      sessionStorage.removeItem('deltaVUser');
+      sessionStorage.removeItem('portfolioUser');
     }
   };
 })();
 
-// ---------- LOGGING SYSTEM ----------
+// ---------- LOGGING SYSTEM (with HTML conversion) ----------
 window.Logger = {
   async log(action, details, level = 'INFO') {
     const user = window.SessionManager.getCurrentUser();
@@ -129,6 +129,77 @@ window.Logger = {
       allLogs[username] = await this.getLogsForUser(username, adminToken);
     }
     return allLogs;
+  },
+
+  // Convert raw log text to styled HTML table with color coding
+  logsToHTML(logText, username) {
+    if (!logText || logText === 'No logs found for this user.' || logText === 'Unable to retrieve logs.') {
+      return `<div style="font-family: monospace; padding: 20px; color: #666;">${logText}</div>`;
+    }
+    const lines = logText.split('\n').filter(l => l.trim());
+    let html = `<!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <title>Activity Logs - ${username}</title>
+      <style>
+        body { font-family: 'Segoe UI', 'Courier New', monospace; background: #1e1e1e; padding: 20px; margin: 0; }
+        .log-container { max-width: 1400px; margin: 0 auto; background: #2d2d2d; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 20px rgba(0,0,0,0.3); }
+        .log-header { background: #0b2b3b; color: #2fc7ff; padding: 15px 20px; font-size: 1.2rem; font-weight: bold; border-bottom: 2px solid #2fc7ff; }
+        .log-table { width: 100%; border-collapse: collapse; }
+        .log-table th { text-align: left; padding: 12px 15px; background: #3a3a3a; color: #ddd; font-weight: 600; border-bottom: 1px solid #555; }
+        .log-table td { padding: 10px 15px; border-bottom: 1px solid #444; font-size: 13px; font-family: monospace; vertical-align: top; }
+        .log-table tr:hover { background: #3c3c3c; }
+        .error-row { background-color: #5a1e1e; }
+        .error-row td { color: #ffaaaa; }
+        .warn-row { background-color: #6b4c1a; }
+        .warn-row td { color: #ffdd99; }
+        .info-row { background-color: #1a4d3a; }
+        .info-row td { color: #aaffdd; }
+        .action-row { background-color: #1e3a5f; }
+        .action-row td { color: #bbddff; }
+        .timestamp { color: #88aaff; font-weight: 500; }
+        .level { font-weight: bold; }
+        .level-ERROR { color: #ff6666; }
+        .level-WARN { color: #ffaa66; }
+        .level-INFO { color: #66ffaa; }
+        .action { color: #66ccff; }
+      </style>
+    </head>
+    <body>
+      <div class="log-container">
+        <div class="log-header">
+          📋 Activity Logs – ${window.escapeHtml(username)} (Generated: ${new Date().toLocaleString()})
+        </div>
+        <table class="log-table">
+          <thead>
+            <tr><th>Timestamp</th><th>Level</th><th>Action</th><th>Details</th></tr>
+          </thead>
+          <tbody>`;
+    
+    for (const line of lines) {
+      const match = line.match(/\[(.*?)\]\s*\[(.*?)\]\s*\[(.*?)\]\s*(.*)/);
+      if (match) {
+        const [, timestamp, level, action, details] = match;
+        let rowClass = '';
+        if (level === 'ERROR') rowClass = 'error-row';
+        else if (level === 'WARN') rowClass = 'warn-row';
+        else if (level === 'INFO' && (action.includes('create') || action.includes('edit') || action.includes('delete') || action.includes('save'))) rowClass = 'info-row';
+        else if (action.includes('login') || action.includes('logout') || action.includes('sync')) rowClass = 'action-row';
+        
+        html += `<tr class="${rowClass}">
+          <td class="timestamp">${window.escapeHtml(timestamp)}</td>
+          <td class="level level-${level}">${window.escapeHtml(level)}</td>
+          <td class="action">${window.escapeHtml(action)}</td>
+          <td>${window.escapeHtml(details)}</td>
+        </tr>`;
+      } else {
+        html += `<tr><td colspan="4">${window.escapeHtml(line)}</td></tr>`;
+      }
+    }
+    
+    html += `</tbody>}</table></div></body></html>`;
+    return html;
   }
 };
 
@@ -247,8 +318,8 @@ window.AccountManager = {
     try {
       await this._sendEmail(cfg.userTemplateID, {
         to_email: userEmail,
-        subject: 'Welcome to DeltaV Portfolio',
-        message: `Your account (${userEmail}) has been created. You can now log in and manage your projects.`
+        subject: 'Welcome to Your Portfolio',
+        message: `Your account (${userEmail}) has been created. You can now log in and manage your portfolio.`
       });
     } catch (e) { console.warn('User email failed', e); }
   },
@@ -273,7 +344,7 @@ window.AccountManager = {
     await GitHubAPI.updateFile(owner, repo, path, encrypted, `Register ${username}`, branch, pat);
     this._notifyAdminNewUser(username);
     this._notifyUserConfirmation(username);
-    await window.Logger.log('register', `New user registered: ${username}`, 'INFO', pat);
+    await window.Logger.log('register', `New user registered: ${username}`, 'INFO');
     return true;
   },
   async login(username, passphrase) {
@@ -309,7 +380,7 @@ window.AccountManager = {
     const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, adminToken).catch(() => null);
     if (existing) sha = existing.sha;
     await GitHubAPI.updateFile(owner, repo, path, blocked, 'Update blocked users', branch, adminToken, sha);
-    await window.Logger.log('toggle_block', `${block ? 'Blocked' : 'Unblocked'} user ${username}`, 'INFO', adminToken);
+    await window.Logger.log('toggle_block', `${block ? 'Blocked' : 'Unblocked'} user ${username}`, 'INFO');
     return true;
   },
   async listUsers(adminToken) {
@@ -335,7 +406,7 @@ window.AccountManager = {
     for (const item of items) {
       await GitHubAPI.deleteFile(owner, repo, item.path, branch, adminToken, item.sha);
     }
-    await window.Logger.log('delete_user', `Deleted user ${username}`, 'INFO', adminToken);
+    await window.Logger.log('delete_user', `Deleted user ${username}`, 'INFO');
     return true;
   },
   async getUserStats(username, adminToken) {
@@ -343,7 +414,6 @@ window.AccountManager = {
     const encUser = encodeURIComponent(username);
     const base = `${dataPath}/users/${encUser}`;
     let projectCount = 0, certCount = 0;
-    
     try {
       const projFile = await GitHubAPI.getFileContent(owner, repo, `${base}/projects.json`, branch, adminToken);
       if (projFile && projFile.content) {
@@ -358,8 +428,7 @@ window.AccountManager = {
           projectCount = Object.keys(data).length;
         }
       }
-    } catch (e) { console.warn('Failed to load projects stats', e); }
-    
+    } catch (e) {}
     try {
       const certFile = await GitHubAPI.getFileContent(owner, repo, `${base}/certificates.json`, branch, adminToken);
       if (certFile && certFile.content) {
@@ -374,16 +443,15 @@ window.AccountManager = {
           certCount = data.length;
         }
       }
-    } catch (e) { console.warn('Failed to load certificates stats', e); }
-    
+    } catch (e) {}
     return { projects: projectCount, certificates: certCount };
   }
 };
 
-// ---------- PORTFOLIO DATA ----------
+// ---------- PORTFOLIO DATA (with backup, restore, user views) ----------
 window.portfolioData = (() => {
-  const PROJECTS_KEY = 'deltaVProjects';
-  const CERTS_KEY = 'deltaVCertificates';
+  const PROJECTS_KEY = 'portfolioProjects';
+  const CERTS_KEY = 'portfolioCertificates';
 
   async function verifyNotBlocked() {
     const user = window.SessionManager.getCurrentUser();
@@ -391,9 +459,7 @@ window.portfolioData = (() => {
     const blocked = await window.AccountManager.getBlockedUsers();
     if (blocked.includes(user.username)) {
       window.SessionManager.logout();
-      if (!window.location.pathname.includes('login.html')) {
-        window.location.href = 'login.html?blocked=1';
-      }
+      if (!window.location.pathname.includes('login.html')) window.location.href = 'login.html?blocked=1';
       throw new Error('Blocked');
     }
   }
@@ -415,7 +481,6 @@ window.portfolioData = (() => {
 
   async function loadProjectsForView() {
     const user = window.SessionManager.getCurrentUser();
-    
     if (user && user.pat) {
       await verifyNotBlocked();
       try {
@@ -429,28 +494,19 @@ window.portfolioData = (() => {
         } else {
           if (user.username === window.APP_CONFIG.publicProfileEmail) {
             const publicData = await fetchPublicData(user.username, 'projects');
-            if (Object.keys(publicData).length > 0) {
-              return publicData;
-            }
+            if (Object.keys(publicData).length > 0) return publicData;
           }
           return {};
         }
-      } catch (e) {
-        console.warn('Could not fetch user projects', e);
-        return {};
-      }
+      } catch (e) { return {}; }
     }
-    
     const publicEmail = window.APP_CONFIG.publicProfileEmail;
-    if (publicEmail) {
-      return await fetchPublicData(publicEmail, 'projects');
-    }
+    if (publicEmail) return await fetchPublicData(publicEmail, 'projects');
     return {};
   }
 
   async function loadCertificatesForView() {
     const user = window.SessionManager.getCurrentUser();
-    
     if (user && user.pat) {
       await verifyNotBlocked();
       try {
@@ -464,22 +520,14 @@ window.portfolioData = (() => {
         } else {
           if (user.username === window.APP_CONFIG.publicProfileEmail) {
             const publicData = await fetchPublicData(user.username, 'certificates');
-            if (publicData.length > 0) {
-              return publicData;
-            }
+            if (publicData.length > 0) return publicData;
           }
           return [];
         }
-      } catch (e) {
-        console.warn('Could not fetch user certificates', e);
-        return [];
-      }
+      } catch (e) { return []; }
     }
-    
     const publicEmail = window.APP_CONFIG.publicProfileEmail;
-    if (publicEmail) {
-      return await fetchPublicData(publicEmail, 'certificates');
-    }
+    if (publicEmail) return await fetchPublicData(publicEmail, 'certificates');
     return [];
   }
 
@@ -510,14 +558,11 @@ window.portfolioData = (() => {
         }
       } catch (e) {
         if (e.message === 'Blocked') throw e;
-        console.warn('Could not fetch projects from GitHub, using local cache');
         return JSON.parse(localStorage.getItem(PROJECTS_KEY) || '{}');
       }
     }
     const publicEmail = window.APP_CONFIG.publicProfileEmail;
-    if (!user && publicEmail) {
-      return await fetchPublicData(publicEmail, 'projects');
-    }
+    if (!user && publicEmail) return await fetchPublicData(publicEmail, 'projects');
     return JSON.parse(localStorage.getItem(PROJECTS_KEY) || '{}');
   }
 
@@ -548,37 +593,28 @@ window.portfolioData = (() => {
         }
       } catch (e) {
         if (e.message === 'Blocked') throw e;
-        console.warn('Could not fetch certificates from GitHub, using local cache');
         return JSON.parse(localStorage.getItem(CERTS_KEY) || '[]');
       }
     }
-    if (!user && window.APP_CONFIG.publicProfileEmail) {
-      return await fetchPublicData(window.APP_CONFIG.publicProfileEmail, 'certificates');
-    }
+    if (!user && window.APP_CONFIG.publicProfileEmail) return await fetchPublicData(window.APP_CONFIG.publicProfileEmail, 'certificates');
     return JSON.parse(localStorage.getItem(CERTS_KEY) || '[]');
   }
 
   async function updateFileWithRetry(owner, repo, path, data, commitMsg, branch, token, maxRetries = 3) {
     let lastError = null;
-    
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, token).catch(() => null);
         const sha = existing ? existing.sha : null;
-        
         await GitHubAPI.updateFile(owner, repo, path, data, commitMsg, branch, token, sha);
         return;
       } catch (err) {
         lastError = err;
-        console.warn(`Update attempt ${attempt} failed: ${err.message}`);
-        await window.Logger.log('error', `GitHub write attempt ${attempt} failed: ${err.message}`, 'ERROR');
         if (attempt < maxRetries) {
-          const delay = Math.pow(2, attempt) * 500;
-          await new Promise(resolve => setTimeout(resolve, delay));
+          await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 500));
         }
       }
     }
-    
     throw lastError;
   }
 
@@ -597,14 +633,12 @@ window.portfolioData = (() => {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(user.username);
     const path = `${dataPath}/users/${encUser}/projects.json`;
-    
     try {
       await updateFileWithRetry(owner, repo, path, data, 'Update projects', branch, user.pat);
       await window.Logger.log('save_projects', `Saved ${Object.keys(data).length} projects`);
     } catch (err) {
       if (prev) localStorage.setItem(PROJECTS_KEY, prev);
       else localStorage.removeItem(PROJECTS_KEY);
-      await window.Logger.log('error', `Failed to save projects: ${err.message}`, 'ERROR');
       throw new Error('GitHub write failed: ' + err.message);
     }
   }
@@ -624,14 +658,12 @@ window.portfolioData = (() => {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(user.username);
     const path = `${dataPath}/users/${encUser}/certificates.json`;
-    
     try {
       await updateFileWithRetry(owner, repo, path, data, 'Update certificates', branch, user.pat);
       await window.Logger.log('save_certificates', `Saved ${data.length} certificates`);
     } catch (err) {
       if (prev) localStorage.setItem(CERTS_KEY, prev);
       else localStorage.removeItem(CERTS_KEY);
-      await window.Logger.log('error', `Failed to save certificates: ${err.message}`, 'ERROR');
       throw new Error('GitHub write failed: ' + err.message);
     }
   }
@@ -644,14 +676,13 @@ window.portfolioData = (() => {
       zip.generateAsync({ type: "blob" }).then(blob => {
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = `deltaV_data_${window.SessionManager.getCurrentUser()?.username || 'default'}.zip`;
+        a.download = `portfolio_data_${window.SessionManager.getCurrentUser()?.username || 'default'}.zip`;
         a.click();
-        window.Logger.log('export_data', `Exported data to ZIP`);
+        window.Logger.log('export_data', 'Exported data to ZIP');
       });
     });
   }
 
-  // NEW: Download the latest backup file from GitHub (backups folder)
   async function downloadLatestBackup() {
     const user = window.SessionManager.getCurrentUser();
     if (!user || !window.APP_CONFIG.adminUsers.includes(user.username)) {
@@ -669,9 +700,8 @@ window.portfolioData = (() => {
     if (tarFiles.length === 0) throw new Error('No backup files found');
     tarFiles.sort((a, b) => b.name.localeCompare(a.name));
     const latest = tarFiles[0];
-    const downloadUrl = latest.download_url;
     const a = document.createElement('a');
-    a.href = downloadUrl;
+    a.href = latest.download_url;
     a.download = latest.name;
     document.body.appendChild(a);
     a.click();
@@ -684,47 +714,31 @@ window.portfolioData = (() => {
     if (!user || !window.APP_CONFIG.adminUsers.includes(user.username)) {
       throw new Error('Only admin can restore backups.');
     }
-
     const fileName = file.name;
     const isTarGz = fileName.endsWith('.tar.gz') || fileName.endsWith('.tgz');
     if (isTarGz) {
-      throw new Error(
-        'Cannot restore .tar.gz backups in the app.\n' +
-        'Please manually extract the archive and upload the individual ' +
-        'projects.json and certificates.json files, or use the "Download Backup" button ' +
-        'to create a compatible ZIP backup.'
-      );
+      throw new Error('Cannot restore .tar.gz backups in the app. Please extract and upload projects.json and certificates.json.');
     }
-
     const zip = await JSZip.loadAsync(file);
     const projectsFile = zip.file("projects.json");
     const certsFile = zip.file("certificates.json");
-    if (!projectsFile || !certsFile) {
-      throw new Error('Invalid backup: missing projects.json or certificates.json');
-    }
+    if (!projectsFile || !certsFile) throw new Error('Invalid backup: missing projects.json or certificates.json');
     const projectsText = await projectsFile.async("string");
     const certsText = await certsFile.async("string");
     const projects = JSON.parse(projectsText);
     const certs = JSON.parse(certsText);
     if (typeof projects !== 'object') throw new Error('Invalid projects data');
     if (!Array.isArray(certs)) throw new Error('Invalid certificates data');
-    
     await saveProjects(projects, true);
     await saveCertificates(certs, true);
     await window.Logger.log('restore_backup', `Restored from backup ${fileName}`);
     return { projects, certs };
   }
 
-  return { 
-    loadProjects, 
-    saveProjects, 
-    loadCertificates, 
-    saveCertificates, 
-    exportData, 
-    downloadLatestBackup,
-    restoreBackup,
-    loadProjectsForView,
-    loadCertificatesForView
+  return {
+    loadProjects, saveProjects, loadCertificates, saveCertificates, exportData,
+    downloadLatestBackup, restoreBackup,
+    loadProjectsForView, loadCertificatesForView
   };
 })();
 
@@ -761,6 +775,7 @@ window.protectImages = function () {
   });
 };
 
+// ---------- PDF REPORT GENERATION ----------
 window.generateProjectReport = async function(projectId) {
   const data = await window.portfolioData.loadProjectsForView();
   const proj = data[projectId];
@@ -827,7 +842,7 @@ window.generateProjectReport = async function(projectId) {
   const reportHTML = `
     <div style="font-family:Inter, sans-serif; padding:20px; background:white; max-width:680px; margin:0 auto; color:#1e2a3e;">
       <div style="border-bottom:4px solid ${primaryColor}; padding-bottom:10px; margin-bottom:20px;">
-        <h1 style="color:#0f4c5f; margin:0;">DeltaV Engineering Report</h1>
+        <h1 style="color:#0f4c5f; margin:0;">Portfolio Project Report</h1>
         <p style="color:#5a7d9a; margin:5px 0 0;">${proj.title} | Technical Summary</p>
         <span style="display:inline-block; background:${primaryColor}; color:white; padding:3px 12px; border-radius:20px; font-size:0.8rem; margin-top:8px;">
           ${projectType} ${proj.deltaVVersion ? '· DeltaV ' + proj.deltaVVersion : ''}
@@ -836,15 +851,15 @@ window.generateProjectReport = async function(projectId) {
       <div style="background:${bgColor}; padding:20px; border-radius:16px; margin:20px 0;">
         <h3>Project Overview</h3>
         <table style="width:100%">
-          <tr><td><strong>Title:</strong>${dataV}/${proj.title}专业专业
-          <tr><td><strong>Location:</strong>${dataV}/${proj.siteLocation||'N/A'}专业专业
-          <tr><td><strong>Controllers:</strong>${dataV}/${controllerDisplay}专业专业
-          <tr><td><strong>Cabinets:</strong>${dataV}/${proj.cabinetCount}专业专业
-          ${proj.deltaVVersion ? `<tr><td><strong>DeltaV Version:</strong>${dataV}/${proj.deltaVVersion}专业专业` : ''}
-          <tr><td><strong>Start Date:</strong>${dataV}/${proj.dates?.start || 'N/A'}专业专业
-          <tr><td><strong>Finish Date:</strong>${dataV}/${proj.dates?.finish || 'N/A'}专业专业
-          <tr><td><strong>IFAT:</strong>${dataV}/${ifatText}专业专业
-          <tr><td><strong>CFAT:</strong>${dataV}/${cfatText}专业专业
+          <tr><td><strong>Title:</strong></td><td>${proj.title}</td></tr>
+          <tr><td><strong>Location:</strong></td><td>${proj.siteLocation || 'N/A'}</td></tr>
+          <tr><td><strong>Controllers:</strong></td><td>${controllerDisplay}</td></tr>
+          <tr><td><strong>Cabinets:</strong></td><td>${proj.cabinetCount}</td></tr>
+          ${proj.deltaVVersion ? `<tr><td><strong>DeltaV Version:</strong></td><td>${proj.deltaVVersion}</td></tr>` : ''}
+          <tr><td><strong>Start Date:</strong></td><td>${proj.dates?.start || 'N/A'}</td></tr>
+          <tr><td><strong>Finish Date:</strong></td><td>${proj.dates?.finish || 'N/A'}</td></tr>
+          <tr><td><strong>IFAT:</strong></td><td>${ifatText}</td></tr>
+          <tr><td><strong>CFAT:</strong></td><td>${cfatText}</td></tr>
         </table>
       </div>
       <div style="background:${bgColor}; padding:20px; border-radius:16px; margin-bottom:20px;">
@@ -854,7 +869,7 @@ window.generateProjectReport = async function(projectId) {
         <h3>I/O Configuration</h3>
         <table style="width:100%; text-align:center; border-collapse:collapse;">
           <tr style="background:${primaryColor}; color:white;"><th>AI</th><th>AO</th><th>DI</th><th>DO</th></tr>
-          <tr><td>${io.AI}${dataV}/${io.AO}${dataV}/${io.DI}${dataV}/${io.DO}专业专业
+          <tr><td>${io.AI}</td><td>${io.AO}</td><td>${io.DI}</td><td>${io.DO}</td></tr>
         </table>
       </div>
       <div style="background:${bgColor}; padding:20px; border-radius:16px; margin-bottom:20px; text-align:center;">
@@ -871,7 +886,7 @@ window.generateProjectReport = async function(projectId) {
         <h3>Project Images</h3>${imagesHtml}
       </div>
       <div style="margin-top:30px; font-size:10px; color:#999; text-align:center;">
-        Generated ${dateStr} | DeltaV Portfolio
+        Generated ${dateStr} | Your Portfolio
       </div>
     </div>
   `;
