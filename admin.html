@@ -190,7 +190,7 @@
 </div>
 
 <script>
-  // ---------- ImgBB upload (for large files) ----------
+  // ImgBB upload
   const IMGBB_API_KEY = "393ab44e4c3c9ca17143ec4249e6b475";
   const IMGBB_UPLOAD_URL = "https://api.imgbb.com/1/upload";
 
@@ -198,21 +198,12 @@
     const formData = new FormData();
     formData.append("image", file);
     formData.append("key", IMGBB_API_KEY);
-    try {
-      const response = await fetch(IMGBB_UPLOAD_URL, { method: "POST", body: formData });
-      const data = await response.json();
-      if (data.success) {
-        return data.data.url; // direct image URL
-      } else {
-        throw new Error(data.error?.message || "ImgBB upload failed");
-      }
-    } catch (err) {
-      console.error("ImgBB upload error", err);
-      throw err;
-    }
+    const response = await fetch(IMGBB_UPLOAD_URL, { method: "POST", body: formData });
+    const data = await response.json();
+    if (data.success) return data.data.url;
+    throw new Error(data.error?.message || "ImgBB upload failed");
   }
 
-  // Fallback compression (for small images or if ImgBB fails)
   async function compressImage(file, maxW = 1200, maxH = 1200, quality = 0.7) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -236,9 +227,8 @@
     });
   }
 
-  // Process a single image: upload to ImgBB (or fallback to base64 if small)
   async function processImage(file, useImgBB = true) {
-    if (useImgBB && file.size > 50000) { // use ImgBB for files > 50KB
+    if (useImgBB && file.size > 50000) {
       const statusSpan = document.getElementById('imgbbStatus');
       if (statusSpan) statusSpan.textContent = `Uploading ${file.name}...`;
       try {
@@ -246,13 +236,12 @@
         if (statusSpan) statusSpan.textContent = '';
         return url;
       } catch (err) {
-        console.warn(`ImgBB failed for ${file.name}, falling back to compression`);
+        console.warn(`ImgBB failed, fallback to compression`);
         if (statusSpan) statusSpan.textContent = '';
         return await compressImage(file);
       }
-    } else {
-      return await compressImage(file);
     }
+    return await compressImage(file);
   }
 
   window.handleCertThumbUpload = async function(input) {
@@ -272,7 +261,6 @@
     }
   };
 
-  // Login check
   const user = window.SessionManager?.getCurrentUser();
   if (!user) {
     window.location.href = 'login.html';
@@ -285,6 +273,7 @@
   }
 
   async function initDashboard() {
+    // Image upload (same as before)
     const imgContainer = document.getElementById('imagesContainer');
     const dropZone = document.getElementById('imageDropZone');
     const fileInput = document.getElementById('imageFileInput');
@@ -363,7 +352,7 @@
       cbs.forEach(cb => cb.checked = !all);
     };
 
-    // ---- CRUD Functions (unchanged) ----
+    // ---- CRUD Functions (same) ----
     async function renderProjects() {
       const projects = await window.portfolioData.loadProjects();
       const container = document.getElementById('projectsList');
@@ -550,7 +539,7 @@
       await safeSaveCertificate(certs);
     };
 
-    // ---- Backup & Restore with VERIFICATION ----
+    // ---- Backup & Restore (final fix) ----
     async function listBackups() {
       const cfg = window.REPO_CONFIG;
       const url = `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/backups?ref=${cfg.branch}`;
@@ -572,43 +561,64 @@
       return null;
     }
 
-    // Extract projects/certificates for a given user from backup ZIP
+    // Extract user data: tries raw email first (exact folder name)
     async function extractUserDataFromBackup(zipUrl, targetUser) {
       const resp = await fetch(zipUrl);
       const zip = await JSZip.loadAsync(await resp.blob());
-      const encUser = encodeURIComponent(targetUser);
       let projects = null, certificates = null;
-      function findFile(suffix) {
-        const files = Object.keys(zip.files);
-        for (const p of files) {
-          if (p.endsWith(suffix) && !zip.files[p].dir) return zip.file(p);
+      
+      // Possible paths in order of likelihood
+      const projPaths = [
+        `data/users/${targetUser}/projects.json`,        // exact raw email
+        `data/users/${encodeURIComponent(targetUser)}/projects.json`,
+        `users/${targetUser}/projects.json`,
+        `users/${encodeURIComponent(targetUser)}/projects.json`,
+        `projects.json`
+      ];
+      const certPaths = [
+        `data/users/${targetUser}/certificates.json`,
+        `data/users/${encodeURIComponent(targetUser)}/certificates.json`,
+        `users/${targetUser}/certificates.json`,
+        `users/${encodeURIComponent(targetUser)}/certificates.json`,
+        `certificates.json`
+      ];
+
+      for (const p of projPaths) {
+        const file = zip.file(p);
+        if (file && !file.dir) {
+          projects = JSON.parse(await file.async("string"));
+          break;
         }
-        return null;
       }
-      let projFile = zip.file(`data/users/${encUser}/projects.json`);
-      if (!projFile) projFile = findFile(`users/${encUser}/projects.json`);
-      if (!projFile) projFile = findFile(`projects.json`);
-      if (projFile) projects = JSON.parse(await projFile.async("string"));
-      let certFile = zip.file(`data/users/${encUser}/certificates.json`);
-      if (!certFile) certFile = findFile(`users/${encUser}/certificates.json`);
-      if (!certFile) certFile = findFile(`certificates.json`);
-      if (certFile) certificates = JSON.parse(await certFile.async("string"));
+      for (const p of certPaths) {
+        const file = zip.file(p);
+        if (file && !file.dir) {
+          certificates = JSON.parse(await file.async("string"));
+          break;
+        }
+      }
       return { projects, certificates };
     }
 
-    // Verify that a file on GitHub matches expected content
-    async function verifyGitHubFile(owner, repo, path, branch, token, expectedContent) {
-      try {
-        const file = await GitHubAPI.getFileContent(owner, repo, path, branch, token);
-        if (!file) return false;
-        const actual = JSON.parse(file.content);
-        return JSON.stringify(actual) === JSON.stringify(expectedContent);
-      } catch {
-        return false;
+    async function verifyGitHubFile(owner, repo, path, branch, token, expectedContent, maxRetries = 4) {
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        await new Promise(r => setTimeout(r, 2000 * attempt)); // 2s, 4s, 6s, 8s
+        try {
+          const file = await GitHubAPI.getFileContent(owner, repo, path, branch, token);
+          if (!file) continue;
+          const actual = JSON.parse(file.content);
+          if (JSON.stringify(actual) === JSON.stringify(expectedContent)) {
+            console.log(`Verification succeeded on attempt ${attempt}`);
+            return true;
+          }
+          console.warn(`Attempt ${attempt}: mismatch`);
+        } catch (err) {
+          console.warn(`Attempt ${attempt} error:`, err);
+        }
       }
+      return false;
     }
 
-    // Restore for a specific user with verification
     async function restoreUserDataFromBackup(zipUrl, targetUser, restoreProjects, restoreCertificates) {
       const actions = [];
       if (restoreProjects) actions.push("Projects");
@@ -634,7 +644,7 @@
       const config = window.REPO_CONFIG;
       const token = user.pat;
       const encTarget = encodeURIComponent(targetUser);
-      let allGood = true;
+      let writeSuccess = true;
       try {
         if (restoreProjects) {
           const path = `${config.dataPath}/users/${encTarget}/projects.json`;
@@ -644,7 +654,6 @@
             if (existing) sha = existing.sha;
           } catch(e) {}
           await GitHubAPI.updateFile(config.owner, config.repo, path, projects, `Restore projects for ${targetUser} from backup`, config.branch, token, sha);
-          // Verify
           const verified = await verifyGitHubFile(config.owner, config.repo, path, config.branch, token, projects);
           if (!verified) throw new Error(`Projects file verification failed for ${targetUser}`);
         }
@@ -659,22 +668,21 @@
           const verified = await verifyGitHubFile(config.owner, config.repo, path, config.branch, token, certificates);
           if (!verified) throw new Error(`Certificates file verification failed for ${targetUser}`);
         }
-
-        // If restoring current logged-in user, also update local cache and UI
-        if (targetUser === user.username) {
-          if (restoreProjects) await window.portfolioData.saveProjects(projects);
-          if (restoreCertificates) await window.portfolioData.saveCertificates(certificates);
-          await renderProjects();
-          await renderCertificates();
-        }
-        alert(`✅ Successfully restored ${actions.join(" and ")} for ${targetUser} (verified on GitHub).`);
-        if (isAdmin && targetUser !== user.username) {
-          // Refresh user list to show updated counts
-          await loadUsers();
-        }
       } catch (err) {
-        allGood = false;
+        writeSuccess = false;
         alert(`Restore FAILED: ${err.message}. No changes were applied.`);
+      }
+
+      if (writeSuccess && targetUser === user.username) {
+        // Force reload from GitHub
+        await window.portfolioData.saveProjects(projects);
+        await window.portfolioData.saveCertificates(certificates);
+        await renderProjects();
+        await renderCertificates();
+        alert(`✅ Successfully restored ${actions.join(" and ")} for ${targetUser} (verified on GitHub).`);
+      } else if (writeSuccess) {
+        alert(`✅ Successfully restored ${actions.join(" and ")} for ${targetUser} (verified on GitHub).`);
+        if (isAdmin) await loadUsers(); // refresh user stats
       }
       window.hideLoading();
     }
@@ -685,7 +693,6 @@
       const backups = await listBackups();
       if (!backups.length) { container.innerHTML = '<div class="empty-state">No backups found</div>'; return; }
 
-      // For admin, populate user dropdown
       let allUsers = [];
       if (isAdmin) {
         try {
@@ -741,7 +748,6 @@
       } catch(e) { alert(e.message); }
     }
 
-    // ---- Admin & User Management ----
     const isAdmin = window.APP_CONFIG.adminUsers && window.APP_CONFIG.adminUsers.includes(user.username);
     if (isAdmin) {
       document.getElementById('backupsTabNav').style.display = 'block';
@@ -754,7 +760,6 @@
       loadBackupsAndUsers();
       loadUsers();
     } else {
-      // Non-admin: still show backups but only for themselves (no user selector)
       document.getElementById('backupsTabNav').style.display = 'block';
       document.getElementById('refreshBackupsBtn').onclick = async () => {
         const container = document.getElementById('backupsList');
@@ -793,7 +798,6 @@
       window.hideLoading();
     }
 
-    // Buttons
     document.getElementById('addProjectBtn').onclick = () => openProjectModal();
     document.getElementById('addCertBtn').onclick = () => openCertModal();
     document.getElementById('downloadDataBtn').onclick = () => window.portfolioData.exportData();
