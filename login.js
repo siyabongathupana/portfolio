@@ -1,5 +1,4 @@
-// login.js – Authentication with GitHub-stored accounts (email usernames)
-
+// login.js – Authentication with GitHub-stored accounts
 document.addEventListener('DOMContentLoaded', () => {
   const params = new URLSearchParams(window.location.search);
   if (params.get('blocked') === '1') {
