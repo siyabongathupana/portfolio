@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Dashboard | DeltaV Portfolio</title>
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
@@ -28,12 +28,36 @@
     .drop-zone i { font-size:2rem; display:block; margin-bottom:8px; }
     .progress-bar-container { width:100%; height:6px; background:#e0e0e0; border-radius:3px; margin:10px 0; overflow:hidden; }
     .progress-bar-fill { width:0%; height:100%; background:#2fc7ff; transition:width 0.2s; }
-    .batch-actions { margin-top:15px; display:flex; gap:10px; align-items:center; }
+    .batch-actions { margin-top:15px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
     .image-counter { font-size:0.8rem; color:#666; margin-left:10px; }
     .user-badge { background:#2fc7ff; color:white; padding:4px 12px; border-radius:20px; font-size:0.9rem; }
     .cert-thumb-preview { max-width:80px; max-height:80px; margin-top:8px; border-radius:12px; }
-    .view-portfolio-btn { background: #28a745; color: white; border-radius: 20px; padding: 6px 16px; margin-right: 10px; transition: 0.2s; }
+    .view-portfolio-btn { background: #28a745; color: white; border-radius: 20px; padding: 6px 16px; margin-right: 10px; transition: 0.2s; display: inline-flex; align-items:center; }
     .view-portfolio-btn:hover { background: #218838; color: white; text-decoration: none; }
+
+    /* Mobile responsiveness */
+    @media (max-width: 768px) {
+      .admin-container { padding: 20px 15px !important; margin: 15px !important; }
+      h1 { font-size: 1.6rem; }
+      .d-flex.flex-wrap { flex-direction: column; align-items: stretch; }
+      .d-flex.flex-wrap .btn, .d-flex.flex-wrap .btn-group { margin: 5px 0; width: 100%; text-align: center; }
+      .user-badge { margin-bottom: 10px; display: inline-block; }
+      .image-input-group { flex-direction: column; align-items: flex-start; }
+      .image-input-group .img-preview-thumb { width: 100%; height: auto; max-width: 200px; margin-bottom: 10px; }
+      .remove-img-btn { position: absolute; top: 10px; right: 10px; }
+      .modal-dialog { margin: 20px; }
+      .form-row { flex-direction: column; }
+      .form-row .col-md-3, .form-row .col-md-4, .form-row .col-md-6 { margin-bottom: 10px; width: 100%; max-width: 100%; flex: none; }
+      .btn-log { width: 100%; margin: 8px 0; }
+      .log-user-select { width: 100%; }
+      .d-flex.justify-content-between { flex-direction: column; align-items: flex-start; gap: 10px; }
+      .card-body .d-flex.justify-content-between { flex-direction: column; }
+      .card-body .d-flex.justify-content-between div:last-child { margin-top: 10px; }
+      .nav-tabs .nav-link { padding: 8px 12px; font-size: 0.85rem; }
+      .drop-zone { padding: 20px; }
+      .batch-actions { flex-direction: column; align-items: stretch; }
+      .batch-actions button { width: 100%; margin-bottom: 8px; }
+    }
 
     /* Improved Logs Panel Styling */
     .logs-panel {
@@ -48,11 +72,11 @@
       box-shadow: 0 12px 28px rgba(0,0,0,0.08);
     }
     .logs-icon {
-      font-size: 3.5rem;
+      font-size: 3rem;
       color: #2fc7ff;
       background: linear-gradient(135deg, #e6f7ff 0%, #d4efff 100%);
-      width: 80px;
-      height: 80px;
+      width: 70px;
+      height: 70px;
       border-radius: 50%;
       display: flex;
       align-items: center;
@@ -66,20 +90,21 @@
     }
     .logs-panel .lead-text {
       color: #5a7d9a;
-      font-size: 0.95rem;
+      font-size: 0.9rem;
       margin-bottom: 1.5rem;
     }
     .log-user-select {
-      max-width: 320px;
+      max-width: 280px;
       margin: 0 auto 1rem auto;
     }
     .btn-log {
       border-radius: 40px;
-      padding: 10px 24px;
+      padding: 6px 18px;
       font-weight: 600;
+      font-size: 0.85rem;
       transition: all 0.2s;
-      margin: 0.5rem;
-      min-width: 180px;
+      margin: 0.25rem;
+      min-width: 140px;
     }
     .btn-log-primary {
       background: #2fc7ff;
@@ -105,20 +130,21 @@
     .log-info-text {
       background: #eef3fc;
       border-radius: 16px;
-      padding: 12px 20px;
-      font-size: 0.85rem;
+      padding: 10px 18px;
+      font-size: 0.8rem;
       color: #2c5a6e;
       margin-top: 1.5rem;
       display: inline-block;
     }
     .log-info-text i {
-      margin-right: 8px;
+      margin-right: 6px;
       color: #2fc7ff;
     }
     @media (max-width: 768px) {
       .logs-panel { padding: 1.5rem; }
-      .btn-log { min-width: 140px; padding: 8px 16px; }
-      .logs-icon { width: 60px; height: 60px; font-size: 2.5rem; }
+      .btn-log { min-width: auto; width: 100%; margin: 8px 0; }
+      .logs-icon { width: 55px; height: 55px; font-size: 2.2rem; }
+      .log-user-select { max-width: 100%; }
     }
   </style>
 </head>
@@ -128,11 +154,11 @@
   <div class="container admin-container">
     <div class="d-flex justify-content-between align-items-center flex-wrap">
       <h1><i class="fa fa-dashboard"></i> DeltaV Portfolio Dashboard</h1>
-      <div class="d-flex align-items-center">
+      <div class="d-flex align-items-center flex-wrap">
         <span class="user-badge mr-3" id="currentUserDisplay"></span>
         <a href="index.html" class="btn view-portfolio-btn mr-2"><i class="fa fa-eye"></i> View Portfolio</a>
         <button class="btn btn-outline-danger btn-sm mr-2" id="logoutBtn"><i class="fa fa-sign-out"></i> Logout</button>
-        <button class="btn btn-outline-success btn-sm mr-2" id="downloadDataBtn"><i class="fa fa-download"></i> Export</button>
+        <button class="btn btn-outline-success btn-sm" id="downloadDataBtn"><i class="fa fa-download"></i> Export</button>
       </div>
     </div>
     <hr>
@@ -167,7 +193,7 @@
         <div id="certificatesList"></div>
       </div>
 
-      <!-- Logs Tab (Improved Styling) -->
+      <!-- Logs Tab -->
       <div class="tab-pane fade" id="logsTab">
         <div class="logs-panel text-center">
           <div class="logs-icon">
@@ -178,12 +204,12 @@
 
           <div class="log-user-select" id="logUserSelectGroup" style="display:none;">
             <label for="logUserSelect" class="sr-only">Select user</label>
-            <select id="logUserSelect" class="form-control form-control-lg">
+            <select id="logUserSelect" class="form-control form-control-sm">
               <option value="">-- Select user to download logs --</option>
             </select>
           </div>
 
-          <div class="d-flex flex-wrap justify-content-center mt-3">
+          <div class="d-flex flex-wrap justify-content-center mt-2">
             <button id="downloadMyLogBtn" class="btn btn-log btn-log-primary"><i class="fa fa-download"></i> Download My Logs</button>
             <button id="downloadAllLogsBtn" class="btn btn-log btn-log-secondary" style="display:none;"><i class="fa fa-archive"></i> Download All Logs (ZIP)</button>
           </div>
@@ -196,7 +222,7 @@
 
       <!-- Users Tab (Admin only) -->
       <div class="tab-pane fade" id="usersTab">
-        <div class="mb-3 d-flex align-items-center">
+        <div class="mb-3 d-flex align-items-center flex-wrap">
           <button class="btn btn-delta mr-2" id="refreshUsersBtn"><i class="fa fa-refresh"></i> Refresh List</button>
           <span class="text-muted">Blocked users cannot log in. Deleting a user permanently removes all their data.</span>
         </div>
@@ -210,7 +236,7 @@
   </div>
 </div>
 
-<!-- Project Modal (unchanged) -->
+<!-- Project Modal -->
 <div class="modal fade" id="projectModal" tabindex="-1">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
@@ -763,7 +789,6 @@
       loadUsers();
       document.getElementById('backupBtn').style.display = 'inline-block';
       document.getElementById('restoreLabel').style.display = 'inline-flex';
-      // Show download all logs button for admin
       document.getElementById('downloadAllLogsBtn').style.display = 'inline-block';
       document.getElementById('logUserSelectGroup').style.display = 'block';
     }
@@ -927,13 +952,13 @@
       window.hideLoading();
     }
 
+    // Backup button now downloads the latest backup from GitHub
     document.getElementById('backupBtn').addEventListener('click', async () => {
       try {
-        window.showLoading('Creating backup...');
-        await window.portfolioData.downloadBackup();
-        window.Logger.log('backup_download', 'Downloaded backup ZIP');
+        window.showLoading('Downloading latest backup from GitHub...');
+        await window.portfolioData.downloadLatestBackup();
       } catch (err) {
-        alert('Backup failed: ' + err.message);
+        alert('Backup download failed: ' + err.message);
       } finally {
         window.hideLoading();
       }
