@@ -284,7 +284,7 @@ window.AccountManager = {
   }
 };
 
-// ---------- PORTFOLIO DATA (with force-clear support) ----------
+// ---------- PORTFOLIO DATA (with force-clear support and backup/restore) ----------
 window.portfolioData = (() => {
   const PROJECTS_KEY = 'deltaVProjects';
   const CERTS_KEY = 'deltaVCertificates';
@@ -483,18 +483,32 @@ window.portfolioData = (() => {
     if (!user || !window.APP_CONFIG.adminUsers.includes(user.username)) {
       throw new Error('Only admin can restore backups.');
     }
+
+    // Reject tar.gz backups (daily GitHub Actions archives) because they contain a folder structure, not plain JSON files.
+    const fileName = file.name;
+    const isTarGz = fileName.endsWith('.tar.gz') || fileName.endsWith('.tgz');
+    if (isTarGz) {
+      throw new Error(
+        'Cannot restore .tar.gz backups in the app.\n' +
+        'Please manually extract the archive and upload the individual ' +
+        'projects.json and certificates.json files, or use the "Download Backup" button ' +
+        'to create a compatible ZIP backup.'
+      );
+    }
+
     const zip = await JSZip.loadAsync(file);
     const projectsFile = zip.file("projects.json");
     const certsFile = zip.file("certificates.json");
-    if (!projectsFile || !certsFile) throw new Error('Invalid backup: missing projects.json or certificates.json');
+    if (!projectsFile || !certsFile) {
+      throw new Error('Invalid backup: missing projects.json or certificates.json');
+    }
     const projectsText = await projectsFile.async("string");
     const certsText = await certsFile.async("string");
     const projects = JSON.parse(projectsText);
     const certs = JSON.parse(certsText);
-    // Validate structure
     if (typeof projects !== 'object') throw new Error('Invalid projects data');
     if (!Array.isArray(certs)) throw new Error('Invalid certificates data');
-    // Save with force flag
+    
     await saveProjects(projects, true);
     await saveCertificates(certs, true);
     return { projects, certs };
