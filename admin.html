@@ -15,7 +15,7 @@
   <script src="config.js"></script>
   <script src="crypto.js"></script>
   <script src="api.js"></script>
-  <script src="shared.js"></script>
+  <!-- shared.js is now embedded below to avoid missing file -->
   <style>
     .cert-thumb-preview { max-width:80px; max-height:80px; margin-top:8px; border-radius:12px; }
     .image-input-group { margin-bottom:15px; background:#f8f9fa; padding:12px; border-radius:12px; display:flex; align-items:center; gap:12px; position:relative; }
@@ -190,6 +190,62 @@
 </div>
 
 <script>
+  // ======================= SHARED FUNCTIONS (embedded) =======================
+  window.showLoading = function (msg = 'Processing...') {
+    let loader = document.getElementById('globalLoader');
+    if (!loader) {
+      loader = document.createElement('div');
+      loader.id = 'globalLoader';
+      loader.innerHTML = `<div class="loader-overlay"><div class="loader-spinner"></div><p class="loader-text">${msg}</p></div>`;
+      document.body.appendChild(loader);
+    } else {
+      const textEl = loader.querySelector('.loader-text');
+      if (textEl) textEl.textContent = msg;
+      loader.style.display = 'flex';
+    }
+  };
+  window.hideLoading = function () {
+    const loader = document.getElementById('globalLoader');
+    if (loader) loader.style.display = 'none';
+  };
+  window.escapeHtml = function (str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m] || m);
+  };
+  window.updateUserFooter = function () {
+    const user = window.SessionManager?.getCurrentUser();
+    const el = document.getElementById('userFooterStatus');
+    if (!el) return;
+    if (user) {
+      el.innerHTML = `Logged in as: <strong>${window.escapeHtml(user.username)}</strong>`;
+    } else {
+      el.innerHTML = `Visitor – viewing portfolio of <strong>${window.APP_CONFIG?.publicProfileEmail || 'admin'}</strong>`;
+    }
+  };
+  window.SessionManager = {
+    getCurrentUser: () => {
+      try {
+        const stored = sessionStorage.getItem('deltaVUser');
+        if (stored) return JSON.parse(stored);
+      } catch(e) {}
+      return null;
+    },
+    setCurrentUser: (username, pat) => {
+      sessionStorage.setItem('deltaVUser', JSON.stringify({ username, pat }));
+    },
+    logout: () => {
+      sessionStorage.removeItem('deltaVUser');
+    }
+  };
+  // Minimal AccountManager and portfolioData (provided by external scripts)
+  // We rely on existing window.AccountManager and window.portfolioData from api.js, crypto.js, shared.js
+  // If they are missing, we throw an error.
+  if (!window.AccountManager || !window.portfolioData) {
+    console.error("Missing required scripts (api.js, crypto.js, shared.js). Please ensure they are loaded.");
+    alert("System not fully loaded. Please refresh or check network.");
+  }
+  // ======================= END SHARED =======================
+
   // ImgBB upload
   const IMGBB_API_KEY = "393ab44e4c3c9ca17143ec4249e6b475";
   const IMGBB_UPLOAD_URL = "https://api.imgbb.com/1/upload";
@@ -261,6 +317,7 @@
     }
   };
 
+  // Check authentication
   const user = window.SessionManager?.getCurrentUser();
   if (!user) {
     window.location.href = 'login.html';
@@ -273,7 +330,7 @@
   }
 
   async function initDashboard() {
-    // Image upload (same as before)
+    // Image upload logic (same as before, concise)
     const imgContainer = document.getElementById('imagesContainer');
     const dropZone = document.getElementById('imageDropZone');
     const fileInput = document.getElementById('imageFileInput');
@@ -352,7 +409,7 @@
       cbs.forEach(cb => cb.checked = !all);
     };
 
-    // ---- CRUD Functions (same) ----
+    // ---- CRUD Functions (using window.portfolioData) ----
     async function renderProjects() {
       const projects = await window.portfolioData.loadProjects();
       const container = document.getElementById('projectsList');
@@ -539,7 +596,7 @@
       await safeSaveCertificate(certs);
     };
 
-    // ---- Backup & Restore (final fix) ----
+    // ---- Backup & Restore ----
     async function listBackups() {
       const cfg = window.REPO_CONFIG;
       const url = `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/backups?ref=${cfg.branch}`;
@@ -561,15 +618,12 @@
       return null;
     }
 
-    // Extract user data: tries raw email first (exact folder name)
     async function extractUserDataFromBackup(zipUrl, targetUser) {
       const resp = await fetch(zipUrl);
       const zip = await JSZip.loadAsync(await resp.blob());
       let projects = null, certificates = null;
-      
-      // Possible paths in order of likelihood
       const projPaths = [
-        `data/users/${targetUser}/projects.json`,        // exact raw email
+        `data/users/${targetUser}/projects.json`,
         `data/users/${encodeURIComponent(targetUser)}/projects.json`,
         `users/${targetUser}/projects.json`,
         `users/${encodeURIComponent(targetUser)}/projects.json`,
@@ -582,7 +636,6 @@
         `users/${encodeURIComponent(targetUser)}/certificates.json`,
         `certificates.json`
       ];
-
       for (const p of projPaths) {
         const file = zip.file(p);
         if (file && !file.dir) {
@@ -602,19 +655,13 @@
 
     async function verifyGitHubFile(owner, repo, path, branch, token, expectedContent, maxRetries = 4) {
       for (let attempt = 1; attempt <= maxRetries; attempt++) {
-        await new Promise(r => setTimeout(r, 2000 * attempt)); // 2s, 4s, 6s, 8s
+        await new Promise(r => setTimeout(r, 2000 * attempt));
         try {
           const file = await GitHubAPI.getFileContent(owner, repo, path, branch, token);
           if (!file) continue;
           const actual = JSON.parse(file.content);
-          if (JSON.stringify(actual) === JSON.stringify(expectedContent)) {
-            console.log(`Verification succeeded on attempt ${attempt}`);
-            return true;
-          }
-          console.warn(`Attempt ${attempt}: mismatch`);
-        } catch (err) {
-          console.warn(`Attempt ${attempt} error:`, err);
-        }
+          if (JSON.stringify(actual) === JSON.stringify(expectedContent)) return true;
+        } catch (err) {}
       }
       return false;
     }
@@ -644,7 +691,6 @@
       const config = window.REPO_CONFIG;
       const token = user.pat;
       const encTarget = encodeURIComponent(targetUser);
-      let writeSuccess = true;
       try {
         if (restoreProjects) {
           const path = `${config.dataPath}/users/${encTarget}/projects.json`;
@@ -654,8 +700,7 @@
             if (existing) sha = existing.sha;
           } catch(e) {}
           await GitHubAPI.updateFile(config.owner, config.repo, path, projects, `Restore projects for ${targetUser} from backup`, config.branch, token, sha);
-          const verified = await verifyGitHubFile(config.owner, config.repo, path, config.branch, token, projects);
-          if (!verified) throw new Error(`Projects file verification failed for ${targetUser}`);
+          if (!await verifyGitHubFile(config.owner, config.repo, path, config.branch, token, projects)) throw new Error("Projects verification failed");
         }
         if (restoreCertificates) {
           const path = `${config.dataPath}/users/${encTarget}/certificates.json`;
@@ -665,24 +710,18 @@
             if (existing) sha = existing.sha;
           } catch(e) {}
           await GitHubAPI.updateFile(config.owner, config.repo, path, certificates, `Restore certificates for ${targetUser} from backup`, config.branch, token, sha);
-          const verified = await verifyGitHubFile(config.owner, config.repo, path, config.branch, token, certificates);
-          if (!verified) throw new Error(`Certificates file verification failed for ${targetUser}`);
+          if (!await verifyGitHubFile(config.owner, config.repo, path, config.branch, token, certificates)) throw new Error("Certificates verification failed");
         }
+        if (targetUser === user.username) {
+          await window.portfolioData.saveProjects(projects);
+          await window.portfolioData.saveCertificates(certificates);
+          await renderProjects();
+          await renderCertificates();
+        }
+        alert(`✅ Successfully restored ${actions.join(" and ")} for ${targetUser} (verified).`);
+        if (isAdmin && targetUser !== user.username) await loadUsers();
       } catch (err) {
-        writeSuccess = false;
         alert(`Restore FAILED: ${err.message}. No changes were applied.`);
-      }
-
-      if (writeSuccess && targetUser === user.username) {
-        // Force reload from GitHub
-        await window.portfolioData.saveProjects(projects);
-        await window.portfolioData.saveCertificates(certificates);
-        await renderProjects();
-        await renderCertificates();
-        alert(`✅ Successfully restored ${actions.join(" and ")} for ${targetUser} (verified on GitHub).`);
-      } else if (writeSuccess) {
-        alert(`✅ Successfully restored ${actions.join(" and ")} for ${targetUser} (verified on GitHub).`);
-        if (isAdmin) await loadUsers(); // refresh user stats
       }
       window.hideLoading();
     }
@@ -719,24 +758,10 @@
         </div>`;
       }
       container.innerHTML = html;
-
-      const getUserToRestore = () => {
-        if (isAdmin) {
-          const select = document.getElementById('restoreUserSelect');
-          if (select && select.value) return select.value;
-        }
-        return user.username;
-      };
-
-      document.querySelectorAll('.restore-proj').forEach(btn => {
-        btn.onclick = () => restoreUserDataFromBackup(btn.dataset.url, getUserToRestore(), true, false);
-      });
-      document.querySelectorAll('.restore-cert').forEach(btn => {
-        btn.onclick = () => restoreUserDataFromBackup(btn.dataset.url, getUserToRestore(), false, true);
-      });
-      document.querySelectorAll('.restore-both').forEach(btn => {
-        btn.onclick = () => restoreUserDataFromBackup(btn.dataset.url, getUserToRestore(), true, true);
-      });
+      const getUserToRestore = () => isAdmin && document.getElementById('restoreUserSelect').value ? document.getElementById('restoreUserSelect').value : user.username;
+      document.querySelectorAll('.restore-proj').forEach(btn => btn.onclick = () => restoreUserDataFromBackup(btn.dataset.url, getUserToRestore(), true, false));
+      document.querySelectorAll('.restore-cert').forEach(btn => btn.onclick = () => restoreUserDataFromBackup(btn.dataset.url, getUserToRestore(), false, true));
+      document.querySelectorAll('.restore-both').forEach(btn => btn.onclick = () => restoreUserDataFromBackup(btn.dataset.url, getUserToRestore(), true, true));
     }
 
     async function triggerBackup() {
@@ -748,7 +773,7 @@
       } catch(e) { alert(e.message); }
     }
 
-    const isAdmin = window.APP_CONFIG.adminUsers && window.APP_CONFIG.adminUsers.includes(user.username);
+    const isAdmin = window.APP_CONFIG?.adminUsers?.includes(user.username) || false;
     if (isAdmin) {
       document.getElementById('backupsTabNav').style.display = 'block';
       document.getElementById('usersTabNav').style.display = 'block';
