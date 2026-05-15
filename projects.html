@@ -9,6 +9,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
   <script src="config.js"></script>
+  <script src="crypto.js"></script>
+  <script src="api.js"></script>
   <script src="shared.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -29,7 +31,10 @@
   </div>
 </nav>
 <div class="container py-5">
-  <div class="text-center mb-5"><h2>All <span style="color:#2fc7ff;">DeltaV</span> Projects</h2><p>Complete portfolio of automation & control projects</p></div>
+  <div class="text-center mb-5">
+    <h2>All <span style="color:#2fc7ff;">DeltaV</span> Projects</h2>
+    <p id="projectsSubtext">Complete portfolio of automation & control projects</p>
+  </div>
   <div class="row" id="allProjectsGrid"></div>
   <div id="noProjectsMsg" class="empty-state" style="display: none;">
     <i class="fa fa-folder-open-o"></i>
@@ -45,10 +50,18 @@
 <script>
   function renderAllProjects() {
     window.showLoading('Loading all projects...');
-    window.portfolioData.loadProjects().then(data => {
+    window.portfolioData.loadProjectsForView().then(data => {
       const projects = Object.values(data);
       const grid = document.getElementById('allProjectsGrid');
       const noMsg = document.getElementById('noProjectsMsg');
+      const subtext = document.getElementById('projectsSubtext');
+      const user = window.SessionManager.getCurrentUser();
+      
+      if (user) {
+        subtext.innerHTML = `Showing YOUR projects (${projects.length} total) | <a href="admin.html" style="color:#2fc7ff;">Add more</a>`;
+      } else {
+        subtext.innerHTML = 'Complete portfolio of automation & control projects';
+      }
 
       if (projects.length === 0) {
         grid.innerHTML = '';
@@ -62,7 +75,7 @@
       projects.forEach(proj => {
         const modalId = `galleryModal-${proj.id}`;
         if (!document.getElementById(modalId)) {
-          const carouselItems = proj.selectedImages.map((img, idx) => `
+          const carouselItems = (proj.selectedImages || []).map((img, idx) => `
             <div class="carousel-item ${idx === 0 ? 'active' : ''}">
               <div class="carousel-caption-top">${window.escapeHtml(img.caption || '')}</div>
               <img src="${img.url}" class="d-block w-100 modal-carousel-img" loading="lazy">
@@ -85,7 +98,7 @@
           `;
           document.body.insertAdjacentHTML('beforeend', modalHtml);
         }
-        const firstImg = proj.selectedImages[0]?.url || 'https://picsum.photos/id/40/400/200';
+        const firstImg = (proj.selectedImages && proj.selectedImages[0])?.url || 'https://picsum.photos/id/40/400/200';
         const badgeText = `${proj.projectType || 'DCS'} · DeltaV ${proj.deltaVVersion || 'N/A'}`;
         const card = `
           <div class="col-lg-4 col-md-6 mb-4">
@@ -93,7 +106,7 @@
               <img src="${firstImg}" class="project-img">
               <h4>${window.escapeHtml(proj.title)}</h4>
               <div><span class="tech-tag">${proj.controllerType}</span><span class="tech-tag">${proj.cabinetCount} cabinets</span><span class="tech-tag">${proj.siteLocation || ''}</span></div>
-              <p>${window.escapeHtml(proj.description.substring(0, 100))}...</p>
+              <p>${window.escapeHtml(proj.description?.substring(0, 100) || '')}...</p>
               <div class="d-flex justify-content-between align-items-center mt-auto">
                 <button class="btn btn-sm btn-outline-delta" data-toggle="modal" data-target="#${modalId}"><i class="fa fa-image"></i> Gallery</button>
                 <button class="btn btn-sm btn-delta" onclick="window.generateProjectReport('${proj.id}')"><i class="fa fa-file-pdf-o"></i> PDF Report</button>
