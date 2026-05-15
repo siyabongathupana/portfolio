@@ -17,6 +17,7 @@
   <script src="api.js"></script>
   <script src="shared.js"></script>
   <style>
+    /* General admin styles */
     .image-input-group { margin-bottom:15px; background:#f8f9fa; padding:12px; border-radius:12px; display:flex; align-items:center; gap:12px; position:relative; }
     .image-input-group .img-preview-thumb { width:80px; height:80px; object-fit:cover; border-radius:8px; background:#e9ecef; }
     .image-input-group .img-details { flex:1; }
@@ -33,12 +34,92 @@
     .cert-thumb-preview { max-width:80px; max-height:80px; margin-top:8px; border-radius:12px; }
     .view-portfolio-btn { background: #28a745; color: white; border-radius: 20px; padding: 6px 16px; margin-right: 10px; transition: 0.2s; }
     .view-portfolio-btn:hover { background: #218838; color: white; text-decoration: none; }
-    .log-download-panel { background: #f8f9fa; border-radius: 12px; padding: 20px; text-align: center; }
-    .log-download-panel i { font-size: 3rem; color: #2fc7ff; margin-bottom: 15px; }
-    .btn-download-log { background: #2fc7ff; color: #0a2b33; border-radius: 40px; padding: 10px 30px; font-weight: 600; transition: 0.2s; border: none; }
-    .btn-download-log:hover { background: #1d9fcf; transform: translateY(-2px); color: white; }
-    .btn-download-all { background: #6c757d; color: white; }
-    .btn-download-all:hover { background: #5a6268; color: white; }
+
+    /* Improved Logs Panel Styling */
+    .logs-panel {
+      background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+      border-radius: 24px;
+      padding: 2rem;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+      border: 1px solid rgba(47,199,255,0.15);
+      transition: all 0.2s ease;
+    }
+    .logs-panel:hover {
+      box-shadow: 0 12px 28px rgba(0,0,0,0.08);
+    }
+    .logs-icon {
+      font-size: 3.5rem;
+      color: #2fc7ff;
+      background: linear-gradient(135deg, #e6f7ff 0%, #d4efff 100%);
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1rem auto;
+    }
+    .logs-panel h4 {
+      font-weight: 700;
+      color: #0b2b3b;
+      margin-bottom: 0.5rem;
+    }
+    .logs-panel .lead-text {
+      color: #5a7d9a;
+      font-size: 0.95rem;
+      margin-bottom: 1.5rem;
+    }
+    .log-user-select {
+      max-width: 320px;
+      margin: 0 auto 1rem auto;
+    }
+    .btn-log {
+      border-radius: 40px;
+      padding: 10px 24px;
+      font-weight: 600;
+      transition: all 0.2s;
+      margin: 0.5rem;
+      min-width: 180px;
+    }
+    .btn-log-primary {
+      background: #2fc7ff;
+      color: #0a2b33;
+      border: none;
+    }
+    .btn-log-primary:hover {
+      background: #1d9fcf;
+      transform: translateY(-2px);
+      color: white;
+      box-shadow: 0 6px 14px rgba(47,199,255,0.3);
+    }
+    .btn-log-secondary {
+      background: #6c757d;
+      color: white;
+      border: none;
+    }
+    .btn-log-secondary:hover {
+      background: #5a6268;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 14px rgba(108,117,125,0.3);
+    }
+    .log-info-text {
+      background: #eef3fc;
+      border-radius: 16px;
+      padding: 12px 20px;
+      font-size: 0.85rem;
+      color: #2c5a6e;
+      margin-top: 1.5rem;
+      display: inline-block;
+    }
+    .log-info-text i {
+      margin-right: 8px;
+      color: #2fc7ff;
+    }
+    @media (max-width: 768px) {
+      .logs-panel { padding: 1.5rem; }
+      .btn-log { min-width: 140px; padding: 8px 16px; }
+      .logs-icon { width: 60px; height: 60px; font-size: 2.5rem; }
+    }
   </style>
 </head>
 <body style="background:#eef3fc;">
@@ -86,27 +167,28 @@
         <div id="certificatesList"></div>
       </div>
 
-      <!-- Logs Tab (Download only) -->
+      <!-- Logs Tab (Improved Styling) -->
       <div class="tab-pane fade" id="logsTab">
-        <div class="log-download-panel">
-          <i class="fa fa-file-text-o"></i>
-          <h4>Activity Logs</h4>
-          <p class="text-muted">Download your complete activity log as a text file.</p>
-          
-          <div class="row justify-content-center">
-            <div class="col-md-6">
-              <div class="form-group" id="logUserSelectGroup" style="display:none;">
-                <label for="logUserSelect">Select user to download logs:</label>
-                <select id="logUserSelect" class="form-control">
-                  <option value="">-- Loading users --</option>
-                </select>
-              </div>
-              <button id="downloadMyLogBtn" class="btn btn-download-log btn-lg mr-2"><i class="fa fa-download"></i> Download My Logs</button>
-              <button id="downloadAllLogsBtn" class="btn btn-download-all btn-lg" style="display:none;"><i class="fa fa-archive"></i> Download All Logs (ZIP)</button>
-            </div>
+        <div class="logs-panel text-center">
+          <div class="logs-icon">
+            <i class="fa fa-file-text-o"></i>
           </div>
-          
-          <div class="mt-3 text-muted small">
+          <h4>Activity Logs</h4>
+          <p class="lead-text">Download your complete activity log as a text file.</p>
+
+          <div class="log-user-select" id="logUserSelectGroup" style="display:none;">
+            <label for="logUserSelect" class="sr-only">Select user</label>
+            <select id="logUserSelect" class="form-control form-control-lg">
+              <option value="">-- Select user to download logs --</option>
+            </select>
+          </div>
+
+          <div class="d-flex flex-wrap justify-content-center mt-3">
+            <button id="downloadMyLogBtn" class="btn btn-log btn-log-primary"><i class="fa fa-download"></i> Download My Logs</button>
+            <button id="downloadAllLogsBtn" class="btn btn-log btn-log-secondary" style="display:none;"><i class="fa fa-archive"></i> Download All Logs (ZIP)</button>
+          </div>
+
+          <div class="log-info-text">
             <i class="fa fa-info-circle"></i> Logs include all actions: project creation/edits/deletion, certificate changes, image uploads, backups, syncs, and errors.
           </div>
         </div>
@@ -128,7 +210,7 @@
   </div>
 </div>
 
-<!-- Project Modal (same as before, kept minimal for brevity) -->
+<!-- Project Modal (unchanged) -->
 <div class="modal fade" id="projectModal" tabindex="-1">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
@@ -751,13 +833,12 @@
       }
     }
 
-    // Populate user select for admin
     async function populateUserSelect() {
       if (!isAdmin) return;
       try {
         const users = await window.AccountManager.listUsers(user.pat);
         const select = document.getElementById('logUserSelect');
-        select.innerHTML = '<option value="">-- Select user --</option>';
+        select.innerHTML = '<option value="">-- Select user to download logs --</option>';
         for (const u of users) {
           select.innerHTML += `<option value="${u}">${u}</option>`;
         }
@@ -766,22 +847,18 @@
       }
     }
 
-    // Download own logs (non-admin or admin's own)
     document.getElementById('downloadMyLogBtn').addEventListener('click', async () => {
       await downloadLogsForUser(user.username, false);
     });
 
-    // Download selected user's logs (admin only)
     document.getElementById('logUserSelect').addEventListener('change', async (e) => {
       const selected = e.target.value;
       if (selected && isAdmin) {
         await downloadLogsForUser(selected, true);
-        // reset select to placeholder
         e.target.value = '';
       }
     });
 
-    // Download all logs ZIP (admin only)
     document.getElementById('downloadAllLogsBtn').addEventListener('click', downloadAllLogs);
 
     await populateUserSelect();
