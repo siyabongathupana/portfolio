@@ -1,5 +1,5 @@
 // shared.js – Full version with safety checks, GitHub image upload, backup/restore
-// FIXED: Admin user now sees public certificates if their own file is empty
+// FIXED: getUserStats now correctly counts certificates for admin user
 
 window.showLoading = function (msg = 'Processing...') {
   let loader = document.getElementById('globalLoader');
@@ -267,20 +267,41 @@ window.AccountManager = {
     const encUser = encodeURIComponent(username);
     const base = `${dataPath}/users/${encUser}`;
     let projectCount = 0, certCount = 0;
+    
+    // Load projects
     try {
       const projFile = await GitHubAPI.getFileContent(owner, repo, `${base}/projects.json`, branch, adminToken);
       if (projFile && projFile.content) {
         const data = JSON.parse(projFile.content);
         projectCount = Object.keys(data).length;
+      } else if (username === window.APP_CONFIG.publicProfileEmail) {
+        // Fallback to public projects if user's own file is empty
+        const publicUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${base}/projects.json`;
+        const resp = await fetch(publicUrl);
+        if (resp.ok) {
+          const data = await resp.json();
+          projectCount = Object.keys(data).length;
+        }
       }
-    } catch (e) {}
+    } catch (e) { console.warn('Failed to load projects stats', e); }
+    
+    // Load certificates
     try {
       const certFile = await GitHubAPI.getFileContent(owner, repo, `${base}/certificates.json`, branch, adminToken);
       if (certFile && certFile.content) {
         const data = JSON.parse(certFile.content);
         certCount = data.length;
+      } else if (username === window.APP_CONFIG.publicProfileEmail) {
+        // Fallback to public certificates if user's own file is empty
+        const publicUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${base}/certificates.json`;
+        const resp = await fetch(publicUrl);
+        if (resp.ok) {
+          const data = await resp.json();
+          certCount = data.length;
+        }
       }
-    } catch (e) {}
+    } catch (e) { console.warn('Failed to load certificates stats', e); }
+    
     return { projects: projectCount, certificates: certCount };
   }
 };
