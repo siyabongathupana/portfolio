@@ -80,7 +80,7 @@ window.SessionManager = (() => {
 window.Logger = {
   async log(action, details, level = 'INFO') {
     const user = window.SessionManager.getCurrentUser();
-    if (!user) return; // no user logged in, skip logging (or could log to public? we skip)
+    if (!user) return;
     
     const timestamp = new Date().toISOString();
     const logEntry = `[${timestamp}] [${level}] [${action}] ${details}\n`;
@@ -99,7 +99,7 @@ window.Logger = {
       }
     } catch (e) { /* file doesn't exist yet */ }
     
-    const newContent = logEntry + existingContent; // newest first
+    const newContent = logEntry + existingContent;
     try {
       await GitHubAPI.updateFile(owner, repo, logPath, newContent, `Log: ${action}`, branch, user.pat, sha);
     } catch (err) {
@@ -651,31 +651,32 @@ window.portfolioData = (() => {
     });
   }
 
-  async function downloadBackup() {
+  // NEW: Download the latest backup file from GitHub (backups folder)
+  async function downloadLatestBackup() {
     const user = window.SessionManager.getCurrentUser();
     if (!user || !window.APP_CONFIG.adminUsers.includes(user.username)) {
       throw new Error('Only admin can download backups.');
     }
-    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const encUser = encodeURIComponent(user.username);
-    const projectsPath = `${dataPath}/users/${encUser}/projects.json`;
-    const certsPath = `${dataPath}/users/${encUser}/certificates.json`;
-    const [projectsFile, certsFile] = await Promise.all([
-      GitHubAPI.getFileContent(owner, repo, projectsPath, branch, user.pat).catch(() => null),
-      GitHubAPI.getFileContent(owner, repo, certsPath, branch, user.pat).catch(() => null)
-    ]);
-    const projects = projectsFile ? JSON.parse(projectsFile.content) : {};
-    const certs = certsFile ? JSON.parse(certsFile.content) : [];
-    const zip = new JSZip();
-    zip.file("projects.json", JSON.stringify(projects, null, 2));
-    zip.file("certificates.json", JSON.stringify(certs, null, 2));
-    const blob = await zip.generateAsync({ type: "blob" });
+    const { owner, repo, branch } = window.REPO_CONFIG;
+    const backupsPath = 'backups';
+    const url = `https://api.github.com/repos/${owner}/${repo}/contents/${backupsPath}?ref=${branch}`;
+    const resp = await fetch(url, {
+      headers: { 'Authorization': `token ${user.pat}`, 'Accept': 'application/vnd.github.v3+json' }
+    });
+    if (!resp.ok) throw new Error('Could not list backups folder');
+    const files = await resp.json();
+    const tarFiles = files.filter(f => f.name.endsWith('.tar.gz') && f.type === 'file');
+    if (tarFiles.length === 0) throw new Error('No backup files found');
+    tarFiles.sort((a, b) => b.name.localeCompare(a.name));
+    const latest = tarFiles[0];
+    const downloadUrl = latest.download_url;
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `deltaV_backup_${new Date().toISOString().slice(0,19)}.zip`;
+    a.href = downloadUrl;
+    a.download = latest.name;
+    document.body.appendChild(a);
     a.click();
-    URL.revokeObjectURL(a.href);
-    await window.Logger.log('backup_download', `Downloaded backup ZIP`);
+    document.body.removeChild(a);
+    await window.Logger.log('download_latest_backup', `Downloaded latest backup: ${latest.name}`);
   }
 
   async function restoreBackup(file) {
@@ -720,7 +721,7 @@ window.portfolioData = (() => {
     loadCertificates, 
     saveCertificates, 
     exportData, 
-    downloadBackup, 
+    downloadLatestBackup,
     restoreBackup,
     loadProjectsForView,
     loadCertificatesForView
