@@ -1,4 +1,4 @@
-// shared.js – Full version with retry logic for GitHub updates
+// shared.js – Full version with user-specific data for logged-in users
 
 window.showLoading = function (msg = 'Processing...') {
   let loader = document.getElementById('globalLoader');
@@ -32,9 +32,17 @@ window.updateUserFooter = function () {
   const el = document.getElementById('userFooterStatus');
   if (!el) return;
   if (user) {
-    el.innerHTML = `Logged in as: <strong>${window.escapeHtml(user.username)}</strong>`;
+    el.innerHTML = `Logged in as: <strong>${window.escapeHtml(user.username)}</strong> | <a href="admin.html" style="color:#2fc7ff;">Dashboard</a> | <a href="#" id="logoutFromFooter" style="color:#ff6b6b;">Logout</a>`;
+    const logoutBtn = document.getElementById('logoutFromFooter');
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        window.SessionManager.logout();
+        window.location.reload();
+      });
+    }
   } else {
-    el.innerHTML = `Visitor – viewing portfolio of <strong>${window.APP_CONFIG.publicProfileEmail}</strong>`;
+    el.innerHTML = `Visitor – viewing portfolio of <strong>${window.APP_CONFIG.publicProfileEmail}</strong> | <a href="login.html" style="color:#2fc7ff;">Login</a>`;
   }
 };
 
@@ -303,7 +311,7 @@ window.AccountManager = {
   }
 };
 
-// ---------- PORTFOLIO DATA (with retry logic for GitHub updates) ----------
+// ---------- PORTFOLIO DATA (with user-specific loading for main pages) ----------
 window.portfolioData = (() => {
   const PROJECTS_KEY = 'deltaVProjects';
   const CERTS_KEY = 'deltaVCertificates';
@@ -314,7 +322,9 @@ window.portfolioData = (() => {
     const blocked = await window.AccountManager.getBlockedUsers();
     if (blocked.includes(user.username)) {
       window.SessionManager.logout();
-      window.location.href = 'login.html?blocked=1';
+      if (!window.location.pathname.includes('login.html')) {
+        window.location.href = 'login.html?blocked=1';
+      }
       throw new Error('Blocked');
     }
   }
@@ -334,6 +344,84 @@ window.portfolioData = (() => {
     return type === 'projects' ? {} : [];
   }
 
+  // NEW: Load data based on current user (logged in = their own data, logged out = public)
+  async function loadProjectsForView() {
+    const user = window.SessionManager.getCurrentUser();
+    
+    // If logged in, load user's own projects (with fallback to public if empty)
+    if (user && user.pat) {
+      await verifyNotBlocked();
+      try {
+        const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+        const encUser = encodeURIComponent(user.username);
+        const path = `${dataPath}/users/${encUser}/projects.json`;
+        const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
+        if (file && file.content) {
+          const data = JSON.parse(file.content);
+          return data;
+        } else {
+          // If user's file is empty, fall back to public profile data
+          if (user.username === window.APP_CONFIG.publicProfileEmail) {
+            const publicData = await fetchPublicData(user.username, 'projects');
+            if (Object.keys(publicData).length > 0) {
+              return publicData;
+            }
+          }
+          return {};
+        }
+      } catch (e) {
+        console.warn('Could not fetch user projects', e);
+        return {};
+      }
+    }
+    
+    // Not logged in - load public profile data
+    const publicEmail = window.APP_CONFIG.publicProfileEmail;
+    if (publicEmail) {
+      return await fetchPublicData(publicEmail, 'projects');
+    }
+    return {};
+  }
+
+  async function loadCertificatesForView() {
+    const user = window.SessionManager.getCurrentUser();
+    
+    // If logged in, load user's own certificates (with fallback to public if empty)
+    if (user && user.pat) {
+      await verifyNotBlocked();
+      try {
+        const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+        const encUser = encodeURIComponent(user.username);
+        const path = `${dataPath}/users/${encUser}/certificates.json`;
+        const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
+        if (file && file.content) {
+          const data = JSON.parse(file.content);
+          return data;
+        } else {
+          // If user's file is empty, fall back to public profile data
+          if (user.username === window.APP_CONFIG.publicProfileEmail) {
+            const publicData = await fetchPublicData(user.username, 'certificates');
+            if (publicData.length > 0) {
+              return publicData;
+            }
+          }
+          return [];
+        }
+      } catch (e) {
+        console.warn('Could not fetch user certificates', e);
+        return [];
+      }
+    }
+    
+    // Not logged in - load public profile data
+    const publicEmail = window.APP_CONFIG.publicProfileEmail;
+    if (publicEmail) {
+      return await fetchPublicData(publicEmail, 'certificates');
+    }
+    return [];
+  }
+
+  // Admin functions (load from user's own file, with fallback)
   async function loadProjects() {
     const user = window.SessionManager.getCurrentUser();
     if (user && user.pat) {
@@ -409,24 +497,22 @@ window.portfolioData = (() => {
     return JSON.parse(localStorage.getItem(CERTS_KEY) || '[]');
   }
 
-  // Helper function to update file with retry logic
+  // Update file with retry logic
   async function updateFileWithRetry(owner, repo, path, data, commitMsg, branch, token, maxRetries = 3) {
     let lastError = null;
     
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        // Always fetch the latest SHA before each attempt
         const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, token).catch(() => null);
         const sha = existing ? existing.sha : null;
         
         await GitHubAPI.updateFile(owner, repo, path, data, commitMsg, branch, token, sha);
-        return; // Success
+        return;
       } catch (err) {
         lastError = err;
         console.warn(`Update attempt ${attempt} failed: ${err.message}`);
         
         if (attempt < maxRetries) {
-          // Wait before retry (exponential backoff)
           const delay = Math.pow(2, attempt) * 500;
           await new Promise(resolve => setTimeout(resolve, delay));
         }
@@ -561,7 +647,17 @@ window.portfolioData = (() => {
     return { projects, certs };
   }
 
-  return { loadProjects, saveProjects, loadCertificates, saveCertificates, exportData, downloadBackup, restoreBackup };
+  return { 
+    loadProjects, 
+    saveProjects, 
+    loadCertificates, 
+    saveCertificates, 
+    exportData, 
+    downloadBackup, 
+    restoreBackup,
+    loadProjectsForView,
+    loadCertificatesForView
+  };
 })();
 
 // ---------- LAZY LOAD & PROTECT ----------
@@ -598,7 +694,7 @@ window.protectImages = function () {
 };
 
 window.generateProjectReport = async function(projectId) {
-  const data = await window.portfolioData.loadProjects();
+  const data = await window.portfolioData.loadProjectsForView();
   const proj = data[projectId];
   if (!proj) { alert("Project not found!"); return; }
 
@@ -672,10 +768,10 @@ window.generateProjectReport = async function(projectId) {
       <div style="background:${bgColor}; padding:20px; border-radius:16px; margin:20px 0;">
         <h3>Project Overview</h3>
         <table style="width:100%">
-          <tr><td><strong>Title:</strong></td><td>${proj.title}</td></tr>
-          <tr><td><strong>Location:</strong></td><td>${proj.siteLocation||'N/A'}</td></tr>
-          <tr><td><strong>Controllers:</strong></td><td>${controllerDisplay}Zo81
-          <tr><td><strong>Cabinets:</strong></td><td>${proj.cabinetCount}</td></tr>
+          <tr><td><strong>Title:</strong>${dataV}/${proj.title}专业专业
+          <tr><td><strong>Location:</strong>${dataV}/${proj.siteLocation||'N/A'}专业专业
+          <tr><td><strong>Controllers:</strong>${dataV}/${controllerDisplay}专业专业
+          <tr><td><strong>Cabinets:</strong>${dataV}/${proj.cabinetCount}专业专业
           ${proj.deltaVVersion ? `<tr><td><strong>DeltaV Version:</strong>${dataV}/${proj.deltaVVersion}专业专业` : ''}
           <tr><td><strong>Start Date:</strong>${dataV}/${proj.dates?.start || 'N/A'}专业专业
           <tr><td><strong>Finish Date:</strong>${dataV}/${proj.dates?.finish || 'N/A'}专业专业
