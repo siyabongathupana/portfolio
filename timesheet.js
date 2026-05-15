@@ -1,7 +1,5 @@
-// timesheet.js – full timesheet logic, Chart.js, filters, CSV export, print
-
+// timesheet.js – Professional timesheet with charts, filters, totals, print, CSV
 (function() {
-  // Authentication check
   const user = window.SessionManager?.getCurrentUser();
   if (!user) {
     alert("Please log in to access the timesheet.");
@@ -9,32 +7,16 @@
     return;
   }
 
-  // Data storage key on GitHub
   const TIMESHEET_FILE = "timesheet.json";
-  let entries = [];      // array of { date, start, end, hours, category, billable, notes, id }
+  let entries = [];
   let categoryChart = null;
   let billableChart = null;
 
-  // Helper to get start of day (local date)
-  function startOfDay(date) {
-    const d = new Date(date);
-    d.setHours(0,0,0,0);
-    return d;
-  }
-
-  function endOfDay(date) {
-    const d = new Date(date);
-    d.setHours(23,59,59,999);
-    return d;
-  }
-
-  // Format date to YYYY-MM-DD
+  // Helper functions
   function formatDate(date) {
     const d = new Date(date);
     return d.toISOString().split('T')[0];
   }
-
-  // Calculate hours between two time strings (HH:MM)
   function calcHours(start, end) {
     if (!start || !end) return 0;
     const [sh, sm] = start.split(':').map(Number);
@@ -43,36 +25,26 @@
     if (totalMinutes < 0) totalMinutes += 24 * 60;
     return +(totalMinutes / 60).toFixed(2);
   }
-
-  // Auto-fill hours when start/end change
   function updateHoursAuto() {
     const start = document.getElementById('startTime').value;
     const end = document.getElementById('endTime').value;
-    const hours = calcHours(start, end);
-    document.getElementById('hoursAuto').value = hours.toFixed(2);
+    document.getElementById('hoursAuto').value = calcHours(start, end).toFixed(2);
   }
 
-  // Load timesheet data from GitHub
+  // Load / Save
   async function loadTimesheet() {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(user.username);
     const path = `${dataPath}/users/${encUser}/${TIMESHEET_FILE}`;
     try {
       const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
-      if (file && file.content) {
-        entries = JSON.parse(file.content);
-      } else {
-        entries = [];
-      }
-    } catch (e) {
-      if (e.message.includes('404')) entries = [];
-      else throw e;
+      entries = file?.content ? JSON.parse(file.content) : [];
+    } catch(e) {
+      if (!e.message.includes('404')) console.error(e);
+      entries = [];
     }
-    // sort by date descending
     entries.sort((a,b) => new Date(b.date) - new Date(a.date));
   }
-
-  // Save timesheet data to GitHub
   async function saveTimesheet() {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(user.username);
@@ -86,7 +58,7 @@
     window.Logger.log('timesheet_save', `Saved ${entries.length} entries`);
   }
 
-  // Add new entry
+  // Add / Delete
   async function addEntry() {
     const date = document.getElementById('logDate').value;
     const start = document.getElementById('startTime').value;
@@ -94,29 +66,14 @@
     const category = document.getElementById('taskCategory').value;
     const billable = document.getElementById('billable').value;
     const notes = document.getElementById('taskNotes').value.trim();
-    if (!date || !start || !end) {
-      alert("Please fill date, start and end time.");
-      return;
-    }
+    if (!date || !start || !end) { alert("Fill date, start and end."); return; }
     const hours = calcHours(start, end);
-    if (hours <= 0) {
-      alert("End time must be after start time.");
-      return;
-    }
-    const newEntry = {
-      id: Date.now(),
-      date: date,
-      start: start,
-      end: end,
-      hours: hours,
-      category: category,
-      billable: billable,
-      notes: notes
-    };
-    entries.unshift(newEntry);
+    if (hours <= 0) { alert("End time must be after start."); return; }
+    entries.unshift({
+      id: Date.now(), date, start, end, hours, category, billable, notes
+    });
     await saveTimesheet();
     refreshView();
-    // reset form, keep date as today
     document.getElementById('startTime').value = '';
     document.getElementById('endTime').value = '';
     document.getElementById('taskNotes').value = '';
@@ -125,55 +82,53 @@
     document.getElementById('billable').value = 'yes';
     updateDailyProgress();
   }
-
-  // Delete entry
   async function deleteEntry(id) {
-    if (confirm("Delete this entry?")) {
+    if (confirm("Delete entry?")) {
       entries = entries.filter(e => e.id != id);
       await saveTimesheet();
       refreshView();
     }
   }
 
-  // Filter entries based on range and category
+  // Filter logic
   function getFilteredEntries() {
     const range = document.getElementById('filterRange').value;
     const category = document.getElementById('filterCategory').value;
     const now = new Date();
     let filtered = [...entries];
-    // date filter
     filtered = filtered.filter(entry => {
-      const entryDate = new Date(entry.date);
-      if (range === 'day') {
-        return entryDate.toDateString() === now.toDateString();
-      } else if (range === 'week') {
+      const d = new Date(entry.date);
+      if (range === 'day') return d.toDateString() === now.toDateString();
+      if (range === 'week') {
         const startOfWeek = new Date(now);
         startOfWeek.setDate(now.getDate() - now.getDay());
         startOfWeek.setHours(0,0,0,0);
         const endOfWeek = new Date(startOfWeek);
         endOfWeek.setDate(startOfWeek.getDate() + 6);
         endOfWeek.setHours(23,59,59,999);
-        return entryDate >= startOfWeek && entryDate <= endOfWeek;
-      } else { // month
-        return entryDate.getMonth() === now.getMonth() && entryDate.getFullYear() === now.getFullYear();
+        return d >= startOfWeek && d <= endOfWeek;
       }
+      // month
+      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
     });
-    if (category !== 'all') {
-      filtered = filtered.filter(e => e.category === category);
-    }
+    if (category !== 'all') filtered = filtered.filter(e => e.category === category);
     return filtered;
   }
 
-  // Render history table
+  // Render table with totals
   function renderHistory() {
     const filtered = getFilteredEntries();
     const tbody = document.getElementById('historyBody');
+    const tfoot = document.getElementById('historyFoot');
     if (filtered.length === 0) {
       tbody.innerHTML = '<tr><td colspan="8" class="text-center">No entries found.</td></tr>';
+      tfoot.style.display = 'none';
       return;
     }
     tbody.innerHTML = '';
+    let totalHours = 0;
     filtered.forEach(entry => {
+      totalHours += entry.hours;
       const row = tbody.insertRow();
       row.insertCell(0).innerText = entry.date;
       row.insertCell(1).innerText = entry.start;
@@ -182,81 +137,74 @@
       row.insertCell(4).innerText = entry.category;
       row.insertCell(5).innerText = entry.billable === 'yes' ? 'Billable' : 'Non-billable';
       row.insertCell(6).innerText = entry.notes || '-';
-      const actions = row.insertCell(7);
-      actions.className = 'print-hide';
+      const actionCell = row.insertCell(7);
+      actionCell.className = 'print-hide';
       const delBtn = document.createElement('button');
       delBtn.className = 'btn btn-sm btn-danger';
       delBtn.innerHTML = '<i class="fa fa-trash"></i>';
       delBtn.onclick = () => deleteEntry(entry.id);
-      actions.appendChild(delBtn);
+      actionCell.appendChild(delBtn);
     });
+    document.getElementById('totalHoursCell').innerText = totalHours.toFixed(2);
+    tfoot.style.display = 'table-footer-group';
   }
 
-  // Update daily progress bar for today
+  // Daily progress
   function updateDailyProgress() {
     const today = formatDate(new Date());
-    const todayEntries = entries.filter(e => e.date === today);
-    const totalHours = todayEntries.reduce((sum, e) => sum + e.hours, 0);
-    const percent = Math.min(100, (totalHours / 8) * 100);
+    const todayHours = entries.filter(e => e.date === today).reduce((s,e) => s + e.hours, 0);
+    const percent = Math.min(100, (todayHours / 8) * 100);
     const fill = document.getElementById('dailyProgressFill');
     fill.style.width = percent + '%';
-    fill.innerText = totalHours.toFixed(1) + 'h';
-    if (totalHours >= 8) fill.style.background = '#28a745';
-    else fill.style.background = '#2fc7ff';
+    fill.innerText = todayHours.toFixed(1) + 'h';
+    fill.style.background = todayHours >= 8 ? '#28a745' : '#2fc7ff';
   }
 
-  // Update pie charts
-  async function updateCharts() {
+  // Update charts (smaller)
+  function updateCharts() {
     const filtered = getFilteredEntries();
     // Category breakdown
-    const categoryMap = {};
-    filtered.forEach(e => { categoryMap[e.category] = (categoryMap[e.category] || 0) + e.hours; });
-    const catLabels = Object.keys(categoryMap);
-    const catData = Object.values(categoryMap);
+    const catMap = {};
+    filtered.forEach(e => { catMap[e.category] = (catMap[e.category] || 0) + e.hours; });
     if (categoryChart) categoryChart.destroy();
     const ctxCat = document.getElementById('categoryChart').getContext('2d');
     categoryChart = new Chart(ctxCat, {
       type: 'pie',
-      data: { labels: catLabels, datasets: [{ data: catData, backgroundColor: ['#2fc7ff','#ffc107','#28a745','#dc3545','#6f42c1','#fd7e14'] }] },
-      options: { responsive: true, maintainAspectRatio: true }
+      data: {
+        labels: Object.keys(catMap),
+        datasets: [{ data: Object.values(catMap), backgroundColor: ['#2fc7ff','#ffc107','#28a745','#dc3545','#6f42c1','#fd7e14'] }]
+      },
+      options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } } }
     });
-    // Billable breakdown
-    let billableHours = 0, nonBillable = 0;
-    filtered.forEach(e => {
-      if (e.billable === 'yes') billableHours += e.hours;
-      else nonBillable += e.hours;
-    });
+    // Billable
+    let billable = 0, nonBill = 0;
+    filtered.forEach(e => { if (e.billable === 'yes') billable += e.hours; else nonBill += e.hours; });
     if (billableChart) billableChart.destroy();
     const ctxBill = document.getElementById('billableChart').getContext('2d');
     billableChart = new Chart(ctxBill, {
       type: 'pie',
-      data: { labels: ['Billable', 'Non-billable'], datasets: [{ data: [billableHours, nonBillable], backgroundColor: ['#28a745','#dc3545'] }] },
-      options: { responsive: true }
+      data: { labels: ['Billable', 'Non-billable'], datasets: [{ data: [billable, nonBill], backgroundColor: ['#28a745','#dc3545'] }] },
+      options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } } }
     });
   }
 
   // CSV Export
-  function exportToCSV() {
+  function exportCSV() {
     const filtered = getFilteredEntries();
     if (filtered.length === 0) { alert("No data to export."); return; }
     const headers = ["Date","Start","End","Hours","Category","Billable","Notes"];
     const rows = filtered.map(e => [e.date, e.start, e.end, e.hours, e.category, e.billable === 'yes' ? 'Billable' : 'Non-billable', e.notes]);
-    const csvContent = [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(",")).join("\n");
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const csv = [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.href = url;
-    link.setAttribute('download', `timesheet_${new Date().toISOString().slice(0,10)}.csv`);
-    document.body.appendChild(link);
+    link.href = URL.createObjectURL(blob);
+    link.download = `timesheet_${new Date().toISOString().slice(0,10)}.csv`;
     link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    URL.revokeObjectURL(link.href);
   }
 
-  // Print with print CSS
-  function printTimesheet() {
-    window.print();
-  }
+  // Print (browser print, CSS handles hiding)
+  function printTimesheet() { window.print(); }
 
   // Refresh everything
   async function refreshView() {
@@ -266,36 +214,27 @@
     updateCharts();
   }
 
-  // Set default date to today, and add event listeners
+  // Initialise form
   function initForm() {
-    const today = formatDate(new Date());
-    document.getElementById('logDate').value = today;
+    document.getElementById('logDate').value = formatDate(new Date());
     document.getElementById('startTime').addEventListener('change', updateHoursAuto);
     document.getElementById('endTime').addEventListener('change', updateHoursAuto);
-    document.getElementById('nowStartBtn').addEventListener('click', () => {
-      const now = new Date();
-      const time = now.toTimeString().slice(0,5);
-      document.getElementById('startTime').value = time;
+    document.getElementById('nowStartBtn').onclick = () => {
+      document.getElementById('startTime').value = new Date().toTimeString().slice(0,5);
       updateHoursAuto();
-    });
-    document.getElementById('nowEndBtn').addEventListener('click', () => {
-      const now = new Date();
-      const time = now.toTimeString().slice(0,5);
-      document.getElementById('endTime').value = time;
+    };
+    document.getElementById('nowEndBtn').onclick = () => {
+      document.getElementById('endTime').value = new Date().toTimeString().slice(0,5);
       updateHoursAuto();
-    });
-    document.getElementById('addEntryBtn').addEventListener('click', addEntry);
-    document.getElementById('refreshHistoryBtn').addEventListener('click', () => refreshView());
-    document.getElementById('exportCsvBtn').addEventListener('click', exportToCSV);
-    document.getElementById('printBtn').addEventListener('click', printTimesheet);
-    document.getElementById('filterRange').addEventListener('change', () => { renderHistory(); updateCharts(); });
-    document.getElementById('filterCategory').addEventListener('change', () => { renderHistory(); updateCharts(); });
+    };
+    document.getElementById('addEntryBtn').onclick = addEntry;
+    document.getElementById('refreshHistoryBtn').onclick = () => refreshView();
+    document.getElementById('exportCsvBtn').onclick = exportCSV;
+    document.getElementById('printBtn').onclick = printTimesheet;
+    document.getElementById('filterRange').onchange = () => { renderHistory(); updateCharts(); };
+    document.getElementById('filterCategory').onchange = () => { renderHistory(); updateCharts(); };
   }
 
-  // Initial load
   initForm();
-  refreshView().catch(err => {
-    console.error(err);
-    alert("Could not load timesheet data. Check your connection or token.");
-  });
+  refreshView().catch(err => console.error(err));
 })();
