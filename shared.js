@@ -1,5 +1,4 @@
-// shared.js – Full version with safety checks, GitHub image upload, backup/restore
-// FIXED: getUserStats now correctly counts certificates using same fallback as projects
+// shared.js – Full version with retry logic for GitHub updates
 
 window.showLoading = function (msg = 'Processing...') {
   let loader = document.getElementById('globalLoader');
@@ -268,14 +267,12 @@ window.AccountManager = {
     const base = `${dataPath}/users/${encUser}`;
     let projectCount = 0, certCount = 0;
     
-    // Load projects with fallback for public profile
     try {
       const projFile = await GitHubAPI.getFileContent(owner, repo, `${base}/projects.json`, branch, adminToken);
       if (projFile && projFile.content) {
         const data = JSON.parse(projFile.content);
         projectCount = Object.keys(data).length;
       }
-      // If user is public profile and file was empty, check public data
       if (projectCount === 0 && username === window.APP_CONFIG.publicProfileEmail) {
         const publicUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${base}/projects.json`;
         const resp = await fetch(publicUrl);
@@ -286,14 +283,12 @@ window.AccountManager = {
       }
     } catch (e) { console.warn('Failed to load projects stats', e); }
     
-    // Load certificates with the SAME fallback logic
     try {
       const certFile = await GitHubAPI.getFileContent(owner, repo, `${base}/certificates.json`, branch, adminToken);
       if (certFile && certFile.content) {
         const data = JSON.parse(certFile.content);
         certCount = data.length;
       }
-      // If user is public profile and file was empty, check public data
       if (certCount === 0 && username === window.APP_CONFIG.publicProfileEmail) {
         const publicUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${base}/certificates.json`;
         const resp = await fetch(publicUrl);
@@ -308,7 +303,7 @@ window.AccountManager = {
   }
 };
 
-// ---------- PORTFOLIO DATA (with public fallback for admin) ----------
+// ---------- PORTFOLIO DATA (with retry logic for GitHub updates) ----------
 window.portfolioData = (() => {
   const PROJECTS_KEY = 'deltaVProjects';
   const CERTS_KEY = 'deltaVCertificates';
@@ -324,7 +319,6 @@ window.portfolioData = (() => {
     }
   }
 
-  // Helper: fetch public data (unauthenticated) for a given email
   async function fetchPublicData(email, type) {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(email);
@@ -354,11 +348,9 @@ window.portfolioData = (() => {
           localStorage.setItem(PROJECTS_KEY, JSON.stringify(data));
           return data;
         } else {
-          // If user's own file is empty, try to load public data (if same as public profile)
           if (user.username === window.APP_CONFIG.publicProfileEmail) {
             const publicData = await fetchPublicData(user.username, 'projects');
             if (Object.keys(publicData).length > 0) {
-              console.warn('Using public projects as fallback for admin user');
               localStorage.setItem(PROJECTS_KEY, JSON.stringify(publicData));
               return publicData;
             }
@@ -394,12 +386,9 @@ window.portfolioData = (() => {
           localStorage.setItem(CERTS_KEY, JSON.stringify(data));
           return data;
         } else {
-          // Fallback: if user is the public profile owner and their file is empty,
-          // load the public certificates (so admin sees same as homepage)
           if (user.username === window.APP_CONFIG.publicProfileEmail) {
             const publicCerts = await fetchPublicData(user.username, 'certificates');
             if (publicCerts.length > 0) {
-              console.warn('Using public certificates as fallback for admin user – save to make them permanent.');
               localStorage.setItem(CERTS_KEY, JSON.stringify(publicCerts));
               return publicCerts;
             }
@@ -420,6 +409,33 @@ window.portfolioData = (() => {
     return JSON.parse(localStorage.getItem(CERTS_KEY) || '[]');
   }
 
+  // Helper function to update file with retry logic
+  async function updateFileWithRetry(owner, repo, path, data, commitMsg, branch, token, maxRetries = 3) {
+    let lastError = null;
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        // Always fetch the latest SHA before each attempt
+        const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, token).catch(() => null);
+        const sha = existing ? existing.sha : null;
+        
+        await GitHubAPI.updateFile(owner, repo, path, data, commitMsg, branch, token, sha);
+        return; // Success
+      } catch (err) {
+        lastError = err;
+        console.warn(`Update attempt ${attempt} failed: ${err.message}`);
+        
+        if (attempt < maxRetries) {
+          // Wait before retry (exponential backoff)
+          const delay = Math.pow(2, attempt) * 500;
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+    
+    throw lastError;
+  }
+
   async function saveProjects(data, forceEmpty = false) {
     const prev = localStorage.getItem(PROJECTS_KEY);
     if (prev && !forceEmpty) {
@@ -435,13 +451,9 @@ window.portfolioData = (() => {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(user.username);
     const path = `${dataPath}/users/${encUser}/projects.json`;
-    let sha = null;
+    
     try {
-      const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat).catch(() => null);
-      if (existing) sha = existing.sha;
-      const jsonStr = JSON.stringify(data);
-      if (jsonStr.length > 900000) throw new Error('Project data too large');
-      await GitHubAPI.updateFile(owner, repo, path, data, 'Update projects', branch, user.pat, sha);
+      await updateFileWithRetry(owner, repo, path, data, 'Update projects', branch, user.pat);
     } catch (err) {
       if (prev) localStorage.setItem(PROJECTS_KEY, prev);
       else localStorage.removeItem(PROJECTS_KEY);
@@ -464,11 +476,9 @@ window.portfolioData = (() => {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(user.username);
     const path = `${dataPath}/users/${encUser}/certificates.json`;
-    let sha = null;
+    
     try {
-      const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat).catch(() => null);
-      if (existing) sha = existing.sha;
-      await GitHubAPI.updateFile(owner, repo, path, data, 'Update certificates', branch, user.pat, sha);
+      await updateFileWithRetry(owner, repo, path, data, 'Update certificates', branch, user.pat);
     } catch (err) {
       if (prev) localStorage.setItem(CERTS_KEY, prev);
       else localStorage.removeItem(CERTS_KEY);
@@ -490,7 +500,6 @@ window.portfolioData = (() => {
     });
   }
 
-  // ----- BACKUP & RESTORE (admin only) -----
   async function downloadBackup() {
     const user = window.SessionManager.getCurrentUser();
     if (!user || !window.APP_CONFIG.adminUsers.includes(user.username)) {
@@ -663,15 +672,15 @@ window.generateProjectReport = async function(projectId) {
       <div style="background:${bgColor}; padding:20px; border-radius:16px; margin:20px 0;">
         <h3>Project Overview</h3>
         <table style="width:100%">
-          <tr><tr><strong>Title:</strong></td><td>${proj.title}</td></tr>
+          <tr><td><strong>Title:</strong></td><td>${proj.title}</td></tr>
           <tr><td><strong>Location:</strong></td><td>${proj.siteLocation||'N/A'}</td></tr>
-          <tr><td><strong>Controllers:</strong></td><td>${controllerDisplay}</td></tr>
+          <tr><td><strong>Controllers:</strong></td><td>${controllerDisplay}Zo81
           <tr><td><strong>Cabinets:</strong></td><td>${proj.cabinetCount}</td></tr>
-          ${proj.deltaVVersion ? `<tr><td><strong>DeltaV Version:</strong></td><td>${proj.deltaVVersion}</td></tr>` : ''}
-          <tr><td><strong>Start Date:</strong></td><td>${proj.dates?.start || 'N/A'}</td></tr>
-          <tr><td><strong>Finish Date:</strong></td><td>${proj.dates?.finish || 'N/A'}</td></tr>
-          <tr><td><strong>IFAT:</strong></td><td>${ifatText}</td></tr>
-          <tr><td><strong>CFAT:</strong></td><td>${cfatText}</td></tr>
+          ${proj.deltaVVersion ? `<tr><td><strong>DeltaV Version:</strong>${dataV}/${proj.deltaVVersion}专业专业` : ''}
+          <tr><td><strong>Start Date:</strong>${dataV}/${proj.dates?.start || 'N/A'}专业专业
+          <tr><td><strong>Finish Date:</strong>${dataV}/${proj.dates?.finish || 'N/A'}专业专业
+          <tr><td><strong>IFAT:</strong>${dataV}/${ifatText}专业专业
+          <tr><td><strong>CFAT:</strong>${dataV}/${cfatText}专业专业
         </table>
       </div>
       <div style="background:${bgColor}; padding:20px; border-radius:16px; margin-bottom:20px;">
@@ -681,7 +690,7 @@ window.generateProjectReport = async function(projectId) {
         <h3>I/O Configuration</h3>
         <table style="width:100%; text-align:center; border-collapse:collapse;">
           <tr style="background:${primaryColor}; color:white;"><th>AI</th><th>AO</th><th>DI</th><th>DO</th></tr>
-          <tr><td>${io.AI}</td><td>${io.AO}</td><td>${io.DI}</td><td>${io.DO}</td></tr>
+          <tr><td>${io.AI}${dataV}/${io.AO}${dataV}/${io.DI}${dataV}/${io.DO}专业专业
         </table>
       </div>
       <div style="background:${bgColor}; padding:20px; border-radius:16px; margin-bottom:20px; text-align:center;">
