@@ -19,7 +19,7 @@ jobs:
       - name: Create backup directory with timestamp
         run: |
           TIMESTAMP=$(date +'%Y-%m-%d_%H-%M-%S')
-          mkdir -p "backups/$TIMESTAMP/data"
+          mkdir -p "backups/$TIMESTAMP/data/users"
           echo "BACKUP_TIMESTAMP=$TIMESTAMP" >> $GITHUB_ENV
           echo "BACKUP_DIR=backups/$TIMESTAMP" >> $GITHUB_ENV
 
@@ -31,7 +31,7 @@ jobs:
             echo "No data folder found – creating empty structure"
             mkdir -p "$BACKUP_DIR/data"
           fi
-          
+
           # Count total projects and certificates across ALL users
           PROJ_COUNT=0
           CERT_COUNT=0
@@ -45,7 +45,8 @@ jobs:
               fi
             done
           fi
-          
+
+          # Create backup_info.json at the root of the backup folder
           cat > "$BACKUP_DIR/backup_info.json" << EOF
           {
             "timestamp": "$BACKUP_TIMESTAMP",
@@ -57,7 +58,7 @@ jobs:
           }
           EOF
 
-      - name: Create ZIP archive (flattened)
+      - name: Create ZIP archive (flat structure – root contains data/ and backup_info.json)
         run: |
           cd backups/${{ env.BACKUP_TIMESTAMP }}
           zip -r "../${{ env.BACKUP_TIMESTAMP }}.zip" .
