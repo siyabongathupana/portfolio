@@ -33,6 +33,7 @@
     .image-counter { font-size:0.8rem; color:#666; margin-left:10px; }
     .backup-card { background:#f8f9fa; border-radius:16px; padding:15px; margin-bottom:15px; }
     .backup-card:hover { background:#e9ecef; }
+    .user-selector { max-width: 300px; margin-bottom: 20px; }
   </style>
 </head>
 <body style="background:#eef3fc;">
@@ -73,13 +74,21 @@
         <div id="certificatesList"></div>
       </div>
 
+      <!-- Backups Tab (with user selector for admin) -->
       <div class="tab-pane fade" id="backupsTab">
-        <div class="mb-3 d-flex justify-content-between align-items-center">
+        <div class="mb-3 d-flex justify-content-between align-items-center flex-wrap">
           <div>
             <button class="btn btn-delta mr-2" id="refreshBackupsBtn"><i class="fa fa-refresh"></i> Refresh List</button>
             <span class="text-muted">Daily backups created at midnight UTC.</span>
           </div>
           <button class="btn btn-outline-secondary" id="triggerBackupNowBtn" style="display:none;"><i class="fa fa-play"></i> Run Backup Now</button>
+        </div>
+        <!-- User selector for admin restore -->
+        <div id="backupUserSelectorDiv" class="user-selector" style="display:none;">
+          <label>Restore data for user:</label>
+          <select id="restoreUserSelect" class="form-control">
+            <option value="">-- Select user --</option>
+          </select>
         </div>
         <div id="backupsList" style="max-height: 600px; overflow-y: auto;">Loading backups...</div>
       </div>
@@ -325,7 +334,7 @@
       cbs.forEach(cb => cb.checked = !all);
     };
 
-    // ---- CRUD Functions ----
+    // ---- CRUD Functions (unchanged) ----
     async function renderProjects() {
       const projects = await window.portfolioData.loadProjects();
       const container = document.getElementById('projectsList');
@@ -512,7 +521,7 @@
       await safeSaveCertificate(certs);
     };
 
-    // ---- Backup & Restore ----
+    // ---- Backup & Restore with user selection (admin only) ----
     async function listBackups() {
       const cfg = window.REPO_CONFIG;
       const url = `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/backups?ref=${cfg.branch}`;
@@ -534,15 +543,16 @@
       return null;
     }
 
-    async function downloadBackupData(zipUrl, type) {
+    // Extract projects/certificates for a specific user from backup ZIP
+    async function downloadBackupDataForUser(zipUrl, targetUser, type) {
       const resp = await fetch(zipUrl);
       const zip = await JSZip.loadAsync(await resp.blob());
-      const encUser = encodeURIComponent(user.username);
-      let projects=null, certs=null;
+      const encUser = encodeURIComponent(targetUser);
+      let projects = null, certs = null;
       const findFile = (suffix) => Object.keys(zip.files).find(p => p.endsWith(suffix) && !zip.files[p].dir);
       if (type === 'projects' || type === 'both') {
         let path = findFile(`users/${encUser}/projects.json`);
-        if (!path) path = findFile(`projects.json`);
+        if (!path) path = findFile(`projects.json`); // fallback if only one user in backup
         if (path) projects = JSON.parse(await zip.file(path).async("string"));
       }
       if (type === 'certificates' || type === 'both') {
@@ -553,43 +563,111 @@
       return { projects, certificates: certs };
     }
 
-    async function restoreFromBackup(zipUrl, restoreProj, restoreCert) {
+    // Restore for a given user (admin only)
+    async function restoreForUser(zipUrl, targetUser, restoreProj, restoreCert) {
       const actions = [];
       if (restoreProj) actions.push("Projects");
       if (restoreCert) actions.push("Certificates");
       if (!actions.length) return;
-      if (!confirm(`⚠️ Restoring ${actions.join(" and ")} will OVERWRITE your current ${actions.join(" and ")}. Continue?`)) return;
-      window.showLoading(`Restoring ${actions.join(" and ")}...`);
+      if (!confirm(`⚠️ Restoring ${actions.join(" and ")} for user ${targetUser} will OVERWRITE their current data. Continue?`)) return;
+      window.showLoading(`Restoring ${actions.join(" and ")} for ${targetUser}...`);
       try {
-        const { projects, certificates } = await downloadBackupData(zipUrl, restoreProj && restoreCert ? 'both' : (restoreProj ? 'projects' : 'certificates'));
-        if (restoreProj && !projects) throw new Error('No projects found in backup for your user');
-        if (restoreCert && !certificates) throw new Error('No certificates found in backup for your user');
-        if (restoreProj) await window.portfolioData.saveProjects(projects);
-        if (restoreCert) await window.portfolioData.saveCertificates(certificates);
-        await renderProjects(); await renderCertificates();
-        alert('Restore successful!');
+        const { projects, certificates } = await downloadBackupDataForUser(zipUrl, targetUser, restoreProj && restoreCert ? 'both' : (restoreProj ? 'projects' : 'certificates'));
+        if (restoreProj && !projects) throw new Error(`No projects found in backup for user ${targetUser}`);
+        if (restoreCert && !certificates) throw new Error(`No certificates found in backup for user ${targetUser}`);
+        
+        // Save directly to GitHub for that user (using admin's PAT)
+        const config = window.REPO_CONFIG;
+        const token = user.pat;
+        const encTarget = encodeURIComponent(targetUser);
+        if (restoreProj) {
+          const path = `${config.dataPath}/users/${encTarget}/projects.json`;
+          let sha = null;
+          try {
+            const existing = await GitHubAPI.getFileContent(config.owner, config.repo, path, config.branch, token);
+            if (existing) sha = existing.sha;
+          } catch(e) {}
+          await GitHubAPI.updateFile(config.owner, config.repo, path, projects, `Restore projects for ${targetUser} from backup`, config.branch, token, sha);
+        }
+        if (restoreCert) {
+          const path = `${config.dataPath}/users/${encTarget}/certificates.json`;
+          let sha = null;
+          try {
+            const existing = await GitHubAPI.getFileContent(config.owner, config.repo, path, config.branch, token);
+            if (existing) sha = existing.sha;
+          } catch(e) {}
+          await GitHubAPI.updateFile(config.owner, config.repo, path, certificates, `Restore certificates for ${targetUser} from backup`, config.branch, token, sha);
+        }
+        // Also update local cache for the current user if targetUser is the logged-in user
+        if (targetUser === user.username) {
+          if (restoreProj) await window.portfolioData.saveProjects(projects);
+          if (restoreCert) await window.portfolioData.saveCertificates(certificates);
+          await renderProjects();
+          await renderCertificates();
+        }
+        alert(`Restore successful for ${targetUser}!`);
+        if (targetUser === user.username) {
+          // Already reloaded
+        } else {
+          // Optionally refresh user list to show updated stats
+          if (isAdmin) loadUsers();
+        }
       } catch(err) { alert('Restore failed: '+err.message); }
       window.hideLoading();
     }
 
-    async function loadBackups() {
+    async function loadBackupsAndUsers() {
       const container = document.getElementById('backupsList');
       container.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Loading...';
       const backups = await listBackups();
       if (!backups.length) { container.innerHTML = '<div class="empty-state">No backups found</div>'; return; }
+      
+      // Also load users for the dropdown (if admin)
+      let allUsers = [];
+      if (isAdmin) {
+        try {
+          allUsers = await window.AccountManager.listUsers(user.pat);
+        } catch(e) { console.warn(e); }
+        const userSelect = document.getElementById('restoreUserSelect');
+        userSelect.innerHTML = '<option value="">-- Select user --</option>';
+        allUsers.forEach(u => {
+          userSelect.innerHTML += `<option value="${window.escapeHtml(u)}">${window.escapeHtml(u)}</option>`;
+        });
+      }
+      
       let html = '';
       for (const b of backups) {
         const info = await getBackupInfo(b.download_url);
         const ts = b.name.replace('.zip','');
-        html += `<div class="backup-card"><div><strong>${ts}</strong><br><small>Projects: ${info?.projects_count||'?'} | Certs: ${info?.certificates_count||'?'}</small></div>
-        <div><button class="btn btn-sm btn-outline-primary restore-proj" data-url="${b.download_url}">Restore My Projects</button>
-        <button class="btn btn-sm btn-outline-success restore-cert" data-url="${b.download_url}">Restore My Certificates</button>
-        <button class="btn btn-sm btn-outline-danger restore-both" data-url="${b.download_url}">Restore Both</button></div></div>`;
+        html += `<div class="backup-card">
+          <div><strong>${ts}</strong><br><small>Projects: ${info?.projects_count||'?'} | Certs: ${info?.certificates_count||'?'}</small></div>
+          <div>
+            <button class="btn btn-sm btn-outline-primary restore-proj" data-url="${b.download_url}">Restore Projects</button>
+            <button class="btn btn-sm btn-outline-success restore-cert" data-url="${b.download_url}">Restore Certificates</button>
+            <button class="btn btn-sm btn-outline-danger restore-both" data-url="${b.download_url}">Restore Both</button>
+          </div>
+        </div>`;
       }
       container.innerHTML = html;
-      document.querySelectorAll('.restore-proj').forEach(btn => btn.onclick = () => restoreFromBackup(btn.dataset.url, true, false));
-      document.querySelectorAll('.restore-cert').forEach(btn => btn.onclick = () => restoreFromBackup(btn.dataset.url, false, true));
-      document.querySelectorAll('.restore-both').forEach(btn => btn.onclick = () => restoreFromBackup(btn.dataset.url, true, true));
+      
+      // Attach restore handlers - they will use the currently selected user from dropdown
+      const selectedUserElem = document.getElementById('restoreUserSelect');
+      const getTargetUser = () => {
+        if (isAdmin && selectedUserElem && selectedUserElem.value) {
+          return selectedUserElem.value;
+        }
+        return user.username; // fallback to logged-in user
+      };
+      
+      document.querySelectorAll('.restore-proj').forEach(btn => {
+        btn.onclick = () => restoreForUser(btn.dataset.url, getTargetUser(), true, false);
+      });
+      document.querySelectorAll('.restore-cert').forEach(btn => {
+        btn.onclick = () => restoreForUser(btn.dataset.url, getTargetUser(), false, true);
+      });
+      document.querySelectorAll('.restore-both').forEach(btn => {
+        btn.onclick = () => restoreForUser(btn.dataset.url, getTargetUser(), true, true);
+      });
     }
 
     async function triggerBackup() {
@@ -606,12 +684,44 @@
     if (isAdmin) {
       document.getElementById('backupsTabNav').style.display = 'block';
       document.getElementById('usersTabNav').style.display = 'block';
-      document.getElementById('refreshBackupsBtn').onclick = loadBackups;
+      document.getElementById('refreshBackupsBtn').onclick = loadBackupsAndUsers;
       document.getElementById('refreshUsersBtn').onclick = loadUsers;
       if (user.pat && (user.pat.startsWith('github_pat_') || user.pat.length>40)) document.getElementById('triggerBackupNowBtn').style.display = 'inline-block';
       document.getElementById('triggerBackupNowBtn').onclick = triggerBackup;
-      loadBackups();
+      
+      // Show user selector div
+      const userSelectorDiv = document.getElementById('backupUserSelectorDiv');
+      if (userSelectorDiv) userSelectorDiv.style.display = 'block';
+      
+      loadBackupsAndUsers();
       loadUsers();
+    } else {
+      // Non-admin: still show backups but only for themselves (no user selector)
+      document.getElementById('backupsTabNav').style.display = 'block';
+      document.getElementById('refreshBackupsBtn').onclick = async () => {
+        const container = document.getElementById('backupsList');
+        container.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Loading...';
+        const backups = await listBackups();
+        if (!backups.length) { container.innerHTML = '<div class="empty-state">No backups found</div>'; return; }
+        let html = '';
+        for (const b of backups) {
+          const info = await getBackupInfo(b.download_url);
+          const ts = b.name.replace('.zip','');
+          html += `<div class="backup-card">
+            <div><strong>${ts}</strong><br><small>Projects: ${info?.projects_count||'?'} | Certs: ${info?.certificates_count||'?'}</small></div>
+            <div>
+              <button class="btn btn-sm btn-outline-primary restore-proj" data-url="${b.download_url}">Restore My Projects</button>
+              <button class="btn btn-sm btn-outline-success restore-cert" data-url="${b.download_url}">Restore My Certificates</button>
+              <button class="btn btn-sm btn-outline-danger restore-both" data-url="${b.download_url}">Restore Both</button>
+            </div>
+          </div>`;
+        }
+        container.innerHTML = html;
+        document.querySelectorAll('.restore-proj').forEach(btn => btn.onclick = () => restoreForUser(btn.dataset.url, user.username, true, false));
+        document.querySelectorAll('.restore-cert').forEach(btn => btn.onclick = () => restoreForUser(btn.dataset.url, user.username, false, true));
+        document.querySelectorAll('.restore-both').forEach(btn => btn.onclick = () => restoreForUser(btn.dataset.url, user.username, true, true));
+      };
+      document.getElementById('refreshBackupsBtn').click(); // initial load
     }
 
     async function loadUsers() {
@@ -637,9 +747,11 @@
           }
         });
         document.querySelectorAll('.delete-user').forEach(btn => btn.onclick = async () => {
-          if (confirm(`Permanently delete ${btn.dataset.user}?`)) {
+          if (confirm(`Permanently delete ${btn.dataset.user}? This removes all their projects and certificates.`)) {
             await window.AccountManager.deleteUser(btn.dataset.user, user.pat);
             loadUsers();
+            // Also update the user selector in backups tab
+            if (document.getElementById('restoreUserSelect')) loadBackupsAndUsers();
           }
         });
       } catch(e) { container.innerHTML = `<div class="alert alert-danger">${e.message}</div>`; }
