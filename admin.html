@@ -31,6 +31,8 @@
     .image-counter { font-size:0.8rem; color:#666; margin-left:10px; }
     .user-badge { background:#2fc7ff; color:white; padding:4px 12px; border-radius:20px; font-size:0.9rem; }
     .cert-thumb-preview { max-width:80px; max-height:80px; margin-top:8px; border-radius:12px; }
+    .view-portfolio-btn { background: #28a745; color: white; border-radius: 20px; padding: 6px 16px; margin-right: 10px; transition: 0.2s; }
+    .view-portfolio-btn:hover { background: #218838; color: white; text-decoration: none; }
   </style>
 </head>
 <body style="background:#eef3fc;">
@@ -41,6 +43,7 @@
       <h1><i class="fa fa-dashboard"></i> DeltaV Portfolio Dashboard</h1>
       <div class="d-flex align-items-center">
         <span class="user-badge mr-3" id="currentUserDisplay"></span>
+        <a href="index.html" class="btn view-portfolio-btn mr-2" target="_blank"><i class="fa fa-eye"></i> View Portfolio</a>
         <button class="btn btn-outline-danger btn-sm mr-2" id="logoutBtn"><i class="fa fa-sign-out"></i> Logout</button>
         <button class="btn btn-outline-success btn-sm mr-2" id="downloadDataBtn"><i class="fa fa-download"></i> Export</button>
       </div>
@@ -400,7 +403,7 @@
               </div>
             </div>
             <p><strong>Controller:</strong> ${proj.controllerType} | <strong>Cabinets:</strong> ${proj.cabinetCount} | <strong>Location:</strong> ${proj.siteLocation || ''}</p>
-            <small>${window.escapeHtml(proj.description.substring(0, 120))}...</small>
+            <small>${window.escapeHtml(proj.description?.substring(0, 120) || '')}...</small>
           </div>`;
         container.appendChild(card);
       }
