@@ -1,4 +1,4 @@
-// shared.js – Full version with user-specific data for logged-in users
+// shared.js – Full version with session persistence across all pages
 
 window.showLoading = function (msg = 'Processing...') {
   let loader = document.getElementById('globalLoader');
@@ -53,12 +53,18 @@ window.SessionManager = (() => {
       if (current) return current;
       const stored = sessionStorage.getItem('deltaVUser');
       if (stored) {
-        try { current = JSON.parse(stored); } catch(e) {}
+        try { 
+          current = JSON.parse(stored);
+          if (current.timestamp && Date.now() - current.timestamp > 24 * 60 * 60 * 1000) {
+            sessionStorage.removeItem('deltaVUser');
+            current = null;
+          }
+        } catch(e) { current = null; }
       }
       return current;
     },
     setCurrentUser: (username, pat) => {
-      current = { username, pat };
+      current = { username, pat, timestamp: Date.now() };
       sessionStorage.setItem('deltaVUser', JSON.stringify(current));
     },
     logout: () => {
@@ -311,7 +317,7 @@ window.AccountManager = {
   }
 };
 
-// ---------- PORTFOLIO DATA (with user-specific loading for main pages) ----------
+// ---------- PORTFOLIO DATA ----------
 window.portfolioData = (() => {
   const PROJECTS_KEY = 'deltaVProjects';
   const CERTS_KEY = 'deltaVCertificates';
@@ -344,11 +350,9 @@ window.portfolioData = (() => {
     return type === 'projects' ? {} : [];
   }
 
-  // NEW: Load data based on current user (logged in = their own data, logged out = public)
   async function loadProjectsForView() {
     const user = window.SessionManager.getCurrentUser();
     
-    // If logged in, load user's own projects (with fallback to public if empty)
     if (user && user.pat) {
       await verifyNotBlocked();
       try {
@@ -360,7 +364,6 @@ window.portfolioData = (() => {
           const data = JSON.parse(file.content);
           return data;
         } else {
-          // If user's file is empty, fall back to public profile data
           if (user.username === window.APP_CONFIG.publicProfileEmail) {
             const publicData = await fetchPublicData(user.username, 'projects');
             if (Object.keys(publicData).length > 0) {
@@ -375,7 +378,6 @@ window.portfolioData = (() => {
       }
     }
     
-    // Not logged in - load public profile data
     const publicEmail = window.APP_CONFIG.publicProfileEmail;
     if (publicEmail) {
       return await fetchPublicData(publicEmail, 'projects');
@@ -386,7 +388,6 @@ window.portfolioData = (() => {
   async function loadCertificatesForView() {
     const user = window.SessionManager.getCurrentUser();
     
-    // If logged in, load user's own certificates (with fallback to public if empty)
     if (user && user.pat) {
       await verifyNotBlocked();
       try {
@@ -398,7 +399,6 @@ window.portfolioData = (() => {
           const data = JSON.parse(file.content);
           return data;
         } else {
-          // If user's file is empty, fall back to public profile data
           if (user.username === window.APP_CONFIG.publicProfileEmail) {
             const publicData = await fetchPublicData(user.username, 'certificates');
             if (publicData.length > 0) {
@@ -413,7 +413,6 @@ window.portfolioData = (() => {
       }
     }
     
-    // Not logged in - load public profile data
     const publicEmail = window.APP_CONFIG.publicProfileEmail;
     if (publicEmail) {
       return await fetchPublicData(publicEmail, 'certificates');
@@ -421,7 +420,6 @@ window.portfolioData = (() => {
     return [];
   }
 
-  // Admin functions (load from user's own file, with fallback)
   async function loadProjects() {
     const user = window.SessionManager.getCurrentUser();
     if (user && user.pat) {
@@ -497,7 +495,6 @@ window.portfolioData = (() => {
     return JSON.parse(localStorage.getItem(CERTS_KEY) || '[]');
   }
 
-  // Update file with retry logic
   async function updateFileWithRetry(owner, repo, path, data, commitMsg, branch, token, maxRetries = 3) {
     let lastError = null;
     
@@ -768,15 +765,15 @@ window.generateProjectReport = async function(projectId) {
       <div style="background:${bgColor}; padding:20px; border-radius:16px; margin:20px 0;">
         <h3>Project Overview</h3>
         <table style="width:100%">
-          <tr><td><strong>Title:</strong>${dataV}/${proj.title}专业专业
-          <tr><td><strong>Location:</strong>${dataV}/${proj.siteLocation||'N/A'}专业专业
-          <tr><td><strong>Controllers:</strong>${dataV}/${controllerDisplay}专业专业
-          <tr><td><strong>Cabinets:</strong>${dataV}/${proj.cabinetCount}专业专业
-          ${proj.deltaVVersion ? `<tr><td><strong>DeltaV Version:</strong>${dataV}/${proj.deltaVVersion}专业专业` : ''}
-          <tr><td><strong>Start Date:</strong>${dataV}/${proj.dates?.start || 'N/A'}专业专业
-          <tr><td><strong>Finish Date:</strong>${dataV}/${proj.dates?.finish || 'N/A'}专业专业
-          <tr><td><strong>IFAT:</strong>${dataV}/${ifatText}专业专业
-          <tr><td><strong>CFAT:</strong>${dataV}/${cfatText}专业专业
+          <tr><td><strong>Title:</strong></td><td>${proj.title}</td></tr>
+          <tr><td><strong>Location:</strong></td><td>${proj.siteLocation || 'N/A'}</td></tr>
+          <tr><td><strong>Controllers:</strong></td><td>${controllerDisplay}</td></tr>
+          <tr><td><strong>Cabinets:</strong></td><td>${proj.cabinetCount}</td></tr>
+          ${proj.deltaVVersion ? `<tr><td><strong>DeltaV Version:</strong></td><td>${proj.deltaVVersion}</td></tr>` : ''}
+          <tr><td><strong>Start Date:</strong></td><td>${proj.dates?.start || 'N/A'}</td></tr>
+          <tr><td><strong>Finish Date:</strong></td><td>${proj.dates?.finish || 'N/A'}</td></tr>
+          <tr><td><strong>IFAT:</strong></td><td>${ifatText}</td></tr>
+          <tr><td><strong>CFAT:</strong></td><td>${cfatText}</td></tr>
         </table>
       </div>
       <div style="background:${bgColor}; padding:20px; border-radius:16px; margin-bottom:20px;">
@@ -786,7 +783,7 @@ window.generateProjectReport = async function(projectId) {
         <h3>I/O Configuration</h3>
         <table style="width:100%; text-align:center; border-collapse:collapse;">
           <tr style="background:${primaryColor}; color:white;"><th>AI</th><th>AO</th><th>DI</th><th>DO</th></tr>
-          <tr><td>${io.AI}${dataV}/${io.AO}${dataV}/${io.DI}${dataV}/${io.DO}专业专业
+          <tr><td>${io.AI}</td><td>${io.AO}</td><td>${io.DI}</td><td>${io.DO}</td></tr>
         </table>
       </div>
       <div style="background:${bgColor}; padding:20px; border-radius:16px; margin-bottom:20px; text-align:center;">
