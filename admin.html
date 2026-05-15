@@ -74,7 +74,7 @@
         <div id="certificatesList"></div>
       </div>
 
-      <!-- Backups Tab (with user selector for admin) -->
+      <!-- Backups Tab -->
       <div class="tab-pane fade" id="backupsTab">
         <div class="mb-3 d-flex justify-content-between align-items-center flex-wrap">
           <div>
@@ -83,7 +83,6 @@
           </div>
           <button class="btn btn-outline-secondary" id="triggerBackupNowBtn" style="display:none;"><i class="fa fa-play"></i> Run Backup Now</button>
         </div>
-        <!-- User selector for admin restore -->
         <div id="backupUserSelectorDiv" class="user-selector" style="display:none;">
           <label>Restore data for user:</label>
           <select id="restoreUserSelect" class="form-control">
@@ -103,7 +102,7 @@
   </div>
 </div>
 
-<!-- Project Modal -->
+<!-- Project Modal (same as before) -->
 <div class="modal fade" id="projectModal" tabindex="-1">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
@@ -223,7 +222,6 @@
     });
   };
 
-  // Login check
   const user = window.SessionManager?.getCurrentUser();
   if (!user) {
     window.location.href = 'login.html';
@@ -236,292 +234,36 @@
   }
 
   async function initDashboard() {
-    // DOM elements
+    // Image upload logic (same as before, kept concise)
     const imgContainer = document.getElementById('imagesContainer');
     const dropZone = document.getElementById('imageDropZone');
     const fileInput = document.getElementById('imageFileInput');
     const progressBar = document.getElementById('uploadProgressBar');
     const progressFill = document.getElementById('uploadProgressFill');
-    
-    let pendingFiles = [];
-    let active = 0;
-    let total = 0;
-    let processed = 0;
+    let pendingFiles = [], active = 0, total = 0, processed = 0;
+    function updateProgress() { const percent = total === 0 ? 0 : (processed / total) * 100; progressFill.style.width = percent + '%'; if (processed === total && total > 0) setTimeout(() => progressBar.style.display = 'none', 500); }
+    function updateImageCounter() { const count = imgContainer.querySelectorAll('.image-input-group').length; document.getElementById('imageCountInfo').textContent = `${count} image${count !== 1 ? 's' : ''}`; document.getElementById('batchActions').style.display = count > 0 ? 'flex' : 'none'; }
+    function addImageRow(url = '', caption = '') { const placeholder = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><rect width="80" height="80" fill="#ddd"/><text x="50%" y="50%" font-size="14" fill="#999" text-anchor="middle" dy=".3em">No Img</text></svg>'); const row = document.createElement('div'); row.className = 'image-input-group'; row.innerHTML = `<input type="checkbox" class="image-select-checkbox" style="margin-right:10px;"><img src="${url || placeholder}" class="img-preview-thumb" onerror="this.src='${placeholder}'"><div class="img-details"><input type="text" class="form-control img-url-input" value="${window.escapeHtml(url)}" readonly style="display:none;"><input type="text" class="form-control img-caption-input" placeholder="Caption" value="${window.escapeHtml(caption)}"><label class="local-upload-btn" style="cursor:pointer; color:#2fc7ff;">Change<input type="file" accept="image/*" style="display:none;" onchange="updateImageRow(this)"></label></div><i class="fa fa-times-circle remove-img-btn" onclick="this.closest('.image-input-group').remove(); updateImageCounter();"></i>`; imgContainer.appendChild(row); updateImageCounter(); return row; }
+    window.updateImageRow = async function(input) { const file = input.files[0]; if (!file) return; const dataUrl = await compressImage(file); const row = input.closest('.image-input-group'); row.querySelector('.img-url-input').value = dataUrl; row.querySelector('.img-preview-thumb').src = dataUrl; };
+    async function processQueue() { if (pendingFiles.length === 0 && active === 0) return; if (progressBar.style.display !== 'block') progressBar.style.display = 'block'; const maxConcurrent = 3; while (pendingFiles.length > 0 && active < maxConcurrent) { const file = pendingFiles.shift(); active++; (async () => { try { const dataUrl = await compressImage(file); addImageRow(dataUrl, ''); } catch (err) { console.warn(err); addImageRow('', 'Error'); } finally { active--; processed++; updateProgress(); processQueue(); } })(); } }
+    function addFiles(files) { const imgs = Array.from(files).filter(f => f.type.startsWith('image/')); if (!imgs.length) return; pendingFiles.push(...imgs); total += imgs.length; if (active === 0) { processed = total - pendingFiles.length - active; updateProgress(); } processQueue(); }
+    dropZone.addEventListener('click', () => fileInput.click()); ['dragenter','dragover','dragleave','drop'].forEach(ev => dropZone.addEventListener(ev, e => e.preventDefault())); dropZone.addEventListener('dragover', () => dropZone.classList.add('dragover')); dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover')); dropZone.addEventListener('drop', e => { dropZone.classList.remove('dragover'); addFiles(e.dataTransfer.files); }); fileInput.addEventListener('change', () => { addFiles(fileInput.files); fileInput.value = ''; });
+    document.getElementById('deleteSelectedImagesBtn').onclick = () => { document.querySelectorAll('.image-select-checkbox:checked').forEach(cb => cb.closest('.image-input-group').remove()); updateImageCounter(); };
+    document.getElementById('selectAllImagesBtn').onclick = () => { const cbs = document.querySelectorAll('.image-select-checkbox'); const all = Array.from(cbs).every(cb => cb.checked); cbs.forEach(cb => cb.checked = !all); };
 
-    function updateProgress() {
-      const percent = total === 0 ? 0 : (processed / total) * 100;
-      progressFill.style.width = percent + '%';
-      if (processed === total && total > 0) setTimeout(() => progressBar.style.display = 'none', 500);
-    }
+    // ---- CRUD Functions (unchanged but necessary) ----
+    async function renderProjects() { const projects = await window.portfolioData.loadProjects(); const container = document.getElementById('projectsList'); container.innerHTML = ''; if (Object.keys(projects).length === 0) { container.innerHTML = '<div class="empty-state"><i class="fa fa-folder-open-o"></i><h5>No projects yet</h5></div>'; return; } for (const [id, proj] of Object.entries(projects)) { const card = document.createElement('div'); card.className = 'card mb-3'; card.innerHTML = `<div class="card-body"><div class="d-flex justify-content-between"><h5>${window.escapeHtml(proj.title)}</h5><div><button class="btn btn-sm btn-outline-primary edit-project" data-id="${id}">Edit</button><button class="btn btn-sm btn-outline-danger delete-project" data-id="${id}">Delete</button></div></div><p><strong>Controller:</strong> ${proj.controllerType} | <strong>Cabinets:</strong> ${proj.cabinetCount} | <strong>Location:</strong> ${proj.siteLocation || ''}</p><small>${window.escapeHtml(proj.description.substring(0,120))}...</small></div>`; container.appendChild(card); } document.querySelectorAll('.edit-project').forEach(btn => btn.onclick = () => openProjectModal(btn.dataset.id)); document.querySelectorAll('.delete-project').forEach(btn => btn.onclick = () => { if(confirm('Delete project?')) safeDeleteProject(btn.dataset.id); }); }
+    async function renderCertificates() { const certs = await window.portfolioData.loadCertificates(); const container = document.getElementById('certificatesList'); container.innerHTML = ''; if (certs.length === 0) { container.innerHTML = '<div class="empty-state"><i class="fa fa-certificate"></i><h5>No certificates</h5></div>'; return; } certs.forEach((cert, idx) => { const card = document.createElement('div'); card.className = 'card mb-2'; card.innerHTML = `<div class="card-body d-flex justify-content-between"><div><strong>${window.escapeHtml(cert.title)}</strong> - ${window.escapeHtml(cert.issuer)} (${cert.date})</div><div><button class="btn btn-sm btn-outline-primary edit-cert" data-index="${idx}">Edit</button><button class="btn btn-sm btn-outline-danger delete-cert" data-index="${idx}">Delete</button></div></div>`; container.appendChild(card); }); document.querySelectorAll('.edit-cert').forEach(btn => btn.onclick = () => openCertModal(parseInt(btn.dataset.index))); document.querySelectorAll('.delete-cert').forEach(btn => btn.onclick = () => { if(confirm('Delete certificate?')) safeDeleteCertificate(parseInt(btn.dataset.index)); }); }
+    async function safeDeleteProject(id) { window.showLoading('Deleting...'); const curr = await window.portfolioData.loadProjects(); delete curr[id]; try { await window.portfolioData.saveProjects(curr); await renderProjects(); } catch(e) { alert(e.message); } window.hideLoading(); }
+    async function safeDeleteCertificate(idx) { window.showLoading('Deleting...'); const certs = await window.portfolioData.loadCertificates(); certs.splice(idx,1); try { await window.portfolioData.saveCertificates(certs); await renderCertificates(); } catch(e) { alert(e.message); } window.hideLoading(); }
+    async function safeSaveProject(proj) { window.showLoading('Saving...'); const all = await window.portfolioData.loadProjects(); all[proj.id] = proj; try { await window.portfolioData.saveProjects(all); await renderProjects(); $('#projectModal').modal('hide'); } catch(e) { alert(e.message); } window.hideLoading(); }
+    async function safeSaveCertificate(certs) { window.showLoading('Saving...'); try { await window.portfolioData.saveCertificates(certs); await renderCertificates(); $('#certModal').modal('hide'); } catch(e) { alert(e.message); } window.hideLoading(); }
+    async function openProjectModal(id=null) { const isEdit = !!id; document.getElementById('projectModalTitle').innerText = isEdit ? 'Edit Project' : 'New Project'; if (isEdit) { const projects = await window.portfolioData.loadProjects(); const proj = projects[id]; if (proj) { document.getElementById('projectId').value = id; document.getElementById('projTitle').value = proj.title; document.getElementById('projController').value = proj.controllerType; document.getElementById('projType').value = proj.projectType || ''; document.getElementById('projVersion').value = proj.deltaVVersion || ''; document.getElementById('projCabinet').value = proj.cabinetCount; document.getElementById('projLocation').value = proj.siteLocation || ''; document.getElementById('projAI').value = proj.io.AI; document.getElementById('projAO').value = proj.io.AO; document.getElementById('projDI').value = proj.io.DI; document.getElementById('projDO').value = proj.io.DO; document.getElementById('projStart').value = proj.dates.start; document.getElementById('projFinish').value = proj.dates.finish; document.getElementById('projIFAT').value = proj.dates.ifat; document.getElementById('projCFAT').value = proj.dates.cfat; document.getElementById('projLead').value = proj.team.lead; document.getElementById('projEngineer').value = proj.team.engineer; document.getElementById('projTech').value = proj.team.technician; document.getElementById('projDesc').value = proj.description; document.getElementById('projGraphType').value = proj.graphType; imgContainer.innerHTML = ''; if (proj.selectedImages) proj.selectedImages.forEach(img => addImageRow(img.url, img.caption)); updateImageCounter(); } } else { document.getElementById('projectId').value = ''; ['projTitle','projLocation','projLead','projEngineer','projTech','projDesc','projVersion'].forEach(id => document.getElementById(id).value = ''); document.getElementById('projController').value = 'MD'; document.getElementById('projType').value = ''; document.getElementById('projCabinet').value = 1; document.getElementById('projAI').value = 0; document.getElementById('projAO').value = 0; document.getElementById('projDI').value = 0; document.getElementById('projDO').value = 0; document.getElementById('projGraphType').value = 'bar'; ['projStart','projFinish','projIFAT','projCFAT'].forEach(id => document.getElementById(id).value = ''); imgContainer.innerHTML = ''; updateImageCounter(); } $('#projectModal').modal('show'); }
+    document.getElementById('projectForm').onsubmit = async (e) => { e.preventDefault(); const id = document.getElementById('projectId').value || ('proj_'+Date.now()); const images = []; document.querySelectorAll('#imagesContainer .image-input-group').forEach(g => { const url = g.querySelector('.img-url-input').value; if (url) images.push({ url, caption: g.querySelector('.img-caption-input').value }); }); const proj = { id, title: document.getElementById('projTitle').value, controllerType: document.getElementById('projController').value, projectType: document.getElementById('projType').value || 'Other', deltaVVersion: document.getElementById('projVersion').value, cabinetCount: parseInt(document.getElementById('projCabinet').value) || 0, io: { AI: +document.getElementById('projAI').value||0, AO: +document.getElementById('projAO').value||0, DI: +document.getElementById('projDI').value||0, DO: +document.getElementById('projDO').value||0 }, dates: { start: document.getElementById('projStart').value, finish: document.getElementById('projFinish').value, ifat: document.getElementById('projIFAT').value, cfat: document.getElementById('projCFAT').value }, siteLocation: document.getElementById('projLocation').value, team: { lead: document.getElementById('projLead').value, engineer: document.getElementById('projEngineer').value, technician: document.getElementById('projTech').value }, description: document.getElementById('projDesc').value, graphType: document.getElementById('projGraphType').value, selectedImages: images }; await safeSaveProject(proj); };
+    async function openCertModal(idx=null) { const certs = await window.portfolioData.loadCertificates(); const isEdit = idx !== null && certs[idx]; document.getElementById('certModalTitle').innerText = isEdit ? 'Edit Certificate' : 'New Certificate'; if (isEdit) { const c = certs[idx]; document.getElementById('certIndex').value = idx; document.getElementById('certTitle').value = c.title; document.getElementById('certIssuer').value = c.issuer; document.getElementById('certDate').value = c.date; document.getElementById('certLink').value = c.link || ''; document.getElementById('certThumb').value = c.thumbnail || ''; if(c.thumbnail) { document.getElementById('thumbPreview').src = c.thumbnail; document.getElementById('thumbPreview').style.display = 'inline-block'; } else document.getElementById('thumbPreview').style.display = 'none'; } else { document.getElementById('certIndex').value = ''; document.getElementById('certTitle').value = ''; document.getElementById('certIssuer').value = ''; document.getElementById('certDate').value = ''; document.getElementById('certLink').value = ''; document.getElementById('certThumb').value = ''; document.getElementById('thumbPreview').style.display = 'none'; } $('#certModal').modal('show'); }
+    document.getElementById('certForm').onsubmit = async (e) => { e.preventDefault(); const certs = await window.portfolioData.loadCertificates(); const idx = document.getElementById('certIndex').value; const newCert = { id: (idx !== '' && certs[idx]) ? certs[idx].id : ('cert_'+Date.now()), title: document.getElementById('certTitle').value, issuer: document.getElementById('certIssuer').value, date: document.getElementById('certDate').value, link: document.getElementById('certLink').value, thumbnail: document.getElementById('certThumb').value }; if (idx !== '' && certs[idx]) certs[idx] = newCert; else certs.push(newCert); await safeSaveCertificate(certs); };
 
-    function updateImageCounter() {
-      const count = imgContainer.querySelectorAll('.image-input-group').length;
-      document.getElementById('imageCountInfo').textContent = `${count} image${count !== 1 ? 's' : ''}`;
-      document.getElementById('batchActions').style.display = count > 0 ? 'flex' : 'none';
-    }
-
-    function addImageRow(url = '', caption = '') {
-      const placeholder = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><rect width="80" height="80" fill="#ddd"/><text x="50%" y="50%" font-size="14" fill="#999" text-anchor="middle" dy=".3em">No Img</text></svg>');
-      const row = document.createElement('div');
-      row.className = 'image-input-group';
-      row.innerHTML = `
-        <input type="checkbox" class="image-select-checkbox" style="margin-right:10px;">
-        <img src="${url || placeholder}" class="img-preview-thumb" onerror="this.src='${placeholder}'">
-        <div class="img-details">
-          <input type="text" class="form-control img-url-input" value="${window.escapeHtml(url)}" readonly style="display:none;">
-          <input type="text" class="form-control img-caption-input" placeholder="Caption" value="${window.escapeHtml(caption)}">
-          <label class="local-upload-btn" style="cursor:pointer; color:#2fc7ff;">Change<input type="file" accept="image/*" style="display:none;" onchange="updateImageRow(this)"></label>
-        </div>
-        <i class="fa fa-times-circle remove-img-btn" onclick="this.closest('.image-input-group').remove(); updateImageCounter();"></i>
-      `;
-      imgContainer.appendChild(row);
-      updateImageCounter();
-      return row;
-    }
-
-    window.updateImageRow = async function(input) {
-      const file = input.files[0];
-      if (!file) return;
-      const dataUrl = await compressImage(file);
-      const row = input.closest('.image-input-group');
-      row.querySelector('.img-url-input').value = dataUrl;
-      row.querySelector('.img-preview-thumb').src = dataUrl;
-    };
-
-    async function processQueue() {
-      if (pendingFiles.length === 0 && active === 0) return;
-      if (progressBar.style.display !== 'block') progressBar.style.display = 'block';
-      const maxConcurrent = 3;
-      while (pendingFiles.length > 0 && active < maxConcurrent) {
-        const file = pendingFiles.shift();
-        active++;
-        (async () => {
-          try {
-            const dataUrl = await compressImage(file);
-            addImageRow(dataUrl, '');
-          } catch (err) { console.warn(err); addImageRow('', 'Error'); }
-          finally { active--; processed++; updateProgress(); processQueue(); }
-        })();
-      }
-    }
-
-    function addFiles(files) {
-      const imgs = Array.from(files).filter(f => f.type.startsWith('image/'));
-      if (!imgs.length) return;
-      pendingFiles.push(...imgs);
-      total += imgs.length;
-      if (active === 0) { processed = total - pendingFiles.length - active; updateProgress(); }
-      processQueue();
-    }
-
-    dropZone.addEventListener('click', () => fileInput.click());
-    ['dragenter','dragover','dragleave','drop'].forEach(ev => dropZone.addEventListener(ev, e => e.preventDefault()));
-    dropZone.addEventListener('dragover', () => dropZone.classList.add('dragover'));
-    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
-    dropZone.addEventListener('drop', e => {
-      dropZone.classList.remove('dragover');
-      addFiles(e.dataTransfer.files);
-    });
-    fileInput.addEventListener('change', () => { addFiles(fileInput.files); fileInput.value = ''; });
-
-    document.getElementById('deleteSelectedImagesBtn').onclick = () => {
-      document.querySelectorAll('.image-select-checkbox:checked').forEach(cb => cb.closest('.image-input-group').remove());
-      updateImageCounter();
-    };
-    document.getElementById('selectAllImagesBtn').onclick = () => {
-      const cbs = document.querySelectorAll('.image-select-checkbox');
-      const all = Array.from(cbs).every(cb => cb.checked);
-      cbs.forEach(cb => cb.checked = !all);
-    };
-
-    // ---- CRUD Functions (unchanged) ----
-    async function renderProjects() {
-      const projects = await window.portfolioData.loadProjects();
-      const container = document.getElementById('projectsList');
-      container.innerHTML = '';
-      if (Object.keys(projects).length === 0) { container.innerHTML = '<div class="empty-state"><i class="fa fa-folder-open-o"></i><h5>No projects yet</h5></div>'; return; }
-      for (const [id, proj] of Object.entries(projects)) {
-        const card = document.createElement('div');
-        card.className = 'card mb-3';
-        card.innerHTML = `
-          <div class="card-body">
-            <div class="d-flex justify-content-between">
-              <h5>${window.escapeHtml(proj.title)}</h5>
-              <div><button class="btn btn-sm btn-outline-primary edit-project" data-id="${id}">Edit</button><button class="btn btn-sm btn-outline-danger delete-project" data-id="${id}">Delete</button></div>
-            </div>
-            <p><strong>Controller:</strong> ${proj.controllerType} | <strong>Cabinets:</strong> ${proj.cabinetCount} | <strong>Location:</strong> ${proj.siteLocation || ''}</p>
-            <small>${window.escapeHtml(proj.description.substring(0,120))}...</small>
-          </div>`;
-        container.appendChild(card);
-      }
-      document.querySelectorAll('.edit-project').forEach(btn => btn.onclick = () => openProjectModal(btn.dataset.id));
-      document.querySelectorAll('.delete-project').forEach(btn => btn.onclick = () => { if(confirm('Delete project?')) safeDeleteProject(btn.dataset.id); });
-    }
-
-    async function renderCertificates() {
-      const certs = await window.portfolioData.loadCertificates();
-      const container = document.getElementById('certificatesList');
-      container.innerHTML = '';
-      if (certs.length === 0) { container.innerHTML = '<div class="empty-state"><i class="fa fa-certificate"></i><h5>No certificates</h5></div>'; return; }
-      certs.forEach((cert, idx) => {
-        const card = document.createElement('div');
-        card.className = 'card mb-2';
-        card.innerHTML = `
-          <div class="card-body d-flex justify-content-between">
-            <div><strong>${window.escapeHtml(cert.title)}</strong> - ${window.escapeHtml(cert.issuer)} (${cert.date})</div>
-            <div><button class="btn btn-sm btn-outline-primary edit-cert" data-index="${idx}">Edit</button><button class="btn btn-sm btn-outline-danger delete-cert" data-index="${idx}">Delete</button></div>
-          </div>`;
-        container.appendChild(card);
-      });
-      document.querySelectorAll('.edit-cert').forEach(btn => btn.onclick = () => openCertModal(parseInt(btn.dataset.index)));
-      document.querySelectorAll('.delete-cert').forEach(btn => btn.onclick = () => { if(confirm('Delete certificate?')) safeDeleteCertificate(parseInt(btn.dataset.index)); });
-    }
-
-    async function safeDeleteProject(id) {
-      window.showLoading('Deleting...');
-      const curr = await window.portfolioData.loadProjects();
-      delete curr[id];
-      try { await window.portfolioData.saveProjects(curr); await renderProjects(); } catch(e) { alert(e.message); }
-      window.hideLoading();
-    }
-    async function safeDeleteCertificate(idx) {
-      window.showLoading('Deleting...');
-      const certs = await window.portfolioData.loadCertificates();
-      certs.splice(idx,1);
-      try { await window.portfolioData.saveCertificates(certs); await renderCertificates(); } catch(e) { alert(e.message); }
-      window.hideLoading();
-    }
-    async function safeSaveProject(proj) {
-      window.showLoading('Saving...');
-      const all = await window.portfolioData.loadProjects();
-      all[proj.id] = proj;
-      try { await window.portfolioData.saveProjects(all); await renderProjects(); $('#projectModal').modal('hide'); } catch(e) { alert(e.message); }
-      window.hideLoading();
-    }
-    async function safeSaveCertificate(certs) {
-      window.showLoading('Saving...');
-      try { await window.portfolioData.saveCertificates(certs); await renderCertificates(); $('#certModal').modal('hide'); } catch(e) { alert(e.message); }
-      window.hideLoading();
-    }
-
-    async function openProjectModal(id=null) {
-      const isEdit = !!id;
-      document.getElementById('projectModalTitle').innerText = isEdit ? 'Edit Project' : 'New Project';
-      if (isEdit) {
-        const projects = await window.portfolioData.loadProjects();
-        const proj = projects[id];
-        if (proj) {
-          document.getElementById('projectId').value = id;
-          document.getElementById('projTitle').value = proj.title;
-          document.getElementById('projController').value = proj.controllerType;
-          document.getElementById('projType').value = proj.projectType || '';
-          document.getElementById('projVersion').value = proj.deltaVVersion || '';
-          document.getElementById('projCabinet').value = proj.cabinetCount;
-          document.getElementById('projLocation').value = proj.siteLocation || '';
-          document.getElementById('projAI').value = proj.io.AI;
-          document.getElementById('projAO').value = proj.io.AO;
-          document.getElementById('projDI').value = proj.io.DI;
-          document.getElementById('projDO').value = proj.io.DO;
-          document.getElementById('projStart').value = proj.dates.start;
-          document.getElementById('projFinish').value = proj.dates.finish;
-          document.getElementById('projIFAT').value = proj.dates.ifat;
-          document.getElementById('projCFAT').value = proj.dates.cfat;
-          document.getElementById('projLead').value = proj.team.lead;
-          document.getElementById('projEngineer').value = proj.team.engineer;
-          document.getElementById('projTech').value = proj.team.technician;
-          document.getElementById('projDesc').value = proj.description;
-          document.getElementById('projGraphType').value = proj.graphType;
-          imgContainer.innerHTML = '';
-          if (proj.selectedImages) proj.selectedImages.forEach(img => addImageRow(img.url, img.caption));
-          updateImageCounter();
-        }
-      } else {
-        document.getElementById('projectId').value = '';
-        ['projTitle','projLocation','projLead','projEngineer','projTech','projDesc','projVersion'].forEach(id => document.getElementById(id).value = '');
-        document.getElementById('projController').value = 'MD';
-        document.getElementById('projType').value = '';
-        document.getElementById('projCabinet').value = 1;
-        document.getElementById('projAI').value = 0;
-        document.getElementById('projAO').value = 0;
-        document.getElementById('projDI').value = 0;
-        document.getElementById('projDO').value = 0;
-        document.getElementById('projGraphType').value = 'bar';
-        ['projStart','projFinish','projIFAT','projCFAT'].forEach(id => document.getElementById(id).value = '');
-        imgContainer.innerHTML = '';
-        updateImageCounter();
-      }
-      $('#projectModal').modal('show');
-    }
-
-    document.getElementById('projectForm').onsubmit = async (e) => {
-      e.preventDefault();
-      const id = document.getElementById('projectId').value || ('proj_'+Date.now());
-      const images = [];
-      document.querySelectorAll('#imagesContainer .image-input-group').forEach(g => {
-        const url = g.querySelector('.img-url-input').value;
-        if (url) images.push({ url, caption: g.querySelector('.img-caption-input').value });
-      });
-      const proj = {
-        id, title: document.getElementById('projTitle').value,
-        controllerType: document.getElementById('projController').value,
-        projectType: document.getElementById('projType').value || 'Other',
-        deltaVVersion: document.getElementById('projVersion').value,
-        cabinetCount: parseInt(document.getElementById('projCabinet').value) || 0,
-        io: { AI: +document.getElementById('projAI').value||0, AO: +document.getElementById('projAO').value||0, DI: +document.getElementById('projDI').value||0, DO: +document.getElementById('projDO').value||0 },
-        dates: { start: document.getElementById('projStart').value, finish: document.getElementById('projFinish').value, ifat: document.getElementById('projIFAT').value, cfat: document.getElementById('projCFAT').value },
-        siteLocation: document.getElementById('projLocation').value,
-        team: { lead: document.getElementById('projLead').value, engineer: document.getElementById('projEngineer').value, technician: document.getElementById('projTech').value },
-        description: document.getElementById('projDesc').value,
-        graphType: document.getElementById('projGraphType').value,
-        selectedImages: images
-      };
-      await safeSaveProject(proj);
-    };
-
-    async function openCertModal(idx=null) {
-      const certs = await window.portfolioData.loadCertificates();
-      const isEdit = idx !== null && certs[idx];
-      document.getElementById('certModalTitle').innerText = isEdit ? 'Edit Certificate' : 'New Certificate';
-      if (isEdit) {
-        const c = certs[idx];
-        document.getElementById('certIndex').value = idx;
-        document.getElementById('certTitle').value = c.title;
-        document.getElementById('certIssuer').value = c.issuer;
-        document.getElementById('certDate').value = c.date;
-        document.getElementById('certLink').value = c.link || '';
-        document.getElementById('certThumb').value = c.thumbnail || '';
-        if(c.thumbnail) { document.getElementById('thumbPreview').src = c.thumbnail; document.getElementById('thumbPreview').style.display = 'inline-block'; }
-        else document.getElementById('thumbPreview').style.display = 'none';
-      } else {
-        document.getElementById('certIndex').value = '';
-        document.getElementById('certTitle').value = '';
-        document.getElementById('certIssuer').value = '';
-        document.getElementById('certDate').value = '';
-        document.getElementById('certLink').value = '';
-        document.getElementById('certThumb').value = '';
-        document.getElementById('thumbPreview').style.display = 'none';
-      }
-      $('#certModal').modal('show');
-    }
-
-    document.getElementById('certForm').onsubmit = async (e) => {
-      e.preventDefault();
-      const certs = await window.portfolioData.loadCertificates();
-      const idx = document.getElementById('certIndex').value;
-      const newCert = {
-        id: (idx !== '' && certs[idx]) ? certs[idx].id : ('cert_'+Date.now()),
-        title: document.getElementById('certTitle').value,
-        issuer: document.getElementById('certIssuer').value,
-        date: document.getElementById('certDate').value,
-        link: document.getElementById('certLink').value,
-        thumbnail: document.getElementById('certThumb').value
-      };
-      if (idx !== '' && certs[idx]) certs[idx] = newCert;
-      else certs.push(newCert);
-      await safeSaveCertificate(certs);
-    };
-
-    // ---- Backup & Restore with user selection (admin only) ----
+    // ---- Backup & Restore (FIXED) ----
     async function listBackups() {
       const cfg = window.REPO_CONFIG;
       const url = `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/backups?ref=${cfg.branch}`;
@@ -543,44 +285,64 @@
       return null;
     }
 
-    // Extract projects/certificates for a specific user from backup ZIP
-    async function downloadBackupDataForUser(zipUrl, targetUser, type) {
+    // Directly extract projects/certificates for a given user from backup ZIP
+    async function extractUserDataFromBackup(zipUrl, targetUser) {
       const resp = await fetch(zipUrl);
       const zip = await JSZip.loadAsync(await resp.blob());
       const encUser = encodeURIComponent(targetUser);
-      let projects = null, certs = null;
-      const findFile = (suffix) => Object.keys(zip.files).find(p => p.endsWith(suffix) && !zip.files[p].dir);
-      if (type === 'projects' || type === 'both') {
-        let path = findFile(`users/${encUser}/projects.json`);
-        if (!path) path = findFile(`projects.json`); // fallback if only one user in backup
-        if (path) projects = JSON.parse(await zip.file(path).async("string"));
+      let projects = null, certificates = null;
+
+      // Helper to find a file by path suffix
+      function findFile(suffix) {
+        const files = Object.keys(zip.files);
+        for (const p of files) {
+          if (p.endsWith(suffix) && !zip.files[p].dir) return zip.file(p);
+        }
+        return null;
       }
-      if (type === 'certificates' || type === 'both') {
-        let path = findFile(`users/${encUser}/certificates.json`);
-        if (!path) path = findFile(`certificates.json`);
-        if (path) certs = JSON.parse(await zip.file(path).async("string"));
-      }
-      return { projects, certificates: certs };
+
+      // Try multiple possible paths
+      let projFile = zip.file(`data/users/${encUser}/projects.json`);
+      if (!projFile) projFile = findFile(`users/${encUser}/projects.json`);
+      if (!projFile) projFile = findFile(`projects.json`); // fallback for old flat backups
+      if (projFile) projects = JSON.parse(await projFile.async("string"));
+
+      let certFile = zip.file(`data/users/${encUser}/certificates.json`);
+      if (!certFile) certFile = findFile(`users/${encUser}/certificates.json`);
+      if (!certFile) certFile = findFile(`certificates.json`);
+      if (certFile) certificates = JSON.parse(await certFile.async("string"));
+
+      return { projects, certificates };
     }
 
-    // Restore for a given user (admin only)
-    async function restoreForUser(zipUrl, targetUser, restoreProj, restoreCert) {
+    // Restore for a specific user by directly writing to GitHub
+    async function restoreUserDataFromBackup(zipUrl, targetUser, restoreProjects, restoreCertificates) {
       const actions = [];
-      if (restoreProj) actions.push("Projects");
-      if (restoreCert) actions.push("Certificates");
+      if (restoreProjects) actions.push("Projects");
+      if (restoreCertificates) actions.push("Certificates");
       if (!actions.length) return;
       if (!confirm(`⚠️ Restoring ${actions.join(" and ")} for user ${targetUser} will OVERWRITE their current data. Continue?`)) return;
-      window.showLoading(`Restoring ${actions.join(" and ")} for ${targetUser}...`);
+
+      window.showLoading(`Extracting ${actions.join(" and ")} from backup...`);
+      let projects = null, certificates = null;
       try {
-        const { projects, certificates } = await downloadBackupDataForUser(zipUrl, targetUser, restoreProj && restoreCert ? 'both' : (restoreProj ? 'projects' : 'certificates'));
-        if (restoreProj && !projects) throw new Error(`No projects found in backup for user ${targetUser}`);
-        if (restoreCert && !certificates) throw new Error(`No certificates found in backup for user ${targetUser}`);
-        
-        // Save directly to GitHub for that user (using admin's PAT)
-        const config = window.REPO_CONFIG;
-        const token = user.pat;
-        const encTarget = encodeURIComponent(targetUser);
-        if (restoreProj) {
+        const extracted = await extractUserDataFromBackup(zipUrl, targetUser);
+        projects = extracted.projects;
+        certificates = extracted.certificates;
+        if (restoreProjects && !projects) throw new Error(`No projects.json found in backup for user ${targetUser}`);
+        if (restoreCertificates && !certificates) throw new Error(`No certificates.json found in backup for user ${targetUser}`);
+      } catch (err) {
+        window.hideLoading();
+        alert(`Failed to read backup: ${err.message}`);
+        return;
+      }
+
+      window.showLoading(`Writing ${actions.join(" and ")} to GitHub for ${targetUser}...`);
+      const config = window.REPO_CONFIG;
+      const token = user.pat;
+      const encTarget = encodeURIComponent(targetUser);
+      try {
+        if (restoreProjects) {
           const path = `${config.dataPath}/users/${encTarget}/projects.json`;
           let sha = null;
           try {
@@ -589,7 +351,7 @@
           } catch(e) {}
           await GitHubAPI.updateFile(config.owner, config.repo, path, projects, `Restore projects for ${targetUser} from backup`, config.branch, token, sha);
         }
-        if (restoreCert) {
+        if (restoreCertificates) {
           const path = `${config.dataPath}/users/${encTarget}/certificates.json`;
           let sha = null;
           try {
@@ -598,31 +360,32 @@
           } catch(e) {}
           await GitHubAPI.updateFile(config.owner, config.repo, path, certificates, `Restore certificates for ${targetUser} from backup`, config.branch, token, sha);
         }
-        // Also update local cache for the current user if targetUser is the logged-in user
+
+        // If restoring current logged-in user, also update local cache and UI
         if (targetUser === user.username) {
-          if (restoreProj) await window.portfolioData.saveProjects(projects);
-          if (restoreCert) await window.portfolioData.saveCertificates(certificates);
+          if (restoreProjects) await window.portfolioData.saveProjects(projects);
+          if (restoreCertificates) await window.portfolioData.saveCertificates(certificates);
           await renderProjects();
           await renderCertificates();
         }
-        alert(`Restore successful for ${targetUser}!`);
-        if (targetUser === user.username) {
-          // Already reloaded
-        } else {
-          // Optionally refresh user list to show updated stats
-          if (isAdmin) loadUsers();
+        alert(`✅ Restored ${actions.join(" and ")} for ${targetUser} successfully!`);
+        if (isAdmin && targetUser !== user.username) {
+          // Refresh user list to show updated counts
+          await loadUsers();
         }
-      } catch(err) { alert('Restore failed: '+err.message); }
+      } catch (err) {
+        alert(`Restore failed: ${err.message}`);
+      }
       window.hideLoading();
     }
 
     async function loadBackupsAndUsers() {
       const container = document.getElementById('backupsList');
-      container.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Loading...';
+      container.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Loading backups...';
       const backups = await listBackups();
       if (!backups.length) { container.innerHTML = '<div class="empty-state">No backups found</div>'; return; }
-      
-      // Also load users for the dropdown (if admin)
+
+      // For admin, populate user dropdown
       let allUsers = [];
       if (isAdmin) {
         try {
@@ -634,13 +397,13 @@
           userSelect.innerHTML += `<option value="${window.escapeHtml(u)}">${window.escapeHtml(u)}</option>`;
         });
       }
-      
+
       let html = '';
       for (const b of backups) {
         const info = await getBackupInfo(b.download_url);
         const ts = b.name.replace('.zip','');
         html += `<div class="backup-card">
-          <div><strong>${ts}</strong><br><small>Projects: ${info?.projects_count||'?'} | Certs: ${info?.certificates_count||'?'}</small></div>
+          <div><strong>${ts}</strong><br><small>Projects: ${info?.projects_count ?? '?'} | Certs: ${info?.certificates_count ?? '?'}</small></div>
           <div>
             <button class="btn btn-sm btn-outline-primary restore-proj" data-url="${b.download_url}">Restore Projects</button>
             <button class="btn btn-sm btn-outline-success restore-cert" data-url="${b.download_url}">Restore Certificates</button>
@@ -649,24 +412,23 @@
         </div>`;
       }
       container.innerHTML = html;
-      
-      // Attach restore handlers - they will use the currently selected user from dropdown
-      const selectedUserElem = document.getElementById('restoreUserSelect');
-      const getTargetUser = () => {
-        if (isAdmin && selectedUserElem && selectedUserElem.value) {
-          return selectedUserElem.value;
+
+      const getUserToRestore = () => {
+        if (isAdmin) {
+          const select = document.getElementById('restoreUserSelect');
+          if (select && select.value) return select.value;
         }
-        return user.username; // fallback to logged-in user
+        return user.username;
       };
-      
+
       document.querySelectorAll('.restore-proj').forEach(btn => {
-        btn.onclick = () => restoreForUser(btn.dataset.url, getTargetUser(), true, false);
+        btn.onclick = () => restoreUserDataFromBackup(btn.dataset.url, getUserToRestore(), true, false);
       });
       document.querySelectorAll('.restore-cert').forEach(btn => {
-        btn.onclick = () => restoreForUser(btn.dataset.url, getTargetUser(), false, true);
+        btn.onclick = () => restoreUserDataFromBackup(btn.dataset.url, getUserToRestore(), false, true);
       });
       document.querySelectorAll('.restore-both').forEach(btn => {
-        btn.onclick = () => restoreForUser(btn.dataset.url, getTargetUser(), true, true);
+        btn.onclick = () => restoreUserDataFromBackup(btn.dataset.url, getUserToRestore(), true, true);
       });
     }
 
@@ -679,7 +441,7 @@
       } catch(e) { alert(e.message); }
     }
 
-    // Admin features
+    // ---- Admin & User Management ----
     const isAdmin = window.APP_CONFIG.adminUsers && window.APP_CONFIG.adminUsers.includes(user.username);
     if (isAdmin) {
       document.getElementById('backupsTabNav').style.display = 'block';
@@ -688,11 +450,7 @@
       document.getElementById('refreshUsersBtn').onclick = loadUsers;
       if (user.pat && (user.pat.startsWith('github_pat_') || user.pat.length>40)) document.getElementById('triggerBackupNowBtn').style.display = 'inline-block';
       document.getElementById('triggerBackupNowBtn').onclick = triggerBackup;
-      
-      // Show user selector div
-      const userSelectorDiv = document.getElementById('backupUserSelectorDiv');
-      if (userSelectorDiv) userSelectorDiv.style.display = 'block';
-      
+      document.getElementById('backupUserSelectorDiv').style.display = 'block';
       loadBackupsAndUsers();
       loadUsers();
     } else {
@@ -707,21 +465,14 @@
         for (const b of backups) {
           const info = await getBackupInfo(b.download_url);
           const ts = b.name.replace('.zip','');
-          html += `<div class="backup-card">
-            <div><strong>${ts}</strong><br><small>Projects: ${info?.projects_count||'?'} | Certs: ${info?.certificates_count||'?'}</small></div>
-            <div>
-              <button class="btn btn-sm btn-outline-primary restore-proj" data-url="${b.download_url}">Restore My Projects</button>
-              <button class="btn btn-sm btn-outline-success restore-cert" data-url="${b.download_url}">Restore My Certificates</button>
-              <button class="btn btn-sm btn-outline-danger restore-both" data-url="${b.download_url}">Restore Both</button>
-            </div>
-          </div>`;
+          html += `<div class="backup-card"><div><strong>${ts}</strong><br><small>Projects: ${info?.projects_count ?? '?'} | Certs: ${info?.certificates_count ?? '?'}</small></div><div><button class="btn btn-sm btn-outline-primary restore-proj" data-url="${b.download_url}">Restore My Projects</button><button class="btn btn-sm btn-outline-success restore-cert" data-url="${b.download_url}">Restore My Certificates</button><button class="btn btn-sm btn-outline-danger restore-both" data-url="${b.download_url}">Restore Both</button></div></div>`;
         }
         container.innerHTML = html;
-        document.querySelectorAll('.restore-proj').forEach(btn => btn.onclick = () => restoreForUser(btn.dataset.url, user.username, true, false));
-        document.querySelectorAll('.restore-cert').forEach(btn => btn.onclick = () => restoreForUser(btn.dataset.url, user.username, false, true));
-        document.querySelectorAll('.restore-both').forEach(btn => btn.onclick = () => restoreForUser(btn.dataset.url, user.username, true, true));
+        document.querySelectorAll('.restore-proj').forEach(btn => btn.onclick = () => restoreUserDataFromBackup(btn.dataset.url, user.username, true, false));
+        document.querySelectorAll('.restore-cert').forEach(btn => btn.onclick = () => restoreUserDataFromBackup(btn.dataset.url, user.username, false, true));
+        document.querySelectorAll('.restore-both').forEach(btn => btn.onclick = () => restoreUserDataFromBackup(btn.dataset.url, user.username, true, true));
       };
-      document.getElementById('refreshBackupsBtn').click(); // initial load
+      document.getElementById('refreshBackupsBtn').click();
     }
 
     async function loadUsers() {
@@ -734,26 +485,10 @@
         for (const u of users) {
           const stats = await window.AccountManager.getUserStats(u, user.pat);
           const isBlocked = blocked.includes(u);
-          container.innerHTML += `<div class="card mb-2"><div class="card-body d-flex justify-content-between"><div><strong>${window.escapeHtml(u)}</strong> ${isBlocked?'<span class="badge badge-danger">Blocked</span>':'<span class="badge badge-success">Active</span>'}<br><small>Projects: ${stats.projects} | Certs: ${stats.certificates}</small></div>
-          <div><button class="btn btn-sm ${isBlocked?'btn-success':'btn-warning'} toggle-block" data-user="${u}">${isBlocked?'Unblock':'Block'}</button>
-          <button class="btn btn-sm btn-danger delete-user" data-user="${u}">Delete</button></div></div></div>`;
+          container.innerHTML += `<div class="card mb-2"><div class="card-body d-flex justify-content-between"><div><strong>${window.escapeHtml(u)}</strong> ${isBlocked?'<span class="badge badge-danger">Blocked</span>':'<span class="badge badge-success">Active</span>'}<br><small>Projects: ${stats.projects} | Certs: ${stats.certificates}</small></div><div><button class="btn btn-sm ${isBlocked?'btn-success':'btn-warning'} toggle-block" data-user="${u}">${isBlocked?'Unblock':'Block'}</button><button class="btn btn-sm btn-danger delete-user" data-user="${u}">Delete</button></div></div></div>`;
         }
-        document.querySelectorAll('.toggle-block').forEach(btn => btn.onclick = async () => {
-          const username = btn.dataset.user;
-          const block = !blocked.includes(username);
-          if (confirm(`${block?'Block':'Unblock'} ${username}?`)) {
-            await window.AccountManager.toggleBlock(username, block, user.pat);
-            loadUsers();
-          }
-        });
-        document.querySelectorAll('.delete-user').forEach(btn => btn.onclick = async () => {
-          if (confirm(`Permanently delete ${btn.dataset.user}? This removes all their projects and certificates.`)) {
-            await window.AccountManager.deleteUser(btn.dataset.user, user.pat);
-            loadUsers();
-            // Also update the user selector in backups tab
-            if (document.getElementById('restoreUserSelect')) loadBackupsAndUsers();
-          }
-        });
+        document.querySelectorAll('.toggle-block').forEach(btn => btn.onclick = async () => { const username = btn.dataset.user; const block = !blocked.includes(username); if (confirm(`${block?'Block':'Unblock'} ${username}?`)) { await window.AccountManager.toggleBlock(username, block, user.pat); loadUsers(); } });
+        document.querySelectorAll('.delete-user').forEach(btn => btn.onclick = async () => { if (confirm(`Permanently delete ${btn.dataset.user}? This removes all their projects and certificates.`)) { await window.AccountManager.deleteUser(btn.dataset.user, user.pat); loadUsers(); if (document.getElementById('restoreUserSelect')) loadBackupsAndUsers(); } });
       } catch(e) { container.innerHTML = `<div class="alert alert-danger">${e.message}</div>`; }
       window.hideLoading();
     }
