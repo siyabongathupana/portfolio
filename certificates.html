@@ -9,6 +9,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
   <script src="config.js"></script>
+  <script src="crypto.js"></script>
+  <script src="api.js"></script>
   <script src="shared.js"></script>
 </head>
 <body>
@@ -28,7 +30,7 @@
 <div class="container py-4">
   <div class="text-center mb-5">
     <h2><span style="color:#2fc7ff;">Professional</span> Certifications</h2>
-    <p>Credentials and training achievements</p>
+    <p id="certsSubtext">Credentials and training achievements</p>
   </div>
   <div class="row" id="certificatesGrid"></div>
   <div id="noCertsMsg" class="empty-state" style="display: none;">
@@ -48,9 +50,17 @@
 <script>
   function renderCertificates() {
     window.showLoading('Loading certificates...');
-    window.portfolioData.loadCertificates().then(certs => {
+    window.portfolioData.loadCertificatesForView().then(certs => {
       const grid = document.getElementById('certificatesGrid');
       const noMsg = document.getElementById('noCertsMsg');
+      const subtext = document.getElementById('certsSubtext');
+      const user = window.SessionManager.getCurrentUser();
+      
+      if (user) {
+        subtext.innerHTML = `Showing YOUR certificates (${certs.length} total) | <a href="admin.html" style="color:#2fc7ff;">Add more</a>`;
+      } else {
+        subtext.innerHTML = 'Credentials and training achievements';
+      }
 
       if (certs.length === 0) {
         grid.innerHTML = '';
