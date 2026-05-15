@@ -68,7 +68,6 @@
         <div class="mb-3 d-flex flex-wrap">
           <button class="btn btn-delta mr-2" id="addCertBtn"><i class="fa fa-plus"></i> Add Certificate</button>
           <button class="btn btn-outline-danger mr-2" id="deleteAllCertsBtn"><i class="fa fa-trash"></i> Delete All</button>
-          <!-- Backup / Restore buttons (visible only for admin) -->
           <button class="btn btn-outline-primary mr-2" id="backupBtn" style="display:none;"><i class="fa fa-cloud-download"></i> Download Backup</button>
           <label class="btn btn-outline-warning mb-0" id="restoreLabel" style="display:none; cursor:pointer;"><i class="fa fa-upload"></i> Restore from Backup
             <input type="file" id="restoreFileInput" accept=".zip" style="display:none;">
@@ -416,7 +415,7 @@
       const container = document.getElementById('certificatesList');
       container.innerHTML = '';
       if (certs.length === 0) {
-        container.innerHTML = '<div class="empty-state"><i class="fa fa-certificate"></i><h5>No certificates added</h5></div>';
+        container.innerHTML = '<div class="empty-state"><i class="fa fa-certificate"></i><h5>No certificates added</h5><p>Click "Add Certificate" to create one.</p></div>';
         return;
       }
       certs.forEach((cert, idx) => {
@@ -642,7 +641,6 @@
       document.getElementById('usersTabNav').style.display = 'block';
       document.getElementById('refreshUsersBtn').addEventListener('click', loadUsers);
       loadUsers();
-      // Show backup/restore buttons for admin
       document.getElementById('backupBtn').style.display = 'inline-block';
       document.getElementById('restoreLabel').style.display = 'inline-flex';
     }
