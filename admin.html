@@ -33,8 +33,12 @@
     .cert-thumb-preview { max-width:80px; max-height:80px; margin-top:8px; border-radius:12px; }
     .view-portfolio-btn { background: #28a745; color: white; border-radius: 20px; padding: 6px 16px; margin-right: 10px; transition: 0.2s; }
     .view-portfolio-btn:hover { background: #218838; color: white; text-decoration: none; }
-    .log-viewer { background: #1e1e1e; color: #d4d4d4; font-family: monospace; font-size: 12px; padding: 15px; border-radius: 8px; max-height: 500px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; }
-    .log-controls { margin-bottom: 15px; }
+    .log-download-panel { background: #f8f9fa; border-radius: 12px; padding: 20px; text-align: center; }
+    .log-download-panel i { font-size: 3rem; color: #2fc7ff; margin-bottom: 15px; }
+    .btn-download-log { background: #2fc7ff; color: #0a2b33; border-radius: 40px; padding: 10px 30px; font-weight: 600; transition: 0.2s; border: none; }
+    .btn-download-log:hover { background: #1d9fcf; transform: translateY(-2px); color: white; }
+    .btn-download-all { background: #6c757d; color: white; }
+    .btn-download-all:hover { background: #5a6268; color: white; }
   </style>
 </head>
 <body style="background:#eef3fc;">
@@ -82,28 +86,29 @@
         <div id="certificatesList"></div>
       </div>
 
-      <!-- Logs Tab -->
+      <!-- Logs Tab (Download only) -->
       <div class="tab-pane fade" id="logsTab">
-        <div class="log-controls">
-          <div class="row">
+        <div class="log-download-panel">
+          <i class="fa fa-file-text-o"></i>
+          <h4>Activity Logs</h4>
+          <p class="text-muted">Download your complete activity log as a text file.</p>
+          
+          <div class="row justify-content-center">
             <div class="col-md-6">
-              <label>Select User:</label>
-              <select id="logUserSelect" class="form-control">
-                <option value="">-- Loading users --</option>
-              </select>
-            </div>
-            <div class="col-md-3">
-              <label>&nbsp;</label><br>
-              <button id="refreshLogsBtn" class="btn btn-primary"><i class="fa fa-refresh"></i> Refresh Logs</button>
-            </div>
-            <div class="col-md-3">
-              <label>&nbsp;</label><br>
-              <button id="clearLogsBtn" class="btn btn-danger" style="display:none;"><i class="fa fa-trash"></i> Clear Logs (Admin only)</button>
+              <div class="form-group" id="logUserSelectGroup" style="display:none;">
+                <label for="logUserSelect">Select user to download logs:</label>
+                <select id="logUserSelect" class="form-control">
+                  <option value="">-- Loading users --</option>
+                </select>
+              </div>
+              <button id="downloadMyLogBtn" class="btn btn-download-log btn-lg mr-2"><i class="fa fa-download"></i> Download My Logs</button>
+              <button id="downloadAllLogsBtn" class="btn btn-download-all btn-lg" style="display:none;"><i class="fa fa-archive"></i> Download All Logs (ZIP)</button>
             </div>
           </div>
-        </div>
-        <div id="logViewerContainer">
-          <pre id="logContent" class="log-viewer">Select a user to view logs.</pre>
+          
+          <div class="mt-3 text-muted small">
+            <i class="fa fa-info-circle"></i> Logs include all actions: project creation/edits/deletion, certificate changes, image uploads, backups, syncs, and errors.
+          </div>
         </div>
       </div>
 
@@ -123,9 +128,8 @@
   </div>
 </div>
 
-<!-- Project Modal -->
+<!-- Project Modal (same as before, kept minimal for brevity) -->
 <div class="modal fade" id="projectModal" tabindex="-1">
-  <!-- same as before -->
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <div class="modal-header"><h5 id="projectModalTitle">Project</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div>
@@ -183,11 +187,11 @@
           </div>
 
           <div class="form-group">
-            <label>Gallery Images (drag & drop or browse – uploaded to GitHub for high resolution & speed)</label>
+            <label>Gallery Images (drag & drop or browse – uploaded to GitHub)</label>
             <div class="drop-zone" id="imageDropZone">
               <i class="fa fa-cloud-upload"></i>
               <span>Drop images here or click to browse</span>
-              <div class="size-warning">Images are compressed & uploaded to GitHub. Allows high-res without bloating JSON.</div>
+              <div class="size-warning">Images are compressed & uploaded to GitHub.</div>
               <input type="file" id="imageFileInput" multiple accept="image/*" style="display:none;">
             </div>
             <div class="progress-bar-container" id="uploadProgressBar" style="display:none;">
@@ -677,37 +681,79 @@
       loadUsers();
       document.getElementById('backupBtn').style.display = 'inline-block';
       document.getElementById('restoreLabel').style.display = 'inline-flex';
+      // Show download all logs button for admin
+      document.getElementById('downloadAllLogsBtn').style.display = 'inline-block';
+      document.getElementById('logUserSelectGroup').style.display = 'block';
     }
 
-    // Logs functionality
-    async function loadLogsForUser(username) {
-      window.showLoading('Loading logs...');
+    // ----- Log Download Functions -----
+    async function downloadLogsForUser(username, isAdminView = false) {
+      window.showLoading(`Fetching logs for ${username}...`);
       try {
         let logs;
-        if (isAdmin && username !== user.username) {
-          // Admin viewing another user's logs
+        if (isAdminView && username !== user.username) {
           logs = await window.Logger.getLogsForUser(username, user.pat);
         } else {
-          // User viewing their own logs
           logs = await window.Logger.getLogsForUser(user.username, user.pat);
         }
-        document.getElementById('logContent').textContent = logs;
+        const blob = new Blob([logs], { type: 'text/plain' });
+        const a = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        a.href = url;
+        a.download = `logs_${username}_${new Date().toISOString().slice(0,19)}.log`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        window.Logger.log('download_logs', `Downloaded logs for ${username}`);
       } catch (err) {
-        document.getElementById('logContent').textContent = `Error loading logs: ${err.message}`;
+        alert(`Failed to download logs: ${err.message}`);
       } finally {
         window.hideLoading();
       }
     }
 
-    async function populateUserSelect() {
+    async function downloadAllLogs() {
       if (!isAdmin) {
-        // Non-admin: only show themselves
-        const select = document.getElementById('logUserSelect');
-        select.innerHTML = `<option value="${user.username}">${user.username} (you)</option>`;
-        await loadLogsForUser(user.username);
+        alert('Only admin can download all logs.');
         return;
       }
-      // Admin: show all users
+      window.showLoading('Fetching all user logs...');
+      try {
+        const users = await window.AccountManager.listUsers(user.pat);
+        const zip = new JSZip();
+        let fileCount = 0;
+        for (const u of users) {
+          const logs = await window.Logger.getLogsForUser(u, user.pat);
+          if (logs && logs !== 'No logs found for this user.' && logs !== 'Unable to retrieve logs.') {
+            zip.file(`${u}_activity.log`, logs);
+            fileCount++;
+          }
+        }
+        if (fileCount === 0) {
+          alert('No logs found for any user.');
+        } else {
+          const blob = await zip.generateAsync({ type: 'blob' });
+          const a = document.createElement('a');
+          const url = URL.createObjectURL(blob);
+          a.href = url;
+          a.download = `all_logs_${new Date().toISOString().slice(0,19)}.zip`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          window.Logger.log('download_all_logs', `Downloaded ZIP of all users' logs (${fileCount} users)`);
+        }
+      } catch (err) {
+        alert(`Failed to download all logs: ${err.message}`);
+      } finally {
+        window.hideLoading();
+      }
+    }
+
+    // Populate user select for admin
+    async function populateUserSelect() {
+      if (!isAdmin) return;
       try {
         const users = await window.AccountManager.listUsers(user.pat);
         const select = document.getElementById('logUserSelect');
@@ -715,30 +761,28 @@
         for (const u of users) {
           select.innerHTML += `<option value="${u}">${u}</option>`;
         }
-        // Select the admin by default
-        select.value = user.username;
-        await loadLogsForUser(user.username);
       } catch (err) {
         console.error('Failed to load user list for logs', err);
       }
     }
 
+    // Download own logs (non-admin or admin's own)
+    document.getElementById('downloadMyLogBtn').addEventListener('click', async () => {
+      await downloadLogsForUser(user.username, false);
+    });
+
+    // Download selected user's logs (admin only)
     document.getElementById('logUserSelect').addEventListener('change', async (e) => {
       const selected = e.target.value;
-      if (selected) {
-        await loadLogsForUser(selected);
+      if (selected && isAdmin) {
+        await downloadLogsForUser(selected, true);
+        // reset select to placeholder
+        e.target.value = '';
       }
     });
 
-    document.getElementById('refreshLogsBtn').addEventListener('click', async () => {
-      const selected = document.getElementById('logUserSelect').value;
-      if (selected) {
-        await loadLogsForUser(selected);
-      }
-    });
-
-    // For admin clear logs (optional) - not implemented to avoid accidental deletion, but could be added later
-    // For now, we skip clear button
+    // Download all logs ZIP (admin only)
+    document.getElementById('downloadAllLogsBtn').addEventListener('click', downloadAllLogs);
 
     await populateUserSelect();
 
