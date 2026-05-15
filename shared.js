@@ -1,4 +1,4 @@
-// shared.js – Full version with session persistence across all pages
+// shared.js – Full version with session persistence and logging
 
 window.showLoading = function (msg = 'Processing...') {
   let loader = document.getElementById('globalLoader');
@@ -37,6 +37,7 @@ window.updateUserFooter = function () {
     if (logoutBtn) {
       logoutBtn.addEventListener('click', (e) => {
         e.preventDefault();
+        window.Logger.log('logout', 'User logged out');
         window.SessionManager.logout();
         window.location.reload();
       });
@@ -66,6 +67,7 @@ window.SessionManager = (() => {
     setCurrentUser: (username, pat) => {
       current = { username, pat, timestamp: Date.now() };
       sessionStorage.setItem('deltaVUser', JSON.stringify(current));
+      window.Logger.log('login', `User logged in as ${username}`);
     },
     logout: () => {
       current = null;
@@ -73,6 +75,62 @@ window.SessionManager = (() => {
     }
   };
 })();
+
+// ---------- LOGGING SYSTEM ----------
+window.Logger = {
+  async log(action, details, level = 'INFO') {
+    const user = window.SessionManager.getCurrentUser();
+    if (!user) return; // no user logged in, skip logging (or could log to public? we skip)
+    
+    const timestamp = new Date().toISOString();
+    const logEntry = `[${timestamp}] [${level}] [${action}] ${details}\n`;
+    
+    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+    const encUser = encodeURIComponent(user.username);
+    const logPath = `${dataPath}/users/${encUser}/logs/activity.log`;
+    
+    let existingContent = '';
+    let sha = null;
+    try {
+      const file = await GitHubAPI.getFileContent(owner, repo, logPath, branch, user.pat);
+      if (file && file.content) {
+        existingContent = file.content;
+        sha = file.sha;
+      }
+    } catch (e) { /* file doesn't exist yet */ }
+    
+    const newContent = logEntry + existingContent; // newest first
+    try {
+      await GitHubAPI.updateFile(owner, repo, logPath, newContent, `Log: ${action}`, branch, user.pat, sha);
+    } catch (err) {
+      console.error('Failed to write log:', err);
+    }
+  },
+  
+  async getLogsForUser(targetUsername, adminToken) {
+    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+    const encUser = encodeURIComponent(targetUsername);
+    const logPath = `${dataPath}/users/${encUser}/logs/activity.log`;
+    try {
+      const file = await GitHubAPI.getFileContent(owner, repo, logPath, branch, adminToken);
+      if (file && file.content) {
+        return file.content;
+      }
+      return 'No logs found for this user.';
+    } catch (e) {
+      return 'Unable to retrieve logs.';
+    }
+  },
+  
+  async getAllUserLogs(adminToken) {
+    const usernames = await window.AccountManager.listUsers(adminToken);
+    const allLogs = {};
+    for (const username of usernames) {
+      allLogs[username] = await this.getLogsForUser(username, adminToken);
+    }
+    return allLogs;
+  }
+};
 
 // ---------- GITHUB IMAGE UPLOAD HELPERS ----------
 window.uploadImageToGitHub = async function(file, user, folder = 'images') {
@@ -101,6 +159,7 @@ window.uploadImageToGitHub = async function(file, user, folder = 'images') {
   });
   if (!resp.ok) throw new Error('Image upload failed');
   const data = await resp.json();
+  await window.Logger.log('image_upload', `Uploaded ${fileName} to ${folder}`);
   return data.content.download_url;
 };
 
@@ -123,6 +182,7 @@ window.deleteImageFromGitHub = async function(imageUrl, user) {
     })
   });
   if (!deleteResp.ok) throw new Error('Failed to delete image');
+  await window.Logger.log('image_delete', `Deleted ${path}`);
 };
 
 window.compressImage = function(file, maxW = 1600, maxH = 1600, quality = 0.85) {
@@ -213,6 +273,7 @@ window.AccountManager = {
     await GitHubAPI.updateFile(owner, repo, path, encrypted, `Register ${username}`, branch, pat);
     this._notifyAdminNewUser(username);
     this._notifyUserConfirmation(username);
+    await window.Logger.log('register', `New user registered: ${username}`, 'INFO', pat);
     return true;
   },
   async login(username, passphrase) {
@@ -248,6 +309,7 @@ window.AccountManager = {
     const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, adminToken).catch(() => null);
     if (existing) sha = existing.sha;
     await GitHubAPI.updateFile(owner, repo, path, blocked, 'Update blocked users', branch, adminToken, sha);
+    await window.Logger.log('toggle_block', `${block ? 'Blocked' : 'Unblocked'} user ${username}`, 'INFO', adminToken);
     return true;
   },
   async listUsers(adminToken) {
@@ -273,6 +335,7 @@ window.AccountManager = {
     for (const item of items) {
       await GitHubAPI.deleteFile(owner, repo, item.path, branch, adminToken, item.sha);
     }
+    await window.Logger.log('delete_user', `Deleted user ${username}`, 'INFO', adminToken);
     return true;
   },
   async getUserStats(username, adminToken) {
@@ -508,7 +571,7 @@ window.portfolioData = (() => {
       } catch (err) {
         lastError = err;
         console.warn(`Update attempt ${attempt} failed: ${err.message}`);
-        
+        await window.Logger.log('error', `GitHub write attempt ${attempt} failed: ${err.message}`, 'ERROR');
         if (attempt < maxRetries) {
           const delay = Math.pow(2, attempt) * 500;
           await new Promise(resolve => setTimeout(resolve, delay));
@@ -537,9 +600,11 @@ window.portfolioData = (() => {
     
     try {
       await updateFileWithRetry(owner, repo, path, data, 'Update projects', branch, user.pat);
+      await window.Logger.log('save_projects', `Saved ${Object.keys(data).length} projects`);
     } catch (err) {
       if (prev) localStorage.setItem(PROJECTS_KEY, prev);
       else localStorage.removeItem(PROJECTS_KEY);
+      await window.Logger.log('error', `Failed to save projects: ${err.message}`, 'ERROR');
       throw new Error('GitHub write failed: ' + err.message);
     }
   }
@@ -562,9 +627,11 @@ window.portfolioData = (() => {
     
     try {
       await updateFileWithRetry(owner, repo, path, data, 'Update certificates', branch, user.pat);
+      await window.Logger.log('save_certificates', `Saved ${data.length} certificates`);
     } catch (err) {
       if (prev) localStorage.setItem(CERTS_KEY, prev);
       else localStorage.removeItem(CERTS_KEY);
+      await window.Logger.log('error', `Failed to save certificates: ${err.message}`, 'ERROR');
       throw new Error('GitHub write failed: ' + err.message);
     }
   }
@@ -579,6 +646,7 @@ window.portfolioData = (() => {
         a.href = URL.createObjectURL(blob);
         a.download = `deltaV_data_${window.SessionManager.getCurrentUser()?.username || 'default'}.zip`;
         a.click();
+        window.Logger.log('export_data', `Exported data to ZIP`);
       });
     });
   }
@@ -607,6 +675,7 @@ window.portfolioData = (() => {
     a.download = `deltaV_backup_${new Date().toISOString().slice(0,19)}.zip`;
     a.click();
     URL.revokeObjectURL(a.href);
+    await window.Logger.log('backup_download', `Downloaded backup ZIP`);
   }
 
   async function restoreBackup(file) {
@@ -641,6 +710,7 @@ window.portfolioData = (() => {
     
     await saveProjects(projects, true);
     await saveCertificates(certs, true);
+    await window.Logger.log('restore_backup', `Restored from backup ${fileName}`);
     return { projects, certs };
   }
 
@@ -765,15 +835,15 @@ window.generateProjectReport = async function(projectId) {
       <div style="background:${bgColor}; padding:20px; border-radius:16px; margin:20px 0;">
         <h3>Project Overview</h3>
         <table style="width:100%">
-          <tr><td><strong>Title:</strong></td><td>${proj.title}</td></tr>
-          <tr><td><strong>Location:</strong></td><td>${proj.siteLocation || 'N/A'}</td></tr>
-          <tr><td><strong>Controllers:</strong></td><td>${controllerDisplay}</td></tr>
-          <tr><td><strong>Cabinets:</strong></td><td>${proj.cabinetCount}</td></tr>
-          ${proj.deltaVVersion ? `<tr><td><strong>DeltaV Version:</strong></td><td>${proj.deltaVVersion}</td></tr>` : ''}
-          <tr><td><strong>Start Date:</strong></td><td>${proj.dates?.start || 'N/A'}</td></tr>
-          <tr><td><strong>Finish Date:</strong></td><td>${proj.dates?.finish || 'N/A'}</td></tr>
-          <tr><td><strong>IFAT:</strong></td><td>${ifatText}</td></tr>
-          <tr><td><strong>CFAT:</strong></td><td>${cfatText}</td></tr>
+          <tr><td><strong>Title:</strong>${dataV}/${proj.title}专业专业
+          <tr><td><strong>Location:</strong>${dataV}/${proj.siteLocation||'N/A'}专业专业
+          <tr><td><strong>Controllers:</strong>${dataV}/${controllerDisplay}专业专业
+          <tr><td><strong>Cabinets:</strong>${dataV}/${proj.cabinetCount}专业专业
+          ${proj.deltaVVersion ? `<tr><td><strong>DeltaV Version:</strong>${dataV}/${proj.deltaVVersion}专业专业` : ''}
+          <tr><td><strong>Start Date:</strong>${dataV}/${proj.dates?.start || 'N/A'}专业专业
+          <tr><td><strong>Finish Date:</strong>${dataV}/${proj.dates?.finish || 'N/A'}专业专业
+          <tr><td><strong>IFAT:</strong>${dataV}/${ifatText}专业专业
+          <tr><td><strong>CFAT:</strong>${dataV}/${cfatText}专业专业
         </table>
       </div>
       <div style="background:${bgColor}; padding:20px; border-radius:16px; margin-bottom:20px;">
@@ -783,7 +853,7 @@ window.generateProjectReport = async function(projectId) {
         <h3>I/O Configuration</h3>
         <table style="width:100%; text-align:center; border-collapse:collapse;">
           <tr style="background:${primaryColor}; color:white;"><th>AI</th><th>AO</th><th>DI</th><th>DO</th></tr>
-          <tr><td>${io.AI}</td><td>${io.AO}</td><td>${io.DI}</td><td>${io.DO}</td></tr>
+          <tr><td>${io.AI}${dataV}/${io.AO}${dataV}/${io.DI}${dataV}/${io.DO}专业专业
         </table>
       </div>
       <div style="background:${bgColor}; padding:20px; border-radius:16px; margin-bottom:20px; text-align:center;">
