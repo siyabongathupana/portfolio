@@ -1,4 +1,4 @@
-// shared.js – Full version with safety checks and transactional saves
+// shared.js – Full version with safety checks, GitHub image upload, backup/restore
 
 window.showLoading = function (msg = 'Processing...') {
   let loader = document.getElementById('globalLoader');
@@ -60,6 +60,85 @@ window.SessionManager = (() => {
   };
 })();
 
+// ---------- GITHUB IMAGE UPLOAD HELPERS ----------
+window.uploadImageToGitHub = async function(file, user, folder = 'images') {
+  const compressedDataUrl = await window.compressImage(file, 1600, 1600, 0.85);
+  const blob = await (await fetch(compressedDataUrl)).blob();
+  const fileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+  const path = `${window.REPO_CONFIG.dataPath}/users/${encodeURIComponent(user.username)}/${folder}/${fileName}`;
+  const content = await new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1]);
+    reader.readAsDataURL(blob);
+  });
+  const url = `https://api.github.com/repos/${window.REPO_CONFIG.owner}/${window.REPO_CONFIG.repo}/contents/${path}`;
+  const body = {
+    message: `Upload image ${fileName}`,
+    content: content,
+    branch: window.REPO_CONFIG.branch
+  };
+  const resp = await fetch(url, {
+    method: 'PUT',
+    headers: {
+      Authorization: `token ${user.pat}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(body)
+  });
+  if (!resp.ok) throw new Error('Image upload failed');
+  const data = await resp.json();
+  return data.content.download_url;
+};
+
+window.deleteImageFromGitHub = async function(imageUrl, user) {
+  const parts = imageUrl.split('/');
+  const path = parts.slice(parts.indexOf('data')).join('/');
+  const url = `https://api.github.com/repos/${window.REPO_CONFIG.owner}/${window.REPO_CONFIG.repo}/contents/${path}`;
+  const getResp = await fetch(url, {
+    headers: { Authorization: `token ${user.pat}` }
+  });
+  if (!getResp.ok) return;
+  const fileData = await getResp.json();
+  const deleteResp = await fetch(url, {
+    method: 'DELETE',
+    headers: { Authorization: `token ${user.pat}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      message: 'Delete image',
+      sha: fileData.sha,
+      branch: window.REPO_CONFIG.branch
+    })
+  });
+  if (!deleteResp.ok) throw new Error('Failed to delete image');
+};
+
+window.compressImage = function(file, maxW = 1600, maxH = 1600, quality = 0.85) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        const ratio = Math.min(maxW / width, maxH / height);
+        if (ratio < 1) {
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+};
+
+// ---------- ACCOUNT MANAGER (fully implemented) ----------
 window.AccountManager = {
   async _ensureEmailJS() {
     if (typeof emailjs === 'undefined') {
@@ -73,12 +152,10 @@ window.AccountManager = {
       emailjs.init(window.APP_CONFIG.emailjs.publicKey);
     }
   },
-
   async _sendEmail(templateID, params) {
     await this._ensureEmailJS();
     return emailjs.send(window.APP_CONFIG.emailjs.serviceID, templateID, params);
   },
-
   async _notifyAdminNewUser(userEmail) {
     const cfg = window.APP_CONFIG.emailjs;
     if (!cfg || !cfg.publicKey || !cfg.adminTemplateID) return;
@@ -90,7 +167,6 @@ window.AccountManager = {
       });
     } catch (e) { console.warn('Admin email failed', e); }
   },
-
   async _notifyUserConfirmation(userEmail) {
     const cfg = window.APP_CONFIG.emailjs;
     if (!cfg || !cfg.publicKey || !cfg.userTemplateID) return;
@@ -102,7 +178,6 @@ window.AccountManager = {
       });
     } catch (e) { console.warn('User email failed', e); }
   },
-
   async fetchAccount(username) {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(username);
@@ -113,27 +188,22 @@ window.AccountManager = {
       return await resp.json();
     } catch { return null; }
   },
-
   async register(username, passphrase, pat) {
     const payload = JSON.stringify({ test: 'VALID', token: pat });
     const encrypted = await window.CryptoUtil.encrypt(payload, passphrase);
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(username);
     const path = `${dataPath}/users/${encUser}/account.json`;
-
     const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, pat).catch(() => null);
     if (existing) throw new Error('An account with this email already exists on GitHub.');
-
     await GitHubAPI.updateFile(owner, repo, path, encrypted, `Register ${username}`, branch, pat);
     this._notifyAdminNewUser(username);
     this._notifyUserConfirmation(username);
     return true;
   },
-
   async login(username, passphrase) {
     const blocked = await this.getBlockedUsers();
     if (blocked.includes(username)) throw new Error('Your account has been blocked. Contact the administrator.');
-
     const blob = await this.fetchAccount(username);
     if (!blob) throw new Error('User not found');
     const decrypted = await window.CryptoUtil.decrypt(blob, passphrase);
@@ -141,7 +211,6 @@ window.AccountManager = {
     if (data.test !== 'VALID') throw new Error('Corrupted account');
     return data.token;
   },
-
   async getBlockedUsers() {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const url = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${dataPath}/blocked_users.json`;
@@ -151,7 +220,6 @@ window.AccountManager = {
       return await resp.json();
     } catch { return []; }
   },
-
   async toggleBlock(username, block, adminToken) {
     const blocked = await this.getBlockedUsers();
     if (block) {
@@ -160,7 +228,6 @@ window.AccountManager = {
       const idx = blocked.indexOf(username);
       if (idx !== -1) blocked.splice(idx, 1);
     }
-
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const path = `${dataPath}/blocked_users.json`;
     let sha = null;
@@ -169,7 +236,6 @@ window.AccountManager = {
     await GitHubAPI.updateFile(owner, repo, path, blocked, 'Update blocked users', branch, adminToken, sha);
     return true;
   },
-
   async listUsers(adminToken) {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const url = `https://api.github.com/repos/${owner}/${repo}/contents/${dataPath}/users?ref=${branch}`;
@@ -180,7 +246,6 @@ window.AccountManager = {
     const items = await resp.json();
     return items.filter(i => i.type === 'dir').map(i => i.name);
   },
-
   async deleteUser(username, adminToken) {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(username);
@@ -196,7 +261,6 @@ window.AccountManager = {
     }
     return true;
   },
-
   async getUserStats(username, adminToken) {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(username);
@@ -220,9 +284,7 @@ window.AccountManager = {
   }
 };
 
-/* =====================================================
-   PORTFOLIO DATA – TRANSACTIONAL SAVES WITH SAFETY CHECKS
-   ===================================================== */
+// ---------- PORTFOLIO DATA (with force-clear support) ----------
 window.portfolioData = (() => {
   const PROJECTS_KEY = 'deltaVProjects';
   const CERTS_KEY = 'deltaVCertificates';
@@ -319,13 +381,12 @@ window.portfolioData = (() => {
     return JSON.parse(localStorage.getItem(CERTS_KEY) || '[]');
   }
 
-  async function saveProjects(data) {
+  async function saveProjects(data, forceEmpty = false) {
     const prev = localStorage.getItem(PROJECTS_KEY);
-    if (prev) {
+    if (prev && !forceEmpty) {
       const previous = JSON.parse(prev);
       if (Object.keys(previous).length > 0 && Object.keys(data).length === 0) {
-        console.error('Refusing to overwrite non-empty projects with empty data');
-        throw new Error('Cannot delete all projects this way. Use "Delete All" instead.');
+        throw new Error('Cannot delete all projects this way. Use "Delete All" button.');
       }
     }
     localStorage.setItem(PROJECTS_KEY, JSON.stringify(data));
@@ -340,9 +401,7 @@ window.portfolioData = (() => {
       const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat).catch(() => null);
       if (existing) sha = existing.sha;
       const jsonStr = JSON.stringify(data);
-      if (jsonStr.length > 900000) {
-        throw new Error('Project data is too large. Reduce image sizes or number of images.');
-      }
+      if (jsonStr.length > 900000) throw new Error('Project data too large');
       await GitHubAPI.updateFile(owner, repo, path, data, 'Update projects', branch, user.pat, sha);
     } catch (err) {
       if (prev) localStorage.setItem(PROJECTS_KEY, prev);
@@ -351,21 +410,17 @@ window.portfolioData = (() => {
     }
   }
 
-  async function saveCertificates(data) {
-    // SAFETY: refuse to overwrite existing certificates with empty array
+  async function saveCertificates(data, forceEmpty = false) {
     const prev = localStorage.getItem(CERTS_KEY);
-    if (prev) {
+    if (prev && !forceEmpty) {
       const previous = JSON.parse(prev);
       if (previous.length > 0 && data.length === 0) {
-        console.error('Refusing to overwrite non-empty certificates with empty data');
-        throw new Error('Cannot delete all certificates this way. Use "Delete All" instead.');
+        throw new Error('Cannot delete all certificates this way. Use "Delete All" button.');
       }
     }
-
     localStorage.setItem(CERTS_KEY, JSON.stringify(data));
     const user = window.SessionManager.getCurrentUser();
     if (!user || !user.pat) return;
-
     await verifyNotBlocked();
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(user.username);
@@ -376,12 +431,8 @@ window.portfolioData = (() => {
       if (existing) sha = existing.sha;
       await GitHubAPI.updateFile(owner, repo, path, data, 'Update certificates', branch, user.pat, sha);
     } catch (err) {
-      // Revert local storage to previous state on failure
-      if (prev) {
-        localStorage.setItem(CERTS_KEY, prev);
-      } else {
-        localStorage.removeItem(CERTS_KEY);
-      }
+      if (prev) localStorage.setItem(CERTS_KEY, prev);
+      else localStorage.removeItem(CERTS_KEY);
       throw new Error('GitHub write failed: ' + err.message);
     }
   }
@@ -400,10 +451,59 @@ window.portfolioData = (() => {
     });
   }
 
-  return { loadProjects, saveProjects, loadCertificates, saveCertificates, exportData };
+  // ----- BACKUP & RESTORE (admin only) -----
+  async function downloadBackup() {
+    const user = window.SessionManager.getCurrentUser();
+    if (!user || !window.APP_CONFIG.adminUsers.includes(user.username)) {
+      throw new Error('Only admin can download backups.');
+    }
+    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+    const encUser = encodeURIComponent(user.username);
+    const projectsPath = `${dataPath}/users/${encUser}/projects.json`;
+    const certsPath = `${dataPath}/users/${encUser}/certificates.json`;
+    const [projectsFile, certsFile] = await Promise.all([
+      GitHubAPI.getFileContent(owner, repo, projectsPath, branch, user.pat).catch(() => null),
+      GitHubAPI.getFileContent(owner, repo, certsPath, branch, user.pat).catch(() => null)
+    ]);
+    const projects = projectsFile ? JSON.parse(projectsFile.content) : {};
+    const certs = certsFile ? JSON.parse(certsFile.content) : [];
+    const zip = new JSZip();
+    zip.file("projects.json", JSON.stringify(projects, null, 2));
+    zip.file("certificates.json", JSON.stringify(certs, null, 2));
+    const blob = await zip.generateAsync({ type: "blob" });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `deltaV_backup_${new Date().toISOString().slice(0,19)}.zip`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  async function restoreBackup(file) {
+    const user = window.SessionManager.getCurrentUser();
+    if (!user || !window.APP_CONFIG.adminUsers.includes(user.username)) {
+      throw new Error('Only admin can restore backups.');
+    }
+    const zip = await JSZip.loadAsync(file);
+    const projectsFile = zip.file("projects.json");
+    const certsFile = zip.file("certificates.json");
+    if (!projectsFile || !certsFile) throw new Error('Invalid backup: missing projects.json or certificates.json');
+    const projectsText = await projectsFile.async("string");
+    const certsText = await certsFile.async("string");
+    const projects = JSON.parse(projectsText);
+    const certs = JSON.parse(certsText);
+    // Validate structure
+    if (typeof projects !== 'object') throw new Error('Invalid projects data');
+    if (!Array.isArray(certs)) throw new Error('Invalid certificates data');
+    // Save with force flag
+    await saveProjects(projects, true);
+    await saveCertificates(certs, true);
+    return { projects, certs };
+  }
+
+  return { loadProjects, saveProjects, loadCertificates, saveCertificates, exportData, downloadBackup, restoreBackup };
 })();
 
-// Lazy loading for images
+// ---------- LAZY LOAD & PROTECT ----------
 window.lazyLoadImages = function() {
   if ('IntersectionObserver' in window) {
     const imgObserver = new IntersectionObserver((entries, observer) => {
