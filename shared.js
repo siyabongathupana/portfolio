@@ -1,4 +1,4 @@
-// shared.js – Full version with PDF log generation (fixed log path)
+// shared.js – Complete version with fixed PDF logs (each entry on its own row)
 
 window.showLoading = function (msg = 'Processing...') {
   let loader = document.getElementById('globalLoader');
@@ -76,7 +76,7 @@ window.SessionManager = (() => {
   };
 })();
 
-// ---------- LOGGING SYSTEM (PDF generation) ----------
+// ---------- LOGGING SYSTEM (PDF generation with each entry on its own row) ----------
 window.Logger = {
   async log(action, details, level = 'INFO') {
     const user = window.SessionManager.getCurrentUser();
@@ -87,7 +87,6 @@ window.Logger = {
     
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(user.username);
-    // CHANGED: store log directly in user folder, not in /logs subfolder
     const logPath = `${dataPath}/users/${encUser}/activity.log`;
     
     let existingContent = '';
@@ -111,12 +110,14 @@ window.Logger = {
   async getLogsForUser(targetUsername, adminToken) {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(targetUsername);
-    // CHANGED: same path as above
     const logPath = `${dataPath}/users/${encUser}/activity.log`;
     try {
       const file = await GitHubAPI.getFileContent(owner, repo, logPath, branch, adminToken);
       if (file && file.content) {
-        return file.content;
+        let content = file.content;
+        // Fix malformed newlines
+        content = content.replace(/\\n/g, '\n');
+        return content;
       }
       return 'No logs found for this user.';
     } catch (e) {
@@ -146,8 +147,9 @@ window.Logger = {
       return doc.output('blob');
     }
     
-    const lines = logText.split('\n').filter(l => l.trim());
+    const lines = logText.split('\n').filter(l => l.trim().length > 0);
     const tableData = [];
+    
     for (const line of lines) {
       const match = line.match(/\[(.*?)\]\s*\[(.*?)\]\s*\[(.*?)\]\s*(.*)/);
       if (match) {
@@ -167,7 +169,12 @@ window.Logger = {
     
     const body = tableData.map(row => {
       const style = row[4];
-      return [{ content: row[0], styles: style }, { content: row[1], styles: style }, { content: row[2], styles: style }, { content: row[3], styles: style }];
+      return [
+        { content: row[0], styles: style },
+        { content: row[1], styles: style },
+        { content: row[2], styles: style },
+        { content: row[3], styles: style }
+      ];
     });
     
     doc.setFontSize(16);
