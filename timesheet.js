@@ -1,4 +1,4 @@
-// timesheet.js – Timesheet with project selection, project list from portfolio
+// timesheet.js – Full timesheet with auto-refresh, toasts, reliable saves
 (function() {
   const user = window.SessionManager?.getCurrentUser();
   if (!user) {
@@ -12,7 +12,25 @@
   let entries = [];
   let categoryChart = null, billableChart = null, projectChart = null;
   let userFullName = "";
-  let projectList = []; // array of project names (from user's projects.json)
+  let projectList = [];
+  let autoRefreshInterval = null;
+
+  // Toast helper
+  function showToast(message, type = "success") {
+    const container = document.getElementById("toastContainer");
+    if (!container) return;
+    const toastId = "toast-" + Date.now();
+    const bgClass = type === "success" ? "bg-success" : (type === "error" ? "bg-danger" : "bg-info");
+    const html = `
+      <div id="${toastId}" class="toast ${bgClass} text-white" role="alert" aria-live="assertive" aria-atomic="true" data-autohide="true" data-delay="3000">
+        <div class="toast-body">${message}</div>
+      </div>
+    `;
+    container.insertAdjacentHTML("beforeend", html);
+    const toastEl = document.getElementById(toastId);
+    $(toastEl).toast("show");
+    toastEl.addEventListener("hidden.bs.toast", () => toastEl.remove());
+  }
 
   // Helper functions
   function formatDate(date) {
@@ -33,18 +51,16 @@
     document.getElementById('hoursAuto').value = calcHours(start, end).toFixed(2);
   }
 
-  // Load projects from portfolio (projects.json)
+  // Load projects from portfolio
   async function loadProjects() {
     try {
       const projectsData = await window.portfolioData.loadProjects();
       projectList = Object.values(projectsData).map(p => p.title).filter(p => p);
-      // also ensure "Other" is always available
       if (!projectList.includes("Other")) projectList.push("Other");
       projectList.sort();
     } catch (e) {
       projectList = ["Other"];
     }
-    // populate project dropdown
     const select = document.getElementById('taskProject');
     select.innerHTML = '';
     projectList.forEach(p => {
@@ -53,7 +69,6 @@
       opt.textContent = p;
       select.appendChild(opt);
     });
-    // also populate filter dropdown
     const filterSelect = document.getElementById('filterProject');
     filterSelect.innerHTML = '<option value="all">All Projects</option>';
     projectList.forEach(p => {
@@ -64,20 +79,16 @@
     });
   }
 
-  // Add a new project (user-defined)
   async function addNewProject(projectName) {
     if (!projectName || projectList.includes(projectName)) return false;
-    // Add to local projectList
     projectList.push(projectName);
     projectList.sort();
-    // Save projects? Actually projects are separate – we only need to remember this project name for timesheet.
-    // We'll store it in user meta so it persists across page reloads.
     await saveUserMeta(userFullName, projectList);
-    await loadProjects(); // refresh dropdowns
+    await loadProjects();
     return true;
   }
 
-  // Load / Save timesheet
+  // Load / Save timesheet with retry
   async function loadTimesheet() {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(user.username);
@@ -86,7 +97,6 @@
       const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
       if (file?.content) {
         entries = JSON.parse(file.content);
-        // ensure each entry has a project field (backward compatibility)
         entries = entries.map(e => ({ ...e, project: e.project || "Other" }));
       } else {
         entries = [];
@@ -94,6 +104,7 @@
     } catch(e) { entries = []; }
     entries.sort((a,b) => new Date(b.date) - new Date(a.date));
   }
+
   async function saveTimesheet() {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(user.username);
@@ -107,7 +118,7 @@
     window.Logger.log('timesheet_save', `Saved ${entries.length} entries`);
   }
 
-  // Load / Save user meta (full name + project list)
+  // User meta
   async function loadUserMeta() {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(user.username);
@@ -118,19 +129,17 @@
         const meta = JSON.parse(file.content);
         userFullName = meta.fullName || "";
         if (meta.projectList && Array.isArray(meta.projectList)) {
-          // merge with projects from portfolio
-          const portfolioProjects = projectList;
-          const combined = [...new Set([...portfolioProjects, ...meta.projectList])];
+          const combined = [...new Set([...projectList, ...meta.projectList])];
           projectList = combined;
         }
       }
     } catch(e) {}
     document.getElementById('userFullName').value = userFullName;
     document.getElementById('reportName').value = userFullName;
-    // ensure "Other" exists
     if (!projectList.includes("Other")) projectList.push("Other");
-    await loadProjects(); // refresh dropdowns with combined list
+    await loadProjects();
   }
+
   async function saveUserMeta(fullName, projList = null) {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(user.username);
@@ -142,7 +151,6 @@
     } catch(e) {}
     const meta = { fullName, projectList: projList || projectList };
     await GitHubAPI.updateFile(owner, repo, path, meta, `Update user meta`, branch, user.pat, sha);
-    window.Logger.log('user_meta_save', `Saved meta`);
   }
 
   // Add / Delete entries
@@ -154,11 +162,18 @@
     const category = document.getElementById('taskCategory').value;
     const billable = document.getElementById('billable').value;
     const notes = document.getElementById('taskNotes').value.trim();
-    if (!date || !start || !end || !project) { alert("Fill all required fields."); return; }
+    if (!date || !start || !end || !project) {
+      showToast("Please fill all required fields.", "error");
+      return;
+    }
     const hours = calcHours(start, end);
-    if (hours <= 0) { alert("End time must be after start."); return; }
+    if (hours <= 0) {
+      showToast("End time must be after start.", "error");
+      return;
+    }
     entries.unshift({ id: Date.now(), date, start, end, hours, project, category, billable, notes });
     await saveTimesheet();
+    showToast("Entry saved successfully!");
     refreshView();
     document.getElementById('startTime').value = '';
     document.getElementById('endTime').value = '';
@@ -166,15 +181,17 @@
     document.getElementById('hoursAuto').value = '';
     updateDailyProgress();
   }
+
   async function deleteEntry(id) {
-    if (confirm("Delete entry?")) {
+    if (confirm("Delete this entry?")) {
       entries = entries.filter(e => e.id != id);
       await saveTimesheet();
+      showToast("Entry deleted.");
       refreshView();
     }
   }
 
-  // Filter logic (with project)
+  // Filter logic
   function getFilteredEntries() {
     const range = document.getElementById('filterRange').value;
     const project = document.getElementById('filterProject').value;
@@ -203,7 +220,7 @@
     return filtered;
   }
 
-  // Render history table with totals
+  // Render history
   function renderHistory() {
     const filtered = getFilteredEntries();
     const tbody = document.getElementById('historyBody');
@@ -234,11 +251,10 @@
       delBtn.onclick = () => deleteEntry(entry.id);
       actionCell.appendChild(delBtn);
     });
-    document.getElementById('totalHoursCell').innerText = totalHours.toFixed(2);
+    document.getElementById('totalHoursCell').innerHTML = `<strong>${totalHours.toFixed(2)}</strong>`;
     tfoot.style.display = 'table-footer-group';
   }
 
-  // Daily progress
   function updateDailyProgress() {
     const today = formatDate(new Date());
     const todayHours = entries.filter(e => e.date === today).reduce((s,e) => s + e.hours, 0);
@@ -249,10 +265,9 @@
     fill.style.background = todayHours >= 8 ? '#28a745' : '#2fc7ff';
   }
 
-  // Update charts (Project, Category, Billable)
   function updateCharts() {
     const filtered = getFilteredEntries();
-    // Project breakdown
+    // Project chart
     const projMap = {};
     filtered.forEach(e => { projMap[e.project] = (projMap[e.project] || 0) + e.hours; });
     if (projectChart) projectChart.destroy();
@@ -262,7 +277,7 @@
       data: { labels: Object.keys(projMap), datasets: [{ data: Object.values(projMap), backgroundColor: ['#2fc7ff','#ffc107','#28a745','#dc3545','#6f42c1','#fd7e14','#17a2b8','#e83e8c'] }] },
       options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } } } }
     });
-    // Category breakdown
+    // Category chart
     const catMap = {};
     filtered.forEach(e => { catMap[e.category] = (catMap[e.category] || 0) + e.hours; });
     if (categoryChart) categoryChart.destroy();
@@ -272,7 +287,7 @@
       data: { labels: Object.keys(catMap), datasets: [{ data: Object.values(catMap), backgroundColor: ['#2fc7ff','#ffc107','#28a745','#dc3545','#6f42c1','#fd7e14'] }] },
       options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } } } }
     });
-    // Billable
+    // Billable chart
     let billable = 0, nonBill = 0;
     filtered.forEach(e => { if (e.billable === 'yes') billable += e.hours; else nonBill += e.hours; });
     if (billableChart) billableChart.destroy();
@@ -284,10 +299,10 @@
     });
   }
 
-  // Excel Export (filtered)
+  // Excel export
   function exportToExcel() {
     const filtered = getFilteredEntries();
-    if (filtered.length === 0) { alert("No data to export."); return; }
+    if (filtered.length === 0) { showToast("No data to export.", "error"); return; }
     const data = filtered.map(e => ({
       Date: e.date, Start: e.start, End: e.end, Hours: e.hours,
       Project: e.project, Category: e.category, Billable: e.billable === 'yes' ? 'Billable' : 'Non-billable',
@@ -297,53 +312,61 @@
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Timesheet');
     XLSX.writeFile(wb, `timesheet_${formatDate(new Date())}.xlsx`);
+    showToast("Excel file downloaded.");
   }
 
-  // PDF Report with custom date range
+  // PDF Report
   async function generatePDFReport(startDate, endDate) {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-    const filtered = entries.filter(e => e.date >= startDate && e.date <= endDate);
-    if (filtered.length === 0) {
-      alert("No entries in the selected date range.");
-      return;
-    }
-    const name = document.getElementById('reportName').value || userFullName || user.username;
-    const totalHours = filtered.reduce((s,e) => s + e.hours, 0);
-    const billableHours = filtered.filter(e => e.billable === 'yes').reduce((s,e) => s + e.hours, 0);
-    const nonBillable = totalHours - billableHours;
+    try {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+      const filtered = entries.filter(e => e.date >= startDate && e.date <= endDate);
+      if (filtered.length === 0) {
+        showToast("No entries in the selected date range.", "error");
+        return;
+      }
+      const name = document.getElementById('reportName').value || userFullName || user.username;
+      const totalHours = filtered.reduce((s,e) => s + e.hours, 0);
+      const billableHours = filtered.filter(e => e.billable === 'yes').reduce((s,e) => s + e.hours, 0);
+      const nonBillable = totalHours - billableHours;
 
-    const tableData = filtered.map(e => [e.date, e.start, e.end, e.hours.toFixed(2), e.project, e.category, e.billable === 'yes' ? 'Billable' : 'Non-billable', e.notes || '']);
-    doc.setFontSize(16);
-    doc.text('Timesheet Report', 14, 20);
-    doc.setFontSize(11);
-    doc.text(`Name: ${name}`, 14, 30);
-    doc.text(`Period: ${startDate} to ${endDate}`, 14, 37);
-    doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 44);
-    doc.text(`Total Hours: ${totalHours.toFixed(2)} (Billable: ${billableHours.toFixed(2)} | Non-billable: ${nonBillable.toFixed(2)})`, 14, 51);
-    doc.autoTable({
-      startY: 58,
-      head: [['Date', 'Start', 'End', 'Hours', 'Project', 'Category', 'Billable', 'Notes']],
-      body: tableData,
-      foot: [['', '', '', totalHours.toFixed(2), '', '', '', '']],
-      theme: 'striped',
-      headStyles: { fillColor: [11, 43, 59], textColor: 255, fontStyle: 'bold' },
-      footStyles: { fillColor: [240, 240, 240], textColor: 0, fontStyle: 'bold' },
-      margin: { left: 14, right: 14 },
-      columnStyles: { 0: { cellWidth: 22 }, 1: { cellWidth: 16 }, 2: { cellWidth: 16 }, 3: { cellWidth: 16 }, 4: { cellWidth: 30 }, 5: { cellWidth: 25 }, 6: { cellWidth: 20 }, 7: { cellWidth: 35 } }
-    });
-    const pageCount = doc.internal.getNumberOfPages();
-    for (let i = 1; i <= pageCount; i++) {
-      doc.setPage(i);
-      doc.setFontSize(9);
-      doc.text(`Your Portfolio – Timesheet | Page ${i} of ${pageCount}`, 14, doc.internal.pageSize.height - 10);
+      const tableData = filtered.map(e => [e.date, e.start, e.end, e.hours.toFixed(2), e.project, e.category, e.billable === 'yes' ? 'Billable' : 'Non-billable', e.notes || '']);
+      doc.setFontSize(16);
+      doc.text('Timesheet Report', 14, 20);
+      doc.setFontSize(11);
+      doc.text(`Name: ${name}`, 14, 30);
+      doc.text(`Period: ${startDate} to ${endDate}`, 14, 37);
+      doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 44);
+      doc.text(`Total Hours: ${totalHours.toFixed(2)} (Billable: ${billableHours.toFixed(2)} | Non-billable: ${nonBillable.toFixed(2)})`, 14, 51);
+
+      doc.autoTable({
+        startY: 58,
+        head: [['Date', 'Start', 'End', 'Hours', 'Project', 'Category', 'Billable', 'Notes']],
+        body: tableData,
+        foot: [['', '', '', totalHours.toFixed(2), '', '', '', '']],
+        theme: 'striped',
+        headStyles: { fillColor: [11, 43, 59], textColor: 255, fontStyle: 'bold' },
+        footStyles: { fillColor: [240, 240, 240], textColor: 0, fontStyle: 'bold' },
+        margin: { left: 14, right: 14 },
+        columnStyles: { 0: { cellWidth: 22 }, 1: { cellWidth: 16 }, 2: { cellWidth: 16 }, 3: { cellWidth: 16 }, 4: { cellWidth: 30 }, 5: { cellWidth: 25 }, 6: { cellWidth: 20 }, 7: { cellWidth: 35 } }
+      });
+      const pageCount = doc.internal.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(9);
+        doc.text(`Your Portfolio – Timesheet | Page ${i} of ${pageCount}`, 14, doc.internal.pageSize.height - 10);
+      }
+      doc.save(`timesheet_${startDate}_to_${endDate}.pdf`);
+      showToast("PDF report generated.");
+    } catch (err) {
+      console.error(err);
+      showToast("PDF generation failed: " + err.message, "error");
     }
-    doc.save(`timesheet_${startDate}_to_${endDate}.pdf`);
   }
 
   function exportExcelRange(startDate, endDate) {
     const filtered = entries.filter(e => e.date >= startDate && e.date <= endDate);
-    if (filtered.length === 0) { alert("No entries in selected range."); return; }
+    if (filtered.length === 0) { showToast("No entries in selected range.", "error"); return; }
     const data = filtered.map(e => ({
       Date: e.date, Start: e.start, End: e.end, Hours: e.hours,
       Project: e.project, Category: e.category, Billable: e.billable === 'yes' ? 'Billable' : 'Non-billable',
@@ -353,9 +376,10 @@
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Timesheet');
     XLSX.writeFile(wb, `timesheet_${startDate}_to_${endDate}.xlsx`);
+    showToast("Excel file downloaded.");
   }
 
-  // Refresh everything
+  // Refresh everything (load from GitHub)
   async function refreshView() {
     await loadTimesheet();
     renderHistory();
@@ -363,7 +387,24 @@
     updateCharts();
   }
 
-  function initForm() {
+  // Auto-refresh every 5 seconds (only if page visible)
+  function startAutoRefresh() {
+    if (autoRefreshInterval) clearInterval(autoRefreshInterval);
+    autoRefreshInterval = setInterval(async () => {
+      if (!document.hidden) {
+        await refreshView();
+      }
+    }, 5000);
+  }
+
+  // Initialisation
+  async function init() {
+    await loadProjects();
+    await loadUserMeta();
+    await refreshView();
+    startAutoRefresh();
+
+    // Event listeners
     document.getElementById('logDate').value = formatDate(new Date());
     document.getElementById('startTime').addEventListener('change', updateHoursAuto);
     document.getElementById('endTime').addEventListener('change', updateHoursAuto);
@@ -388,29 +429,27 @@
         userFullName = newName;
         await saveUserMeta(userFullName);
         document.getElementById('reportName').value = userFullName;
-        alert("Name saved.");
+        showToast("Name saved.");
       }
     };
-    // New project button
     document.getElementById('addProjectBtn').onclick = () => {
       document.getElementById('newProjectName').value = '';
       $('#newProjectModal').modal('show');
     };
     document.getElementById('confirmNewProjectBtn').onclick = async () => {
       const newProj = document.getElementById('newProjectName').value.trim();
-      if (!newProj) { alert("Enter project name."); return; }
+      if (!newProj) { showToast("Enter project name.", "error"); return; }
       const success = await addNewProject(newProj);
       if (success) {
         await saveUserMeta(userFullName, projectList);
         await loadProjects();
-        // select the new project in the dropdown
         document.getElementById('taskProject').value = newProj;
         $('#newProjectModal').modal('hide');
+        showToast(`Project "${newProj}" added.`);
       } else {
-        alert("Project already exists.");
+        showToast("Project already exists.", "error");
       }
     };
-    // Report modal
     document.getElementById('generateReportBtn').onclick = () => {
       document.getElementById('reportName').value = userFullName;
       const end = new Date();
@@ -423,7 +462,7 @@
     document.getElementById('generateReportConfirmBtn').onclick = () => {
       const start = document.getElementById('reportStartDate').value;
       const end = document.getElementById('reportEndDate').value;
-      if (!start || !end) { alert("Select both start and end dates."); return; }
+      if (!start || !end) { showToast("Select both start and end dates.", "error"); return; }
       const type = document.getElementById('reportType').value;
       $('#reportModal').modal('hide');
       if (type === 'pdf') generatePDFReport(start, end);
@@ -431,7 +470,5 @@
     };
   }
 
-  // Initial load: first load projects from portfolio, then user meta, then refresh view
-  loadProjects().then(() => loadUserMeta()).then(() => refreshView()).catch(() => refreshView());
-  initForm();
+  init().catch(err => console.error(err));
 })();
