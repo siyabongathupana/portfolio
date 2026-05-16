@@ -1,437 +1,262 @@
-// timesheet.js – Timesheet with project selection, project list from portfolio
-(function() {
-  const user = window.SessionManager?.getCurrentUser();
-  if (!user) {
-    alert("Please log in to access the timesheet.");
-    window.location.href = "login.html";
-    return;
-  }
-
-  const TIMESHEET_FILE = "timesheet.json";
-  const USER_META_FILE = "user_meta.json";
-  let entries = [];
-  let categoryChart = null, billableChart = null, projectChart = null;
-  let userFullName = "";
-  let projectList = []; // array of project names (from user's projects.json)
-
-  // Helper functions
-  function formatDate(date) {
-    const d = new Date(date);
-    return d.toISOString().split('T')[0];
-  }
-  function calcHours(start, end) {
-    if (!start || !end) return 0;
-    const [sh, sm] = start.split(':').map(Number);
-    const [eh, em] = end.split(':').map(Number);
-    let totalMinutes = (eh * 60 + em) - (sh * 60 + sm);
-    if (totalMinutes < 0) totalMinutes += 24 * 60;
-    return +(totalMinutes / 60).toFixed(2);
-  }
-  function updateHoursAuto() {
-    const start = document.getElementById('startTime').value;
-    const end = document.getElementById('endTime').value;
-    document.getElementById('hoursAuto').value = calcHours(start, end).toFixed(2);
-  }
-
-  // Load projects from portfolio (projects.json)
-  async function loadProjects() {
-    try {
-      const projectsData = await window.portfolioData.loadProjects();
-      projectList = Object.values(projectsData).map(p => p.title).filter(p => p);
-      // also ensure "Other" is always available
-      if (!projectList.includes("Other")) projectList.push("Other");
-      projectList.sort();
-    } catch (e) {
-      projectList = ["Other"];
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Timesheet | Your Portfolio</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+  <script src="config.js"></script>
+  <script src="crypto.js"></script>
+  <script src="api.js"></script>
+  <script src="shared.js"></script>
+  <style>
+    .timesheet-container {
+      max-width: 1400px;
+      margin: 20px auto;
+      background: white;
+      border-radius: 24px;
+      padding: 20px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.05);
     }
-    // populate project dropdown
-    const select = document.getElementById('taskProject');
-    select.innerHTML = '';
-    projectList.forEach(p => {
-      const opt = document.createElement('option');
-      opt.value = p;
-      opt.textContent = p;
-      select.appendChild(opt);
-    });
-    // also populate filter dropdown
-    const filterSelect = document.getElementById('filterProject');
-    filterSelect.innerHTML = '<option value="all">All Projects</option>';
-    projectList.forEach(p => {
-      const opt = document.createElement('option');
-      opt.value = p;
-      opt.textContent = p;
-      filterSelect.appendChild(opt);
-    });
-  }
-
-  // Add a new project (user-defined)
-  async function addNewProject(projectName) {
-    if (!projectName || projectList.includes(projectName)) return false;
-    // Add to local projectList
-    projectList.push(projectName);
-    projectList.sort();
-    // Save projects? Actually projects are separate – we only need to remember this project name for timesheet.
-    // We'll store it in user meta so it persists across page reloads.
-    await saveUserMeta(userFullName, projectList);
-    await loadProjects(); // refresh dropdowns
-    return true;
-  }
-
-  // Load / Save timesheet
-  async function loadTimesheet() {
-    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const encUser = encodeURIComponent(user.username);
-    const path = `${dataPath}/users/${encUser}/${TIMESHEET_FILE}`;
-    try {
-      const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
-      if (file?.content) {
-        entries = JSON.parse(file.content);
-        // ensure each entry has a project field (backward compatibility)
-        entries = entries.map(e => ({ ...e, project: e.project || "Other" }));
-      } else {
-        entries = [];
-      }
-    } catch(e) { entries = []; }
-    entries.sort((a,b) => new Date(b.date) - new Date(a.date));
-  }
-  async function saveTimesheet() {
-    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const encUser = encodeURIComponent(user.username);
-    const path = `${dataPath}/users/${encUser}/${TIMESHEET_FILE}`;
-    let sha = null;
-    try {
-      const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
-      if (existing) sha = existing.sha;
-    } catch(e) {}
-    await GitHubAPI.updateFile(owner, repo, path, entries, `Update timesheet`, branch, user.pat, sha);
-    window.Logger.log('timesheet_save', `Saved ${entries.length} entries`);
-  }
-
-  // Load / Save user meta (full name + project list)
-  async function loadUserMeta() {
-    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const encUser = encodeURIComponent(user.username);
-    const path = `${dataPath}/users/${encUser}/${USER_META_FILE}`;
-    try {
-      const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
-      if (file?.content) {
-        const meta = JSON.parse(file.content);
-        userFullName = meta.fullName || "";
-        if (meta.projectList && Array.isArray(meta.projectList)) {
-          // merge with projects from portfolio
-          const portfolioProjects = projectList;
-          const combined = [...new Set([...portfolioProjects, ...meta.projectList])];
-          projectList = combined;
-        }
-      }
-    } catch(e) {}
-    document.getElementById('userFullName').value = userFullName;
-    document.getElementById('reportName').value = userFullName;
-    // ensure "Other" exists
-    if (!projectList.includes("Other")) projectList.push("Other");
-    await loadProjects(); // refresh dropdowns with combined list
-  }
-  async function saveUserMeta(fullName, projList = null) {
-    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const encUser = encodeURIComponent(user.username);
-    const path = `${dataPath}/users/${encUser}/${USER_META_FILE}`;
-    let sha = null;
-    try {
-      const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
-      if (existing) sha = existing.sha;
-    } catch(e) {}
-    const meta = { fullName, projectList: projList || projectList };
-    await GitHubAPI.updateFile(owner, repo, path, meta, `Update user meta`, branch, user.pat, sha);
-    window.Logger.log('user_meta_save', `Saved meta`);
-  }
-
-  // Add / Delete entries
-  async function addEntry() {
-    const date = document.getElementById('logDate').value;
-    const start = document.getElementById('startTime').value;
-    const end = document.getElementById('endTime').value;
-    const project = document.getElementById('taskProject').value;
-    const category = document.getElementById('taskCategory').value;
-    const billable = document.getElementById('billable').value;
-    const notes = document.getElementById('taskNotes').value.trim();
-    if (!date || !start || !end || !project) { alert("Fill all required fields."); return; }
-    const hours = calcHours(start, end);
-    if (hours <= 0) { alert("End time must be after start."); return; }
-    entries.unshift({ id: Date.now(), date, start, end, hours, project, category, billable, notes });
-    await saveTimesheet();
-    refreshView();
-    document.getElementById('startTime').value = '';
-    document.getElementById('endTime').value = '';
-    document.getElementById('taskNotes').value = '';
-    document.getElementById('hoursAuto').value = '';
-    updateDailyProgress();
-  }
-  async function deleteEntry(id) {
-    if (confirm("Delete entry?")) {
-      entries = entries.filter(e => e.id != id);
-      await saveTimesheet();
-      refreshView();
+    .quick-log-card {
+      background: #f8fafc;
+      border-radius: 20px;
+      padding: 20px;
+      margin-bottom: 25px;
+      border: 1px solid #e2e8f0;
     }
-  }
-
-  // Filter logic (with project)
-  function getFilteredEntries() {
-    const range = document.getElementById('filterRange').value;
-    const project = document.getElementById('filterProject').value;
-    const category = document.getElementById('filterCategory').value;
-    const now = new Date();
-    let filtered = [...entries];
-    filtered = filtered.filter(entry => {
-      const d = new Date(entry.date);
-      if (range === 'day') return d.toDateString() === now.toDateString();
-      if (range === 'week') {
-        const startOfWeek = new Date(now);
-        startOfWeek.setDate(now.getDate() - now.getDay());
-        startOfWeek.setHours(0,0,0,0);
-        const endOfWeek = new Date(startOfWeek);
-        endOfWeek.setDate(startOfWeek.getDate() + 6);
-        endOfWeek.setHours(23,59,59,999);
-        return d >= startOfWeek && d <= endOfWeek;
-      }
-      if (range === 'month') {
-        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-      }
-      return true;
-    });
-    if (project !== 'all') filtered = filtered.filter(e => e.project === project);
-    if (category !== 'all') filtered = filtered.filter(e => e.category === category);
-    return filtered;
-  }
-
-  // Render history table with totals
-  function renderHistory() {
-    const filtered = getFilteredEntries();
-    const tbody = document.getElementById('historyBody');
-    const tfoot = document.getElementById('historyFoot');
-    if (filtered.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="9" class="text-center">No entries found.</td></tr>';
-      tfoot.style.display = 'none';
-      return;
+    .progress-bar-container {
+      background: #e2e8f0;
+      border-radius: 30px;
+      height: 32px;
+      overflow: hidden;
+      margin: 15px 0;
     }
-    tbody.innerHTML = '';
-    let totalHours = 0;
-    filtered.forEach(entry => {
-      totalHours += entry.hours;
-      const row = tbody.insertRow();
-      row.insertCell(0).innerText = entry.date;
-      row.insertCell(1).innerText = entry.start;
-      row.insertCell(2).innerText = entry.end;
-      row.insertCell(3).innerText = entry.hours.toFixed(2);
-      row.insertCell(4).innerText = entry.project;
-      row.insertCell(5).innerText = entry.category;
-      row.insertCell(6).innerText = entry.billable === 'yes' ? 'Billable' : 'Non-billable';
-      row.insertCell(7).innerText = entry.notes || '-';
-      const actionCell = row.insertCell(8);
-      actionCell.className = 'print-hide';
-      const delBtn = document.createElement('button');
-      delBtn.className = 'btn btn-sm btn-danger';
-      delBtn.innerHTML = '<i class="fa fa-trash"></i>';
-      delBtn.onclick = () => deleteEntry(entry.id);
-      actionCell.appendChild(delBtn);
-    });
-    document.getElementById('totalHoursCell').innerText = totalHours.toFixed(2);
-    tfoot.style.display = 'table-footer-group';
-  }
-
-  // Daily progress
-  function updateDailyProgress() {
-    const today = formatDate(new Date());
-    const todayHours = entries.filter(e => e.date === today).reduce((s,e) => s + e.hours, 0);
-    const percent = Math.min(100, (todayHours / 8) * 100);
-    const fill = document.getElementById('dailyProgressFill');
-    fill.style.width = percent + '%';
-    fill.innerText = todayHours.toFixed(1) + 'h';
-    fill.style.background = todayHours >= 8 ? '#28a745' : '#2fc7ff';
-  }
-
-  // Update charts (Project, Category, Billable)
-  function updateCharts() {
-    const filtered = getFilteredEntries();
-    // Project breakdown
-    const projMap = {};
-    filtered.forEach(e => { projMap[e.project] = (projMap[e.project] || 0) + e.hours; });
-    if (projectChart) projectChart.destroy();
-    const ctxProj = document.getElementById('projectChart').getContext('2d');
-    projectChart = new Chart(ctxProj, {
-      type: 'pie',
-      data: { labels: Object.keys(projMap), datasets: [{ data: Object.values(projMap), backgroundColor: ['#2fc7ff','#ffc107','#28a745','#dc3545','#6f42c1','#fd7e14','#17a2b8','#e83e8c'] }] },
-      options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } } } }
-    });
-    // Category breakdown
-    const catMap = {};
-    filtered.forEach(e => { catMap[e.category] = (catMap[e.category] || 0) + e.hours; });
-    if (categoryChart) categoryChart.destroy();
-    const ctxCat = document.getElementById('categoryChart').getContext('2d');
-    categoryChart = new Chart(ctxCat, {
-      type: 'pie',
-      data: { labels: Object.keys(catMap), datasets: [{ data: Object.values(catMap), backgroundColor: ['#2fc7ff','#ffc107','#28a745','#dc3545','#6f42c1','#fd7e14'] }] },
-      options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } } } }
-    });
-    // Billable
-    let billable = 0, nonBill = 0;
-    filtered.forEach(e => { if (e.billable === 'yes') billable += e.hours; else nonBill += e.hours; });
-    if (billableChart) billableChart.destroy();
-    const ctxBill = document.getElementById('billableChart').getContext('2d');
-    billableChart = new Chart(ctxBill, {
-      type: 'pie',
-      data: { labels: ['Billable', 'Non-billable'], datasets: [{ data: [billable, nonBill], backgroundColor: ['#28a745','#dc3545'] }] },
-      options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } } } }
-    });
-  }
-
-  // Excel Export (filtered)
-  function exportToExcel() {
-    const filtered = getFilteredEntries();
-    if (filtered.length === 0) { alert("No data to export."); return; }
-    const data = filtered.map(e => ({
-      Date: e.date, Start: e.start, End: e.end, Hours: e.hours,
-      Project: e.project, Category: e.category, Billable: e.billable === 'yes' ? 'Billable' : 'Non-billable',
-      Notes: e.notes || ''
-    }));
-    const ws = XLSX.utils.json_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Timesheet');
-    XLSX.writeFile(wb, `timesheet_${formatDate(new Date())}.xlsx`);
-  }
-
-  // PDF Report with custom date range
-  async function generatePDFReport(startDate, endDate) {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-    const filtered = entries.filter(e => e.date >= startDate && e.date <= endDate);
-    if (filtered.length === 0) {
-      alert("No entries in the selected date range.");
-      return;
+    .progress-fill {
+      background: #2fc7ff;
+      width: 0%;
+      height: 100%;
+      border-radius: 30px;
+      transition: width 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-right: 12px;
+      color: white;
+      font-weight: 600;
+      font-size: 0.85rem;
     }
-    const name = document.getElementById('reportName').value || userFullName || user.username;
-    const totalHours = filtered.reduce((s,e) => s + e.hours, 0);
-    const billableHours = filtered.filter(e => e.billable === 'yes').reduce((s,e) => s + e.hours, 0);
-    const nonBillable = totalHours - billableHours;
-
-    const tableData = filtered.map(e => [e.date, e.start, e.end, e.hours.toFixed(2), e.project, e.category, e.billable === 'yes' ? 'Billable' : 'Non-billable', e.notes || '']);
-    doc.setFontSize(16);
-    doc.text('Timesheet Report', 14, 20);
-    doc.setFontSize(11);
-    doc.text(`Name: ${name}`, 14, 30);
-    doc.text(`Period: ${startDate} to ${endDate}`, 14, 37);
-    doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 44);
-    doc.text(`Total Hours: ${totalHours.toFixed(2)} (Billable: ${billableHours.toFixed(2)} | Non-billable: ${nonBillable.toFixed(2)})`, 14, 51);
-    doc.autoTable({
-      startY: 58,
-      head: [['Date', 'Start', 'End', 'Hours', 'Project', 'Category', 'Billable', 'Notes']],
-      body: tableData,
-      foot: [['', '', '', totalHours.toFixed(2), '', '', '', '']],
-      theme: 'striped',
-      headStyles: { fillColor: [11, 43, 59], textColor: 255, fontStyle: 'bold' },
-      footStyles: { fillColor: [240, 240, 240], textColor: 0, fontStyle: 'bold' },
-      margin: { left: 14, right: 14 },
-      columnStyles: { 0: { cellWidth: 22 }, 1: { cellWidth: 16 }, 2: { cellWidth: 16 }, 3: { cellWidth: 16 }, 4: { cellWidth: 30 }, 5: { cellWidth: 25 }, 6: { cellWidth: 20 }, 7: { cellWidth: 35 } }
-    });
-    const pageCount = doc.internal.getNumberOfPages();
-    for (let i = 1; i <= pageCount; i++) {
-      doc.setPage(i);
-      doc.setFontSize(9);
-      doc.text(`Your Portfolio – Timesheet | Page ${i} of ${pageCount}`, 14, doc.internal.pageSize.height - 10);
+    .chart-card {
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 15px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      margin-bottom: 20px;
+      text-align: center;
     }
-    doc.save(`timesheet_${startDate}_to_${endDate}.pdf`);
-  }
+    .chart-card canvas {
+      max-width: 100%;
+      height: auto;
+      margin: 0 auto;
+    }
+    .filter-bar {
+      background: #f1f5f9;
+      padding: 12px 15px;
+      border-radius: 16px;
+      margin-bottom: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .filter-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+    .history-table {
+      font-size: 0.8rem;
+    }
+    .history-table th, .history-table td {
+      padding: 8px 6px;
+      white-space: nowrap;
+    }
+    .table-responsive {
+      overflow-x: auto;
+    }
+    .total-row {
+      background: #e9f2fa;
+      font-weight: bold;
+    }
+    footer {
+      background: #0b2b3b;
+      color: #bdd3e0;
+      text-align: center;
+      padding: 20px;
+      margin-top: 30px;
+    }
+    @media (max-width: 768px) {
+      .timesheet-container { padding: 12px; margin: 10px; border-radius: 16px; }
+      .quick-log-card { padding: 15px; }
+      .form-control, .btn { font-size: 0.9rem; min-height: 44px; }
+      .btn-sm { min-height: 38px; }
+      .progress-bar-container { height: 40px; }
+      .progress-fill { font-size: 0.75rem; padding-right: 8px; }
+      .chart-card canvas { max-width: 220px; }
+      .filter-bar { flex-direction: column; align-items: stretch; }
+      .filter-controls { justify-content: space-between; }
+      .history-table th, .history-table td { font-size: 0.7rem; padding: 6px 4px; }
+      footer { padding: 16px; font-size: 0.85rem; }
+    }
+    @media print {
+      body { background: white; padding: 0; margin: 0; }
+      .timesheet-container { box-shadow: none; padding: 0; margin: 0; max-width: 100%; }
+      .quick-log-card, .filter-bar, .btn, nav, footer, .print-hide, .chart-card { display: none !important; }
+      .history-table { width: 100%; border-collapse: collapse; font-size: 10pt; }
+      .history-table th, .history-table td { border: 1px solid #000; padding: 6px; white-space: normal; }
+      .history-table th { background: #f0f0f0 !important; color: black !important; }
+      .total-row { background: #f0f0f0 !important; }
+      @page { size: landscape; margin: 1.5cm; }
+    }
+  </style>
+</head>
+<body style="background:#eef3fc;">
 
-  function exportExcelRange(startDate, endDate) {
-    const filtered = entries.filter(e => e.date >= startDate && e.date <= endDate);
-    if (filtered.length === 0) { alert("No entries in selected range."); return; }
-    const data = filtered.map(e => ({
-      Date: e.date, Start: e.start, End: e.end, Hours: e.hours,
-      Project: e.project, Category: e.category, Billable: e.billable === 'yes' ? 'Billable' : 'Non-billable',
-      Notes: e.notes || ''
-    }));
-    const ws = XLSX.utils.json_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Timesheet');
-    XLSX.writeFile(wb, `timesheet_${startDate}_to_${endDate}.xlsx`);
-  }
+<nav class="navbar navbar-expand-lg custom_nav-container pt-3" style="background:#0b2b3b; padding:15px 0;">
+  <div class="container">
+    <a class="navbar-brand" href="index.html"><span>Your</span> Portfolio</a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navTimesheet">
+      <span class="fa fa-bars text-white"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navTimesheet">
+      <ul class="navbar-nav ml-auto">
+        <li class="nav-item"><a class="nav-link" href="index.html">Home</a></li>
+        <li class="nav-item"><a class="nav-link" href="projects.html">Projects</a></li>
+        <li class="nav-item"><a class="nav-link" href="certificates.html">Certificates</a></li>
+        <li class="nav-item active"><a class="nav-link" href="timesheet.html">Timesheet</a></li>
+        <li class="nav-item"><a class="nav-link" href="admin.html">Manage</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
 
-  // Refresh everything
-  async function refreshView() {
-    await loadTimesheet();
-    renderHistory();
-    updateDailyProgress();
-    updateCharts();
-  }
+<div class="container timesheet-container" id="timesheetApp">
+  <div class="d-flex justify-content-between align-items-center flex-wrap mb-3">
+    <h3><i class="fa fa-clock-o"></i> Timesheet</h3>
+    <div>
+      <button id="exportExcelBtn" class="btn btn-sm btn-success mr-2"><i class="fa fa-file-excel-o"></i> Excel</button>
+      <button id="generateReportBtn" class="btn btn-sm btn-primary mr-2"><i class="fa fa-file-pdf-o"></i> PDF Report</button>
+      <button id="printBtn" class="btn btn-sm btn-secondary"><i class="fa fa-print"></i> Print</button>
+    </div>
+  </div>
 
-  function initForm() {
-    document.getElementById('logDate').value = formatDate(new Date());
-    document.getElementById('startTime').addEventListener('change', updateHoursAuto);
-    document.getElementById('endTime').addEventListener('change', updateHoursAuto);
-    document.getElementById('nowStartBtn').onclick = () => {
-      document.getElementById('startTime').value = new Date().toTimeString().slice(0,5);
-      updateHoursAuto();
-    };
-    document.getElementById('nowEndBtn').onclick = () => {
-      document.getElementById('endTime').value = new Date().toTimeString().slice(0,5);
-      updateHoursAuto();
-    };
-    document.getElementById('addEntryBtn').onclick = addEntry;
-    document.getElementById('refreshHistoryBtn').onclick = () => refreshView();
-    document.getElementById('exportExcelBtn').onclick = () => exportToExcel();
-    document.getElementById('printBtn').onclick = () => window.print();
-    document.getElementById('filterRange').onchange = () => { renderHistory(); updateCharts(); };
-    document.getElementById('filterProject').onchange = () => { renderHistory(); updateCharts(); };
-    document.getElementById('filterCategory').onchange = () => { renderHistory(); updateCharts(); };
-    document.getElementById('saveNameBtn').onclick = async () => {
-      const newName = document.getElementById('userFullName').value.trim();
-      if (newName) {
-        userFullName = newName;
-        await saveUserMeta(userFullName);
-        document.getElementById('reportName').value = userFullName;
-        alert("Name saved.");
-      }
-    };
-    // New project button
-    document.getElementById('addProjectBtn').onclick = () => {
-      document.getElementById('newProjectName').value = '';
-      $('#newProjectModal').modal('show');
-    };
-    document.getElementById('confirmNewProjectBtn').onclick = async () => {
-      const newProj = document.getElementById('newProjectName').value.trim();
-      if (!newProj) { alert("Enter project name."); return; }
-      const success = await addNewProject(newProj);
-      if (success) {
-        await saveUserMeta(userFullName, projectList);
-        await loadProjects();
-        // select the new project in the dropdown
-        document.getElementById('taskProject').value = newProj;
-        $('#newProjectModal').modal('hide');
-      } else {
-        alert("Project already exists.");
-      }
-    };
-    // Report modal
-    document.getElementById('generateReportBtn').onclick = () => {
-      document.getElementById('reportName').value = userFullName;
-      const end = new Date();
-      const start = new Date();
-      start.setDate(start.getDate() - 30);
-      document.getElementById('reportStartDate').value = formatDate(start);
-      document.getElementById('reportEndDate').value = formatDate(end);
-      $('#reportModal').modal('show');
-    };
-    document.getElementById('generateReportConfirmBtn').onclick = () => {
-      const start = document.getElementById('reportStartDate').value;
-      const end = document.getElementById('reportEndDate').value;
-      if (!start || !end) { alert("Select both start and end dates."); return; }
-      const type = document.getElementById('reportType').value;
-      $('#reportModal').modal('hide');
-      if (type === 'pdf') generatePDFReport(start, end);
-      else exportExcelRange(start, end);
-    };
-  }
+  <!-- User Full Name Section -->
+  <div class="row mb-3">
+    <div class="col-md-6 offset-md-3">
+      <div class="input-group">
+        <div class="input-group-prepend"><span class="input-group-text"><i class="fa fa-user"></i> Full Name</span></div>
+        <input type="text" id="userFullName" class="form-control" placeholder="John Doe">
+        <div class="input-group-append">
+          <button class="btn btn-outline-primary" id="saveNameBtn">Save</button>
+        </div>
+      </div>
+      <small class="text-muted">This name will appear on your reports.</small>
+    </div>
+  </div>
 
-  // Initial load: first load projects from portfolio, then user meta, then refresh view
-  loadProjects().then(() => loadUserMeta()).then(() => refreshView()).catch(() => refreshView());
-  initForm();
-})();
+  <!-- Quick Log Form -->
+  <div class="quick-log-card">
+    <h6 class="mb-3"><i class="fa fa-pencil-square-o"></i> Log Task</h6>
+    <div class="form-row">
+      <div class="col-12 col-md-2 mb-2"><label>Date</label><input type="date" id="logDate" class="form-control"></div>
+      <div class="col-6 col-md-2 mb-2">
+        <label>Start</label>
+        <div class="input-group">
+          <input type="time" id="startTime" class="form-control">
+          <div class="input-group-append"><button class="btn btn-outline-secondary" id="nowStartBtn">Now</button></div>
+        </div>
+      </div>
+      <div class="col-6 col-md-2 mb-2">
+        <label>End</label>
+        <div class="input-group">
+          <input type="time" id="endTime" class="form-control">
+          <div class="input-group-append"><button class="btn btn-outline-secondary" id="nowEndBtn">Now</button></div>
+        </div>
+      </div>
+      <div class="col-4 col-md-1 mb-2"><label>Hours</label><input type="text" id="hoursAuto" class="form-control" readonly placeholder="0.00"></div>
+      <div class="col-8 col-md-2 mb-2">
+        <label>Project</label>
+        <select id="taskProject" class="form-control"></select>
+        <div class="mt-1"><button id="addProjectBtn" class="btn btn-xs btn-link p-0" type="button"><i class="fa fa-plus"></i> New Project</button></div>
+      </div>
+      <div class="col-4 col-md-1 mb-2"><label>Billable</label><select id="billable" class="form-control"><option value="yes">Yes</option><option value="no">No</option></select></div>
+      <div class="col-8 col-md-2 mb-2"><label>Notes / Ticket #</label><input type="text" id="taskNotes" class="form-control" placeholder="JIRA-123"></div>
+    </div>
+    <div class="mt-2"><button id="addEntryBtn" class="btn btn-delta btn-block btn-md"><i class="fa fa-plus"></i> Add Entry</button></div>
+  </div>
+
+  <!-- Daily Progress -->
+  <div class="mb-3"><h6>Today's Progress (8h target)</h6><div class="progress-bar-container"><div id="dailyProgressFill" class="progress-fill">0h</div></div></div>
+
+  <!-- Charts -->
+  <div class="row mb-4">
+    <div class="col-12 col-md-4 mb-3"><div class="chart-card"><h6>By Project</h6><canvas id="projectChart" width="220" height="200"></canvas></div></div>
+    <div class="col-12 col-md-4 mb-3"><div class="chart-card"><h6>By Category</h6><canvas id="categoryChart" width="220" height="200"></canvas></div></div>
+    <div class="col-12 col-md-4 mb-3"><div class="chart-card"><h6>Billable vs Non-Billable</h6><canvas id="billableChart" width="220" height="200"></canvas></div></div>
+  </div>
+
+  <!-- Filter Bar -->
+  <div class="filter-bar">
+    <div class="filter-controls">
+      <label class="mb-0 mr-2">View:</label><select id="filterRange" class="form-control form-control-sm" style="width:100px;"><option value="day">Today</option><option value="week" selected>This Week</option><option value="month">This Month</option></select>
+      <label class="mb-0 mr-2 ml-2">Project:</label><select id="filterProject" class="form-control form-control-sm" style="width:150px;"><option value="all">All Projects</option></select>
+      <label class="mb-0 mr-2 ml-2">Category:</label><select id="filterCategory" class="form-control form-control-sm" style="width:140px;"><option value="all">All Categories</option><option>Development</option><option>Meetings</option><option>Admin</option><option>CodeReview</option><option>Learning</option><option>Other</option></select>
+    </div>
+    <button id="refreshHistoryBtn" class="btn btn-sm btn-outline-info"><i class="fa fa-refresh"></i> Refresh</button>
+  </div>
+
+  <!-- History Table -->
+  <div class="table-responsive">
+    <table class="table table-bordered history-table">
+      <thead><tr><th>Date</th><th>Start</th><th>End</th><th>Hours</th><th>Project</th><th>Category</th><th>Billable</th><th>Notes</th><th class="print-hide">Action</th></tr></thead>
+      <tbody id="historyBody"><tr><td colspan="9" class="text-center">Loading...<\/td><\/tr> </tbody>
+      <tfoot id="historyFoot" style="display:none;"><tr><td colspan="3" class="text-right"><strong>Total:<\/strong><\/td><td id="totalHoursCell"><strong>0.00<\/strong><\/td><td colspan="5"><\/td><\/tr><\/tfoot>
+    <\/table>
+  <\/div>
+<\/div>
+
+<footer><p>© 2025 Your Portfolio</p><p class="footer-status"><span id="userFooterStatus"></span></p></footer>
+
+<!-- New Project Modal -->
+<div class="modal fade" id="newProjectModal" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header"><h5>New Project</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div>
+      <div class="modal-body">
+        <label>Project Name</label>
+        <input type="text" id="newProjectName" class="form-control">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+        <button type="button" id="confirmNewProjectBtn" class="btn btn-primary">Create</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="timesheet.js"></script>
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>
