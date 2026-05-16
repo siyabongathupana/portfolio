@@ -778,7 +778,7 @@
       document.getElementById('logUserSelectGroup').style.display = 'block';
     }
 
-    // 2FA setup UI
+   // 2FA setup UI (fixed QR code)
     async function update2FAUI() {
       const has2fa = await window.AccountManager.has2FAEnabled(user.username, user.pat);
       if (has2fa) {
@@ -794,7 +794,25 @@
         window.tempTotpSecret = secret;
         const qrDiv = document.getElementById('qrcode');
         qrDiv.innerHTML = '';
-        new QRCode(qrDiv, { text: otpauth, width: 200, height: 200 });
+        // Clear previous content
+        try {
+          // Delay to ensure the DOM is ready
+          setTimeout(() => {
+            new QRCode(qrDiv, {
+              text: otpauth,
+              width: 200,
+              height: 200
+            });
+          }, 100);
+        } catch (err) {
+          console.error("QR generation failed", err);
+          qrDiv.innerHTML = `<p>Could not generate QR code. Please manually enter this secret into your authenticator app:</p><p><code>${secret}</code></p>`;
+        }
+        // Always show the secret as a fallback
+        const secretText = document.createElement('p');
+        secretText.innerHTML = `<small>Manual entry secret: <code>${secret}</code></small>`;
+        qrDiv.appendChild(secretText);
+        
         document.getElementById('enable2faBtn').onclick = async () => {
           const code = document.getElementById('totpVerifyCode').value.trim();
           if (!code || code.length !== 6) { alert('Enter 6-digit code'); return; }
@@ -809,14 +827,6 @@
         };
       }
     }
-    document.getElementById('disable2faBtn').addEventListener('click', async () => {
-      if (confirm('Disable two-factor authentication? This will make your account less secure.')) {
-        await window.AccountManager.disable2FA(user.username, user.pat);
-        alert('2FA disabled.');
-        update2FAUI();
-      }
-    });
-    update2FAUI();
 
     // ---------- LOG DOWNLOAD FUNCTIONS (PDF) ----------
     async function downloadLogsForUser(username, isAdminView = false) {
