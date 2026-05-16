@@ -9,8 +9,6 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
-  <script src="https://cdn.jsdelivr.net/npm/speakeasyjs@1.0.5/speakeasy.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   <script src="config.js"></script>
   <script src="crypto.js"></script>
   <script src="api.js"></script>
@@ -80,18 +78,6 @@
       </div>
     </div>
   </div>
-
-  <!-- TOTP Modal -->
-  <div id="totpModal" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:white; padding:25px; border-radius:16px; z-index:10000; box-shadow:0 10px 30px rgba(0,0,0,0.2); width:320px;">
-    <h4>Two‑Factor Authentication</h4>
-    <p>Enter the 6‑digit code from your authenticator app.</p>
-    <input type="text" id="totpCode" class="form-control" placeholder="000000" maxlength="6" autocomplete="off">
-    <div class="mt-3">
-      <button id="totpSubmitBtn" class="btn btn-delta btn-block">Verify</button>
-      <button id="totpCancelBtn" class="btn btn-outline-secondary btn-block mt-2">Cancel</button>
-    </div>
-  </div>
-  <div id="totpOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999;"></div>
 
   <script src="login.js"></script>
 </body>
