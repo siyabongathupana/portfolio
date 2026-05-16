@@ -1,16 +1,5 @@
 [
   {
-    "id": 1778955335819,
-    "date": "2026-05-16",
-    "start": "20:15",
-    "end": "20:21",
-    "hours": 0.1,
-    "project": "Test number what what",
-    "category": "Meetings",
-    "billable": "yes",
-    "notes": "to be deleted"
-  },
-  {
     "id": 1778953130831,
     "date": "2026-05-16",
     "start": "20:40",
