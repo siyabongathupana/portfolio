@@ -14,6 +14,8 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/speakeasyjs@1.0.5/speakeasy.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   <script src="config.js"></script>
   <script src="crypto.js"></script>
   <script src="api.js"></script>
@@ -135,6 +137,7 @@
       <li class="nav-item"><a class="nav-link active" data-toggle="tab" href="#projectsTab">Projects</a></li>
       <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#certificatesTab">Certificates</a></li>
       <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#logsTab">Logs</a></li>
+      <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#securityTab">Security</a></li>
       <li class="nav-item" id="usersTabNav" style="display:none;"><a class="nav-link" data-toggle="tab" href="#usersTab">Users</a></li>
     </ul>
 
@@ -179,6 +182,24 @@
           </div>
           <div class="log-info-text">
             <i class="fa fa-info-circle"></i> Logs include all actions: project creation/edits/deletion, certificate changes, image uploads, backups, syncs, and errors. PDF reports are color‑coded.
+          </div>
+        </div>
+      </div>
+
+      <!-- Security Tab (2FA) -->
+      <div class="tab-pane fade" id="securityTab">
+        <div class="card">
+          <div class="card-body">
+            <h5>Two-Factor Authentication (2FA)</h5>
+            <p>Protect your account with an authenticator app like Google Authenticator.</p>
+            <div id="2faStatus"></div>
+            <div id="2faSetup" style="display:none;">
+              <div id="qrcode"></div>
+              <p>Scan the QR code with your authenticator app, then enter the code below to enable.</p>
+              <input type="text" id="totpVerifyCode" class="form-control" placeholder="Enter 6-digit code" maxlength="6">
+              <button id="enable2faBtn" class="btn btn-primary mt-2">Enable 2FA</button>
+            </div>
+            <button id="disable2faBtn" class="btn btn-danger" style="display:none;">Disable 2FA</button>
           </div>
         </div>
       </div>
@@ -756,6 +777,46 @@
       document.getElementById('downloadAllLogsBtn').style.display = 'inline-block';
       document.getElementById('logUserSelectGroup').style.display = 'block';
     }
+
+    // 2FA setup UI
+    async function update2FAUI() {
+      const has2fa = await window.AccountManager.has2FAEnabled(user.username, user.pat);
+      if (has2fa) {
+        document.getElementById('2faStatus').innerHTML = '<div class="alert alert-success">✅ Two-factor authentication is ENABLED.</div>';
+        document.getElementById('disable2faBtn').style.display = 'inline-block';
+        document.getElementById('2faSetup').style.display = 'none';
+      } else {
+        document.getElementById('2faStatus').innerHTML = '<div class="alert alert-warning">⚠️ Two-factor authentication is DISABLED.</div>';
+        document.getElementById('disable2faBtn').style.display = 'none';
+        document.getElementById('2faSetup').style.display = 'block';
+        // Generate new secret and QR code
+        const { secret, otpauth } = window.AccountManager.generateTOTPSecret(user.username);
+        window.tempTotpSecret = secret;
+        const qrDiv = document.getElementById('qrcode');
+        qrDiv.innerHTML = '';
+        new QRCode(qrDiv, { text: otpauth, width: 200, height: 200 });
+        document.getElementById('enable2faBtn').onclick = async () => {
+          const code = document.getElementById('totpVerifyCode').value.trim();
+          if (!code || code.length !== 6) { alert('Enter 6-digit code'); return; }
+          const isValid = window.AccountManager.verifyTOTP(secret, code);
+          if (isValid) {
+            await window.AccountManager.enable2FA(user.username, user.pat, secret);
+            alert('2FA enabled successfully!');
+            update2FAUI();
+          } else {
+            alert('Invalid code. Please try again.');
+          }
+        };
+      }
+    }
+    document.getElementById('disable2faBtn').addEventListener('click', async () => {
+      if (confirm('Disable two-factor authentication? This will make your account less secure.')) {
+        await window.AccountManager.disable2FA(user.username, user.pat);
+        alert('2FA disabled.');
+        update2FAUI();
+      }
+    });
+    update2FAUI();
 
     // ---------- LOG DOWNLOAD FUNCTIONS (PDF) ----------
     async function downloadLogsForUser(username, isAdminView = false) {
