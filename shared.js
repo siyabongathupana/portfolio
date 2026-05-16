@@ -442,7 +442,7 @@ window.AccountManager = {
   }
 };
 
-// ---------- PORTFOLIO DATA (strict isolation – no public fallback for logged in users) ----------
+// ---------- PORTFOLIO DATA (strict isolation – no public fallback for logged‑in users) ----------
 window.portfolioData = (() => {
   const PROJECTS_KEY = 'portfolioProjects';
   const CERTS_KEY = 'portfolioCertificates';
@@ -487,7 +487,7 @@ window.portfolioData = (() => {
           const data = JSON.parse(file.content);
           return data;
         }
-        // No fallback – return empty object for logged in users with no projects
+        // No fallback for logged‑in users – return empty object
         return {};
       } catch (e) { return {}; }
     }
@@ -832,7 +832,7 @@ window.generateProjectReport = async function(projectId) {
           <tr><td><strong>Finish Date:</strong>${proj.dates?.finish || 'N/A'}专业专业
           <tr><td><strong>IFAT:</strong>${ifatText}专业专业
           <tr><td><strong>CFAT:</strong>${cfatText}专业专业
-        </table>
+        </tr>
       </div>
       <div style="background:${bgColor}; padding:20px; border-radius:16px; margin-bottom:20px;">
         <h3>Description</h3><p>${proj.description}</p>
@@ -841,8 +841,8 @@ window.generateProjectReport = async function(projectId) {
         <h3>I/O Configuration</h3>
         <table style="width:100%; text-align:center; border-collapse:collapse;">
           <tr style="background:${primaryColor}; color:white;"><th>AI</th><th>AO</th><th>DI</th><th>DO</th></tr>
-          <tr><td>${io.AI}${dataV}/${io.AO}${dataV}/${io.DI}${dataV}/${io.DO}专业专业
-        </td>
+          <tr><td style="border:1px solid #ddd; padding:8px;">${io.AI}</td><td style="border:1px solid #ddd; padding:8px;">${io.AO}</td><td style="border:1px solid #ddd; padding:8px;">${io.DI}</td><td style="border:1px solid #ddd; padding:8px;">${io.DO}</td></tr>
+        </table>
       </div>
       <div style="background:${bgColor}; padding:20px; border-radius:16px; margin-bottom:20px; text-align:center;">
         <h3>I/O Distribution (${proj.graphType})</h3>
