@@ -1,4 +1,4 @@
-// timesheet.js – Professional timesheet with all working features
+// timesheet.js – Complete version with edit, overtime, summary card, "All time" filter
 (function() {
   const user = window.SessionManager?.getCurrentUser();
   if (!user) {
@@ -51,8 +51,7 @@
   function updateHoursAuto() {
     const start = document.getElementById('startTime').value;
     const end = document.getElementById('endTime').value;
-    const hours = calcHours(start, end);
-    document.getElementById('hoursAuto').value = hours.toFixed(2);
+    document.getElementById('hoursAuto').value = calcHours(start, end).toFixed(2);
   }
 
   // Load projects from portfolio
@@ -66,6 +65,7 @@
       projectList = ["Other"];
     }
     
+    // Task project dropdown
     const select = document.getElementById('taskProject');
     if (select) {
       select.innerHTML = '';
@@ -76,7 +76,18 @@
         select.appendChild(opt);
       });
     }
-    
+    // Edit project dropdown
+    const editSelect = document.getElementById('editProject');
+    if (editSelect) {
+      editSelect.innerHTML = '';
+      projectList.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p;
+        opt.textContent = p;
+        editSelect.appendChild(opt);
+      });
+    }
+    // Filter project dropdown
     const filterSelect = document.getElementById('filterProject');
     if (filterSelect) {
       filterSelect.innerHTML = '<option value="all">All Projects</option>';
@@ -167,7 +178,7 @@
     await GitHubAPI.updateFile(owner, repo, path, meta, "Update user meta", branch, user.pat, sha);
   }
 
-  // Add/Delete entries
+  // Add/Edit/Delete entries
   async function addEntry() {
     const date = document.getElementById('logDate').value;
     const start = document.getElementById('startTime').value;
@@ -205,7 +216,6 @@
     showToast("Entry saved successfully!");
     await refreshView();
     
-    // Clear form but keep date and project
     document.getElementById('startTime').value = '';
     document.getElementById('endTime').value = '';
     document.getElementById('taskNotes').value = '';
@@ -224,50 +234,91 @@
     }
   }
 
-  // Filter logic
+  async function editEntry(id) {
+    const entry = entries.find(e => e.id == id);
+    if (!entry) return;
+    document.getElementById('editEntryId').value = id;
+    document.getElementById('editDate').value = entry.date;
+    document.getElementById('editStart').value = entry.start;
+    document.getElementById('editEnd').value = entry.end;
+    document.getElementById('editProject').value = entry.project;
+    document.getElementById('editCategory').value = entry.category;
+    document.getElementById('editBillable').value = entry.billable;
+    document.getElementById('editNotes').value = entry.notes || '';
+    $('#editModal').modal('show');
+  }
+
+  async function saveEdit() {
+    const id = parseInt(document.getElementById('editEntryId').value);
+    const index = entries.findIndex(e => e.id == id);
+    if (index === -1) return;
+    const date = document.getElementById('editDate').value;
+    const start = document.getElementById('editStart').value;
+    const end = document.getElementById('editEnd').value;
+    const project = document.getElementById('editProject').value;
+    const category = document.getElementById('editCategory').value;
+    const billable = document.getElementById('editBillable').value;
+    const notes = document.getElementById('editNotes').value.trim();
+    if (!date || !start || !end || !project || !category) {
+      showToast("Please fill all fields.", "error");
+      return;
+    }
+    const hours = calcHours(start, end);
+    if (hours <= 0) {
+      showToast("End time must be after start.", "error");
+      return;
+    }
+    entries[index] = { ...entries[index], date, start, end, hours, project, category, billable, notes };
+    await saveTimesheet();
+    $('#editModal').modal('hide');
+    showToast("Entry updated.");
+    await refreshView();
+  }
+
+  // Filter logic (with "all" option)
   function getFilteredEntries() {
     const range = document.getElementById('filterRange').value;
     const project = document.getElementById('filterProject').value;
     const category = document.getElementById('filterCategory').value;
     const now = new Date();
-    
     let filtered = [...entries];
     
-    filtered = filtered.filter(entry => {
-      const d = new Date(entry.date);
-      if (range === 'day') {
-        return d.toDateString() === now.toDateString();
-      } else if (range === 'week') {
-        const startOfWeek = new Date(now);
-        startOfWeek.setDate(now.getDate() - now.getDay());
-        startOfWeek.setHours(0, 0, 0, 0);
-        const endOfWeek = new Date(startOfWeek);
-        endOfWeek.setDate(startOfWeek.getDate() + 6);
-        endOfWeek.setHours(23, 59, 59, 999);
-        return d >= startOfWeek && d <= endOfWeek;
-      } else if (range === 'month') {
-        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-      }
-      return true;
-    });
+    if (range !== 'all') {
+      filtered = filtered.filter(entry => {
+        const d = new Date(entry.date);
+        if (range === 'day') {
+          return d.toDateString() === now.toDateString();
+        } else if (range === 'week') {
+          // Week starts on Monday
+          const startOfWeek = new Date(now);
+          const day = now.getDay();
+          const diff = (day === 0 ? 6 : day - 1);
+          startOfWeek.setDate(now.getDate() - diff);
+          startOfWeek.setHours(0, 0, 0, 0);
+          const endOfWeek = new Date(startOfWeek);
+          endOfWeek.setDate(startOfWeek.getDate() + 6);
+          endOfWeek.setHours(23, 59, 59, 999);
+          return d >= startOfWeek && d <= endOfWeek;
+        } else if (range === 'month') {
+          return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+        }
+        return true;
+      });
+    }
     
-    if (project !== 'all') {
-      filtered = filtered.filter(e => e.project === project);
-    }
-    if (category !== 'all') {
-      filtered = filtered.filter(e => e.category === category);
-    }
+    if (project !== 'all') filtered = filtered.filter(e => e.project === project);
+    if (category !== 'all') filtered = filtered.filter(e => e.category === category);
     return filtered;
   }
 
-  // Render history table
+  // Render history table with Edit button
   function renderHistory() {
     const filtered = getFilteredEntries();
     const tbody = document.getElementById('historyBody');
     const tfoot = document.getElementById('historyFoot');
     
     if (filtered.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="9" class="text-center">No entries found.</td></tr>';
+      tbody.innerHTML = '<td><td colspan="9" class="text-center">No entries found.</td></tr>';
       tfoot.style.display = 'none';
       return;
     }
@@ -289,10 +340,18 @@
       
       const actionCell = row.insertCell(8);
       actionCell.className = 'print-hide';
+      
+      const editBtn = document.createElement('button');
+      editBtn.className = 'btn btn-sm btn-edit mr-1';
+      editBtn.innerHTML = '<i class="fa fa-pencil"></i>';
+      editBtn.onclick = () => editEntry(entry.id);
+      
       const delBtn = document.createElement('button');
       delBtn.className = 'btn btn-sm btn-danger';
       delBtn.innerHTML = '<i class="fa fa-trash"></i>';
       delBtn.onclick = () => deleteEntry(entry.id);
+      
+      actionCell.appendChild(editBtn);
       actionCell.appendChild(delBtn);
     });
     
@@ -303,16 +362,50 @@
     tfoot.style.display = 'table-footer-group';
   }
 
-  // Update daily progress bar
-  function updateDailyProgress() {
+  // Overtime calculation for a period
+  function calculateOvertimeForPeriod(entriesList) {
+    const dailyHours = {};
+    entriesList.forEach(e => { dailyHours[e.date] = (dailyHours[e.date] || 0) + e.hours; });
+    let overtime = 0;
+    for (const date in dailyHours) {
+      const hours = dailyHours[date];
+      if (hours > 8) overtime += (hours - 8);
+    }
+    return overtime;
+  }
+
+  // Update summary card and daily progress (with overtime)
+  function updateSummaryAndProgress() {
+    const filtered = getFilteredEntries();
+    const totalHours = filtered.reduce((s,e) => s + e.hours, 0);
+    const billable = filtered.filter(e => e.billable === 'yes').reduce((s,e) => s + e.hours, 0);
+    const nonBillable = totalHours - billable;
+    const overtime = calculateOvertimeForPeriod(filtered);
+    
+    document.getElementById('summaryTotalHours').innerText = totalHours.toFixed(1);
+    document.getElementById('summaryBillable').innerText = billable.toFixed(1);
+    document.getElementById('summaryNonBillable').innerText = nonBillable.toFixed(1);
+    document.getElementById('summaryOvertime').innerText = overtime.toFixed(1);
+    document.getElementById('summaryCard').style.display = 'flex';
+    
+    // Today's progress bar
     const today = formatDate(new Date());
-    const todayHours = entries.filter(e => e.date === today).reduce((sum, e) => sum + e.hours, 0);
+    const todayHours = entries.filter(e => e.date === today).reduce((s,e) => s + e.hours, 0);
     const percent = Math.min(100, (todayHours / 8) * 100);
     const fill = document.getElementById('dailyProgressFill');
     if (fill) {
       fill.style.width = percent + '%';
       fill.innerText = todayHours.toFixed(1) + 'h';
-      fill.style.background = todayHours >= 8 ? '#28a745' : '#2fc7ff';
+      if (todayHours > 8) {
+        fill.classList.add('overtime');
+        const overtimeToday = (todayHours - 8).toFixed(1);
+        const warn = document.getElementById('overtimeWarning');
+        warn.style.display = 'block';
+        warn.innerHTML = `<i class="fa fa-exclamation-triangle"></i> Overtime: ${overtimeToday}h over 8h today`;
+      } else {
+        fill.classList.remove('overtime');
+        document.getElementById('overtimeWarning').style.display = 'none';
+      }
     }
   }
 
@@ -325,7 +418,6 @@
     filtered.forEach(e => {
       projMap[e.project] = (projMap[e.project] || 0) + e.hours;
     });
-    
     if (projectChart) projectChart.destroy();
     const ctxProj = document.getElementById('projectChart');
     if (ctxProj && Object.keys(projMap).length > 0) {
@@ -338,13 +430,7 @@
             backgroundColor: ['#2fc7ff', '#ffc107', '#28a745', '#dc3545', '#6f42c1', '#fd7e14', '#17a2b8', '#e83e8c']
           }]
         },
-        options: {
-          responsive: true,
-          maintainAspectRatio: true,
-          plugins: {
-            legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } }
-          }
-        }
+        options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } } } }
       });
     }
     
@@ -353,7 +439,6 @@
     filtered.forEach(e => {
       catMap[e.category] = (catMap[e.category] || 0) + e.hours;
     });
-    
     if (categoryChart) categoryChart.destroy();
     const ctxCat = document.getElementById('categoryChart');
     if (ctxCat && Object.keys(catMap).length > 0) {
@@ -366,24 +451,16 @@
             backgroundColor: ['#2fc7ff', '#ffc107', '#28a745', '#dc3545', '#6f42c1', '#fd7e14']
           }]
         },
-        options: {
-          responsive: true,
-          maintainAspectRatio: true,
-          plugins: {
-            legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } }
-          }
-        }
+        options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } } } }
       });
     }
     
     // Billable chart
-    let billable = 0;
-    let nonBill = 0;
+    let billable = 0, nonBill = 0;
     filtered.forEach(e => {
       if (e.billable === 'yes') billable += e.hours;
       else nonBill += e.hours;
     });
-    
     if (billableChart) billableChart.destroy();
     const ctxBill = document.getElementById('billableChart');
     if (ctxBill && (billable > 0 || nonBill > 0)) {
@@ -396,36 +473,23 @@
             backgroundColor: ['#28a745', '#dc3545']
           }]
         },
-        options: {
-          responsive: true,
-          maintainAspectRatio: true,
-          plugins: {
-            legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } }
-          }
-        }
+        options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } } } }
       });
     }
   }
 
-  // Excel export
+  // Excel export (filtered)
   function exportToExcel() {
     const filtered = getFilteredEntries();
     if (filtered.length === 0) {
       showToast("No data to export.", "error");
       return;
     }
-    
     const data = filtered.map(e => ({
-      Date: e.date,
-      Start: e.start,
-      End: e.end,
-      Hours: e.hours,
-      Project: e.project,
-      Category: e.category,
-      Billable: e.billable === 'yes' ? 'Billable' : 'Non-billable',
+      Date: e.date, Start: e.start, End: e.end, Hours: e.hours,
+      Project: e.project, Category: e.category, Billable: e.billable === 'yes' ? 'Billable' : 'Non-billable',
       Notes: e.notes || ''
     }));
-    
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Timesheet');
@@ -433,29 +497,22 @@
     showToast("Excel file downloaded.");
   }
 
-  // PDF Report
+  // PDF Report (custom range)
   async function generatePDFReport(startDate, endDate) {
     try {
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
       const filtered = entries.filter(e => e.date >= startDate && e.date <= endDate);
-      
       if (filtered.length === 0) {
         showToast("No entries in the selected date range.", "error");
         return;
       }
-      
       const name = document.getElementById('reportName')?.value || userFullName || user.username;
-      const totalHours = filtered.reduce((sum, e) => sum + e.hours, 0);
-      const billableHours = filtered.filter(e => e.billable === 'yes').reduce((sum, e) => sum + e.hours, 0);
+      const totalHours = filtered.reduce((s,e) => s + e.hours, 0);
+      const billableHours = filtered.filter(e => e.billable === 'yes').reduce((s,e) => s + e.hours, 0);
       const nonBillable = totalHours - billableHours;
-      
-      const tableData = filtered.map(e => [
-        e.date, e.start, e.end, e.hours.toFixed(2),
-        e.project, e.category,
-        e.billable === 'yes' ? 'Billable' : 'Non-billable',
-        e.notes || ''
-      ]);
+      const overtime = calculateOvertimeForPeriod(filtered);
+      const tableData = filtered.map(e => [e.date, e.start, e.end, e.hours.toFixed(2), e.project, e.category, e.billable === 'yes' ? 'Billable' : 'Non-billable', e.notes || '']);
       
       doc.setFontSize(16);
       doc.text('Timesheet Report', 14, 20);
@@ -463,7 +520,7 @@
       doc.text(`Name: ${name}`, 14, 30);
       doc.text(`Period: ${startDate} to ${endDate}`, 14, 37);
       doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 44);
-      doc.text(`Total Hours: ${totalHours.toFixed(2)} (Billable: ${billableHours.toFixed(2)} | Non-billable: ${nonBillable.toFixed(2)})`, 14, 51);
+      doc.text(`Total Hours: ${totalHours.toFixed(2)} (Billable: ${billableHours.toFixed(2)} | Non-billable: ${nonBillable.toFixed(2)} | Overtime: ${overtime.toFixed(2)})`, 14, 51);
       
       doc.autoTable({
         startY: 58,
@@ -474,25 +531,14 @@
         headStyles: { fillColor: [11, 43, 59], textColor: 255, fontStyle: 'bold' },
         footStyles: { fillColor: [240, 240, 240], textColor: 0, fontStyle: 'bold' },
         margin: { left: 14, right: 14 },
-        columnStyles: {
-          0: { cellWidth: 22 },
-          1: { cellWidth: 16 },
-          2: { cellWidth: 16 },
-          3: { cellWidth: 16 },
-          4: { cellWidth: 30 },
-          5: { cellWidth: 25 },
-          6: { cellWidth: 20 },
-          7: { cellWidth: 35 }
-        }
+        columnStyles: { 0: { cellWidth: 22 }, 1: { cellWidth: 16 }, 2: { cellWidth: 16 }, 3: { cellWidth: 16 }, 4: { cellWidth: 30 }, 5: { cellWidth: 25 }, 6: { cellWidth: 20 }, 7: { cellWidth: 35 } }
       });
-      
       const pageCount = doc.internal.getNumberOfPages();
       for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
         doc.setFontSize(9);
         doc.text(`Your Portfolio – Timesheet | Page ${i} of ${pageCount}`, 14, doc.internal.pageSize.height - 10);
       }
-      
       doc.save(`timesheet_${startDate}_to_${endDate}.pdf`);
       showToast("PDF report generated.");
     } catch (err) {
@@ -501,25 +547,17 @@
     }
   }
 
-  // Excel for custom range
   function exportExcelRange(startDate, endDate) {
     const filtered = entries.filter(e => e.date >= startDate && e.date <= endDate);
     if (filtered.length === 0) {
       showToast("No entries in selected range.", "error");
       return;
     }
-    
     const data = filtered.map(e => ({
-      Date: e.date,
-      Start: e.start,
-      End: e.end,
-      Hours: e.hours,
-      Project: e.project,
-      Category: e.category,
-      Billable: e.billable === 'yes' ? 'Billable' : 'Non-billable',
+      Date: e.date, Start: e.start, End: e.end, Hours: e.hours,
+      Project: e.project, Category: e.category, Billable: e.billable === 'yes' ? 'Billable' : 'Non-billable',
       Notes: e.notes || ''
     }));
-    
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Timesheet');
@@ -527,15 +565,13 @@
     showToast("Excel file downloaded.");
   }
 
-  // Refresh everything
   async function refreshView() {
     await loadTimesheet();
     renderHistory();
-    updateDailyProgress();
+    updateSummaryAndProgress();
     updateCharts();
   }
 
-  // Auto-refresh every 60 seconds
   function startAutoRefresh() {
     if (autoRefreshInterval) clearInterval(autoRefreshInterval);
     autoRefreshInterval = setInterval(async () => {
@@ -545,156 +581,83 @@
     }, 60000);
   }
 
-  // Initialize everything
   async function init() {
-    // Set default date to today
+    // Set default date
     const dateInput = document.getElementById('logDate');
     if (dateInput) dateInput.value = formatDate(new Date());
     
-    // Set up event listeners
+    // Event listeners
     const startTime = document.getElementById('startTime');
     const endTime = document.getElementById('endTime');
     if (startTime) startTime.addEventListener('change', updateHoursAuto);
     if (endTime) endTime.addEventListener('change', updateHoursAuto);
     
-    // Now buttons
-    const nowStart = document.getElementById('nowStartBtn');
-    if (nowStart) {
-      nowStart.onclick = function() {
-        const now = new Date();
-        const timeString = now.toTimeString().slice(0, 5);
-        const startField = document.getElementById('startTime');
-        if (startField) {
-          startField.value = timeString;
-          updateHoursAuto();
-        }
-      };
-    }
+    document.getElementById('nowStartBtn').onclick = () => {
+      document.getElementById('startTime').value = new Date().toTimeString().slice(0,5);
+      updateHoursAuto();
+    };
+    document.getElementById('nowEndBtn').onclick = () => {
+      document.getElementById('endTime').value = new Date().toTimeString().slice(0,5);
+      updateHoursAuto();
+    };
+    document.getElementById('addEntryBtn').onclick = addEntry;
+    document.getElementById('refreshHistoryBtn').onclick = () => refreshView();
+    document.getElementById('exportExcelBtn').onclick = () => exportToExcel();
+    document.getElementById('printBtn').onclick = () => window.print();
+    document.getElementById('filterRange').onchange = () => { renderHistory(); updateSummaryAndProgress(); updateCharts(); };
+    document.getElementById('filterProject').onchange = () => { renderHistory(); updateSummaryAndProgress(); updateCharts(); };
+    document.getElementById('filterCategory').onchange = () => { renderHistory(); updateSummaryAndProgress(); updateCharts(); };
     
-    const nowEnd = document.getElementById('nowEndBtn');
-    if (nowEnd) {
-      nowEnd.onclick = function() {
-        const now = new Date();
-        const timeString = now.toTimeString().slice(0, 5);
-        const endField = document.getElementById('endTime');
-        if (endField) {
-          endField.value = timeString;
-          updateHoursAuto();
-        }
-      };
-    }
+    document.getElementById('saveNameBtn').onclick = async () => {
+      const newName = document.getElementById('userFullName')?.value.trim();
+      if (newName) {
+        userFullName = newName;
+        await saveUserMeta(userFullName);
+        document.getElementById('reportName').value = userFullName;
+        showToast("Name saved.");
+      }
+    };
     
-    // Add entry button
-    const addBtn = document.getElementById('addEntryBtn');
-    if (addBtn) addBtn.onclick = addEntry;
+    document.getElementById('addProjectBtn').onclick = () => {
+      document.getElementById('newProjectName').value = '';
+      $('#newProjectModal').modal('show');
+    };
+    document.getElementById('confirmNewProjectBtn').onclick = async () => {
+      const newProj = document.getElementById('newProjectName')?.value.trim();
+      if (!newProj) { showToast("Enter project name.", "error"); return; }
+      const success = await addNewProject(newProj);
+      if (success) {
+        await saveUserMeta(userFullName, projectList);
+        await loadProjects();
+        document.getElementById('taskProject').value = newProj;
+        $('#newProjectModal').modal('hide');
+        showToast(`Project "${newProj}" added.`);
+      } else {
+        showToast("Project already exists.", "error");
+      }
+    };
     
-    // Refresh button
-    const refreshBtn = document.getElementById('refreshHistoryBtn');
-    if (refreshBtn) refreshBtn.onclick = () => refreshView();
+    document.getElementById('generateReportBtn').onclick = () => {
+      document.getElementById('reportName').value = userFullName;
+      const end = new Date();
+      const start = new Date();
+      start.setDate(start.getDate() - 30);
+      document.getElementById('reportStartDate').value = formatDate(start);
+      document.getElementById('reportEndDate').value = formatDate(end);
+      $('#reportModal').modal('show');
+    };
+    document.getElementById('generateReportConfirmBtn').onclick = () => {
+      const start = document.getElementById('reportStartDate')?.value;
+      const end = document.getElementById('reportEndDate')?.value;
+      if (!start || !end) { showToast("Select both start and end dates.", "error"); return; }
+      const type = document.getElementById('reportType')?.value;
+      $('#reportModal').modal('hide');
+      if (type === 'pdf') generatePDFReport(start, end);
+      else exportExcelRange(start, end);
+    };
     
-    // Export buttons
-    const exportBtn = document.getElementById('exportExcelBtn');
-    if (exportBtn) exportBtn.onclick = () => exportToExcel();
+    document.getElementById('saveEditBtn').onclick = saveEdit;
     
-    const printBtn = document.getElementById('printBtn');
-    if (printBtn) printBtn.onclick = () => window.print();
-    
-    // Filter listeners
-    const rangeFilter = document.getElementById('filterRange');
-    if (rangeFilter) rangeFilter.onchange = () => { renderHistory(); updateCharts(); };
-    
-    const projectFilter = document.getElementById('filterProject');
-    if (projectFilter) projectFilter.onchange = () => { renderHistory(); updateCharts(); };
-    
-    const categoryFilter = document.getElementById('filterCategory');
-    if (categoryFilter) categoryFilter.onchange = () => { renderHistory(); updateCharts(); };
-    
-    // Save name button
-    const saveNameBtn = document.getElementById('saveNameBtn');
-    if (saveNameBtn) {
-      saveNameBtn.onclick = async () => {
-        const newName = document.getElementById('userFullName')?.value.trim();
-        if (newName) {
-          userFullName = newName;
-          await saveUserMeta(userFullName);
-          const reportName = document.getElementById('reportName');
-          if (reportName) reportName.value = userFullName;
-          showToast("Name saved.");
-        }
-      };
-    }
-    
-    // Add project button
-    const addProjectBtn = document.getElementById('addProjectBtn');
-    if (addProjectBtn) {
-      addProjectBtn.onclick = () => {
-        const newProjInput = document.getElementById('newProjectName');
-        if (newProjInput) newProjInput.value = '';
-        $('#newProjectModal').modal('show');
-      };
-    }
-    
-    // Confirm new project
-    const confirmProjectBtn = document.getElementById('confirmNewProjectBtn');
-    if (confirmProjectBtn) {
-      confirmProjectBtn.onclick = async () => {
-        const newProj = document.getElementById('newProjectName')?.value.trim();
-        if (!newProj) {
-          showToast("Enter project name.", "error");
-          return;
-        }
-        const success = await addNewProject(newProj);
-        if (success) {
-          await saveUserMeta(userFullName, projectList);
-          await loadProjects();
-          const taskProject = document.getElementById('taskProject');
-          if (taskProject) taskProject.value = newProj;
-          $('#newProjectModal').modal('hide');
-          showToast(`Project "${newProj}" added.`);
-        } else {
-          showToast("Project already exists.", "error");
-        }
-      };
-    }
-    
-    // Generate report button
-    const generateReportBtn = document.getElementById('generateReportBtn');
-    if (generateReportBtn) {
-      generateReportBtn.onclick = () => {
-        const reportName = document.getElementById('reportName');
-        if (reportName) reportName.value = userFullName;
-        const end = new Date();
-        const start = new Date();
-        start.setDate(start.getDate() - 30);
-        const startDateInput = document.getElementById('reportStartDate');
-        const endDateInput = document.getElementById('reportEndDate');
-        if (startDateInput) startDateInput.value = formatDate(start);
-        if (endDateInput) endDateInput.value = formatDate(end);
-        $('#reportModal').modal('show');
-      };
-    }
-    
-    // Confirm report generation
-    const generateConfirmBtn = document.getElementById('generateReportConfirmBtn');
-    if (generateConfirmBtn) {
-      generateConfirmBtn.onclick = () => {
-        const start = document.getElementById('reportStartDate')?.value;
-        const end = document.getElementById('reportEndDate')?.value;
-        if (!start || !end) {
-          showToast("Select both start and end dates.", "error");
-          return;
-        }
-        const type = document.getElementById('reportType')?.value;
-        $('#reportModal').modal('hide');
-        if (type === 'pdf') {
-          generatePDFReport(start, end);
-        } else {
-          exportExcelRange(start, end);
-        }
-      };
-    }
-    
-    // Load data and start
     await loadProjects();
     await loadUserMeta();
     await refreshView();
