@@ -1,4 +1,4 @@
-// shared.js – Full version with PDF log generation, session, portfolio, etc.
+// shared.js – Full version with PDF log generation (fixed log path)
 
 window.showLoading = function (msg = 'Processing...') {
   let loader = document.getElementById('globalLoader');
@@ -87,7 +87,8 @@ window.Logger = {
     
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(user.username);
-    const logPath = `${dataPath}/users/${encUser}/logs/activity.log`;
+    // CHANGED: store log directly in user folder, not in /logs subfolder
+    const logPath = `${dataPath}/users/${encUser}/activity.log`;
     
     let existingContent = '';
     let sha = null;
@@ -110,7 +111,8 @@ window.Logger = {
   async getLogsForUser(targetUsername, adminToken) {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(targetUsername);
-    const logPath = `${dataPath}/users/${encUser}/logs/activity.log`;
+    // CHANGED: same path as above
+    const logPath = `${dataPath}/users/${encUser}/activity.log`;
     try {
       const file = await GitHubAPI.getFileContent(owner, repo, logPath, branch, adminToken);
       if (file && file.content) {
@@ -131,7 +133,6 @@ window.Logger = {
     return allLogs;
   },
 
-  // Generate PDF blob from log text
   async getLogsPDFBlob(username, logText) {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
