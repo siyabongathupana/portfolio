@@ -1,4 +1,4 @@
-// shared.js – Full version with PDF log generation (no 2FA)
+// shared.js – Full version with strict user isolation (no public fallback for logged‑in users)
 
 window.showLoading = function (msg = 'Processing...') {
   let loader = document.getElementById('globalLoader');
@@ -430,14 +430,6 @@ window.AccountManager = {
         const data = JSON.parse(projFile.content);
         projectCount = Object.keys(data).length;
       }
-      if (projectCount === 0 && username === window.APP_CONFIG.publicProfileEmail) {
-        const publicUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${base}/projects.json`;
-        const resp = await fetch(publicUrl);
-        if (resp.ok) {
-          const data = await resp.json();
-          projectCount = Object.keys(data).length;
-        }
-      }
     } catch (e) {}
     try {
       const certFile = await GitHubAPI.getFileContent(owner, repo, `${base}/certificates.json`, branch, adminToken);
@@ -445,20 +437,12 @@ window.AccountManager = {
         const data = JSON.parse(certFile.content);
         certCount = data.length;
       }
-      if (certCount === 0 && username === window.APP_CONFIG.publicProfileEmail) {
-        const publicUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${base}/certificates.json`;
-        const resp = await fetch(publicUrl);
-        if (resp.ok) {
-          const data = await resp.json();
-          certCount = data.length;
-        }
-      }
     } catch (e) {}
     return { projects: projectCount, certificates: certCount };
   }
 };
 
-// ---------- PORTFOLIO DATA (with backup, restore, user views) ----------
+// ---------- PORTFOLIO DATA (strict isolation – no public fallback for logged in users) ----------
 window.portfolioData = (() => {
   const PROJECTS_KEY = 'portfolioProjects';
   const CERTS_KEY = 'portfolioCertificates';
@@ -489,6 +473,7 @@ window.portfolioData = (() => {
     return type === 'projects' ? {} : [];
   }
 
+  // For public view (not logged in) – shows public profile data
   async function loadProjectsForView() {
     const user = window.SessionManager.getCurrentUser();
     if (user && user.pat) {
@@ -501,15 +486,12 @@ window.portfolioData = (() => {
         if (file && file.content) {
           const data = JSON.parse(file.content);
           return data;
-        } else {
-          if (user.username === window.APP_CONFIG.publicProfileEmail) {
-            const publicData = await fetchPublicData(user.username, 'projects');
-            if (Object.keys(publicData).length > 0) return publicData;
-          }
-          return {};
         }
+        // No fallback – return empty object for logged in users with no projects
+        return {};
       } catch (e) { return {}; }
     }
+    // Not logged in – show public profile
     const publicEmail = window.APP_CONFIG.publicProfileEmail;
     if (publicEmail) return await fetchPublicData(publicEmail, 'projects');
     return {};
@@ -527,13 +509,8 @@ window.portfolioData = (() => {
         if (file && file.content) {
           const data = JSON.parse(file.content);
           return data;
-        } else {
-          if (user.username === window.APP_CONFIG.publicProfileEmail) {
-            const publicData = await fetchPublicData(user.username, 'certificates');
-            if (publicData.length > 0) return publicData;
-          }
-          return [];
         }
+        return [];
       } catch (e) { return []; }
     }
     const publicEmail = window.APP_CONFIG.publicProfileEmail;
@@ -541,6 +518,7 @@ window.portfolioData = (() => {
     return [];
   }
 
+  // Admin functions (load user's own data, no fallback)
   async function loadProjects() {
     const user = window.SessionManager.getCurrentUser();
     if (user && user.pat) {
@@ -554,18 +532,10 @@ window.portfolioData = (() => {
           const data = JSON.parse(file.content);
           localStorage.setItem(PROJECTS_KEY, JSON.stringify(data));
           return data;
-        } else {
-          if (user.username === window.APP_CONFIG.publicProfileEmail) {
-            const publicData = await fetchPublicData(user.username, 'projects');
-            if (Object.keys(publicData).length > 0) {
-              localStorage.setItem(PROJECTS_KEY, JSON.stringify(publicData));
-              return publicData;
-            }
-          }
-          const empty = {};
-          localStorage.setItem(PROJECTS_KEY, JSON.stringify(empty));
-          return empty;
         }
+        const empty = {};
+        localStorage.setItem(PROJECTS_KEY, JSON.stringify(empty));
+        return empty;
       } catch (e) {
         if (e.message === 'Blocked') throw e;
         return JSON.parse(localStorage.getItem(PROJECTS_KEY) || '{}');
@@ -589,18 +559,10 @@ window.portfolioData = (() => {
           const data = JSON.parse(file.content);
           localStorage.setItem(CERTS_KEY, JSON.stringify(data));
           return data;
-        } else {
-          if (user.username === window.APP_CONFIG.publicProfileEmail) {
-            const publicCerts = await fetchPublicData(user.username, 'certificates');
-            if (publicCerts.length > 0) {
-              localStorage.setItem(CERTS_KEY, JSON.stringify(publicCerts));
-              return publicCerts;
-            }
-          }
-          const empty = [];
-          localStorage.setItem(CERTS_KEY, JSON.stringify(empty));
-          return empty;
         }
+        const empty = [];
+        localStorage.setItem(CERTS_KEY, JSON.stringify(empty));
+        return empty;
       } catch (e) {
         if (e.message === 'Blocked') throw e;
         return JSON.parse(localStorage.getItem(CERTS_KEY) || '[]');
@@ -880,7 +842,7 @@ window.generateProjectReport = async function(projectId) {
         <table style="width:100%; text-align:center; border-collapse:collapse;">
           <tr style="background:${primaryColor}; color:white;"><th>AI</th><th>AO</th><th>DI</th><th>DO</th></tr>
           <tr><td>${io.AI}${dataV}/${io.AO}${dataV}/${io.DI}${dataV}/${io.DO}专业专业
-        </table>
+        </td>
       </div>
       <div style="background:${bgColor}; padding:20px; border-radius:16px; margin-bottom:20px; text-align:center;">
         <h3>I/O Distribution (${proj.graphType})</h3>
