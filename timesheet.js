@@ -1,9 +1,9 @@
-// timesheet.js – Full timesheet with auto-refresh, toasts, reliable saves
+// timesheet.js – Professional timesheet with silent login redirect
 (function() {
   const user = window.SessionManager?.getCurrentUser();
   if (!user) {
-    alert("Please log in to access the timesheet.");
-    window.location.href = "login.html";
+    // Silent redirect – no alert popup
+    window.location.href = "login.html?redirect=timesheet";
     return;
   }
 
@@ -22,7 +22,7 @@
     const toastId = "toast-" + Date.now();
     const bgClass = type === "success" ? "bg-success" : (type === "error" ? "bg-danger" : "bg-info");
     const html = `
-      <div id="${toastId}" class="toast ${bgClass} text-white" role="alert" aria-live="assertive" aria-atomic="true" data-autohide="true" data-delay="3000">
+      <div id="${toastId}" class="toast ${bgClass} text-white" role="alert" data-autohide="true" data-delay="3000">
         <div class="toast-body">${message}</div>
       </div>
     `;
@@ -32,11 +32,12 @@
     toastEl.addEventListener("hidden.bs.toast", () => toastEl.remove());
   }
 
-  // Helper functions
+  // Helpers
   function formatDate(date) {
     const d = new Date(date);
     return d.toISOString().split('T')[0];
   }
+
   function calcHours(start, end) {
     if (!start || !end) return 0;
     const [sh, sm] = start.split(':').map(Number);
@@ -45,6 +46,7 @@
     if (totalMinutes < 0) totalMinutes += 24 * 60;
     return +(totalMinutes / 60).toFixed(2);
   }
+
   function updateHoursAuto() {
     const start = document.getElementById('startTime').value;
     const end = document.getElementById('endTime').value;
@@ -62,21 +64,25 @@
       projectList = ["Other"];
     }
     const select = document.getElementById('taskProject');
-    select.innerHTML = '';
-    projectList.forEach(p => {
-      const opt = document.createElement('option');
-      opt.value = p;
-      opt.textContent = p;
-      select.appendChild(opt);
-    });
+    if (select) {
+      select.innerHTML = '';
+      projectList.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p;
+        opt.textContent = p;
+        select.appendChild(opt);
+      });
+    }
     const filterSelect = document.getElementById('filterProject');
-    filterSelect.innerHTML = '<option value="all">All Projects</option>';
-    projectList.forEach(p => {
-      const opt = document.createElement('option');
-      opt.value = p;
-      opt.textContent = p;
-      filterSelect.appendChild(opt);
-    });
+    if (filterSelect) {
+      filterSelect.innerHTML = '<option value="all">All Projects</option>';
+      projectList.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p;
+        opt.textContent = p;
+        filterSelect.appendChild(opt);
+      });
+    }
   }
 
   async function addNewProject(projectName) {
@@ -88,7 +94,7 @@
     return true;
   }
 
-  // Load / Save timesheet with retry
+  // Load timesheet
   async function loadTimesheet() {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(user.username);
@@ -134,8 +140,10 @@
         }
       }
     } catch(e) {}
-    document.getElementById('userFullName').value = userFullName;
-    document.getElementById('reportName').value = userFullName;
+    const nameField = document.getElementById('userFullName');
+    const reportNameField = document.getElementById('reportName');
+    if (nameField) nameField.value = userFullName;
+    if (reportNameField) reportNameField.value = userFullName;
     if (!projectList.includes("Other")) projectList.push("Other");
     await loadProjects();
   }
@@ -153,7 +161,7 @@
     await GitHubAPI.updateFile(owner, repo, path, meta, `Update user meta`, branch, user.pat, sha);
   }
 
-  // Add / Delete entries
+  // Add entry
   async function addEntry() {
     const date = document.getElementById('logDate').value;
     const start = document.getElementById('startTime').value;
@@ -162,24 +170,29 @@
     const category = document.getElementById('taskCategory').value;
     const billable = document.getElementById('billable').value;
     const notes = document.getElementById('taskNotes').value.trim();
+    
     if (!date || !start || !end || !project) {
       showToast("Please fill all required fields.", "error");
       return;
     }
     const hours = calcHours(start, end);
     if (hours <= 0) {
-      showToast("End time must be after start.", "error");
+      showToast("End time must be after start time.", "error");
       return;
     }
-    entries.unshift({ id: Date.now(), date, start, end, hours, project, category, billable, notes });
+    
+    const newEntry = { id: Date.now(), date, start, end, hours, project, category, billable, notes };
+    entries.unshift(newEntry);
     await saveTimesheet();
     showToast("Entry saved successfully!");
-    refreshView();
+    await refreshView();
+    
+    // Clear form fields
     document.getElementById('startTime').value = '';
     document.getElementById('endTime').value = '';
     document.getElementById('taskNotes').value = '';
     document.getElementById('hoursAuto').value = '';
-    updateDailyProgress();
+    document.getElementById('taskProject').value = project; // keep project selected
   }
 
   async function deleteEntry(id) {
@@ -187,11 +200,11 @@
       entries = entries.filter(e => e.id != id);
       await saveTimesheet();
       showToast("Entry deleted.");
-      refreshView();
+      await refreshView();
     }
   }
 
-  // Filter logic
+  // Filter
   function getFilteredEntries() {
     const range = document.getElementById('filterRange').value;
     const project = document.getElementById('filterProject').value;
@@ -251,7 +264,8 @@
       delBtn.onclick = () => deleteEntry(entry.id);
       actionCell.appendChild(delBtn);
     });
-    document.getElementById('totalHoursCell').innerHTML = `<strong>${totalHours.toFixed(2)}</strong>`;
+    const totalCell = document.getElementById('totalHoursCell');
+    if (totalCell) totalCell.innerHTML = `<strong>${totalHours.toFixed(2)}</strong>`;
     tfoot.style.display = 'table-footer-group';
   }
 
@@ -260,9 +274,11 @@
     const todayHours = entries.filter(e => e.date === today).reduce((s,e) => s + e.hours, 0);
     const percent = Math.min(100, (todayHours / 8) * 100);
     const fill = document.getElementById('dailyProgressFill');
-    fill.style.width = percent + '%';
-    fill.innerText = todayHours.toFixed(1) + 'h';
-    fill.style.background = todayHours >= 8 ? '#28a745' : '#2fc7ff';
+    if (fill) {
+      fill.style.width = percent + '%';
+      fill.innerText = todayHours.toFixed(1) + 'h';
+      fill.style.background = todayHours >= 8 ? '#28a745' : '#2fc7ff';
+    }
   }
 
   function updateCharts() {
@@ -271,32 +287,38 @@
     const projMap = {};
     filtered.forEach(e => { projMap[e.project] = (projMap[e.project] || 0) + e.hours; });
     if (projectChart) projectChart.destroy();
-    const ctxProj = document.getElementById('projectChart').getContext('2d');
-    projectChart = new Chart(ctxProj, {
-      type: 'pie',
-      data: { labels: Object.keys(projMap), datasets: [{ data: Object.values(projMap), backgroundColor: ['#2fc7ff','#ffc107','#28a745','#dc3545','#6f42c1','#fd7e14','#17a2b8','#e83e8c'] }] },
-      options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } } } }
-    });
+    const ctxProj = document.getElementById('projectChart');
+    if (ctxProj) {
+      projectChart = new Chart(ctxProj, {
+        type: 'pie',
+        data: { labels: Object.keys(projMap), datasets: [{ data: Object.values(projMap), backgroundColor: ['#2fc7ff','#ffc107','#28a745','#dc3545','#6f42c1','#fd7e14','#17a2b8','#e83e8c'] }] },
+        options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } } } }
+      });
+    }
     // Category chart
     const catMap = {};
     filtered.forEach(e => { catMap[e.category] = (catMap[e.category] || 0) + e.hours; });
     if (categoryChart) categoryChart.destroy();
-    const ctxCat = document.getElementById('categoryChart').getContext('2d');
-    categoryChart = new Chart(ctxCat, {
-      type: 'pie',
-      data: { labels: Object.keys(catMap), datasets: [{ data: Object.values(catMap), backgroundColor: ['#2fc7ff','#ffc107','#28a745','#dc3545','#6f42c1','#fd7e14'] }] },
-      options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } } } }
-    });
+    const ctxCat = document.getElementById('categoryChart');
+    if (ctxCat) {
+      categoryChart = new Chart(ctxCat, {
+        type: 'pie',
+        data: { labels: Object.keys(catMap), datasets: [{ data: Object.values(catMap), backgroundColor: ['#2fc7ff','#ffc107','#28a745','#dc3545','#6f42c1','#fd7e14'] }] },
+        options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } } } }
+      });
+    }
     // Billable chart
     let billable = 0, nonBill = 0;
     filtered.forEach(e => { if (e.billable === 'yes') billable += e.hours; else nonBill += e.hours; });
     if (billableChart) billableChart.destroy();
-    const ctxBill = document.getElementById('billableChart').getContext('2d');
-    billableChart = new Chart(ctxBill, {
-      type: 'pie',
-      data: { labels: ['Billable', 'Non-billable'], datasets: [{ data: [billable, nonBill], backgroundColor: ['#28a745','#dc3545'] }] },
-      options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } } } }
-    });
+    const ctxBill = document.getElementById('billableChart');
+    if (ctxBill) {
+      billableChart = new Chart(ctxBill, {
+        type: 'pie',
+        data: { labels: ['Billable', 'Non-billable'], datasets: [{ data: [billable, nonBill], backgroundColor: ['#28a745','#dc3545'] }] },
+        options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } } } }
+      });
+    }
   }
 
   // Excel export
@@ -325,7 +347,7 @@
         showToast("No entries in the selected date range.", "error");
         return;
       }
-      const name = document.getElementById('reportName').value || userFullName || user.username;
+      const name = document.getElementById('reportName')?.value || userFullName || user.username;
       const totalHours = filtered.reduce((s,e) => s + e.hours, 0);
       const billableHours = filtered.filter(e => e.billable === 'yes').reduce((s,e) => s + e.hours, 0);
       const nonBillable = totalHours - billableHours;
@@ -387,87 +409,157 @@
     updateCharts();
   }
 
-  // Auto-refresh every 5 seconds (only if page visible)
+  // Auto-refresh every 60 seconds (1 minute)
   function startAutoRefresh() {
     if (autoRefreshInterval) clearInterval(autoRefreshInterval);
     autoRefreshInterval = setInterval(async () => {
       if (!document.hidden) {
         await refreshView();
       }
-    }, 5000);
+    }, 60000);
+  }
+
+  // Category dropdown is already in HTML with static options, but ensure it exists
+  function ensureCategoryDropdown() {
+    const catSelect = document.getElementById('taskCategory');
+    if (catSelect && catSelect.options.length === 0) {
+      const categories = ['Development', 'Meetings', 'Admin', 'CodeReview', 'Learning', 'Other'];
+      categories.forEach(cat => {
+        const opt = document.createElement('option');
+        opt.value = cat;
+        opt.textContent = cat;
+        catSelect.appendChild(opt);
+      });
+    }
   }
 
   // Initialisation
   async function init() {
+    ensureCategoryDropdown();
     await loadProjects();
     await loadUserMeta();
     await refreshView();
     startAutoRefresh();
 
+    // Set default date to today
+    const dateInput = document.getElementById('logDate');
+    if (dateInput) dateInput.value = formatDate(new Date());
+
     // Event listeners
-    document.getElementById('logDate').value = formatDate(new Date());
-    document.getElementById('startTime').addEventListener('change', updateHoursAuto);
-    document.getElementById('endTime').addEventListener('change', updateHoursAuto);
-    document.getElementById('nowStartBtn').onclick = () => {
-      document.getElementById('startTime').value = new Date().toTimeString().slice(0,5);
-      updateHoursAuto();
-    };
-    document.getElementById('nowEndBtn').onclick = () => {
-      document.getElementById('endTime').value = new Date().toTimeString().slice(0,5);
-      updateHoursAuto();
-    };
-    document.getElementById('addEntryBtn').onclick = addEntry;
-    document.getElementById('refreshHistoryBtn').onclick = () => refreshView();
-    document.getElementById('exportExcelBtn').onclick = () => exportToExcel();
-    document.getElementById('printBtn').onclick = () => window.print();
-    document.getElementById('filterRange').onchange = () => { renderHistory(); updateCharts(); };
-    document.getElementById('filterProject').onchange = () => { renderHistory(); updateCharts(); };
-    document.getElementById('filterCategory').onchange = () => { renderHistory(); updateCharts(); };
-    document.getElementById('saveNameBtn').onclick = async () => {
-      const newName = document.getElementById('userFullName').value.trim();
-      if (newName) {
-        userFullName = newName;
-        await saveUserMeta(userFullName);
-        document.getElementById('reportName').value = userFullName;
-        showToast("Name saved.");
-      }
-    };
-    document.getElementById('addProjectBtn').onclick = () => {
-      document.getElementById('newProjectName').value = '';
-      $('#newProjectModal').modal('show');
-    };
-    document.getElementById('confirmNewProjectBtn').onclick = async () => {
-      const newProj = document.getElementById('newProjectName').value.trim();
-      if (!newProj) { showToast("Enter project name.", "error"); return; }
-      const success = await addNewProject(newProj);
-      if (success) {
-        await saveUserMeta(userFullName, projectList);
-        await loadProjects();
-        document.getElementById('taskProject').value = newProj;
-        $('#newProjectModal').modal('hide');
-        showToast(`Project "${newProj}" added.`);
-      } else {
-        showToast("Project already exists.", "error");
-      }
-    };
-    document.getElementById('generateReportBtn').onclick = () => {
-      document.getElementById('reportName').value = userFullName;
-      const end = new Date();
-      const start = new Date();
-      start.setDate(start.getDate() - 30);
-      document.getElementById('reportStartDate').value = formatDate(start);
-      document.getElementById('reportEndDate').value = formatDate(end);
-      $('#reportModal').modal('show');
-    };
-    document.getElementById('generateReportConfirmBtn').onclick = () => {
-      const start = document.getElementById('reportStartDate').value;
-      const end = document.getElementById('reportEndDate').value;
-      if (!start || !end) { showToast("Select both start and end dates.", "error"); return; }
-      const type = document.getElementById('reportType').value;
-      $('#reportModal').modal('hide');
-      if (type === 'pdf') generatePDFReport(start, end);
-      else exportExcelRange(start, end);
-    };
+    const startTime = document.getElementById('startTime');
+    const endTime = document.getElementById('endTime');
+    if (startTime) startTime.addEventListener('change', updateHoursAuto);
+    if (endTime) endTime.addEventListener('change', updateHoursAuto);
+
+    const nowStart = document.getElementById('nowStartBtn');
+    if (nowStart) {
+      nowStart.onclick = () => {
+        const now = new Date().toTimeString().slice(0,5);
+        if (startTime) startTime.value = now;
+        updateHoursAuto();
+      };
+    }
+
+    const nowEnd = document.getElementById('nowEndBtn');
+    if (nowEnd) {
+      nowEnd.onclick = () => {
+        const now = new Date().toTimeString().slice(0,5);
+        if (endTime) endTime.value = now;
+        updateHoursAuto();
+      };
+    }
+
+    const addBtn = document.getElementById('addEntryBtn');
+    if (addBtn) addBtn.onclick = addEntry;
+
+    const refreshBtn = document.getElementById('refreshHistoryBtn');
+    if (refreshBtn) refreshBtn.onclick = () => refreshView();
+
+    const exportBtn = document.getElementById('exportExcelBtn');
+    if (exportBtn) exportBtn.onclick = () => exportToExcel();
+
+    const printBtn = document.getElementById('printBtn');
+    if (printBtn) printBtn.onclick = () => window.print();
+
+    const rangeFilter = document.getElementById('filterRange');
+    if (rangeFilter) rangeFilter.onchange = () => { renderHistory(); updateCharts(); };
+
+    const projectFilter = document.getElementById('filterProject');
+    if (projectFilter) projectFilter.onchange = () => { renderHistory(); updateCharts(); };
+
+    const categoryFilter = document.getElementById('filterCategory');
+    if (categoryFilter) categoryFilter.onchange = () => { renderHistory(); updateCharts(); };
+
+    const saveNameBtn = document.getElementById('saveNameBtn');
+    if (saveNameBtn) {
+      saveNameBtn.onclick = async () => {
+        const newName = document.getElementById('userFullName')?.value.trim();
+        if (newName) {
+          userFullName = newName;
+          await saveUserMeta(userFullName);
+          const reportName = document.getElementById('reportName');
+          if (reportName) reportName.value = userFullName;
+          showToast("Name saved.");
+        }
+      };
+    }
+
+    const addProjectBtn = document.getElementById('addProjectBtn');
+    if (addProjectBtn) {
+      addProjectBtn.onclick = () => {
+        const newProjInput = document.getElementById('newProjectName');
+        if (newProjInput) newProjInput.value = '';
+        $('#newProjectModal').modal('show');
+      };
+    }
+
+    const confirmProjectBtn = document.getElementById('confirmNewProjectBtn');
+    if (confirmProjectBtn) {
+      confirmProjectBtn.onclick = async () => {
+        const newProj = document.getElementById('newProjectName')?.value.trim();
+        if (!newProj) { showToast("Enter project name.", "error"); return; }
+        const success = await addNewProject(newProj);
+        if (success) {
+          await saveUserMeta(userFullName, projectList);
+          await loadProjects();
+          const taskProject = document.getElementById('taskProject');
+          if (taskProject) taskProject.value = newProj;
+          $('#newProjectModal').modal('hide');
+          showToast(`Project "${newProj}" added.`);
+        } else {
+          showToast("Project already exists.", "error");
+        }
+      };
+    }
+
+    const generateReportBtn = document.getElementById('generateReportBtn');
+    if (generateReportBtn) {
+      generateReportBtn.onclick = () => {
+        const reportName = document.getElementById('reportName');
+        if (reportName) reportName.value = userFullName;
+        const end = new Date();
+        const start = new Date();
+        start.setDate(start.getDate() - 30);
+        const startDateInput = document.getElementById('reportStartDate');
+        const endDateInput = document.getElementById('reportEndDate');
+        if (startDateInput) startDateInput.value = formatDate(start);
+        if (endDateInput) endDateInput.value = formatDate(end);
+        $('#reportModal').modal('show');
+      };
+    }
+
+    const generateConfirmBtn = document.getElementById('generateReportConfirmBtn');
+    if (generateConfirmBtn) {
+      generateConfirmBtn.onclick = () => {
+        const start = document.getElementById('reportStartDate')?.value;
+        const end = document.getElementById('reportEndDate')?.value;
+        if (!start || !end) { showToast("Select both start and end dates.", "error"); return; }
+        const type = document.getElementById('reportType')?.value;
+        $('#reportModal').modal('hide');
+        if (type === 'pdf') generatePDFReport(start, end);
+        else exportExcelRange(start, end);
+      };
+    }
   }
 
   init().catch(err => console.error(err));
