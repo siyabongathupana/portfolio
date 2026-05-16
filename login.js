@@ -1,9 +1,11 @@
-// login.js – Authentication with GitHub-stored accounts
+// login.js – Authentication with TOTP support
 document.addEventListener('DOMContentLoaded', () => {
   const params = new URLSearchParams(window.location.search);
   if (params.get('blocked') === '1') {
     showError('Your account has been blocked. Contact the administrator.');
   }
+
+  let pendingLogin = { username: null, passphrase: null, token: null, totpSecret: null };
 
   document.getElementById('showRegister').addEventListener('click', (e) => {
     e.preventDefault();
@@ -28,7 +30,29 @@ document.addEventListener('DOMContentLoaded', () => {
       showError('Enter your email first, then click "Forgot passphrase" again.');
       return;
     }
-    showError('To reset your passphrase, please contact the administrator (siyabongatshem@gmail.com). Your account will be reset and you can re-register with the same email.');
+    showError('To reset your password, please contact the administrator (siyabongatshem@gmail.com). Your account will be reset and you can re-register with the same email.');
+  });
+
+  // TOTP modal handlers
+  document.getElementById('totpSubmitBtn').addEventListener('click', async () => {
+    const code = document.getElementById('totpCode').value.trim();
+    if (!code || code.length !== 6) {
+      showError('Please enter a valid 6-digit code.');
+      return;
+    }
+    const isValid = window.AccountManager.verifyTOTP(pendingLogin.totpSecret, code);
+    if (isValid) {
+      window.SessionManager.setCurrentUser(pendingLogin.username, pendingLogin.token, true);
+      showSuccess('2FA verified! Redirecting...');
+      setTimeout(() => { window.location.href = 'admin.html'; }, 1000);
+    } else {
+      showError('Invalid code. Please try again.');
+    }
+  });
+  document.getElementById('totpCancelBtn').addEventListener('click', () => {
+    document.getElementById('totpModal').style.display = 'none';
+    document.getElementById('totpOverlay').style.display = 'none';
+    pendingLogin = {};
   });
 
   async function handleLogin() {
@@ -45,10 +69,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     try {
-      const pat = await window.AccountManager.login(username, passphrase);
-      window.SessionManager.setCurrentUser(username, pat);
-      showSuccess('Login successful! Redirecting...');
-      setTimeout(() => { window.location.href = 'admin.html'; }, 1000);
+      const result = await window.AccountManager.login(username, passphrase);
+      if (result.totpSecret) {
+        // 2FA required
+        pendingLogin = { username, passphrase, token: result.token, totpSecret: result.totpSecret };
+        document.getElementById('totpCode').value = '';
+        document.getElementById('totpModal').style.display = 'block';
+        document.getElementById('totpOverlay').style.display = 'block';
+      } else {
+        // No 2FA, login directly
+        window.SessionManager.setCurrentUser(username, result.token, true);
+        showSuccess('Login successful! Redirecting...');
+        setTimeout(() => { window.location.href = 'admin.html'; }, 1000);
+      }
     } catch (err) {
       showError(err.message || 'Invalid email or passphrase.');
     }
