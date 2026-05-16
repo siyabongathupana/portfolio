@@ -13,7 +13,6 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
   <script src="config.js"></script>
   <script src="crypto.js"></script>
   <script src="api.js"></script>
@@ -61,7 +60,7 @@
       .batch-actions button { width: 100%; margin-bottom: 8px; }
     }
 
-    /* Logs Panel Styling */
+    /* Improved Logs Panel Styling */
     .logs-panel {
       background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
       border-radius: 24px;
@@ -70,7 +69,9 @@
       border: 1px solid rgba(47,199,255,0.15);
       transition: all 0.2s ease;
     }
-    .logs-panel:hover { box-shadow: 0 12px 28px rgba(0,0,0,0.08); }
+    .logs-panel:hover {
+      box-shadow: 0 12px 28px rgba(0,0,0,0.08);
+    }
     .logs-icon {
       font-size: 3rem;
       color: #2fc7ff;
@@ -83,9 +84,20 @@
       justify-content: center;
       margin: 0 auto 1rem auto;
     }
-    .logs-panel h4 { font-weight: 700; color: #0b2b3b; margin-bottom: 0.5rem; }
-    .logs-panel .lead-text { color: #5a7d9a; font-size: 0.9rem; margin-bottom: 1.5rem; }
-    .log-user-select { max-width: 280px; margin: 0 auto 1rem auto; }
+    .logs-panel h4 {
+      font-weight: 700;
+      color: #0b2b3b;
+      margin-bottom: 0.5rem;
+    }
+    .logs-panel .lead-text {
+      color: #5a7d9a;
+      font-size: 0.9rem;
+      margin-bottom: 1.5rem;
+    }
+    .log-user-select {
+      max-width: 280px;
+      margin: 0 auto 1rem auto;
+    }
     .btn-log {
       border-radius: 40px;
       padding: 6px 18px;
@@ -95,10 +107,27 @@
       margin: 0.25rem;
       min-width: 140px;
     }
-    .btn-log-primary { background: #2fc7ff; color: #0a2b33; border: none; }
-    .btn-log-primary:hover { background: #1d9fcf; transform: translateY(-2px); color: white; box-shadow: 0 6px 14px rgba(47,199,255,0.3); }
-    .btn-log-secondary { background: #6c757d; color: white; border: none; }
-    .btn-log-secondary:hover { background: #5a6268; transform: translateY(-2px); box-shadow: 0 6px 14px rgba(108,117,125,0.3); }
+    .btn-log-primary {
+      background: #2fc7ff;
+      color: #0a2b33;
+      border: none;
+    }
+    .btn-log-primary:hover {
+      background: #1d9fcf;
+      transform: translateY(-2px);
+      color: white;
+      box-shadow: 0 6px 14px rgba(47,199,255,0.3);
+    }
+    .btn-log-secondary {
+      background: #6c757d;
+      color: white;
+      border: none;
+    }
+    .btn-log-secondary:hover {
+      background: #5a6268;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 14px rgba(108,117,125,0.3);
+    }
     .log-info-text {
       background: #eef3fc;
       border-radius: 16px;
@@ -108,7 +137,10 @@
       margin-top: 1.5rem;
       display: inline-block;
     }
-    .log-info-text i { margin-right: 6px; color: #2fc7ff; }
+    .log-info-text i {
+      margin-right: 6px;
+      color: #2fc7ff;
+    }
     @media (max-width: 768px) {
       .logs-panel { padding: 1.5rem; }
       .btn-log { min-width: auto; width: 100%; margin: 8px 0; }
@@ -134,6 +166,7 @@
     <ul class="nav nav-tabs" id="adminTabs">
       <li class="nav-item"><a class="nav-link active" data-toggle="tab" href="#projectsTab">Projects</a></li>
       <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#certificatesTab">Certificates</a></li>
+      <li class="nav-item"><a class="nav-link" href="timesheet.html">Timesheet</a></li>
       <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#logsTab">Logs</a></li>
       <li class="nav-item" id="usersTabNav" style="display:none;"><a class="nav-link" data-toggle="tab" href="#usersTab">Users</a></li>
     </ul>
@@ -162,41 +195,29 @@
         <div id="certificatesList"></div>
       </div>
 
-      <!-- Logs Tab (PDF download) -->
+      <!-- Logs Tab -->
       <div class="tab-pane fade" id="logsTab">
         <div class="logs-panel text-center">
-          <div class="logs-icon"><i class="fa fa-file-pdf-o"></i></div>
+          <div class="logs-icon">
+            <i class="fa fa-file-text-o"></i>
+          </div>
           <h4>Activity Logs</h4>
-          <p class="lead-text">Download your activity log as a professional PDF report.</p>
+          <p class="lead-text">Download your complete activity log as a text file.</p>
+
           <div class="log-user-select" id="logUserSelectGroup" style="display:none;">
+            <label for="logUserSelect" class="sr-only">Select user</label>
             <select id="logUserSelect" class="form-control form-control-sm">
               <option value="">-- Select user to download logs --</option>
             </select>
           </div>
+
           <div class="d-flex flex-wrap justify-content-center mt-2">
-            <button id="downloadMyLogBtn" class="btn btn-log btn-log-primary"><i class="fa fa-download"></i> Download My Logs (PDF)</button>
+            <button id="downloadMyLogBtn" class="btn btn-log btn-log-primary"><i class="fa fa-download"></i> Download My Logs</button>
             <button id="downloadAllLogsBtn" class="btn btn-log btn-log-secondary" style="display:none;"><i class="fa fa-archive"></i> Download All Logs (ZIP)</button>
           </div>
-          <div class="log-info-text">
-            <i class="fa fa-info-circle"></i> Logs include all actions: project creation/edits/deletion, certificate changes, image uploads, backups, syncs, and errors. PDF reports are color‑coded.
-          </div>
-        </div>
-      </div>
 
-      <!-- Security Tab (2FA) -->
-      <div class="tab-pane fade" id="securityTab">
-        <div class="card">
-          <div class="card-body">
-            <h5>Two-Factor Authentication (2FA)</h5>
-            <p>Protect your account with an authenticator app like Google Authenticator.</p>
-            <div id="2faStatus"></div>
-            <div id="2faSetup" style="display:none;">
-              <div id="qrcode"></div>
-              <p>Scan the QR code with your authenticator app, then enter the code below to enable.</p>
-              <input type="text" id="totpVerifyCode" class="form-control" placeholder="Enter 6-digit code" maxlength="6">
-              <button id="enable2faBtn" class="btn btn-primary mt-2">Enable 2FA</button>
-            </div>
-            <button id="disable2faBtn" class="btn btn-danger" style="display:none;">Disable 2FA</button>
+          <div class="log-info-text">
+            <i class="fa fa-info-circle"></i> Logs include all actions: project creation/edits/deletion, certificate changes, image uploads, backups, syncs, and errors.
           </div>
         </div>
       </div>
@@ -211,7 +232,9 @@
       </div>
     </div>
     <hr>
-    <div class="text-center footer-status"><span id="userFooterStatus"></span></div>
+    <div class="text-center footer-status">
+      <span id="userFooterStatus"></span>
+    </div>
   </div>
 </div>
 
@@ -420,7 +443,7 @@
             <input type="file" accept="image/*" style="display:none;" onchange="window.replaceImage(this, '${url}')">
           </label>
         </div>
-        <i class="fa fa-times-circle remove-img-btn" onclick="if(confirm('Remove this image?')) { this.closest('.image-input-group').remove(); updateImageCounter(); }"></i>
+        <i class="fa fa-times-circle remove-img-btn" onclick="if(confirm('Remove this image?')) this.closest('.image-input-group').remove(); updateImageCounter();"></i>
       `;
       imgContainer.appendChild(row);
       updateImageCounter();
@@ -502,7 +525,6 @@
       checkboxes.forEach(cb => cb.checked = !allChecked);
     });
 
-    // ---------- PROJECT/CERTIFICATE RENDER FUNCTIONS ----------
     async function renderProjects() {
       const projects = await window.portfolioData.loadProjects();
       const container = document.getElementById('projectsList');
@@ -561,7 +583,6 @@
       }));
     }
 
-    // ---------- SAFE DELETE / SAVE ----------
     async function safeDeleteProject(id) {
       window.showLoading('Deleting project...');
       const current = await window.portfolioData.loadProjects();
@@ -624,7 +645,6 @@
       window.hideLoading();
     }
 
-    // ---------- MODAL OPEN ----------
     async function openProjectModal(projectId = null) {
       const isEdit = projectId !== null;
       document.getElementById('projectModalTitle').innerText = isEdit ? 'Edit Project' : 'New Project';
@@ -775,10 +795,9 @@
       document.getElementById('logUserSelectGroup').style.display = 'block';
     }
 
-   
-    // ---------- LOG DOWNLOAD FUNCTIONS (PDF) ----------
+    // ----- Log Download Functions -----
     async function downloadLogsForUser(username, isAdminView = false) {
-      window.showLoading(`Generating PDF logs for ${username}...`);
+      window.showLoading(`Fetching logs for ${username}...`);
       try {
         let logs;
         if (isAdminView && username !== user.username) {
@@ -786,17 +805,28 @@
         } else {
           logs = await window.Logger.getLogsForUser(user.username, user.pat);
         }
-        await window.Logger.generateLogsPDF(username, logs);
-        window.Logger.log('download_logs_pdf', `Downloaded PDF logs for ${username}`);
+        const blob = new Blob([logs], { type: 'text/plain' });
+        const a = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        a.href = url;
+        a.download = `logs_${username}_${new Date().toISOString().slice(0,19)}.log`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        window.Logger.log('download_logs', `Downloaded logs for ${username}`);
       } catch (err) {
-        alert(`Failed to generate PDF: ${err.message}`);
+        alert(`Failed to download logs: ${err.message}`);
       } finally {
         window.hideLoading();
       }
     }
 
     async function downloadAllLogs() {
-      if (!isAdmin) { alert('Only admin can download all logs.'); return; }
+      if (!isAdmin) {
+        alert('Only admin can download all logs.');
+        return;
+      }
       window.showLoading('Fetching all user logs...');
       try {
         const users = await window.AccountManager.listUsers(user.pat);
@@ -805,22 +835,23 @@
         for (const u of users) {
           const logs = await window.Logger.getLogsForUser(u, user.pat);
           if (logs && logs !== 'No logs found for this user.' && logs !== 'Unable to retrieve logs.') {
-            const blob = await window.Logger.getLogsPDFBlob(u, logs);
-            zip.file(`${u}_logs.pdf`, blob);
+            zip.file(`${u}_activity.log`, logs);
             fileCount++;
           }
         }
         if (fileCount === 0) {
           alert('No logs found for any user.');
         } else {
-          const content = await zip.generateAsync({ type: 'blob' });
-          const url = URL.createObjectURL(content);
+          const blob = await zip.generateAsync({ type: 'blob' });
           const a = document.createElement('a');
+          const url = URL.createObjectURL(blob);
           a.href = url;
           a.download = `all_logs_${new Date().toISOString().slice(0,19)}.zip`;
+          document.body.appendChild(a);
           a.click();
+          document.body.removeChild(a);
           URL.revokeObjectURL(url);
-          window.Logger.log('download_all_logs_pdf', `Downloaded ZIP of PDF logs (${fileCount} users)`);
+          window.Logger.log('download_all_logs', `Downloaded ZIP of all users' logs (${fileCount} users)`);
         }
       } catch (err) {
         alert(`Failed to download all logs: ${err.message}`);
@@ -846,6 +877,7 @@
     document.getElementById('downloadMyLogBtn').addEventListener('click', async () => {
       await downloadLogsForUser(user.username, false);
     });
+
     document.getElementById('logUserSelect').addEventListener('change', async (e) => {
       const selected = e.target.value;
       if (selected && isAdmin) {
@@ -853,11 +885,11 @@
         e.target.value = '';
       }
     });
+
     document.getElementById('downloadAllLogsBtn').addEventListener('click', downloadAllLogs);
 
     await populateUserSelect();
 
-    // ---------- USER MANAGEMENT ----------
     async function loadUsers() {
       window.showLoading('Loading users...');
       const container = document.getElementById('usersList');
@@ -922,7 +954,7 @@
       window.hideLoading();
     }
 
-    // ---------- BACKUP & RESTORE ----------
+    // Backup button now downloads the latest backup from GitHub
     document.getElementById('backupBtn').addEventListener('click', async () => {
       try {
         window.showLoading('Downloading latest backup from GitHub...');
@@ -956,7 +988,6 @@
       }
     });
 
-    // ---------- BUTTON HANDLERS ----------
     document.getElementById('addProjectBtn').addEventListener('click', () => openProjectModal());
     document.getElementById('addCertBtn').addEventListener('click', () => openCertModal());
     document.getElementById('downloadDataBtn').addEventListener('click', () => window.portfolioData.exportData());
@@ -1014,7 +1045,6 @@
       window.location.href = 'login.html';
     });
 
-    // Initial load
     await renderProjects();
     await renderCertificates();
     window.hideLoading();
