@@ -324,6 +324,35 @@
       }
     ]
   },
+  "proj_1778856671014": {
+    "id": "proj_1778856671014",
+    "title": "11",
+    "controllerType": "MD",
+    "projectType": "Other",
+    "deltaVVersion": "",
+    "cabinetCount": 1,
+    "io": {
+      "AI": 0,
+      "AO": 0,
+      "DI": 0,
+      "DO": 0
+    },
+    "dates": {
+      "start": "",
+      "finish": "",
+      "ifat": "",
+      "cfat": ""
+    },
+    "siteLocation": "",
+    "team": {
+      "lead": "",
+      "engineer": "",
+      "technician": ""
+    },
+    "description": "",
+    "graphType": "bar",
+    "selectedImages": []
+  },
   "proj_1778856729193": {
     "id": "proj_1778856729193",
     "title": "12",
