@@ -1,8 +1,7 @@
-// timesheet.js – Professional timesheet with silent login redirect
+// timesheet.js – Professional timesheet with all features
 (function() {
   const user = window.SessionManager?.getCurrentUser();
   if (!user) {
-    // Silent redirect – no alert popup
     window.location.href = "login.html?redirect=timesheet";
     return;
   }
@@ -15,7 +14,6 @@
   let projectList = [];
   let autoRefreshInterval = null;
 
-  // Toast helper
   function showToast(message, type = "success") {
     const container = document.getElementById("toastContainer");
     if (!container) return;
@@ -32,7 +30,6 @@
     toastEl.addEventListener("hidden.bs.toast", () => toastEl.remove());
   }
 
-  // Helpers
   function formatDate(date) {
     const d = new Date(date);
     return d.toISOString().split('T')[0];
@@ -50,10 +47,10 @@
   function updateHoursAuto() {
     const start = document.getElementById('startTime').value;
     const end = document.getElementById('endTime').value;
-    document.getElementById('hoursAuto').value = calcHours(start, end).toFixed(2);
+    const hours = calcHours(start, end);
+    document.getElementById('hoursAuto').value = hours.toFixed(2);
   }
 
-  // Load projects from portfolio
   async function loadProjects() {
     try {
       const projectsData = await window.portfolioData.loadProjects();
@@ -94,7 +91,6 @@
     return true;
   }
 
-  // Load timesheet
   async function loadTimesheet() {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(user.username);
@@ -121,10 +117,8 @@
       if (existing) sha = existing.sha;
     } catch(e) {}
     await GitHubAPI.updateFile(owner, repo, path, entries, `Update timesheet`, branch, user.pat, sha);
-    window.Logger.log('timesheet_save', `Saved ${entries.length} entries`);
   }
 
-  // User meta
   async function loadUserMeta() {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(user.username);
@@ -161,7 +155,6 @@
     await GitHubAPI.updateFile(owner, repo, path, meta, `Update user meta`, branch, user.pat, sha);
   }
 
-  // Add entry
   async function addEntry() {
     const date = document.getElementById('logDate').value;
     const start = document.getElementById('startTime').value;
@@ -171,8 +164,8 @@
     const billable = document.getElementById('billable').value;
     const notes = document.getElementById('taskNotes').value.trim();
     
-    if (!date || !start || !end || !project) {
-      showToast("Please fill all required fields.", "error");
+    if (!date || !start || !end || !project || !category) {
+      showToast("Please fill all required fields (Date, Start, End, Project, Category).", "error");
       return;
     }
     const hours = calcHours(start, end);
@@ -187,12 +180,13 @@
     showToast("Entry saved successfully!");
     await refreshView();
     
-    // Clear form fields
     document.getElementById('startTime').value = '';
     document.getElementById('endTime').value = '';
     document.getElementById('taskNotes').value = '';
     document.getElementById('hoursAuto').value = '';
-    document.getElementById('taskProject').value = project; // keep project selected
+    if (document.getElementById('taskProject')) {
+      document.getElementById('taskProject').value = project;
+    }
   }
 
   async function deleteEntry(id) {
@@ -204,7 +198,6 @@
     }
   }
 
-  // Filter
   function getFilteredEntries() {
     const range = document.getElementById('filterRange').value;
     const project = document.getElementById('filterProject').value;
@@ -233,7 +226,6 @@
     return filtered;
   }
 
-  // Render history
   function renderHistory() {
     const filtered = getFilteredEntries();
     const tbody = document.getElementById('historyBody');
@@ -265,7 +257,7 @@
       actionCell.appendChild(delBtn);
     });
     const totalCell = document.getElementById('totalHoursCell');
-    if (totalCell) totalCell.innerHTML = `<strong>${totalHours.toFixed(2)}</strong>`;
+    if (totalCell) totalCell.innerHTML = '<strong>' + totalHours.toFixed(2) + '</strong>';
     tfoot.style.display = 'table-footer-group';
   }
 
@@ -283,31 +275,31 @@
 
   function updateCharts() {
     const filtered = getFilteredEntries();
-    // Project chart
+    
     const projMap = {};
     filtered.forEach(e => { projMap[e.project] = (projMap[e.project] || 0) + e.hours; });
     if (projectChart) projectChart.destroy();
     const ctxProj = document.getElementById('projectChart');
-    if (ctxProj) {
+    if (ctxProj && Object.keys(projMap).length > 0) {
       projectChart = new Chart(ctxProj, {
         type: 'pie',
         data: { labels: Object.keys(projMap), datasets: [{ data: Object.values(projMap), backgroundColor: ['#2fc7ff','#ffc107','#28a745','#dc3545','#6f42c1','#fd7e14','#17a2b8','#e83e8c'] }] },
         options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } } } }
       });
     }
-    // Category chart
+    
     const catMap = {};
     filtered.forEach(e => { catMap[e.category] = (catMap[e.category] || 0) + e.hours; });
     if (categoryChart) categoryChart.destroy();
     const ctxCat = document.getElementById('categoryChart');
-    if (ctxCat) {
+    if (ctxCat && Object.keys(catMap).length > 0) {
       categoryChart = new Chart(ctxCat, {
         type: 'pie',
         data: { labels: Object.keys(catMap), datasets: [{ data: Object.values(catMap), backgroundColor: ['#2fc7ff','#ffc107','#28a745','#dc3545','#6f42c1','#fd7e14'] }] },
         options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } } } }
       });
     }
-    // Billable chart
+    
     let billable = 0, nonBill = 0;
     filtered.forEach(e => { if (e.billable === 'yes') billable += e.hours; else nonBill += e.hours; });
     if (billableChart) billableChart.destroy();
@@ -321,7 +313,6 @@
     }
   }
 
-  // Excel export
   function exportToExcel() {
     const filtered = getFilteredEntries();
     if (filtered.length === 0) { showToast("No data to export.", "error"); return; }
@@ -337,7 +328,6 @@
     showToast("Excel file downloaded.");
   }
 
-  // PDF Report
   async function generatePDFReport(startDate, endDate) {
     try {
       const { jsPDF } = window.jspdf;
@@ -401,7 +391,6 @@
     showToast("Excel file downloaded.");
   }
 
-  // Refresh everything (load from GitHub)
   async function refreshView() {
     await loadTimesheet();
     renderHistory();
@@ -409,7 +398,6 @@
     updateCharts();
   }
 
-  // Auto-refresh every 60 seconds (1 minute)
   function startAutoRefresh() {
     if (autoRefreshInterval) clearInterval(autoRefreshInterval);
     autoRefreshInterval = setInterval(async () => {
@@ -419,77 +407,54 @@
     }, 60000);
   }
 
-  // Category dropdown is already in HTML with static options, but ensure it exists
-  function ensureCategoryDropdown() {
-    const catSelect = document.getElementById('taskCategory');
-    if (catSelect && catSelect.options.length === 0) {
-      const categories = ['Development', 'Meetings', 'Admin', 'CodeReview', 'Learning', 'Other'];
-      categories.forEach(cat => {
-        const opt = document.createElement('option');
-        opt.value = cat;
-        opt.textContent = cat;
-        catSelect.appendChild(opt);
-      });
-    }
-  }
-
-  // Initialisation
   async function init() {
-    ensureCategoryDropdown();
-    await loadProjects();
-    await loadUserMeta();
-    await refreshView();
-    startAutoRefresh();
-
-    // Set default date to today
+    // Set default date
     const dateInput = document.getElementById('logDate');
     if (dateInput) dateInput.value = formatDate(new Date());
-
-    // Event listeners
+    
+    // Set up event listeners
     const startTime = document.getElementById('startTime');
     const endTime = document.getElementById('endTime');
     if (startTime) startTime.addEventListener('change', updateHoursAuto);
     if (endTime) endTime.addEventListener('change', updateHoursAuto);
-
+    
     const nowStart = document.getElementById('nowStartBtn');
     if (nowStart) {
       nowStart.onclick = () => {
-        const now = new Date().toTimeString().slice(0,5);
-        if (startTime) startTime.value = now;
+        if (startTime) startTime.value = new Date().toTimeString().slice(0,5);
         updateHoursAuto();
       };
     }
-
+    
     const nowEnd = document.getElementById('nowEndBtn');
     if (nowEnd) {
       nowEnd.onclick = () => {
-        const now = new Date().toTimeString().slice(0,5);
-        if (endTime) endTime.value = now;
+        if (endTime) endTime.value = new Date().toTimeString().slice(0,5);
         updateHoursAuto();
       };
     }
-
+    
     const addBtn = document.getElementById('addEntryBtn');
     if (addBtn) addBtn.onclick = addEntry;
-
+    
     const refreshBtn = document.getElementById('refreshHistoryBtn');
     if (refreshBtn) refreshBtn.onclick = () => refreshView();
-
+    
     const exportBtn = document.getElementById('exportExcelBtn');
     if (exportBtn) exportBtn.onclick = () => exportToExcel();
-
+    
     const printBtn = document.getElementById('printBtn');
     if (printBtn) printBtn.onclick = () => window.print();
-
+    
     const rangeFilter = document.getElementById('filterRange');
     if (rangeFilter) rangeFilter.onchange = () => { renderHistory(); updateCharts(); };
-
+    
     const projectFilter = document.getElementById('filterProject');
     if (projectFilter) projectFilter.onchange = () => { renderHistory(); updateCharts(); };
-
+    
     const categoryFilter = document.getElementById('filterCategory');
     if (categoryFilter) categoryFilter.onchange = () => { renderHistory(); updateCharts(); };
-
+    
     const saveNameBtn = document.getElementById('saveNameBtn');
     if (saveNameBtn) {
       saveNameBtn.onclick = async () => {
@@ -503,7 +468,7 @@
         }
       };
     }
-
+    
     const addProjectBtn = document.getElementById('addProjectBtn');
     if (addProjectBtn) {
       addProjectBtn.onclick = () => {
@@ -512,7 +477,7 @@
         $('#newProjectModal').modal('show');
       };
     }
-
+    
     const confirmProjectBtn = document.getElementById('confirmNewProjectBtn');
     if (confirmProjectBtn) {
       confirmProjectBtn.onclick = async () => {
@@ -531,7 +496,7 @@
         }
       };
     }
-
+    
     const generateReportBtn = document.getElementById('generateReportBtn');
     if (generateReportBtn) {
       generateReportBtn.onclick = () => {
@@ -547,7 +512,7 @@
         $('#reportModal').modal('show');
       };
     }
-
+    
     const generateConfirmBtn = document.getElementById('generateReportConfirmBtn');
     if (generateConfirmBtn) {
       generateConfirmBtn.onclick = () => {
@@ -560,6 +525,11 @@
         else exportExcelRange(start, end);
       };
     }
+    
+    await loadProjects();
+    await loadUserMeta();
+    await refreshView();
+    startAutoRefresh();
   }
 
   init().catch(err => console.error(err));
