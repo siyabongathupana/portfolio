@@ -1,4 +1,4 @@
-// shared.js – Full version with HTML log generation, session persistence, backup/restore, image upload
+// shared.js – Full version with PDF log generation, session, portfolio, etc.
 
 window.showLoading = function (msg = 'Processing...') {
   let loader = document.getElementById('globalLoader');
@@ -76,7 +76,7 @@ window.SessionManager = (() => {
   };
 })();
 
-// ---------- LOGGING SYSTEM (with HTML conversion) ----------
+// ---------- LOGGING SYSTEM (PDF generation) ----------
 window.Logger = {
   async log(action, details, level = 'INFO') {
     const user = window.SessionManager.getCurrentUser();
@@ -131,75 +131,78 @@ window.Logger = {
     return allLogs;
   },
 
-  // Convert raw log text to styled HTML table with color coding
-  logsToHTML(logText, username) {
-    if (!logText || logText === 'No logs found for this user.' || logText === 'Unable to retrieve logs.') {
-      return `<div style="font-family: monospace; padding: 20px; color: #666;">${logText}</div>`;
-    }
-    const lines = logText.split('\n').filter(l => l.trim());
-    let html = `<!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="UTF-8">
-      <title>Activity Logs - ${username}</title>
-      <style>
-        body { font-family: 'Segoe UI', 'Courier New', monospace; background: #1e1e1e; padding: 20px; margin: 0; }
-        .log-container { max-width: 1400px; margin: 0 auto; background: #2d2d2d; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 20px rgba(0,0,0,0.3); }
-        .log-header { background: #0b2b3b; color: #2fc7ff; padding: 15px 20px; font-size: 1.2rem; font-weight: bold; border-bottom: 2px solid #2fc7ff; }
-        .log-table { width: 100%; border-collapse: collapse; }
-        .log-table th { text-align: left; padding: 12px 15px; background: #3a3a3a; color: #ddd; font-weight: 600; border-bottom: 1px solid #555; }
-        .log-table td { padding: 10px 15px; border-bottom: 1px solid #444; font-size: 13px; font-family: monospace; vertical-align: top; }
-        .log-table tr:hover { background: #3c3c3c; }
-        .error-row { background-color: #5a1e1e; }
-        .error-row td { color: #ffaaaa; }
-        .warn-row { background-color: #6b4c1a; }
-        .warn-row td { color: #ffdd99; }
-        .info-row { background-color: #1a4d3a; }
-        .info-row td { color: #aaffdd; }
-        .action-row { background-color: #1e3a5f; }
-        .action-row td { color: #bbddff; }
-        .timestamp { color: #88aaff; font-weight: 500; }
-        .level { font-weight: bold; }
-        .level-ERROR { color: #ff6666; }
-        .level-WARN { color: #ffaa66; }
-        .level-INFO { color: #66ffaa; }
-        .action { color: #66ccff; }
-      </style>
-    </head>
-    <body>
-      <div class="log-container">
-        <div class="log-header">
-          📋 Activity Logs – ${window.escapeHtml(username)} (Generated: ${new Date().toLocaleString()})
-        </div>
-        <table class="log-table">
-          <thead>
-            <tr><th>Timestamp</th><th>Level</th><th>Action</th><th>Details</th></tr>
-          </thead>
-          <tbody>`;
+  // Generate PDF blob from log text
+  async getLogsPDFBlob(username, logText) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
     
+    if (!logText || logText === 'No logs found for this user.' || logText === 'Unable to retrieve logs.') {
+      doc.setFontSize(14);
+      doc.text('Activity Logs', 14, 20);
+      doc.setFontSize(11);
+      doc.text(`User: ${username}`, 14, 30);
+      doc.text(`No logs available.`, 14, 40);
+      return doc.output('blob');
+    }
+    
+    const lines = logText.split('\n').filter(l => l.trim());
+    const tableData = [];
     for (const line of lines) {
       const match = line.match(/\[(.*?)\]\s*\[(.*?)\]\s*\[(.*?)\]\s*(.*)/);
       if (match) {
         const [, timestamp, level, action, details] = match;
-        let rowClass = '';
-        if (level === 'ERROR') rowClass = 'error-row';
-        else if (level === 'WARN') rowClass = 'warn-row';
-        else if (level === 'INFO' && (action.includes('create') || action.includes('edit') || action.includes('delete') || action.includes('save'))) rowClass = 'info-row';
-        else if (action.includes('login') || action.includes('logout') || action.includes('sync')) rowClass = 'action-row';
-        
-        html += `<tr class="${rowClass}">
-          <td class="timestamp">${window.escapeHtml(timestamp)}</td>
-          <td class="level level-${level}">${window.escapeHtml(level)}</td>
-          <td class="action">${window.escapeHtml(action)}</td>
-          <td>${window.escapeHtml(details)}</td>
-        </tr>`;
+        let rowStyle = {};
+        if (level === 'ERROR') rowStyle = { fillColor: [90, 30, 30], textColor: [255, 170, 170] };
+        else if (level === 'WARN') rowStyle = { fillColor: [107, 76, 26], textColor: [255, 221, 153] };
+        else if (level === 'INFO' && (action.includes('create') || action.includes('edit') || action.includes('delete') || action.includes('save')))
+          rowStyle = { fillColor: [26, 77, 58], textColor: [170, 255, 221] };
+        else if (action.includes('login') || action.includes('logout') || action.includes('sync'))
+          rowStyle = { fillColor: [30, 58, 95], textColor: [187, 221, 255] };
+        tableData.push([timestamp, level, action, details, rowStyle]);
       } else {
-        html += `<tr><td colspan="4">${window.escapeHtml(line)}</td></tr>`;
+        tableData.push([line, '', '', '', {}]);
       }
     }
     
-    html += `</tbody>}</table></div></body></html>`;
-    return html;
+    const body = tableData.map(row => {
+      const style = row[4];
+      return [{ content: row[0], styles: style }, { content: row[1], styles: style }, { content: row[2], styles: style }, { content: row[3], styles: style }];
+    });
+    
+    doc.setFontSize(16);
+    doc.text('Activity Logs', 14, 20);
+    doc.setFontSize(11);
+    doc.text(`User: ${username}`, 14, 30);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 37);
+    
+    doc.autoTable({
+      startY: 45,
+      head: [['Timestamp', 'Level', 'Action', 'Details']],
+      body: body,
+      theme: 'striped',
+      headStyles: { fillColor: [11, 43, 59], textColor: 255, fontStyle: 'bold' },
+      columnStyles: { 0: { cellWidth: 35 }, 1: { cellWidth: 20 }, 2: { cellWidth: 30 }, 3: { cellWidth: 100 } },
+      margin: { left: 14, right: 14 }
+    });
+    
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(9);
+      doc.text(`Your Portfolio – Activity Logs | Page ${i} of ${pageCount}`, 14, doc.internal.pageSize.height - 10);
+    }
+    
+    return doc.output('blob');
+  },
+
+  async generateLogsPDF(username, logText) {
+    const blob = await this.getLogsPDFBlob(username, logText);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `logs_${username}_${new Date().toISOString().slice(0,19)}.pdf`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 };
 
@@ -851,15 +854,15 @@ window.generateProjectReport = async function(projectId) {
       <div style="background:${bgColor}; padding:20px; border-radius:16px; margin:20px 0;">
         <h3>Project Overview</h3>
         <table style="width:100%">
-          <tr><td><strong>Title:</strong></td><td>${proj.title}</td></tr>
-          <tr><td><strong>Location:</strong></td><td>${proj.siteLocation || 'N/A'}</td></tr>
-          <tr><td><strong>Controllers:</strong></td><td>${controllerDisplay}</td></tr>
-          <tr><td><strong>Cabinets:</strong></td><td>${proj.cabinetCount}</td></tr>
-          ${proj.deltaVVersion ? `<tr><td><strong>DeltaV Version:</strong></td><td>${proj.deltaVVersion}</td></tr>` : ''}
-          <tr><td><strong>Start Date:</strong></td><td>${proj.dates?.start || 'N/A'}</td></tr>
-          <tr><td><strong>Finish Date:</strong></td><td>${proj.dates?.finish || 'N/A'}</td></tr>
-          <tr><td><strong>IFAT:</strong></td><td>${ifatText}</td></tr>
-          <tr><td><strong>CFAT:</strong></td><td>${cfatText}</td></tr>
+          <tr><td><strong>Title:</strong>${proj.title}专业专业
+          <tr><td><strong>Location:</strong>${proj.siteLocation||'N/A'}专业专业
+          <tr><td><strong>Controllers:</strong>${controllerDisplay}专业专业
+          <tr><td><strong>Cabinets:</strong>${proj.cabinetCount}专业专业
+          ${proj.deltaVVersion ? `<tr><td><strong>DeltaV Version:</strong>${proj.deltaVVersion}专业专业` : ''}
+          <tr><td><strong>Start Date:</strong>${proj.dates?.start || 'N/A'}专业专业
+          <tr><td><strong>Finish Date:</strong>${proj.dates?.finish || 'N/A'}专业专业
+          <tr><td><strong>IFAT:</strong>${ifatText}专业专业
+          <tr><td><strong>CFAT:</strong>${cfatText}专业专业
         </table>
       </div>
       <div style="background:${bgColor}; padding:20px; border-radius:16px; margin-bottom:20px;">
@@ -869,7 +872,7 @@ window.generateProjectReport = async function(projectId) {
         <h3>I/O Configuration</h3>
         <table style="width:100%; text-align:center; border-collapse:collapse;">
           <tr style="background:${primaryColor}; color:white;"><th>AI</th><th>AO</th><th>DI</th><th>DO</th></tr>
-          <tr><td>${io.AI}</td><td>${io.AO}</td><td>${io.DI}</td><td>${io.DO}</td></tr>
+          <tr><td>${io.AI}${dataV}/${io.AO}${dataV}/${io.DI}${dataV}/${io.DO}专业专业
         </table>
       </div>
       <div style="background:${bgColor}; padding:20px; border-radius:16px; margin-bottom:20px; text-align:center;">
