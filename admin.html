@@ -14,8 +14,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/speakeasyjs@1.0.5/speakeasy.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   <script src="config.js"></script>
   <script src="crypto.js"></script>
   <script src="api.js"></script>
@@ -137,7 +135,6 @@
       <li class="nav-item"><a class="nav-link active" data-toggle="tab" href="#projectsTab">Projects</a></li>
       <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#certificatesTab">Certificates</a></li>
       <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#logsTab">Logs</a></li>
-      <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#securityTab">Security</a></li>
       <li class="nav-item" id="usersTabNav" style="display:none;"><a class="nav-link" data-toggle="tab" href="#usersTab">Users</a></li>
     </ul>
 
@@ -778,56 +775,7 @@
       document.getElementById('logUserSelectGroup').style.display = 'block';
     }
 
-   // 2FA setup UI (fixed QR code)
-    async function update2FAUI() {
-      const has2fa = await window.AccountManager.has2FAEnabled(user.username, user.pat);
-      if (has2fa) {
-        document.getElementById('2faStatus').innerHTML = '<div class="alert alert-success">✅ Two-factor authentication is ENABLED.</div>';
-        document.getElementById('disable2faBtn').style.display = 'inline-block';
-        document.getElementById('2faSetup').style.display = 'none';
-      } else {
-        document.getElementById('2faStatus').innerHTML = '<div class="alert alert-warning">⚠️ Two-factor authentication is DISABLED.</div>';
-        document.getElementById('disable2faBtn').style.display = 'none';
-        document.getElementById('2faSetup').style.display = 'block';
-        // Generate new secret and QR code
-        const { secret, otpauth } = window.AccountManager.generateTOTPSecret(user.username);
-        window.tempTotpSecret = secret;
-        const qrDiv = document.getElementById('qrcode');
-        qrDiv.innerHTML = '';
-        // Clear previous content
-        try {
-          // Delay to ensure the DOM is ready
-          setTimeout(() => {
-            new QRCode(qrDiv, {
-              text: otpauth,
-              width: 200,
-              height: 200
-            });
-          }, 100);
-        } catch (err) {
-          console.error("QR generation failed", err);
-          qrDiv.innerHTML = `<p>Could not generate QR code. Please manually enter this secret into your authenticator app:</p><p><code>${secret}</code></p>`;
-        }
-        // Always show the secret as a fallback
-        const secretText = document.createElement('p');
-        secretText.innerHTML = `<small>Manual entry secret: <code>${secret}</code></small>`;
-        qrDiv.appendChild(secretText);
-        
-        document.getElementById('enable2faBtn').onclick = async () => {
-          const code = document.getElementById('totpVerifyCode').value.trim();
-          if (!code || code.length !== 6) { alert('Enter 6-digit code'); return; }
-          const isValid = window.AccountManager.verifyTOTP(secret, code);
-          if (isValid) {
-            await window.AccountManager.enable2FA(user.username, user.pat, secret);
-            alert('2FA enabled successfully!');
-            update2FAUI();
-          } else {
-            alert('Invalid code. Please try again.');
-          }
-        };
-      }
-    }
-
+   
     // ---------- LOG DOWNLOAD FUNCTIONS (PDF) ----------
     async function downloadLogsForUser(username, isAdminView = false) {
       window.showLoading(`Generating PDF logs for ${username}...`);
