@@ -1,4 +1,4 @@
-// shared.js – Complete version with fixed PDF logs (each entry on its own row)
+// shared.js – Complete with 2FA, logging, portfolio, timesheet, PDF reports
 
 window.showLoading = function (msg = 'Processing...') {
   let loader = document.getElementById('globalLoader');
@@ -64,8 +64,8 @@ window.SessionManager = (() => {
       }
       return current;
     },
-    setCurrentUser: (username, pat) => {
-      current = { username, pat, timestamp: Date.now() };
+    setCurrentUser: (username, pat, totpVerified = false) => {
+      current = { username, pat, timestamp: Date.now(), totpVerified };
       sessionStorage.setItem('portfolioUser', JSON.stringify(current));
       window.Logger.log('login', `User logged in as ${username}`);
     },
@@ -76,7 +76,7 @@ window.SessionManager = (() => {
   };
 })();
 
-// ---------- LOGGING SYSTEM (PDF generation with each entry on its own row) ----------
+// ---------- LOGGING SYSTEM (PDF generation) ----------
 window.Logger = {
   async log(action, details, level = 'INFO') {
     const user = window.SessionManager.getCurrentUser();
@@ -115,7 +115,6 @@ window.Logger = {
       const file = await GitHubAPI.getFileContent(owner, repo, logPath, branch, adminToken);
       if (file && file.content) {
         let content = file.content;
-        // Fix malformed newlines
         content = content.replace(/\\n/g, '\n');
         return content;
       }
@@ -294,7 +293,7 @@ window.compressImage = function(file, maxW = 1600, maxH = 1600, quality = 0.85) 
   });
 };
 
-// ---------- ACCOUNT MANAGER ----------
+// ---------- ACCOUNT MANAGER (with 2FA) ----------
 window.AccountManager = {
   async _ensureEmailJS() {
     if (typeof emailjs === 'undefined') {
@@ -344,9 +343,21 @@ window.AccountManager = {
       return await resp.json();
     } catch { return null; }
   },
+  async saveAccount(username, accountData, token) {
+    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+    const encUser = encodeURIComponent(username);
+    const path = `${dataPath}/users/${encUser}/account.json`;
+    const encrypted = await window.CryptoUtil.encrypt(JSON.stringify(accountData), token);
+    let sha = null;
+    try {
+      const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, token);
+      if (existing) sha = existing.sha;
+    } catch(e) {}
+    await GitHubAPI.updateFile(owner, repo, path, encrypted, `Update account for ${username}`, branch, token, sha);
+  },
   async register(username, passphrase, pat) {
-    const payload = JSON.stringify({ test: 'VALID', token: pat });
-    const encrypted = await window.CryptoUtil.encrypt(payload, passphrase);
+    const payload = { test: 'VALID', token: pat };
+    const encrypted = await window.CryptoUtil.encrypt(JSON.stringify(payload), passphrase);
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(username);
     const path = `${dataPath}/users/${encUser}/account.json`;
@@ -366,7 +377,98 @@ window.AccountManager = {
     const decrypted = await window.CryptoUtil.decrypt(blob, passphrase);
     const data = JSON.parse(decrypted);
     if (data.test !== 'VALID') throw new Error('Corrupted account');
-    return data.token;
+    const token = data.token;
+    let totpSecret = null;
+    try {
+      const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+      const encUser = encodeURIComponent(username);
+      const metaPath = `${dataPath}/users/${encUser}/user_meta.json`;
+      const file = await GitHubAPI.getFileContent(owner, repo, metaPath, branch, token);
+      if (file && file.content) {
+        const meta = JSON.parse(file.content);
+        totpSecret = meta.totpSecret || null;
+      }
+    } catch(e) {}
+    return { token, totpSecret };
+  },
+  verifyTOTP(secret, code) {
+    if (typeof speakeasy === 'undefined') {
+      console.error('speakeasy not loaded');
+      return false;
+    }
+    return speakeasy.totp.verify({
+      secret: secret,
+      encoding: 'base32',
+      token: code,
+      window: 1
+    });
+  },
+  generateTOTPSecret(email) {
+    if (typeof speakeasy === 'undefined') throw new Error('speakeasy not loaded');
+    const secret = speakeasy.generateSecret({ length: 20, name: `Your Portfolio (${email})` });
+    return { secret: secret.base32, otpauth: secret.otpauth_url };
+  },
+  async enable2FA(username, token, totpSecret) {
+    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+    const encUser = encodeURIComponent(username);
+    const metaPath = `${dataPath}/users/${encUser}/user_meta.json`;
+    let meta = {};
+    try {
+      const file = await GitHubAPI.getFileContent(owner, repo, metaPath, branch, token);
+      if (file && file.content) meta = JSON.parse(file.content);
+    } catch(e) {}
+    meta.totpSecret = totpSecret;
+    let sha = null;
+    try {
+      const existing = await GitHubAPI.getFileContent(owner, repo, metaPath, branch, token);
+      if (existing) sha = existing.sha;
+    } catch(e) {}
+    await GitHubAPI.updateFile(owner, repo, metaPath, meta, `Enable 2FA for ${username}`, branch, token, sha);
+    await window.Logger.log('2fa_enable', `User ${username} enabled 2FA`);
+  },
+  async disable2FA(username, token) {
+    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+    const encUser = encodeURIComponent(username);
+    const metaPath = `${dataPath}/users/${encUser}/user_meta.json`;
+    let meta = {};
+    try {
+      const file = await GitHubAPI.getFileContent(owner, repo, metaPath, branch, token);
+      if (file && file.content) meta = JSON.parse(file.content);
+    } catch(e) {}
+    delete meta.totpSecret;
+    let sha = null;
+    try {
+      const existing = await GitHubAPI.getFileContent(owner, repo, metaPath, branch, token);
+      if (existing) sha = existing.sha;
+    } catch(e) {}
+    await GitHubAPI.updateFile(owner, repo, metaPath, meta, `Disable 2FA for ${username}`, branch, token, sha);
+    await window.Logger.log('2fa_disable', `User ${username} disabled 2FA`);
+  },
+  async has2FAEnabled(username, token) {
+    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+    const encUser = encodeURIComponent(username);
+    const metaPath = `${dataPath}/users/${encUser}/user_meta.json`;
+    try {
+      const file = await GitHubAPI.getFileContent(owner, repo, metaPath, branch, token);
+      if (file && file.content) {
+        const meta = JSON.parse(file.content);
+        return !!meta.totpSecret;
+      }
+    } catch(e) {}
+    return false;
+  },
+  async getTOTPSecret(username, token) {
+    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+    const encUser = encodeURIComponent(username);
+    const metaPath = `${dataPath}/users/${encUser}/user_meta.json`;
+    try {
+      const file = await GitHubAPI.getFileContent(owner, repo, metaPath, branch, token);
+      if (file && file.content) {
+        const meta = JSON.parse(file.content);
+        return meta.totpSecret || null;
+      }
+    } catch(e) {}
+    return null;
   },
   async getBlockedUsers() {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
