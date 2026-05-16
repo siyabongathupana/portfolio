@@ -1,5 +1,16 @@
 [
   {
+    "id": 1778952701580,
+    "date": "2026-05-16",
+    "start": "19:31",
+    "end": "22:31",
+    "hours": 3,
+    "project": "Steam Station 1 Boiler 6",
+    "category": "CodeReview",
+    "billable": "yes",
+    "notes": "Testuing"
+  },
+  {
     "id": 1778881223214,
     "date": "2026-05-15",
     "start": "23:39",
@@ -7,7 +18,8 @@
     "hours": 4.35,
     "category": "Admin",
     "billable": "no",
-    "notes": "Test"
+    "notes": "Test",
+    "project": "Other"
   },
   {
     "id": 1778880005334,
@@ -17,7 +29,8 @@
     "hours": 3.07,
     "category": "Learning",
     "billable": "yes",
-    "notes": "Testing"
+    "notes": "Testing",
+    "project": "Other"
   },
   {
     "id": 1778879923053,
@@ -27,6 +40,7 @@
     "hours": 0.07,
     "category": "Development",
     "billable": "yes",
-    "notes": "test1"
+    "notes": "test1",
+    "project": "Other"
   }
 ]
