@@ -18,93 +18,29 @@
   <script src="api.js"></script>
   <script src="shared.js"></script>
   <style>
-    .timesheet-container {
-      max-width: 1400px;
-      margin: 20px auto;
-      background: white;
-      border-radius: 24px;
-      padding: 20px;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+    /* same as before, plus toast styles */
+    .toast-container {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 1050;
     }
-    .quick-log-card {
-      background: #f8fafc;
-      border-radius: 20px;
-      padding: 20px;
-      margin-bottom: 25px;
-      border: 1px solid #e2e8f0;
+    .toast {
+      min-width: 250px;
     }
-    .progress-bar-container {
-      background: #e2e8f0;
-      border-radius: 30px;
-      height: 32px;
-      overflow: hidden;
-      margin: 15px 0;
-    }
-    .progress-fill {
-      background: #2fc7ff;
-      width: 0%;
-      height: 100%;
-      border-radius: 30px;
-      transition: width 0.3s ease;
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      padding-right: 12px;
-      color: white;
-      font-weight: 600;
-      font-size: 0.85rem;
-    }
-    .chart-card {
-      background: #ffffff;
-      border-radius: 16px;
-      padding: 15px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-      margin-bottom: 20px;
-      text-align: center;
-    }
-    .chart-card canvas {
-      max-width: 100%;
-      height: auto;
-      margin: 0 auto;
-    }
-    .filter-bar {
-      background: #f1f5f9;
-      padding: 12px 15px;
-      border-radius: 16px;
-      margin-bottom: 20px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .filter-controls {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      align-items: center;
-    }
-    .history-table {
-      font-size: 0.8rem;
-    }
-    .history-table th, .history-table td {
-      padding: 8px 6px;
-      white-space: nowrap;
-    }
-    .table-responsive {
-      overflow-x: auto;
-    }
-    .total-row {
-      background: #e9f2fa;
-      font-weight: bold;
-    }
-    footer {
-      background: #0b2b3b;
-      color: #bdd3e0;
-      text-align: center;
-      padding: 20px;
-      margin-top: 30px;
-    }
+    /* rest unchanged */
+    .timesheet-container { max-width: 1400px; margin: 20px auto; background: white; border-radius: 24px; padding: 20px; box-shadow: 0 8px 20px rgba(0,0,0,0.05); }
+    .quick-log-card { background: #f8fafc; border-radius: 20px; padding: 20px; margin-bottom: 25px; border: 1px solid #e2e8f0; }
+    .progress-bar-container { background: #e2e8f0; border-radius: 30px; height: 32px; overflow: hidden; margin: 15px 0; }
+    .progress-fill { background: #2fc7ff; width: 0%; height: 100%; border-radius: 30px; transition: width 0.3s ease; display: flex; align-items: center; justify-content: flex-end; padding-right: 12px; color: white; font-weight: 600; font-size: 0.85rem; }
+    .chart-card { background: #ffffff; border-radius: 16px; padding: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 20px; text-align: center; }
+    .chart-card canvas { max-width: 100%; height: auto; margin: 0 auto; }
+    .filter-bar { background: #f1f5f9; padding: 12px 15px; border-radius: 16px; margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; align-items: center; }
+    .filter-controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    .history-table { font-size: 0.8rem; }
+    .history-table th, .history-table td { padding: 8px 6px; white-space: nowrap; }
+    .table-responsive { overflow-x: auto; }
+    footer { background: #0b2b3b; color: #bdd3e0; text-align: center; padding: 20px; margin-top: 30px; }
     @media (max-width: 768px) {
       .timesheet-container { padding: 12px; margin: 10px; border-radius: 16px; }
       .quick-log-card { padding: 15px; }
@@ -125,7 +61,6 @@
       .history-table { width: 100%; border-collapse: collapse; font-size: 10pt; }
       .history-table th, .history-table td { border: 1px solid #000; padding: 6px; white-space: normal; }
       .history-table th { background: #f0f0f0 !important; color: black !important; }
-      .total-row { background: #f0f0f0 !important; }
       @page { size: landscape; margin: 1.5cm; }
     }
   </style>
@@ -228,28 +163,43 @@
   <!-- History Table -->
   <div class="table-responsive">
     <table class="table table-bordered history-table">
-      <thead><tr><th>Date</th><th>Start</th><th>End</th><th>Hours</th><th>Project</th><th>Category</th><th>Billable</th><th>Notes</th><th class="print-hide">Action</th></tr></thead>
-      <tbody id="historyBody"><tr><td colspan="9" class="text-center">Loading...<\/td><\/tr> </tbody>
+      <thead>
+        <tr><th>Date</th><th>Start</th><th>End</th><th>Hours</th><th>Project</th><th>Category</th><th>Billable</th><th>Notes</th><th class="print-hide">Action</th></tr>
+      </thead>
+      <tbody id="historyBody"><tr><td colspan="9" class="text-center">Loading...<\/td><\/tr></tbody>
       <tfoot id="historyFoot" style="display:none;"><tr><td colspan="3" class="text-right"><strong>Total:<\/strong><\/td><td id="totalHoursCell"><strong>0.00<\/strong><\/td><td colspan="5"><\/td><\/tr><\/tfoot>
     <\/table>
   <\/div>
 <\/div>
 
-<footer><p>© 2025 Your Portfolio</p><p class="footer-status"><span id="userFooterStatus"></span></p></footer>
+<footer><p>© 2026 Your Portfolio</p><p class="footer-status"><span id="userFooterStatus"></span></p></footer>
+
+<!-- Toasts container -->
+<div class="toast-container" id="toastContainer"></div>
 
 <!-- New Project Modal -->
 <div class="modal fade" id="newProjectModal" tabindex="-1">
   <div class="modal-dialog modal-sm">
     <div class="modal-content">
       <div class="modal-header"><h5>New Project</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div>
+      <div class="modal-body"><label>Project Name</label><input type="text" id="newProjectName" class="form-control"></div>
+      <div class="modal-footer"><button class="btn btn-secondary" data-dismiss="modal">Cancel</button><button id="confirmNewProjectBtn" class="btn btn-primary">Create</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- Report Modal -->
+<div class="modal fade" id="reportModal" tabindex="-1">
+  <div class="modal-dialog modal-md">
+    <div class="modal-content">
+      <div class="modal-header"><h5><i class="fa fa-file-pdf-o"></i> Generate Report</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div>
       <div class="modal-body">
-        <label>Project Name</label>
-        <input type="text" id="newProjectName" class="form-control">
+        <div class="form-group"><label>Full Name</label><input type="text" id="reportName" class="form-control" readonly></div>
+        <div class="form-group"><label>Start Date</label><input type="date" id="reportStartDate" class="form-control"></div>
+        <div class="form-group"><label>End Date</label><input type="date" id="reportEndDate" class="form-control"></div>
+        <div class="form-group"><label>Include</label><select id="reportType" class="form-control"><option value="pdf">PDF Document</option><option value="excel">Excel Workbook (.xlsx)</option></select></div>
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-        <button type="button" id="confirmNewProjectBtn" class="btn btn-primary">Create</button>
-      </div>
+      <div class="modal-footer"><button class="btn btn-secondary" data-dismiss="modal">Cancel</button><button id="generateReportConfirmBtn" class="btn btn-primary">Generate</button></div>
     </div>
   </div>
 </div>
