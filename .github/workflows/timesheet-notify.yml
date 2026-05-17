@@ -3,7 +3,7 @@ name: Timesheet Reminder
 on:
   schedule:
     # Monday and Friday at 8:00 AM UTC (adjust to your timezone if needed)
-    - cron:  '*/5 * * * *'
+    - cron:  '0 8 * * 1,5'
   workflow_dispatch:   # allow manual trigger
 
 jobs:
