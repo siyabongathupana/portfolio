@@ -1,4 +1,4 @@
-// timesheet.js – Complete version with edit, overtime, summary card, "All time" filter
+// timesheet.js – Complete, stable version with all features
 (function() {
   const user = window.SessionManager?.getCurrentUser();
   if (!user) {
@@ -16,7 +16,6 @@
   let projectList = [];
   let autoRefreshInterval = null;
 
-  // Toast notification
   function showToast(message, type = "success") {
     const container = document.getElementById("toastContainer");
     if (!container) return;
@@ -33,7 +32,6 @@
     toastEl.addEventListener("hidden.bs.toast", () => toastEl.remove());
   }
 
-  // Helper functions
   function formatDate(date) {
     const d = new Date(date);
     return d.toISOString().split('T')[0];
@@ -54,7 +52,6 @@
     document.getElementById('hoursAuto').value = calcHours(start, end).toFixed(2);
   }
 
-  // Load projects from portfolio
   async function loadProjects() {
     try {
       const projectsData = await window.portfolioData.loadProjects();
@@ -64,7 +61,7 @@
     } catch (e) {
       projectList = ["Other"];
     }
-    
+    // task project dropdown
     const select = document.getElementById('taskProject');
     if (select) {
       select.innerHTML = '';
@@ -75,6 +72,7 @@
         select.appendChild(opt);
       });
     }
+    // edit project dropdown
     const editSelect = document.getElementById('editProject');
     if (editSelect) {
       editSelect.innerHTML = '';
@@ -85,6 +83,7 @@
         editSelect.appendChild(opt);
       });
     }
+    // filter project dropdown
     const filterSelect = document.getElementById('filterProject');
     if (filterSelect) {
       filterSelect.innerHTML = '<option value="all">All Projects</option>';
@@ -106,7 +105,6 @@
     return true;
   }
 
-  // Load/Save timesheet
   async function loadTimesheet() {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(user.username);
@@ -119,9 +117,7 @@
       } else {
         entries = [];
       }
-    } catch(e) { 
-      entries = []; 
-    }
+    } catch(e) { entries = []; }
     entries.sort((a, b) => new Date(b.date) - new Date(a.date));
   }
 
@@ -137,7 +133,6 @@
     await GitHubAPI.updateFile(owner, repo, path, entries, "Update timesheet", branch, user.pat, sha);
   }
 
-  // User meta (full name & custom projects)
   async function loadUserMeta() {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(user.username);
@@ -153,7 +148,6 @@
         }
       }
     } catch(e) {}
-    
     const nameField = document.getElementById('userFullName');
     const reportNameField = document.getElementById('reportName');
     if (nameField) nameField.value = userFullName;
@@ -175,7 +169,6 @@
     await GitHubAPI.updateFile(owner, repo, path, meta, "Update user meta", branch, user.pat, sha);
   }
 
-  // Add/Edit/Delete entries
   async function addEntry() {
     const date = document.getElementById('logDate').value;
     const start = document.getElementById('startTime').value;
@@ -184,42 +177,25 @@
     const category = document.getElementById('taskCategory').value;
     const billable = document.getElementById('billable').value;
     const notes = document.getElementById('taskNotes').value.trim();
-    
     if (!date || !start || !end || !project || !category) {
       showToast("Please fill all required fields.", "error");
       return;
     }
-    
     const hours = calcHours(start, end);
     if (hours <= 0) {
       showToast("End time must be after start time.", "error");
       return;
     }
-    
-    const newEntry = {
-      id: Date.now(),
-      date: date,
-      start: start,
-      end: end,
-      hours: hours,
-      project: project,
-      category: category,
-      billable: billable,
-      notes: notes
-    };
-    
+    const newEntry = { id: Date.now(), date, start, end, hours, project, category, billable, notes };
     entries.unshift(newEntry);
     await saveTimesheet();
     showToast("Entry saved successfully!");
     await refreshView();
-    
     document.getElementById('startTime').value = '';
     document.getElementById('endTime').value = '';
     document.getElementById('taskNotes').value = '';
     document.getElementById('hoursAuto').value = '';
-    if (document.getElementById('taskProject')) {
-      document.getElementById('taskProject').value = project;
-    }
+    if (document.getElementById('taskProject')) document.getElementById('taskProject').value = project;
   }
 
   async function deleteEntry(id) {
@@ -272,57 +248,47 @@
     await refreshView();
   }
 
-  // Filter logic (with "all" option)
   function getFilteredEntries() {
     const range = document.getElementById('filterRange').value;
     const project = document.getElementById('filterProject').value;
     const category = document.getElementById('filterCategory').value;
     const now = new Date();
     let filtered = [...entries];
-    
     if (range !== 'all') {
       filtered = filtered.filter(entry => {
         const d = new Date(entry.date);
-        if (range === 'day') {
-          return d.toDateString() === now.toDateString();
-        } else if (range === 'week') {
+        if (range === 'day') return d.toDateString() === now.toDateString();
+        if (range === 'week') {
           const startOfWeek = new Date(now);
           const day = now.getDay();
           const diff = (day === 0 ? 6 : day - 1);
           startOfWeek.setDate(now.getDate() - diff);
-          startOfWeek.setHours(0, 0, 0, 0);
+          startOfWeek.setHours(0,0,0,0);
           const endOfWeek = new Date(startOfWeek);
           endOfWeek.setDate(startOfWeek.getDate() + 6);
-          endOfWeek.setHours(23, 59, 59, 999);
+          endOfWeek.setHours(23,59,59,999);
           return d >= startOfWeek && d <= endOfWeek;
-        } else if (range === 'month') {
-          return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
         }
+        if (range === 'month') return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
         return true;
       });
     }
-    
     if (project !== 'all') filtered = filtered.filter(e => e.project === project);
     if (category !== 'all') filtered = filtered.filter(e => e.category === category);
     return filtered;
   }
 
-  // Render history table with Edit button
   function renderHistory() {
     const filtered = getFilteredEntries();
     const tbody = document.getElementById('historyBody');
     const tfoot = document.getElementById('historyFoot');
-    
     if (filtered.length === 0) {
-      // Fix: Use proper HTML without escaped characters
       tbody.innerHTML = '<tr><td colspan="9" class="text-center">No entries found.</td></tr>';
       tfoot.style.display = 'none';
       return;
     }
-    
     tbody.innerHTML = '';
     let totalHours = 0;
-    
     filtered.forEach(entry => {
       totalHours += entry.hours;
       const row = tbody.insertRow();
@@ -334,32 +300,23 @@
       row.insertCell(5).innerText = entry.category;
       row.insertCell(6).innerText = entry.billable === 'yes' ? 'Billable' : 'Non-billable';
       row.insertCell(7).innerText = entry.notes || '-';
-      
       const actionCell = row.insertCell(8);
       actionCell.className = 'print-hide';
-      
       const editBtn = document.createElement('button');
       editBtn.className = 'btn btn-sm btn-edit mr-1';
       editBtn.innerHTML = '<i class="fa fa-pencil"></i>';
       editBtn.onclick = () => editEntry(entry.id);
-      
       const delBtn = document.createElement('button');
       delBtn.className = 'btn btn-sm btn-danger';
       delBtn.innerHTML = '<i class="fa fa-trash"></i>';
       delBtn.onclick = () => deleteEntry(entry.id);
-      
       actionCell.appendChild(editBtn);
       actionCell.appendChild(delBtn);
     });
-    
-    const totalCell = document.getElementById('totalHoursCell');
-    if (totalCell) {
-      totalCell.innerHTML = '<strong>' + totalHours.toFixed(2) + '</strong>';
-    }
+    document.getElementById('totalHoursCell').innerHTML = '<strong>' + totalHours.toFixed(2) + '</strong>';
     tfoot.style.display = 'table-footer-group';
   }
 
-  // Overtime calculation for a period
   function calculateOvertimeForPeriod(entriesList) {
     const dailyHours = {};
     entriesList.forEach(e => { dailyHours[e.date] = (dailyHours[e.date] || 0) + e.hours; });
@@ -371,21 +328,17 @@
     return overtime;
   }
 
-  // Update summary card and daily progress (with overtime)
   function updateSummaryAndProgress() {
     const filtered = getFilteredEntries();
     const totalHours = filtered.reduce((s,e) => s + e.hours, 0);
     const billable = filtered.filter(e => e.billable === 'yes').reduce((s,e) => s + e.hours, 0);
     const nonBillable = totalHours - billable;
     const overtime = calculateOvertimeForPeriod(filtered);
-    
     document.getElementById('summaryTotalHours').innerText = totalHours.toFixed(1);
     document.getElementById('summaryBillable').innerText = billable.toFixed(1);
     document.getElementById('summaryNonBillable').innerText = nonBillable.toFixed(1);
     document.getElementById('summaryOvertime').innerText = overtime.toFixed(1);
     document.getElementById('summaryCard').style.display = 'flex';
-    
-    // Today's progress bar
     const today = formatDate(new Date());
     const todayHours = entries.filter(e => e.date === today).reduce((s,e) => s + e.hours, 0);
     const percent = Math.min(100, (todayHours / 8) * 100);
@@ -406,82 +359,46 @@
     }
   }
 
-  // Update all charts
   function updateCharts() {
     const filtered = getFilteredEntries();
-    
-    // Project chart
     const projMap = {};
-    filtered.forEach(e => {
-      projMap[e.project] = (projMap[e.project] || 0) + e.hours;
-    });
+    filtered.forEach(e => { projMap[e.project] = (projMap[e.project] || 0) + e.hours; });
     if (projectChart) projectChart.destroy();
     const ctxProj = document.getElementById('projectChart');
     if (ctxProj && Object.keys(projMap).length > 0) {
       projectChart = new Chart(ctxProj, {
         type: 'pie',
-        data: {
-          labels: Object.keys(projMap),
-          datasets: [{
-            data: Object.values(projMap),
-            backgroundColor: ['#2fc7ff', '#ffc107', '#28a745', '#dc3545', '#6f42c1', '#fd7e14', '#17a2b8', '#e83e8c']
-          }]
-        },
+        data: { labels: Object.keys(projMap), datasets: [{ data: Object.values(projMap), backgroundColor: ['#2fc7ff','#ffc107','#28a745','#dc3545','#6f42c1','#fd7e14','#17a2b8','#e83e8c'] }] },
         options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } } } }
       });
     }
-    
-    // Category chart
     const catMap = {};
-    filtered.forEach(e => {
-      catMap[e.category] = (catMap[e.category] || 0) + e.hours;
-    });
+    filtered.forEach(e => { catMap[e.category] = (catMap[e.category] || 0) + e.hours; });
     if (categoryChart) categoryChart.destroy();
     const ctxCat = document.getElementById('categoryChart');
     if (ctxCat && Object.keys(catMap).length > 0) {
       categoryChart = new Chart(ctxCat, {
         type: 'pie',
-        data: {
-          labels: Object.keys(catMap),
-          datasets: [{
-            data: Object.values(catMap),
-            backgroundColor: ['#2fc7ff', '#ffc107', '#28a745', '#dc3545', '#6f42c1', '#fd7e14']
-          }]
-        },
+        data: { labels: Object.keys(catMap), datasets: [{ data: Object.values(catMap), backgroundColor: ['#2fc7ff','#ffc107','#28a745','#dc3545','#6f42c1','#fd7e14'] }] },
         options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } } } }
       });
     }
-    
-    // Billable chart
     let billable = 0, nonBill = 0;
-    filtered.forEach(e => {
-      if (e.billable === 'yes') billable += e.hours;
-      else nonBill += e.hours;
-    });
+    filtered.forEach(e => { if (e.billable === 'yes') billable += e.hours; else nonBill += e.hours; });
     if (billableChart) billableChart.destroy();
     const ctxBill = document.getElementById('billableChart');
     if (ctxBill && (billable > 0 || nonBill > 0)) {
       billableChart = new Chart(ctxBill, {
         type: 'pie',
-        data: {
-          labels: ['Billable', 'Non-billable'],
-          datasets: [{
-            data: [billable, nonBill],
-            backgroundColor: ['#28a745', '#dc3545']
-          }]
-        },
+        data: { labels: ['Billable', 'Non-billable'], datasets: [{ data: [billable, nonBill], backgroundColor: ['#28a745','#dc3545'] }] },
         options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } } } }
       });
     }
   }
 
-  // Excel export (filtered)
   function exportToExcel() {
     const filtered = getFilteredEntries();
-    if (filtered.length === 0) {
-      showToast("No data to export.", "error");
-      return;
-    }
+    if (filtered.length === 0) { showToast("No data to export.", "error"); return; }
     const data = filtered.map(e => ({
       Date: e.date, Start: e.start, End: e.end, Hours: e.hours,
       Project: e.project, Category: e.category, Billable: e.billable === 'yes' ? 'Billable' : 'Non-billable',
@@ -494,23 +411,18 @@
     showToast("Excel file downloaded.");
   }
 
-  // PDF Report (custom range)
   async function generatePDFReport(startDate, endDate) {
     try {
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
       const filtered = entries.filter(e => e.date >= startDate && e.date <= endDate);
-      if (filtered.length === 0) {
-        showToast("No entries in the selected date range.", "error");
-        return;
-      }
+      if (filtered.length === 0) { showToast("No entries in the selected date range.", "error"); return; }
       const name = document.getElementById('reportName')?.value || userFullName || user.username;
       const totalHours = filtered.reduce((s,e) => s + e.hours, 0);
       const billableHours = filtered.filter(e => e.billable === 'yes').reduce((s,e) => s + e.hours, 0);
       const nonBillable = totalHours - billableHours;
       const overtime = calculateOvertimeForPeriod(filtered);
       const tableData = filtered.map(e => [e.date, e.start, e.end, e.hours.toFixed(2), e.project, e.category, e.billable === 'yes' ? 'Billable' : 'Non-billable', e.notes || '']);
-      
       doc.setFontSize(16);
       doc.text('Timesheet Report', 14, 20);
       doc.setFontSize(11);
@@ -518,7 +430,6 @@
       doc.text(`Period: ${startDate} to ${endDate}`, 14, 37);
       doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 44);
       doc.text(`Total Hours: ${totalHours.toFixed(2)} (Billable: ${billableHours.toFixed(2)} | Non-billable: ${nonBillable.toFixed(2)} | Overtime: ${overtime.toFixed(2)})`, 14, 51);
-      
       doc.autoTable({
         startY: 58,
         head: [['Date', 'Start', 'End', 'Hours', 'Project', 'Category', 'Billable', 'Notes']],
@@ -546,10 +457,7 @@
 
   function exportExcelRange(startDate, endDate) {
     const filtered = entries.filter(e => e.date >= startDate && e.date <= endDate);
-    if (filtered.length === 0) {
-      showToast("No entries in selected range.", "error");
-      return;
-    }
+    if (filtered.length === 0) { showToast("No entries in selected range.", "error"); return; }
     const data = filtered.map(e => ({
       Date: e.date, Start: e.start, End: e.end, Hours: e.hours,
       Project: e.project, Category: e.category, Billable: e.billable === 'yes' ? 'Billable' : 'Non-billable',
@@ -572,29 +480,30 @@
   function startAutoRefresh() {
     if (autoRefreshInterval) clearInterval(autoRefreshInterval);
     autoRefreshInterval = setInterval(async () => {
-      if (!document.hidden) {
-        await refreshView();
-      }
+      if (!document.hidden) await refreshView();
     }, 60000);
   }
 
   async function init() {
-    // Set default date
     const dateInput = document.getElementById('logDate');
     if (dateInput) dateInput.value = formatDate(new Date());
-    
-    // Event listeners
     const startTime = document.getElementById('startTime');
     const endTime = document.getElementById('endTime');
     if (startTime) startTime.addEventListener('change', updateHoursAuto);
     if (endTime) endTime.addEventListener('change', updateHoursAuto);
-    
+    // Now buttons
     document.getElementById('nowStartBtn').onclick = () => {
-      document.getElementById('startTime').value = new Date().toTimeString().slice(0,5);
+      const now = new Date();
+      const timeString = now.toTimeString().slice(0,5);
+      const startField = document.getElementById('startTime');
+      if (startField) startField.value = timeString;
       updateHoursAuto();
     };
     document.getElementById('nowEndBtn').onclick = () => {
-      document.getElementById('endTime').value = new Date().toTimeString().slice(0,5);
+      const now = new Date();
+      const timeString = now.toTimeString().slice(0,5);
+      const endField = document.getElementById('endTime');
+      if (endField) endField.value = timeString;
       updateHoursAuto();
     };
     document.getElementById('addEntryBtn').onclick = addEntry;
@@ -604,7 +513,6 @@
     document.getElementById('filterRange').onchange = () => { renderHistory(); updateSummaryAndProgress(); updateCharts(); };
     document.getElementById('filterProject').onchange = () => { renderHistory(); updateSummaryAndProgress(); updateCharts(); };
     document.getElementById('filterCategory').onchange = () => { renderHistory(); updateSummaryAndProgress(); updateCharts(); };
-    
     document.getElementById('saveNameBtn').onclick = async () => {
       const newName = document.getElementById('userFullName')?.value.trim();
       if (newName) {
@@ -614,7 +522,6 @@
         showToast("Name saved.");
       }
     };
-    
     document.getElementById('addProjectBtn').onclick = () => {
       document.getElementById('newProjectName').value = '';
       $('#newProjectModal').modal('show');
@@ -633,7 +540,6 @@
         showToast("Project already exists.", "error");
       }
     };
-    
     document.getElementById('generateReportBtn').onclick = () => {
       document.getElementById('reportName').value = userFullName;
       const end = new Date();
@@ -652,14 +558,12 @@
       if (type === 'pdf') generatePDFReport(start, end);
       else exportExcelRange(start, end);
     };
-    
     document.getElementById('saveEditBtn').onclick = saveEdit;
-    
     await loadProjects();
     await loadUserMeta();
     await refreshView();
     startAutoRefresh();
   }
-  
+
   init().catch(err => console.error(err));
 })();
