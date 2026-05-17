@@ -1,4 +1,4 @@
-// timesheet.js – Complete, stable version with duplicate entry feature
+// timesheet.js – fully fixed: projects, categories, name saving, notes only
 (function() {
   const user = window.SessionManager?.getCurrentUser();
   if (!user) {
@@ -9,11 +9,9 @@
   const TIMESHEET_FILE = "timesheet.json";
   const USER_META_FILE = "user_meta.json";
   let entries = [];
-  let categoryChart = null;
-  let billableChart = null;
-  let projectChart = null;
+  let categoryChart = null, billableChart = null, projectChart = null;
   let userFullName = "";
-  let projectList = [];
+  let projectList = [];      // list of project titles from portfolio
   let autoRefreshInterval = null;
 
   function showToast(message, type = "success") {
@@ -21,11 +19,7 @@
     if (!container) return;
     const toastId = "toast-" + Date.now();
     const bgClass = type === "success" ? "bg-success" : (type === "error" ? "bg-danger" : "bg-info");
-    const html = `
-      <div id="${toastId}" class="toast ${bgClass} text-white" role="alert" data-autohide="true" data-delay="3000">
-        <div class="toast-body">${message}</div>
-      </div>
-    `;
+    const html = `<div id="${toastId}" class="toast ${bgClass} text-white" role="alert" data-autohide="true" data-delay="3000"><div class="toast-body">${message}</div></div>`;
     container.insertAdjacentHTML("beforeend", html);
     const toastEl = document.getElementById(toastId);
     $(toastEl).toast("show");
@@ -52,54 +46,76 @@
     document.getElementById('hoursAuto').value = calcHours(start, end).toFixed(2);
   }
 
-  async function loadProjects() {
+  // Load projects from actual portfolio (projects.json)
+  async function loadProjectsFromPortfolio() {
     try {
       const projectsData = await window.portfolioData.loadProjects();
       projectList = Object.values(projectsData).map(p => p.title).filter(p => p);
       if (!projectList.includes("Other")) projectList.push("Other");
       projectList.sort();
     } catch (e) {
+      console.warn("Failed to load portfolio projects", e);
       projectList = ["Other"];
     }
-    const select = document.getElementById('taskProject');
-    if (select) {
-      select.innerHTML = '';
+    // Update all dropdowns
+    const selects = ['taskProject', 'editProject', 'filterProject'];
+    for (let id of selects) {
+      const sel = document.getElementById(id);
+      if (!sel) continue;
+      const currentVal = sel.value;
+      sel.innerHTML = '';
+      if (id === 'filterProject') sel.innerHTML = '<option value="all">All Projects</option>';
       projectList.forEach(p => {
         const opt = document.createElement('option');
         opt.value = p;
         opt.textContent = p;
-        select.appendChild(opt);
+        sel.appendChild(opt);
       });
-    }
-    const editSelect = document.getElementById('editProject');
-    if (editSelect) {
-      editSelect.innerHTML = '';
-      projectList.forEach(p => {
-        const opt = document.createElement('option');
-        opt.value = p;
-        opt.textContent = p;
-        editSelect.appendChild(opt);
-      });
-    }
-    const filterSelect = document.getElementById('filterProject');
-    if (filterSelect) {
-      filterSelect.innerHTML = '<option value="all">All Projects</option>';
-      projectList.forEach(p => {
-        const opt = document.createElement('option');
-        opt.value = p;
-        opt.textContent = p;
-        filterSelect.appendChild(opt);
-      });
+      if (currentVal && projectList.includes(currentVal)) sel.value = currentVal;
     }
   }
 
-  async function addNewProject(projectName) {
-    if (!projectName || projectList.includes(projectName)) return false;
-    projectList.push(projectName);
-    projectList.sort();
-    await saveUserMeta(userFullName, projectList);
-    await loadProjects();
+  // Create a real portfolio project (saves to projects.json)
+  async function createPortfolioProject(projectName) {
+    if (projectList.includes(projectName)) return false;
+    const newId = 'proj_' + Date.now();
+    const newProject = {
+      id: newId,
+      title: projectName,
+      controllerType: 'MD',
+      projectType: 'Other',
+      deltaVVersion: '',
+      cabinetCount: 0,
+      io: { AI: 0, AO: 0, DI: 0, DO: 0 },
+      dates: { start: '', finish: '', ifat: '', cfat: '' },
+      siteLocation: '',
+      team: { lead: '', engineer: '', technician: '' },
+      description: `Created from timesheet on ${new Date().toLocaleDateString()}`,
+      graphType: 'bar',
+      selectedImages: []
+    };
+    const allProjects = await window.portfolioData.loadProjects();
+    allProjects[newId] = newProject;
+    await window.portfolioData.saveProjects(allProjects);
+    await loadProjectsFromPortfolio(); // refresh list
+    await window.Logger.log('create_project_from_timesheet', `Created project: ${projectName}`);
     return true;
+  }
+
+  async function addNewProject(projectName) {
+    if (!projectName) return false;
+    const success = await createPortfolioProject(projectName);
+    if (success) {
+      await loadProjectsFromPortfolio();
+      // auto-select the new project in the task dropdown
+      const taskSelect = document.getElementById('taskProject');
+      if (taskSelect && projectList.includes(projectName)) taskSelect.value = projectName;
+      showToast(`Project "${projectName}" created in your portfolio.`);
+      return true;
+    } else {
+      showToast("Project already exists or creation failed.", "error");
+      return false;
+    }
   }
 
   async function loadTimesheet() {
@@ -139,21 +155,15 @@
       if (file && file.content) {
         const meta = JSON.parse(file.content);
         userFullName = meta.fullName || "";
-        if (meta.projectList && Array.isArray(meta.projectList)) {
-          const combined = [...new Set([...projectList, ...meta.projectList])];
-          projectList = combined;
-        }
       }
-    } catch(e) {}
+    } catch(e) { userFullName = ""; }
     const nameField = document.getElementById('userFullName');
     const reportNameField = document.getElementById('reportName');
     if (nameField) nameField.value = userFullName;
     if (reportNameField) reportNameField.value = userFullName;
-    if (!projectList.includes("Other")) projectList.push("Other");
-    await loadProjects();
   }
 
-  async function saveUserMeta(fullName, projList = null) {
+  async function saveUserMeta(fullName) {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(user.username);
     const path = `${dataPath}/users/${encUser}/${USER_META_FILE}`;
@@ -162,8 +172,8 @@
       const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
       if (existing) sha = existing.sha;
     } catch(e) {}
-    const meta = { fullName, projectList: projList || projectList };
-    await GitHubAPI.updateFile(owner, repo, path, meta, "Update user meta", branch, user.pat, sha);
+    const meta = { fullName };
+    await GitHubAPI.updateFile(owner, repo, path, meta, "Update user name", branch, user.pat, sha);
   }
 
   async function addEntry(duplicateData = null) {
@@ -175,7 +185,7 @@
       project = duplicateData.project;
       category = duplicateData.category;
       billable = duplicateData.billable;
-      notes = duplicateData.notes ? duplicateData.notes + " (duplicate)" : "duplicate";
+      notes = duplicateData.notes ? duplicateData.notes + " (copy)" : "copy";
     } else {
       date = document.getElementById('logDate').value;
       start = document.getElementById('startTime').value;
@@ -197,7 +207,7 @@
     const newEntry = { id: Date.now(), date, start, end, hours, project, category, billable, notes };
     entries.unshift(newEntry);
     await saveTimesheet();
-    showToast(duplicateData ? "Entry duplicated!" : "Entry saved successfully!");
+    showToast(duplicateData ? "Entry duplicated!" : "Entry saved.");
     await refreshView();
     if (!duplicateData) {
       document.getElementById('startTime').value = '';
@@ -217,12 +227,7 @@
   }
 
   async function duplicateEntry(entry) {
-    const newId = Date.now();
-    const duplicated = { ...entry, id: newId, notes: entry.notes ? entry.notes + " (copy)" : "copy" };
-    entries.unshift(duplicated);
-    await saveTimesheet();
-    showToast("Entry duplicated!");
-    await refreshView();
+    await addEntry(entry);
   }
 
   async function editEntry(id) {
@@ -324,16 +329,16 @@
       editBtn.className = 'btn btn-sm btn-edit mr-1';
       editBtn.innerHTML = '<i class="fa fa-pencil"></i>';
       editBtn.onclick = () => editEntry(entry.id);
-      const duplicateBtn = document.createElement('button');
-      duplicateBtn.className = 'btn btn-sm btn-duplicate mr-1';
-      duplicateBtn.innerHTML = '<i class="fa fa-copy"></i>';
-      duplicateBtn.onclick = () => duplicateEntry(entry);
+      const dupBtn = document.createElement('button');
+      dupBtn.className = 'btn btn-sm btn-duplicate mr-1';
+      dupBtn.innerHTML = '<i class="fa fa-copy"></i>';
+      dupBtn.onclick = () => duplicateEntry(entry);
       const delBtn = document.createElement('button');
       delBtn.className = 'btn btn-sm btn-danger';
       delBtn.innerHTML = '<i class="fa fa-trash"></i>';
       delBtn.onclick = () => deleteEntry(entry.id);
       actionCell.appendChild(editBtn);
-      actionCell.appendChild(duplicateBtn);
+      actionCell.appendChild(dupBtn);
       actionCell.appendChild(delBtn);
     });
     document.getElementById('totalHoursCell').innerHTML = '<strong>' + totalHours.toFixed(2) + '</strong>';
@@ -344,10 +349,7 @@
     const dailyHours = {};
     entriesList.forEach(e => { dailyHours[e.date] = (dailyHours[e.date] || 0) + e.hours; });
     let overtime = 0;
-    for (const date in dailyHours) {
-      const hours = dailyHours[date];
-      if (hours > 8) overtime += (hours - 8);
-    }
+    for (const date in dailyHours) if (dailyHours[date] > 8) overtime += (dailyHours[date] - 8);
     return overtime;
   }
 
@@ -371,10 +373,8 @@
       fill.innerText = todayHours.toFixed(1) + 'h';
       if (todayHours > 8) {
         fill.classList.add('overtime');
-        const overtimeToday = (todayHours - 8).toFixed(1);
-        const warn = document.getElementById('overtimeWarning');
-        warn.style.display = 'block';
-        warn.innerHTML = `<i class="fa fa-exclamation-triangle"></i> Overtime: ${overtimeToday}h over 8h today`;
+        document.getElementById('overtimeWarning').style.display = 'block';
+        document.getElementById('overtimeWarning').innerHTML = `<i class="fa fa-exclamation-triangle"></i> Overtime: ${(todayHours-8).toFixed(1)}h over 8h today`;
       } else {
         fill.classList.remove('overtime');
         document.getElementById('overtimeWarning').style.display = 'none';
@@ -388,50 +388,34 @@
     filtered.forEach(e => { projMap[e.project] = (projMap[e.project] || 0) + e.hours; });
     if (projectChart) projectChart.destroy();
     const ctxProj = document.getElementById('projectChart');
-    if (ctxProj && Object.keys(projMap).length > 0) {
-      projectChart = new Chart(ctxProj, {
-        type: 'pie',
-        data: { labels: Object.keys(projMap), datasets: [{ data: Object.values(projMap), backgroundColor: ['#2fc7ff','#ffc107','#28a745','#dc3545','#6f42c1','#fd7e14','#17a2b8','#e83e8c'] }] },
-        options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } } } }
-      });
+    if (ctxProj && Object.keys(projMap).length) {
+      projectChart = new Chart(ctxProj, { type: 'pie', data: { labels: Object.keys(projMap), datasets: [{ data: Object.values(projMap), backgroundColor: ['#2fc7ff','#ffc107','#28a745','#dc3545','#6f42c1','#fd7e14','#17a2b8','#e83e8c'] }] }, options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } } } } });
     }
     const catMap = {};
     filtered.forEach(e => { catMap[e.category] = (catMap[e.category] || 0) + e.hours; });
     if (categoryChart) categoryChart.destroy();
     const ctxCat = document.getElementById('categoryChart');
-    if (ctxCat && Object.keys(catMap).length > 0) {
-      categoryChart = new Chart(ctxCat, {
-        type: 'pie',
-        data: { labels: Object.keys(catMap), datasets: [{ data: Object.values(catMap), backgroundColor: ['#2fc7ff','#ffc107','#28a745','#dc3545','#6f42c1','#fd7e14'] }] },
-        options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } } } }
-      });
+    if (ctxCat && Object.keys(catMap).length) {
+      categoryChart = new Chart(ctxCat, { type: 'pie', data: { labels: Object.keys(catMap), datasets: [{ data: Object.values(catMap), backgroundColor: ['#2fc7ff','#ffc107','#28a745','#dc3545','#6f42c1','#fd7e14'] }] }, options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } } } } });
     }
     let billable = 0, nonBill = 0;
     filtered.forEach(e => { if (e.billable === 'yes') billable += e.hours; else nonBill += e.hours; });
     if (billableChart) billableChart.destroy();
     const ctxBill = document.getElementById('billableChart');
-    if (ctxBill && (billable > 0 || nonBill > 0)) {
-      billableChart = new Chart(ctxBill, {
-        type: 'pie',
-        data: { labels: ['Billable', 'Non-billable'], datasets: [{ data: [billable, nonBill], backgroundColor: ['#28a745','#dc3545'] }] },
-        options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } } } }
-      });
+    if (ctxBill && (billable+nonBill > 0)) {
+      billableChart = new Chart(ctxBill, { type: 'pie', data: { labels: ['Billable', 'Non-billable'], datasets: [{ data: [billable, nonBill], backgroundColor: ['#28a745','#dc3545'] }] }, options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } } } } });
     }
   }
 
   function exportToExcel() {
     const filtered = getFilteredEntries();
-    if (filtered.length === 0) { showToast("No data to export.", "error"); return; }
-    const data = filtered.map(e => ({
-      Date: e.date, Start: e.start, End: e.end, Hours: e.hours,
-      Project: e.project, Category: e.category, Billable: e.billable === 'yes' ? 'Billable' : 'Non-billable',
-      Notes: e.notes || ''
-    }));
+    if (!filtered.length) { showToast("No data to export.", "error"); return; }
+    const data = filtered.map(e => ({ Date: e.date, Start: e.start, End: e.end, Hours: e.hours, Project: e.project, Category: e.category, Billable: e.billable === 'yes' ? 'Billable' : 'Non-billable', Notes: e.notes || '' }));
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Timesheet');
     XLSX.writeFile(wb, `timesheet_${formatDate(new Date())}.xlsx`);
-    showToast("Excel file downloaded.");
+    showToast("Excel downloaded.");
   }
 
   async function generatePDFReport(startDate, endDate) {
@@ -439,7 +423,7 @@
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
       const filtered = entries.filter(e => e.date >= startDate && e.date <= endDate);
-      if (filtered.length === 0) { showToast("No entries in the selected date range.", "error"); return; }
+      if (!filtered.length) { showToast("No entries in selected range.", "error"); return; }
       const name = document.getElementById('reportName')?.value || userFullName || user.username;
       const totalHours = filtered.reduce((s,e) => s + e.hours, 0);
       const billableHours = filtered.filter(e => e.billable === 'yes').reduce((s,e) => s + e.hours, 0);
@@ -453,48 +437,28 @@
       doc.text(`Period: ${startDate} to ${endDate}`, 14, 37);
       doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 44);
       doc.text(`Total Hours: ${totalHours.toFixed(2)} (Billable: ${billableHours.toFixed(2)} | Non-billable: ${nonBillable.toFixed(2)} | Overtime: ${overtime.toFixed(2)})`, 14, 51);
-      doc.autoTable({
-        startY: 58,
-        head: [['Date', 'Start', 'End', 'Hours', 'Project', 'Category', 'Billable', 'Notes']],
-        body: tableData,
-        foot: [['', '', '', totalHours.toFixed(2), '', '', '', '']],
-        theme: 'striped',
-        headStyles: { fillColor: [11, 43, 59], textColor: 255, fontStyle: 'bold' },
-        footStyles: { fillColor: [240, 240, 240], textColor: 0, fontStyle: 'bold' },
-        margin: { left: 14, right: 14 },
-        columnStyles: { 0: { cellWidth: 22 }, 1: { cellWidth: 16 }, 2: { cellWidth: 16 }, 3: { cellWidth: 16 }, 4: { cellWidth: 30 }, 5: { cellWidth: 25 }, 6: { cellWidth: 20 }, 7: { cellWidth: 35 } }
-      });
+      doc.autoTable({ startY: 58, head: [['Date','Start','End','Hours','Project','Category','Billable','Notes']], body: tableData, foot: [['','','',totalHours.toFixed(2),'','','','']], theme: 'striped', headStyles: { fillColor: [11,43,59], textColor: 255, fontStyle: 'bold' }, footStyles: { fillColor: [240,240,240], textColor: 0, fontStyle: 'bold' }, margin: { left: 14, right: 14 }, columnStyles: { 0: { cellWidth: 22 }, 1: { cellWidth: 16 }, 2: { cellWidth: 16 }, 3: { cellWidth: 16 }, 4: { cellWidth: 30 }, 5: { cellWidth: 25 }, 6: { cellWidth: 20 }, 7: { cellWidth: 35 } } });
       const pageCount = doc.internal.getNumberOfPages();
-      for (let i = 1; i <= pageCount; i++) {
-        doc.setPage(i);
-        doc.setFontSize(9);
-        doc.text(`Your Portfolio – Timesheet | Page ${i} of ${pageCount}`, 14, doc.internal.pageSize.height - 10);
-      }
+      for (let i = 1; i <= pageCount; i++) { doc.setPage(i); doc.setFontSize(9); doc.text(`Your Portfolio – Timesheet | Page ${i} of ${pageCount}`, 14, doc.internal.pageSize.height - 10); }
       doc.save(`timesheet_${startDate}_to_${endDate}.pdf`);
       showToast("PDF report generated.");
-    } catch (err) {
-      console.error(err);
-      showToast("PDF generation failed: " + err.message, "error");
-    }
+    } catch (err) { console.error(err); showToast("PDF generation failed: " + err.message, "error"); }
   }
 
   function exportExcelRange(startDate, endDate) {
     const filtered = entries.filter(e => e.date >= startDate && e.date <= endDate);
-    if (filtered.length === 0) { showToast("No entries in selected range.", "error"); return; }
-    const data = filtered.map(e => ({
-      Date: e.date, Start: e.start, End: e.end, Hours: e.hours,
-      Project: e.project, Category: e.category, Billable: e.billable === 'yes' ? 'Billable' : 'Non-billable',
-      Notes: e.notes || ''
-    }));
+    if (!filtered.length) { showToast("No entries in selected range.", "error"); return; }
+    const data = filtered.map(e => ({ Date: e.date, Start: e.start, End: e.end, Hours: e.hours, Project: e.project, Category: e.category, Billable: e.billable === 'yes' ? 'Billable' : 'Non-billable', Notes: e.notes || '' }));
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Timesheet');
     XLSX.writeFile(wb, `timesheet_${startDate}_to_${endDate}.xlsx`);
-    showToast("Excel file downloaded.");
+    showToast("Excel downloaded.");
   }
 
   async function refreshView() {
     await loadTimesheet();
+    await loadProjectsFromPortfolio(); // ensure project list is fresh
     renderHistory();
     updateSummaryAndProgress();
     updateCharts();
@@ -502,30 +466,16 @@
 
   function startAutoRefresh() {
     if (autoRefreshInterval) clearInterval(autoRefreshInterval);
-    autoRefreshInterval = setInterval(async () => {
-      if (!document.hidden) await refreshView();
-    }, 60000);
+    autoRefreshInterval = setInterval(async () => { if (!document.hidden) await refreshView(); }, 60000);
   }
 
   async function init() {
     const dateInput = document.getElementById('logDate');
     if (dateInput) dateInput.value = formatDate(new Date());
-    const startTime = document.getElementById('startTime');
-    const endTime = document.getElementById('endTime');
-    if (startTime) startTime.addEventListener('change', updateHoursAuto);
-    if (endTime) endTime.addEventListener('change', updateHoursAuto);
-    document.getElementById('nowStartBtn').onclick = () => {
-      const now = new Date();
-      const timeString = now.toTimeString().slice(0,5);
-      document.getElementById('startTime').value = timeString;
-      updateHoursAuto();
-    };
-    document.getElementById('nowEndBtn').onclick = () => {
-      const now = new Date();
-      const timeString = now.toTimeString().slice(0,5);
-      document.getElementById('endTime').value = timeString;
-      updateHoursAuto();
-    };
+    document.getElementById('startTime')?.addEventListener('change', updateHoursAuto);
+    document.getElementById('endTime')?.addEventListener('change', updateHoursAuto);
+    document.getElementById('nowStartBtn').onclick = () => { document.getElementById('startTime').value = new Date().toTimeString().slice(0,5); updateHoursAuto(); };
+    document.getElementById('nowEndBtn').onclick = () => { document.getElementById('endTime').value = new Date().toTimeString().slice(0,5); updateHoursAuto(); };
     document.getElementById('addEntryBtn').onclick = () => addEntry();
     document.getElementById('refreshHistoryBtn').onclick = () => refreshView();
     document.getElementById('exportExcelBtn').onclick = () => exportToExcel();
@@ -539,32 +489,21 @@
         userFullName = newName;
         await saveUserMeta(userFullName);
         document.getElementById('reportName').value = userFullName;
-        showToast("Name saved.");
-      }
+        showToast("Name saved successfully.");
+        await window.Logger.log('save_name', `Updated full name to ${newName}`);
+      } else { showToast("Please enter a name.", "error"); }
     };
-    document.getElementById('addProjectBtn').onclick = () => {
-      document.getElementById('newProjectName').value = '';
-      $('#newProjectModal').modal('show');
-    };
+    document.getElementById('addProjectBtn').onclick = () => { document.getElementById('newProjectName').value = ''; $('#newProjectModal').modal('show'); };
     document.getElementById('confirmNewProjectBtn').onclick = async () => {
       const newProj = document.getElementById('newProjectName')?.value.trim();
       if (!newProj) { showToast("Enter project name.", "error"); return; }
-      const success = await addNewProject(newProj);
-      if (success) {
-        await saveUserMeta(userFullName, projectList);
-        await loadProjects();
-        document.getElementById('taskProject').value = newProj;
-        $('#newProjectModal').modal('hide');
-        showToast(`Project "${newProj}" added.`);
-      } else {
-        showToast("Project already exists.", "error");
-      }
+      await addNewProject(newProj);
+      $('#newProjectModal').modal('hide');
     };
     document.getElementById('generateReportBtn').onclick = () => {
       document.getElementById('reportName').value = userFullName;
       const end = new Date();
-      const start = new Date();
-      start.setDate(start.getDate() - 30);
+      const start = new Date(); start.setDate(start.getDate() - 30);
       document.getElementById('reportStartDate').value = formatDate(start);
       document.getElementById('reportEndDate').value = formatDate(end);
       $('#reportModal').modal('show');
@@ -579,11 +518,11 @@
       else exportExcelRange(start, end);
     };
     document.getElementById('saveEditBtn').onclick = saveEdit;
-    await loadProjects();
     await loadUserMeta();
+    await loadProjectsFromPortfolio();
     await refreshView();
     startAutoRefresh();
   }
 
-  init().catch(err => console.error(err));
+  init().catch(err => console.error("Timesheet init error", err));
 })();
