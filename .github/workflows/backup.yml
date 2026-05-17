@@ -1,43 +1,44 @@
-name: Daily Backup
+name: Daily Backup (every 9h, keep 2 recent)
 
 on:
   schedule:
-    - cron: '0 0 * * *'   # Runs every day at 00:00 UTC
-  workflow_dispatch:       # Allows manual trigger from GitHub Actions tab
+    # Runs at 00:00, 09:00, 18:00 UTC every day (approx every 9 hours)
+    - cron: '0 0,9,18 * * *'
+  workflow_dispatch:       # manual trigger
 
 jobs:
   backup:
     runs-on: ubuntu-latest
     permissions:
-      contents: write      # Needed to push backup files to repo
+      contents: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Create backup directory with timestamp
+      - name: Create backup with timestamp
         run: |
           TIMESTAMP=$(date +'%Y-%m-%d_%H-%M-%S')
           mkdir -p "backups/$TIMESTAMP"
           echo "BACKUP_TIMESTAMP=$TIMESTAMP" >> $GITHUB_ENV
           echo "BACKUP_DIR=backups/$TIMESTAMP" >> $GITHUB_ENV
 
-      - name: Backup all user data (if exists)
+      - name: Backup all user data
         run: |
-          # Copy data folder only if it exists
           if [ -d "data" ]; then
             cp -r data "$BACKUP_DIR/"
           else
-            echo "No data folder found – skipping"
+            mkdir -p "$BACKUP_DIR/data"
           fi
           
-          # Copy config if exists
           if [ -f "config.js" ]; then
             cp config.js "$BACKUP_DIR/"
           fi
           
-          # Count users safely
+          # Force a backup marker
+          echo "$BACKUP_TIMESTAMP" > "$BACKUP_DIR/backup_timestamp.txt"
+          
           USER_COUNT=0
           if [ -d "data/users" ]; then
             USER_COUNT=$(ls -1 data/users/ 2>/dev/null | wc -l)
@@ -53,22 +54,24 @@ jobs:
           }
           EOF
 
-      - name: Compress backup (saves space)
+      - name: Compress backup
         run: |
           cd backups
           tar -czf "${BACKUP_TIMESTAMP}.tar.gz" "${BACKUP_TIMESTAMP}"
           rm -rf "${BACKUP_TIMESTAMP}" || true
           cd ..
 
-      - name: Delete backups older than 30 days
+      - name: Keep only the 2 most recent backups (delete older ones)
         run: |
-          find backups/ -name "*.tar.gz" -type f -mtime +30 -delete
+          cd backups
+          # List all .tar.gz files, sort by name (oldest first), keep last 2
+          ls -1 *.tar.gz 2>/dev/null | sort | head -n -2 | xargs -r rm -f
+          cd ..
 
-      - name: Commit and push backup
+      - name: Commit and push
         run: |
           git config user.name "GitHub Backup Bot"
-          git config user.email "backup@deltaV-portfolio.local"
+          git config user.email "backup@yourportfolio.local"
           git add backups/
-          git commit -m "Automated daily backup: ${{ env.BACKUP_TIMESTAMP }}" || echo "No changes to commit"
-          # Push to the current branch (main or whatever)
+          git commit -m "Automated backup: ${{ env.BACKUP_TIMESTAMP }}" || echo "No changes to commit"
           git push origin HEAD:${GITHUB_REF_NAME:-main}
