@@ -4,11 +4,50 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Login | Your Portfolio</title>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https:; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://stackpath.bootstrapcdn.com; style-src 'self' 'unsafe-inline' https://stackpath.bootstrapcdn.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://picsum.photos; connect-src 'self' https://api.github.com https://raw.githubusercontent.com;">
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
+  <style>
+    .login-page .card {
+      transition: transform 0.2s;
+    }
+    .login-page .card:hover {
+      transform: translateY(-5px);
+    }
+    .password-strength {
+      height: 4px;
+      margin-top: 5px;
+      border-radius: 2px;
+      transition: width 0.3s, background 0.3s;
+    }
+    .btn-loading {
+      position: relative;
+      pointer-events: none;
+      opacity: 0.7;
+    }
+    .btn-loading::after {
+      content: "";
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      top: 50%;
+      right: 20px;
+      margin-top: -8px;
+      border: 2px solid #fff;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .fa-eye, .fa-eye-slash {
+      cursor: pointer;
+    }
+  </style>
   <script src="config.js"></script>
   <script src="crypto.js"></script>
   <script src="api.js"></script>
@@ -22,17 +61,25 @@
           <div class="card-body p-5">
             <div class="text-center mb-4">
               <h2><span style="color:#2fc7ff;">Your</span> Portfolio</h2>
-              <p class="text-muted">Sign in to manage your portfolio</p>
+              <p class="text-muted" id="formSubtext">Sign in to manage your portfolio</p>
             </div>
 
+            <!-- Login Form -->
             <div id="loginForm">
               <div class="form-group">
                 <label>Email</label>
-                <input type="email" id="loginUsername" class="form-control" placeholder="your@email.com">
+                <input type="email" id="loginUsername" class="form-control" placeholder="your@email.com" autofocus>
               </div>
               <div class="form-group">
                 <label>Passphrase</label>
-                <input type="password" id="loginPassword" class="form-control" placeholder="Enter passphrase">
+                <div class="input-group">
+                  <input type="password" id="loginPassword" class="form-control" placeholder="Enter passphrase">
+                  <div class="input-group-append">
+                    <span class="input-group-text toggle-password" data-target="loginPassword">
+                      <i class="fa fa-eye"></i>
+                    </span>
+                  </div>
+                </div>
               </div>
               <button id="loginBtn" class="btn btn-delta btn-block mt-3">Login</button>
               <div class="text-center mt-3">
@@ -43,23 +90,42 @@
               </div>
             </div>
 
+            <!-- Register Form -->
             <div id="registerForm" style="display:none;">
               <div class="form-group">
                 <label>Your Email</label>
                 <input type="email" id="regUsername" class="form-control" placeholder="you@example.com">
               </div>
               <div class="form-group">
-                <label>Password</label>
-                <input type="password" id="regPassword" class="form-control" placeholder="Min 8 characters">
+                <label>Passphrase</label>
+                <div class="input-group">
+                  <input type="password" id="regPassword" class="form-control" placeholder="Min 8 characters">
+                  <div class="input-group-append">
+                    <span class="input-group-text toggle-password" data-target="regPassword">
+                      <i class="fa fa-eye"></i>
+                    </span>
+                  </div>
+                </div>
+                <div class="password-strength" id="passwordStrength"></div>
+                <small class="text-muted" id="passwordHelp">Use at least 8 characters, letters and numbers.</small>
               </div>
               <div class="form-group">
-                <label>Confirm Password</label>
-                <input type="password" id="regPasswordConfirm" class="form-control">
+                <label>Confirm Passphrase</label>
+                <div class="input-group">
+                  <input type="password" id="regPasswordConfirm" class="form-control">
+                  <div class="input-group-append">
+                    <span class="input-group-text toggle-password" data-target="regPasswordConfirm">
+                      <i class="fa fa-eye"></i>
+                    </span>
+                  </div>
+                </div>
               </div>
               <div class="form-group">
                 <label>GitHub Personal Access Token <small class="text-muted">(with repo scope)</small></label>
                 <input type="password" id="regToken" class="form-control" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
-                <small class="text-muted"> <a href="https://github.com/settings/tokens" target="_blank">Create token</a> with "repo" scope.</small>
+                <small class="text-muted">
+                  <a href="https://github.com/settings/tokens" target="_blank">Create token</a> with "repo" scope.
+                </small>
               </div>
               <button id="registerBtn" class="btn btn-delta btn-block mt-3">Register</button>
               <div class="text-center mt-3">
