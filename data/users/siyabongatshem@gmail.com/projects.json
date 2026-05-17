@@ -565,7 +565,7 @@
   },
   "proj_1778856792675": {
     "id": "proj_1778856792675",
-    "title": "13",
+    "title": "DeltaV & Phoenix Contact Intergration",
     "controllerType": "MD",
     "projectType": "Other",
     "deltaVVersion": "",
@@ -590,7 +590,32 @@
     },
     "description": "",
     "graphType": "bar",
-    "selectedImages": []
+    "selectedImages": [
+      {
+        "url": "https://raw.githubusercontent.com/siyabongathupana/portfolio/main/data/users/siyabongatshem%40gmail.com/project_images/1778979292058_1000557830.jpg",
+        "caption": ""
+      },
+      {
+        "url": "https://raw.githubusercontent.com/siyabongathupana/portfolio/main/data/users/siyabongatshem%40gmail.com/project_images/1778979293440_1000610382.jpg",
+        "caption": ""
+      },
+      {
+        "url": "https://raw.githubusercontent.com/siyabongathupana/portfolio/main/data/users/siyabongatshem%40gmail.com/project_images/1778979295292_1000558949.jpg",
+        "caption": ""
+      },
+      {
+        "url": "https://raw.githubusercontent.com/siyabongathupana/portfolio/main/data/users/siyabongatshem%40gmail.com/project_images/1778979298058_1000561149.jpg",
+        "caption": ""
+      },
+      {
+        "url": "https://raw.githubusercontent.com/siyabongathupana/portfolio/main/data/users/siyabongatshem%40gmail.com/project_images/1778979299521_1000561194.jpg",
+        "caption": ""
+      },
+      {
+        "url": "https://raw.githubusercontent.com/siyabongathupana/portfolio/main/data/users/siyabongatshem%40gmail.com/project_images/1778979301427_1000557953.jpg",
+        "caption": ""
+      }
+    ]
   },
   "proj_1778857100833": {
     "id": "proj_1778857100833",
