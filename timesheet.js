@@ -65,7 +65,6 @@
       projectList = ["Other"];
     }
     
-    // Task project dropdown
     const select = document.getElementById('taskProject');
     if (select) {
       select.innerHTML = '';
@@ -76,7 +75,6 @@
         select.appendChild(opt);
       });
     }
-    // Edit project dropdown
     const editSelect = document.getElementById('editProject');
     if (editSelect) {
       editSelect.innerHTML = '';
@@ -87,7 +85,6 @@
         editSelect.appendChild(opt);
       });
     }
-    // Filter project dropdown
     const filterSelect = document.getElementById('filterProject');
     if (filterSelect) {
       filterSelect.innerHTML = '<option value="all">All Projects</option>';
@@ -289,7 +286,6 @@
         if (range === 'day') {
           return d.toDateString() === now.toDateString();
         } else if (range === 'week') {
-          // Week starts on Monday
           const startOfWeek = new Date(now);
           const day = now.getDay();
           const diff = (day === 0 ? 6 : day - 1);
@@ -318,7 +314,8 @@
     const tfoot = document.getElementById('historyFoot');
     
     if (filtered.length === 0) {
-      tbody.innerHTML = '<td><td colspan="9" class="text-center">No entries found.</td></tr>';
+      // Fix: Use proper HTML without escaped characters
+      tbody.innerHTML = '<tr><td colspan="9" class="text-center">No entries found.</td></tr>';
       tfoot.style.display = 'none';
       return;
     }
