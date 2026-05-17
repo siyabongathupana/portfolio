@@ -1,4 +1,4 @@
-// timesheet.js – with loading indicators for project creation, entry addition, name saving
+// timesheet.js – complete with loaders, notification toggle, project creation, custom categories
 (function() {
   const user = window.SessionManager?.getCurrentUser();
   if (!user) {
@@ -12,6 +12,7 @@
   let categoryChart = null, billableChart = null, projectChart = null;
   let userFullName = "";
   let projectList = [];
+  let notificationsEnabled = true;
   let autoRefreshInterval = null;
 
   function showToast(message, type = "success") {
@@ -101,7 +102,6 @@
 
   async function addNewProject(projectName) {
     if (!projectName) return false;
-    // Show loading indicator
     window.showLoading(`Creating project "${projectName}"...`);
     try {
       const success = await createPortfolioProject(projectName);
@@ -182,6 +182,39 @@
     await GitHubAPI.updateFile(owner, repo, path, meta, "Update user name", branch, user.pat, sha);
   }
 
+  async function loadNotificationPreference() {
+    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+    const encUser = encodeURIComponent(user.username);
+    const path = `${dataPath}/users/${encUser}/preferences.json`;
+    try {
+      const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
+      if (file && file.content) {
+        const prefs = JSON.parse(file.content);
+        notificationsEnabled = prefs.notifications !== undefined ? prefs.notifications : true;
+      } else {
+        notificationsEnabled = true;
+      }
+    } catch(e) {
+      notificationsEnabled = true;
+    }
+    const toggle = document.getElementById('notificationsToggle');
+    if (toggle) toggle.checked = notificationsEnabled;
+  }
+
+  async function saveNotificationPreference(enabled) {
+    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+    const encUser = encodeURIComponent(user.username);
+    const path = `${dataPath}/users/${encUser}/preferences.json`;
+    let sha = null;
+    try {
+      const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
+      if (existing) sha = existing.sha;
+    } catch(e) {}
+    const prefs = { notifications: enabled };
+    await GitHubAPI.updateFile(owner, repo, path, prefs, "Update notification preference", branch, user.pat, sha);
+    notificationsEnabled = enabled;
+  }
+
   async function addEntry(duplicateData = null) {
     let date, start, end, project, category, billable, notes;
     if (duplicateData) {
@@ -210,7 +243,6 @@
       showToast("End time must be after start time.", "error");
       return;
     }
-    // Show loading indicator
     window.showLoading(duplicateData ? "Duplicating entry..." : "Adding entry...");
     try {
       const newEntry = { id: Date.now(), date, start, end, hours, project, category, billable, notes };
@@ -512,13 +544,9 @@
     document.getElementById('filterRange').onchange = () => { renderHistory(); updateSummaryAndProgress(); updateCharts(); };
     document.getElementById('filterProject').onchange = () => { renderHistory(); updateSummaryAndProgress(); updateCharts(); };
     document.getElementById('filterCategory').onchange = () => { renderHistory(); updateSummaryAndProgress(); updateCharts(); };
-    // Save name with loader
     document.getElementById('saveNameBtn').onclick = async () => {
       const newName = document.getElementById('userFullName')?.value.trim();
-      if (!newName) {
-        showToast("Please enter a name.", "error");
-        return;
-      }
+      if (!newName) { showToast("Please enter a name.", "error"); return; }
       window.showLoading("Saving your name...");
       try {
         userFullName = newName;
@@ -557,6 +585,26 @@
       else exportExcelRange(start, end);
     };
     document.getElementById('saveEditBtn').onclick = saveEdit;
+
+    // Notification toggle
+    await loadNotificationPreference();
+    const toggle = document.getElementById('notificationsToggle');
+    if (toggle) {
+      toggle.addEventListener('change', async (e) => {
+        const enabled = e.target.checked;
+        window.showLoading("Saving notification preference...");
+        try {
+          await saveNotificationPreference(enabled);
+          showToast(enabled ? "Email notifications enabled" : "Email notifications disabled");
+        } catch (err) {
+          showToast("Failed to save preference: " + err.message, "error");
+          e.target.checked = !enabled;
+        } finally {
+          window.hideLoading();
+        }
+      });
+    }
+
     await loadUserMeta();
     await loadProjectsFromPortfolio();
     await refreshView();
