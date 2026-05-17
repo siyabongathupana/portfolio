@@ -8,6 +8,10 @@ on:
     - cron: '0 * * * *'
   workflow_dispatch:
 
+# Grant write permissions to the default GITHUB_TOKEN
+permissions:
+  contents: write
+
 jobs:
   send-emails:
     runs-on: ubuntu-latest
@@ -16,6 +20,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -32,7 +37,7 @@ jobs:
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
           FROM_EMAIL: ${{ secrets.FROM_EMAIL }}
-        run: node .github/scripts/welcomeEmail.js   # ← adjusted path
+        run: node .github/scripts/welcomeEmail.js
 
       - name: Commit updated notified_users.json
         run: |
