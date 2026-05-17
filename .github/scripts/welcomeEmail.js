@@ -1,20 +1,17 @@
-// scripts/welcomeEmail.js
+// .github/scripts/welcomeEmail.js
 const fs = require('fs');
 const path = require('path');
 const nodemailer = require('nodemailer');
 
-// Email configuration (from environment variables / secrets)
 const SMTP_HOST = process.env.SMTP_HOST || 'smtp.gmail.com';
 const SMTP_PORT = parseInt(process.env.SMTP_PORT) || 587;
 const SMTP_USER = process.env.SMTP_USER;
 const SMTP_PASS = process.env.SMTP_PASS;
 const FROM_EMAIL = process.env.FROM_EMAIL || SMTP_USER;
 
-// File to track already notified users (stored in the repo, will be committed back)
 const NOTIFIED_FILE = path.join(__dirname, '..', '..', 'data', 'notified_users.json');
 const USERS_DIR = path.join(__dirname, '..', '..', 'data', 'users');
 
-// Helper to read/write notified users
 function getNotifiedUsers() {
   if (fs.existsSync(NOTIFIED_FILE)) {
     return JSON.parse(fs.readFileSync(NOTIFIED_FILE, 'utf8'));
@@ -26,7 +23,6 @@ function saveNotifiedUsers(users) {
   fs.writeFileSync(NOTIFIED_FILE, JSON.stringify(users, null, 2), 'utf8');
 }
 
-// Send email function
 async function sendWelcomeEmail(toEmail, username) {
   const appName = 'Your Portfolio';
   const loginUrl = 'https://siyabongathupana.github.io/portfolio/login.html';
@@ -70,7 +66,6 @@ async function main() {
   }
 
   const notified = getNotifiedUsers();
-  // Get all user folders (subdirectories in data/users)
   let userDirs = [];
   if (fs.existsSync(USERS_DIR)) {
     userDirs = fs.readdirSync(USERS_DIR, { withFileTypes: true })
