@@ -1,5 +1,16 @@
 [
   {
+    "id": 1779024824026,
+    "date": "2026-05-17",
+    "start": "15:32",
+    "end": "21:32",
+    "hours": 6,
+    "project": "Other",
+    "category": "Implementation",
+    "billable": "yes",
+    "notes": ""
+  },
+  {
     "id": 1779023510477,
     "date": "2026-05-17",
     "start": "15:11",
