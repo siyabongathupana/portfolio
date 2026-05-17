@@ -1,13 +1,13 @@
-name: Timesheet Weekly Notification
+name: Timesheet Reminder
 
 on:
   schedule:
-    # Monday and Friday at 9:00 UTC
-    - cron: '0 9 * * 1,5'
+    # Monday and Friday at 8:00 AM UTC (adjust to your timezone if needed)
+    - cron: '0 8 * * 1,5'
   workflow_dispatch:   # allow manual trigger
 
 jobs:
-  send-summaries:
+  send-reminders:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -21,7 +21,7 @@ jobs:
       - name: Install dependencies
         run: npm install nodemailer
 
-      - name: Send email summaries
+      - name: Send reminder emails
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SMTP_HOST: ${{ secrets.SMTP_HOST }}
@@ -32,15 +32,15 @@ jobs:
           REPO_OWNER: ${{ github.repository_owner }}
           REPO_NAME: ${{ github.event.repository.name }}
           BRANCH: main
+          PORTFOLIO_URL: ${{ vars.PORTFOLIO_URL }}  # optional: set your live portfolio URL
         run: |
           const nodemailer = require('nodemailer');
-          const fs = require('fs').promises;
-          const path = require('path');
 
           const owner = process.env.REPO_OWNER;
           const repo = process.env.REPO_NAME;
           const branch = process.env.BRANCH;
           const token = process.env.GITHUB_TOKEN;
+          const portfolioBase = process.env.PORTFOLIO_URL || 'https://' + owner + '.github.io/' + repo;
 
           async function getFileContent(apiPath) {
             const url = `https://api.github.com/repos/${owner}/${repo}/contents/${apiPath}?ref=${branch}`;
@@ -69,14 +69,6 @@ jobs:
             return {};
           }
 
-          async function getTimesheet(username) {
-            const content = await getFileContent(`data/users/${encodeURIComponent(username)}/timesheet.json`);
-            if (content) {
-              try { return JSON.parse(content); } catch(e) { return []; }
-            }
-            return [];
-          }
-
           async function getUserMeta(username) {
             const content = await getFileContent(`data/users/${encodeURIComponent(username)}/user_meta.json`);
             if (content) {
@@ -85,17 +77,12 @@ jobs:
             return {};
           }
 
-          function getWeekRange() {
+          function getDayType() {
             const now = new Date();
-            const day = now.getDay();
-            const monday = new Date(now);
-            const diffToMonday = (day === 0 ? 6 : day - 1);
-            monday.setDate(now.getDate() - diffToMonday);
-            monday.setHours(0,0,0,0);
-            const friday = new Date(monday);
-            friday.setDate(monday.getDate() + 4);
-            friday.setHours(23,59,59,999);
-            return { start: monday, end: friday };
+            const day = now.getDay(); // 1 = Monday, 5 = Friday
+            if (day === 1) return { type: 'Monday', message: 'start of the week' };
+            if (day === 5) return { type: 'Friday', message: 'end of the week' };
+            return { type: 'weekday', message: 'today' };
           }
 
           async function main() {
@@ -115,75 +102,49 @@ jobs:
               }
             });
 
-            const { start, end } = getWeekRange();
-            const startStr = start.toISOString().split('T')[0];
-            const endStr = end.toISOString().split('T')[0];
-            console.log(`Reporting period: ${startStr} to ${endStr}`);
+            const dayInfo = getDayType();
+            const timesheetUrl = `${portfolioBase}/timesheet.html`;
 
             for (const username of users) {
               const prefs = await getUserPrefs(username);
               if (prefs.notifications === false) {
-                console.log(`Notifications disabled for ${username}, skipping`);
-                continue;
-              }
-
-              const timesheet = await getTimesheet(username);
-              const entries = timesheet.filter(e => {
-                const d = new Date(e.date);
-                return d >= start && d <= end;
-              });
-              if (entries.length === 0) {
-                console.log(`No timesheet entries for ${username} this week`);
+                console.log(`Reminders disabled for ${username}, skipping`);
                 continue;
               }
 
               const meta = await getUserMeta(username);
-              const fullName = meta.fullName || username;
-
-              let totalHours = 0, billableHours = 0;
-              entries.forEach(e => {
-                totalHours += e.hours;
-                if (e.billable === 'yes') billableHours += e.hours;
-              });
-              const nonBillable = totalHours - billableHours;
-              const dailyHours = {};
-              entries.forEach(e => { dailyHours[e.date] = (dailyHours[e.date] || 0) + e.hours; });
-              let overtime = 0;
-              for (const h of Object.values(dailyHours)) if (h > 8) overtime += (h - 8);
-
-              let rows = '';
-              entries.forEach(e => {
-                rows += `<tr>
-                  <td>${e.date}</td>
-                  <td>${e.start}</td>
-                  <td>${e.end}</td>
-                  <td>${e.hours.toFixed(2)}</td>
-                  <td>${e.project}</td>
-                  <td>${e.category}</td>
-                  <td>${e.billable === 'yes' ? 'Billable' : 'Non-billable'}</td>
-                  <td>${e.notes || '-'}</td>
-                </tr>`;
-              });
+              const fullName = meta.fullName || username.split('@')[0] || username;
 
               const html = `
-                <h2>Timesheet Summary for ${fullName}</h2>
-                <p><strong>Period:</strong> ${startStr} to ${endStr}</p>
-                <p><strong>Total Hours:</strong> ${totalHours.toFixed(2)} (Billable: ${billableHours.toFixed(2)} | Non-billable: ${nonBillable.toFixed(2)} | Overtime: ${overtime.toFixed(2)})</p>
-                <table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse; width: 100%;">
-                  <thead><tr><th>Date</th><th>Start</th><th>End</th><th>Hours</th><th>Project</th><th>Category</th><th>Billable</th><th>Notes</th></tr></thead>
-                  <tbody>${rows}</tbody>
-                </table>
-                <p><br>You can manage your notifications in the Timesheet page of the portfolio.</p>
+                <div style="font-family: 'Inter', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #f4f7fc; border-radius: 24px;">
+                  <div style="background: #0b2b3b; padding: 20px; border-radius: 16px; text-align: center; color: white;">
+                    <h2 style="margin: 0;">⏰ Timesheet Reminder</h2>
+                  </div>
+                  <div style="background: white; padding: 25px; border-radius: 16px; margin-top: 15px;">
+                    <p>Hello <strong>${fullName}</strong>,</p>
+                    <p>This is a friendly reminder to <strong>log your hours</strong> in the timesheet for ${dayInfo.message}.</p>
+                    <p>Keeping your timesheet up‑to‑date helps with project tracking, billing, and personal productivity.</p>
+                    <div style="text-align: center; margin: 30px 0;">
+                      <a href="${timesheetUrl}" style="background: #2fc7ff; color: #0a2b33; padding: 12px 24px; text-decoration: none; border-radius: 40px; font-weight: 600;">📝 Log Your Hours Now</a>
+                    </div>
+                    <p style="font-size: 0.85rem; color: #5a7d9a;">If you've already logged your time today, thank you! You can ignore this message.</p>
+                    <hr style="margin: 20px 0;">
+                    <p style="font-size: 0.75rem; color: #999;">You received this because you enabled email notifications in your portfolio settings. To disable, go to the Timesheet page and toggle off notifications.</p>
+                  </div>
+                </div>
               `;
+
+              const text = `Timesheet Reminder\n\nHello ${fullName},\n\nThis is a friendly reminder to log your hours in the timesheet for ${dayInfo.message}.\n\nLog here: ${timesheetUrl}\n\nIf you've already logged your time today, thank you! You can ignore this message.\n\nTo disable these reminders, go to the Timesheet page and toggle off notifications.`;
 
               try {
                 await transporter.sendMail({
                   from: `"Your Portfolio" <${process.env.NOTIFY_FROM}>`,
                   to: username,
-                  subject: `Timesheet Summary (${startStr} – ${endStr})`,
+                  subject: `⏰ Timesheet Reminder – ${dayInfo.type}`,
                   html: html,
+                  text: text,
                 });
-                console.log(`Email sent to ${username}`);
+                console.log(`Reminder sent to ${username}`);
               } catch (err) {
                 console.error(`Failed to send to ${username}:`, err.message);
               }
