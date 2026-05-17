@@ -301,7 +301,7 @@
   },
   "proj_1778637465672": {
     "id": "proj_1778637465672",
-    "title": "Test 7",
+    "title": "Sasol Steam Station 1 Boiler 8",
     "controllerType": "MD",
     "projectType": "Other",
     "deltaVVersion": "",
@@ -326,7 +326,16 @@
     },
     "description": "",
     "graphType": "bar",
-    "selectedImages": []
+    "selectedImages": [
+      {
+        "url": "https://raw.githubusercontent.com/siyabongathupana/portfolio/main/data/users/siyabongatshem%40gmail.com/project_images/1778977267892_1000140806.jpg",
+        "caption": ""
+      },
+      {
+        "url": "https://raw.githubusercontent.com/siyabongathupana/portfolio/main/data/users/siyabongatshem%40gmail.com/project_images/1778977270962_1000387384.jpg",
+        "caption": ""
+      }
+    ]
   },
   "proj_1778637558785": {
     "id": "proj_1778637558785",
