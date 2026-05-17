@@ -1,0 +1,43 @@
+name: Send Welcome Emails
+
+on:
+  push:
+    paths:
+      - 'data/users/*/account.json'   # trigger when a new account.json appears
+  schedule:
+    - cron: '0 * * * *'               # also run every hour as fallback
+  workflow_dispatch:                  # manual trigger
+
+jobs:
+  send-emails:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run welcome email script
+        env:
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          FROM_EMAIL: ${{ secrets.FROM_EMAIL }}
+        run: node scripts/welcomeEmail.js
+
+      - name: Commit updated notified_users.json
+        run: |
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+          git add data/notified_users.json
+          git commit -m "Update notified users list" || echo "No changes to commit"
+          git push origin HEAD:${GITHUB_REF_NAME:-main}
