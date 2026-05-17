@@ -1,5 +1,16 @@
 [
   {
+    "id": 1779023510477,
+    "date": "2026-05-17",
+    "start": "15:11",
+    "end": "19:11",
+    "hours": 4,
+    "project": "Sasol",
+    "category": "Training",
+    "billable": "yes",
+    "notes": ""
+  },
+  {
     "id": 1779022585778,
     "date": "2026-05-17",
     "start": "14:47",
