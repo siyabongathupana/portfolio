@@ -1,5 +1,16 @@
 [
   {
+    "id": 1779022585778,
+    "date": "2026-05-17",
+    "start": "14:47",
+    "end": "18:47",
+    "hours": 4,
+    "project": "Other",
+    "category": "Meetings",
+    "billable": "yes",
+    "notes": "copy"
+  },
+  {
     "id": 1779022167004,
     "date": "2026-05-17",
     "start": "14:47",
