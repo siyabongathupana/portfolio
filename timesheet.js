@@ -1,4 +1,4 @@
-// timesheet.js – Complete, stable version with all features
+// timesheet.js – Complete, stable version with duplicate entry feature
 (function() {
   const user = window.SessionManager?.getCurrentUser();
   if (!user) {
@@ -61,7 +61,6 @@
     } catch (e) {
       projectList = ["Other"];
     }
-    // task project dropdown
     const select = document.getElementById('taskProject');
     if (select) {
       select.innerHTML = '';
@@ -72,7 +71,6 @@
         select.appendChild(opt);
       });
     }
-    // edit project dropdown
     const editSelect = document.getElementById('editProject');
     if (editSelect) {
       editSelect.innerHTML = '';
@@ -83,7 +81,6 @@
         editSelect.appendChild(opt);
       });
     }
-    // filter project dropdown
     const filterSelect = document.getElementById('filterProject');
     if (filterSelect) {
       filterSelect.innerHTML = '<option value="all">All Projects</option>';
@@ -169,14 +166,25 @@
     await GitHubAPI.updateFile(owner, repo, path, meta, "Update user meta", branch, user.pat, sha);
   }
 
-  async function addEntry() {
-    const date = document.getElementById('logDate').value;
-    const start = document.getElementById('startTime').value;
-    const end = document.getElementById('endTime').value;
-    const project = document.getElementById('taskProject').value;
-    const category = document.getElementById('taskCategory').value;
-    const billable = document.getElementById('billable').value;
-    const notes = document.getElementById('taskNotes').value.trim();
+  async function addEntry(duplicateData = null) {
+    let date, start, end, project, category, billable, notes;
+    if (duplicateData) {
+      date = duplicateData.date;
+      start = duplicateData.start;
+      end = duplicateData.end;
+      project = duplicateData.project;
+      category = duplicateData.category;
+      billable = duplicateData.billable;
+      notes = duplicateData.notes ? duplicateData.notes + " (duplicate)" : "duplicate";
+    } else {
+      date = document.getElementById('logDate').value;
+      start = document.getElementById('startTime').value;
+      end = document.getElementById('endTime').value;
+      project = document.getElementById('taskProject').value;
+      category = document.getElementById('taskCategory').value;
+      billable = document.getElementById('billable').value;
+      notes = document.getElementById('taskNotes').value.trim();
+    }
     if (!date || !start || !end || !project || !category) {
       showToast("Please fill all required fields.", "error");
       return;
@@ -189,13 +197,14 @@
     const newEntry = { id: Date.now(), date, start, end, hours, project, category, billable, notes };
     entries.unshift(newEntry);
     await saveTimesheet();
-    showToast("Entry saved successfully!");
+    showToast(duplicateData ? "Entry duplicated!" : "Entry saved successfully!");
     await refreshView();
-    document.getElementById('startTime').value = '';
-    document.getElementById('endTime').value = '';
-    document.getElementById('taskNotes').value = '';
-    document.getElementById('hoursAuto').value = '';
-    if (document.getElementById('taskProject')) document.getElementById('taskProject').value = project;
+    if (!duplicateData) {
+      document.getElementById('startTime').value = '';
+      document.getElementById('endTime').value = '';
+      document.getElementById('taskNotes').value = '';
+      document.getElementById('hoursAuto').value = '';
+    }
   }
 
   async function deleteEntry(id) {
@@ -205,6 +214,15 @@
       showToast("Entry deleted.");
       await refreshView();
     }
+  }
+
+  async function duplicateEntry(entry) {
+    const newId = Date.now();
+    const duplicated = { ...entry, id: newId, notes: entry.notes ? entry.notes + " (copy)" : "copy" };
+    entries.unshift(duplicated);
+    await saveTimesheet();
+    showToast("Entry duplicated!");
+    await refreshView();
   }
 
   async function editEntry(id) {
@@ -306,11 +324,16 @@
       editBtn.className = 'btn btn-sm btn-edit mr-1';
       editBtn.innerHTML = '<i class="fa fa-pencil"></i>';
       editBtn.onclick = () => editEntry(entry.id);
+      const duplicateBtn = document.createElement('button');
+      duplicateBtn.className = 'btn btn-sm btn-duplicate mr-1';
+      duplicateBtn.innerHTML = '<i class="fa fa-copy"></i>';
+      duplicateBtn.onclick = () => duplicateEntry(entry);
       const delBtn = document.createElement('button');
       delBtn.className = 'btn btn-sm btn-danger';
       delBtn.innerHTML = '<i class="fa fa-trash"></i>';
       delBtn.onclick = () => deleteEntry(entry.id);
       actionCell.appendChild(editBtn);
+      actionCell.appendChild(duplicateBtn);
       actionCell.appendChild(delBtn);
     });
     document.getElementById('totalHoursCell').innerHTML = '<strong>' + totalHours.toFixed(2) + '</strong>';
@@ -491,22 +514,19 @@
     const endTime = document.getElementById('endTime');
     if (startTime) startTime.addEventListener('change', updateHoursAuto);
     if (endTime) endTime.addEventListener('change', updateHoursAuto);
-    // Now buttons
     document.getElementById('nowStartBtn').onclick = () => {
       const now = new Date();
       const timeString = now.toTimeString().slice(0,5);
-      const startField = document.getElementById('startTime');
-      if (startField) startField.value = timeString;
+      document.getElementById('startTime').value = timeString;
       updateHoursAuto();
     };
     document.getElementById('nowEndBtn').onclick = () => {
       const now = new Date();
       const timeString = now.toTimeString().slice(0,5);
-      const endField = document.getElementById('endTime');
-      if (endField) endField.value = timeString;
+      document.getElementById('endTime').value = timeString;
       updateHoursAuto();
     };
-    document.getElementById('addEntryBtn').onclick = addEntry;
+    document.getElementById('addEntryBtn').onclick = () => addEntry();
     document.getElementById('refreshHistoryBtn').onclick = () => refreshView();
     document.getElementById('exportExcelBtn').onclick = () => exportToExcel();
     document.getElementById('printBtn').onclick = () => window.print();
