@@ -1,4 +1,4 @@
-// timesheet.js – fully fixed: projects, categories, name saving, notes only
+// timesheet.js – with loading indicators for project creation, entry addition, name saving
 (function() {
   const user = window.SessionManager?.getCurrentUser();
   if (!user) {
@@ -11,7 +11,7 @@
   let entries = [];
   let categoryChart = null, billableChart = null, projectChart = null;
   let userFullName = "";
-  let projectList = [];      // list of project titles from portfolio
+  let projectList = [];
   let autoRefreshInterval = null;
 
   function showToast(message, type = "success") {
@@ -46,7 +46,6 @@
     document.getElementById('hoursAuto').value = calcHours(start, end).toFixed(2);
   }
 
-  // Load projects from actual portfolio (projects.json)
   async function loadProjectsFromPortfolio() {
     try {
       const projectsData = await window.portfolioData.loadProjects();
@@ -57,7 +56,6 @@
       console.warn("Failed to load portfolio projects", e);
       projectList = ["Other"];
     }
-    // Update all dropdowns
     const selects = ['taskProject', 'editProject', 'filterProject'];
     for (let id of selects) {
       const sel = document.getElementById(id);
@@ -75,7 +73,6 @@
     }
   }
 
-  // Create a real portfolio project (saves to projects.json)
   async function createPortfolioProject(projectName) {
     if (projectList.includes(projectName)) return false;
     const newId = 'proj_' + Date.now();
@@ -97,24 +94,33 @@
     const allProjects = await window.portfolioData.loadProjects();
     allProjects[newId] = newProject;
     await window.portfolioData.saveProjects(allProjects);
-    await loadProjectsFromPortfolio(); // refresh list
+    await loadProjectsFromPortfolio();
     await window.Logger.log('create_project_from_timesheet', `Created project: ${projectName}`);
     return true;
   }
 
   async function addNewProject(projectName) {
     if (!projectName) return false;
-    const success = await createPortfolioProject(projectName);
-    if (success) {
-      await loadProjectsFromPortfolio();
-      // auto-select the new project in the task dropdown
-      const taskSelect = document.getElementById('taskProject');
-      if (taskSelect && projectList.includes(projectName)) taskSelect.value = projectName;
-      showToast(`Project "${projectName}" created in your portfolio.`);
-      return true;
-    } else {
-      showToast("Project already exists or creation failed.", "error");
+    // Show loading indicator
+    window.showLoading(`Creating project "${projectName}"...`);
+    try {
+      const success = await createPortfolioProject(projectName);
+      if (success) {
+        await loadProjectsFromPortfolio();
+        const taskSelect = document.getElementById('taskProject');
+        if (taskSelect && projectList.includes(projectName)) taskSelect.value = projectName;
+        showToast(`Project "${projectName}" created in your portfolio.`);
+        return true;
+      } else {
+        showToast("Project already exists or creation failed.", "error");
+        return false;
+      }
+    } catch (err) {
+      console.error(err);
+      showToast("Failed to create project: " + err.message, "error");
       return false;
+    } finally {
+      window.hideLoading();
     }
   }
 
@@ -204,25 +210,41 @@
       showToast("End time must be after start time.", "error");
       return;
     }
-    const newEntry = { id: Date.now(), date, start, end, hours, project, category, billable, notes };
-    entries.unshift(newEntry);
-    await saveTimesheet();
-    showToast(duplicateData ? "Entry duplicated!" : "Entry saved.");
-    await refreshView();
-    if (!duplicateData) {
-      document.getElementById('startTime').value = '';
-      document.getElementById('endTime').value = '';
-      document.getElementById('taskNotes').value = '';
-      document.getElementById('hoursAuto').value = '';
+    // Show loading indicator
+    window.showLoading(duplicateData ? "Duplicating entry..." : "Adding entry...");
+    try {
+      const newEntry = { id: Date.now(), date, start, end, hours, project, category, billable, notes };
+      entries.unshift(newEntry);
+      await saveTimesheet();
+      showToast(duplicateData ? "Entry duplicated!" : "Entry saved.");
+      await refreshView();
+      if (!duplicateData) {
+        document.getElementById('startTime').value = '';
+        document.getElementById('endTime').value = '';
+        document.getElementById('taskNotes').value = '';
+        document.getElementById('hoursAuto').value = '';
+      }
+    } catch (err) {
+      console.error(err);
+      showToast("Failed to save entry: " + err.message, "error");
+    } finally {
+      window.hideLoading();
     }
   }
 
   async function deleteEntry(id) {
     if (confirm("Delete this entry?")) {
-      entries = entries.filter(e => e.id != id);
-      await saveTimesheet();
-      showToast("Entry deleted.");
-      await refreshView();
+      window.showLoading("Deleting entry...");
+      try {
+        entries = entries.filter(e => e.id != id);
+        await saveTimesheet();
+        showToast("Entry deleted.");
+        await refreshView();
+      } catch (err) {
+        showToast("Delete failed: " + err.message, "error");
+      } finally {
+        window.hideLoading();
+      }
     }
   }
 
@@ -264,11 +286,18 @@
       showToast("End time must be after start.", "error");
       return;
     }
-    entries[index] = { ...entries[index], date, start, end, hours, project, category, billable, notes };
-    await saveTimesheet();
-    $('#editModal').modal('hide');
-    showToast("Entry updated.");
-    await refreshView();
+    window.showLoading("Updating entry...");
+    try {
+      entries[index] = { ...entries[index], date, start, end, hours, project, category, billable, notes };
+      await saveTimesheet();
+      $('#editModal').modal('hide');
+      showToast("Entry updated.");
+      await refreshView();
+    } catch (err) {
+      showToast("Update failed: " + err.message, "error");
+    } finally {
+      window.hideLoading();
+    }
   }
 
   function getFilteredEntries() {
@@ -458,7 +487,7 @@
 
   async function refreshView() {
     await loadTimesheet();
-    await loadProjectsFromPortfolio(); // ensure project list is fresh
+    await loadProjectsFromPortfolio();
     renderHistory();
     updateSummaryAndProgress();
     updateCharts();
@@ -483,15 +512,25 @@
     document.getElementById('filterRange').onchange = () => { renderHistory(); updateSummaryAndProgress(); updateCharts(); };
     document.getElementById('filterProject').onchange = () => { renderHistory(); updateSummaryAndProgress(); updateCharts(); };
     document.getElementById('filterCategory').onchange = () => { renderHistory(); updateSummaryAndProgress(); updateCharts(); };
+    // Save name with loader
     document.getElementById('saveNameBtn').onclick = async () => {
       const newName = document.getElementById('userFullName')?.value.trim();
-      if (newName) {
+      if (!newName) {
+        showToast("Please enter a name.", "error");
+        return;
+      }
+      window.showLoading("Saving your name...");
+      try {
         userFullName = newName;
         await saveUserMeta(userFullName);
         document.getElementById('reportName').value = userFullName;
         showToast("Name saved successfully.");
         await window.Logger.log('save_name', `Updated full name to ${newName}`);
-      } else { showToast("Please enter a name.", "error"); }
+      } catch (err) {
+        showToast("Failed to save name: " + err.message, "error");
+      } finally {
+        window.hideLoading();
+      }
     };
     document.getElementById('addProjectBtn').onclick = () => { document.getElementById('newProjectName').value = ''; $('#newProjectModal').modal('show'); };
     document.getElementById('confirmNewProjectBtn').onclick = async () => {
