@@ -3,10 +3,10 @@ name: Send Welcome Emails
 on:
   push:
     paths:
-      - 'data/users/*/account.json'   # trigger when a new account.json appears
+      - 'data/users/*/account.json'
   schedule:
-    - cron: '0 * * * *'               # also run every hour as fallback
-  workflow_dispatch:                  # manual trigger
+    - cron: '0 * * * *'
+  workflow_dispatch:
 
 jobs:
   send-emails:
@@ -18,12 +18,12 @@ jobs:
           fetch-depth: 0
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
 
       - name: Install dependencies
-        run: npm install
+        run: npm install nodemailer
 
       - name: Run welcome email script
         env:
@@ -32,7 +32,7 @@ jobs:
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
           FROM_EMAIL: ${{ secrets.FROM_EMAIL }}
-        run: node scripts/welcomeEmail.js
+        run: node .github/scripts/welcomeEmail.js   # ← adjusted path
 
       - name: Commit updated notified_users.json
         run: |
