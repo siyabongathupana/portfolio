@@ -5,7 +5,7 @@
     "start": "14:20",
     "end": "16:42",
     "hours": 2.37,
-    "project": "15",
+    "project": "Omnia Phase 3",
     "category": "IFAT",
     "billable": "yes",
     "notes": "Graphics IFAT"
@@ -63,6 +63,17 @@
     "project": "11",
     "category": "Admin",
     "billable": "no",
+    "notes": ""
+  },
+  {
+    "id": 1778953130831,
+    "date": "2026-05-16",
+    "start": "20:40",
+    "end": "12:38",
+    "hours": 15.97,
+    "project": "Test number what what",
+    "category": "Meetings",
+    "billable": "yes",
     "notes": ""
   }
 ]
