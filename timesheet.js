@@ -1,4 +1,4 @@
-// timesheet.js – complete with background queue, conflict retry, notification toggle, and professional PDF reports
+// timesheet.js – complete with background queue, conflict retry, notification toggle, professional PDF reports, and QR code footer
 (function() {
   const user = window.SessionManager?.getCurrentUser();
   if (!user) {
@@ -524,7 +524,20 @@
     });
   }
 
-  // Updated PDF generation with professional styling, charts embedded
+  // Function to generate QR code as data URL using free API
+  async function getQRCodeDataURL(url, size = 100) {
+    const apiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(url)}`;
+    const response = await fetch(apiUrl);
+    if (!response.ok) throw new Error('QR code generation failed');
+    const blob = await response.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  // Updated PDF generation with professional styling, charts embedded, and QR code footer
   async function generateStyledPDF(startDate, endDate, periodLabel) {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
@@ -540,7 +553,7 @@
     const nonBillable = totalHours - billableHours;
     const overtime = calculateOvertimeForPeriod(filtered);
 
-    // Prepare data for charts (same as UI charts)
+    // Prepare data for charts
     const projMap = {};
     filtered.forEach(e => { projMap[e.project] = (projMap[e.project] || 0) + e.hours; });
     const catMap = {};
@@ -599,6 +612,15 @@
     billChart.destroy();
     document.body.removeChild(chartDiv);
 
+    // Generate QR code
+    const repoUrl = 'https://github.com/siyabongathupana/portfolio/';
+    let qrDataUrl = null;
+    try {
+      qrDataUrl = await getQRCodeDataURL(repoUrl, 80);
+    } catch (err) {
+      console.warn('QR code generation failed:', err);
+    }
+
     // Build table
     const tableData = filtered.map(e => [e.date, e.start, e.end, e.hours.toFixed(2), e.project, e.category, e.billable === 'yes' ? 'Billable' : 'Non-billable', e.notes || '']);
 
@@ -638,13 +660,24 @@
       columnStyles: { 0: { cellWidth: 25 }, 1: { cellWidth: 16 }, 2: { cellWidth: 16 }, 3: { cellWidth: 16 }, 4: { cellWidth: 35 }, 5: { cellWidth: 30 }, 6: { cellWidth: 25 }, 7: { cellWidth: 45 } }
     });
 
+    // Add QR code footer on all pages
     const pageCount = doc.internal.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i);
       doc.setFontSize(9);
       doc.setTextColor(150, 150, 150);
       doc.text(`Your Portfolio – Timesheet | Page ${i} of ${pageCount}`, 20, doc.internal.pageSize.height - 10);
+      if (qrDataUrl) {
+        // Place QR code at bottom right corner
+        const pageWidth = doc.internal.pageSize.width;
+        const qrSize = 20; // mm
+        doc.addImage(qrDataUrl, 'PNG', pageWidth - qrSize - 10, doc.internal.pageSize.height - qrSize - 10, qrSize, qrSize);
+        // Optionally add small label
+        doc.setFontSize(6);
+        doc.text('Scan to view repo', pageWidth - qrSize - 8, doc.internal.pageSize.height - qrSize - 12);
+      }
     }
+
     doc.save(`timesheet_${periodLabel}_${startDate}_to_${endDate}.pdf`);
     showToast("PDF report generated.");
     return true;
@@ -760,9 +793,11 @@
     // Report generation with period selection
     const periodSelect = document.getElementById('reportPeriod');
     const customDiv = document.getElementById('customRangeDiv');
-    periodSelect.addEventListener('change', () => {
-      customDiv.style.display = periodSelect.value === 'custom' ? 'block' : 'none';
-    });
+    if (periodSelect) {
+      periodSelect.addEventListener('change', () => {
+        customDiv.style.display = periodSelect.value === 'custom' ? 'block' : 'none';
+      });
+    }
     document.getElementById('generateReportBtn').onclick = () => {
       document.getElementById('reportName').value = userFullName;
       const end = new Date();
@@ -770,12 +805,12 @@
       start.setDate(start.getDate() - 30);
       document.getElementById('reportStartDate').value = formatDate(start);
       document.getElementById('reportEndDate').value = formatDate(end);
-      periodSelect.value = 'month';
+      if (periodSelect) periodSelect.value = 'month';
       customDiv.style.display = 'none';
       $('#reportModal').modal('show');
     };
     document.getElementById('generateReportConfirmBtn').onclick = async () => {
-      const period = periodSelect.value;
+      const period = periodSelect ? periodSelect.value : 'month';
       let start, end, label;
       const today = new Date();
       if (period === 'week') {
