@@ -86,16 +86,5 @@
     "category": "CodeReview",
     "billable": "yes",
     "notes": "Testuing"
-  },
-  {
-    "id": 1778881223214,
-    "date": "2026-05-15",
-    "start": "23:39",
-    "end": "04:00",
-    "hours": 4.35,
-    "category": "Admin",
-    "billable": "no",
-    "notes": "Test",
-    "project": "Other"
   }
 ]
