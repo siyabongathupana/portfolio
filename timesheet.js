@@ -1,4 +1,4 @@
-// timesheet.js – complete with loaders, notification toggle, project creation, custom categories
+// timesheet.js – non‑blocking background saves with conflict retry, notification toggle
 (function() {
   const user = window.SessionManager?.getCurrentUser();
   if (!user) {
@@ -14,6 +14,83 @@
   let projectList = [];
   let notificationsEnabled = true;
   let autoRefreshInterval = null;
+
+  // Write queue & retry logic
+  let isSaving = false;
+  let saveQueue = [];
+
+  function setButtonLoading(btn, isLoading, originalText = null) {
+    if (!btn) return;
+    if (isLoading) {
+      btn.originalText = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Saving...';
+    } else {
+      btn.disabled = false;
+      if (btn.originalText) btn.innerHTML = btn.originalText;
+    }
+  }
+
+  async function queueSave() {
+    return new Promise((resolve, reject) => {
+      if (!isSaving) {
+        executeSave(resolve, reject);
+      } else {
+        saveQueue.push({ resolve, reject });
+      }
+    });
+  }
+
+  async function executeSave(resolve, reject) {
+    isSaving = true;
+    try {
+      await saveTimesheetWithRetry();
+      resolve();
+    } catch (err) {
+      reject(err);
+    } finally {
+      isSaving = false;
+      if (saveQueue.length > 0) {
+        const next = saveQueue.shift();
+        executeSave(next.resolve, next.reject);
+      }
+    }
+  }
+
+  async function saveTimesheetWithRetry(maxRetries = 3, baseDelay = 500) {
+    let lastError;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        await saveTimesheetInternal();
+        return;
+      } catch (err) {
+        lastError = err;
+        if (err.message && (err.message.includes('sha') || err.message.includes('does not match'))) {
+          console.warn(`Conflict detected, retrying (${attempt}/${maxRetries})...`);
+          await new Promise(resolve => setTimeout(resolve, baseDelay * Math.pow(2, attempt - 1)));
+          continue;
+        }
+        throw err;
+      }
+    }
+    throw lastError;
+  }
+
+  async function saveTimesheetInternal() {
+    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+    const encUser = encodeURIComponent(user.username);
+    const path = `${dataPath}/users/${encUser}/${TIMESHEET_FILE}`;
+    let sha = null;
+    try {
+      const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
+      if (existing) sha = existing.sha;
+    } catch(e) {}
+    await GitHubAPI.updateFile(owner, repo, path, entries, "Update timesheet", branch, user.pat, sha);
+  }
+
+  async function saveTimesheet() {
+    return queueSave();
+  }
 
   function showToast(message, type = "success") {
     const container = document.getElementById("toastContainer");
@@ -140,18 +217,6 @@
     entries.sort((a, b) => new Date(b.date) - new Date(a.date));
   }
 
-  async function saveTimesheet() {
-    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const encUser = encodeURIComponent(user.username);
-    const path = `${dataPath}/users/${encUser}/${TIMESHEET_FILE}`;
-    let sha = null;
-    try {
-      const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
-      if (existing) sha = existing.sha;
-    } catch(e) {}
-    await GitHubAPI.updateFile(owner, repo, path, entries, "Update timesheet", branch, user.pat, sha);
-  }
-
   async function loadUserMeta() {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(user.username);
@@ -243,11 +308,14 @@
       showToast("End time must be after start time.", "error");
       return;
     }
-    window.showLoading(duplicateData ? "Duplicating entry..." : "Adding entry...");
+
+    const addBtn = document.getElementById('addEntryBtn');
+    setButtonLoading(addBtn, true);
+
     try {
       const newEntry = { id: Date.now(), date, start, end, hours, project, category, billable, notes };
       entries.unshift(newEntry);
-      await saveTimesheet();
+      await saveTimesheet();  // background queue + retry
       showToast(duplicateData ? "Entry duplicated!" : "Entry saved.");
       await refreshView();
       if (!duplicateData) {
@@ -260,23 +328,24 @@
       console.error(err);
       showToast("Failed to save entry: " + err.message, "error");
     } finally {
-      window.hideLoading();
+      setButtonLoading(addBtn, false);
     }
   }
 
   async function deleteEntry(id) {
-    if (confirm("Delete this entry?")) {
-      window.showLoading("Deleting entry...");
-      try {
-        entries = entries.filter(e => e.id != id);
-        await saveTimesheet();
-        showToast("Entry deleted.");
-        await refreshView();
-      } catch (err) {
-        showToast("Delete failed: " + err.message, "error");
-      } finally {
-        window.hideLoading();
-      }
+    if (!confirm("Delete this entry?")) return;
+    // find the delete button to show spinner (optional, we'll use a generic approach)
+    const delBtn = document.querySelector(`button[data-id='${id}']`);
+    if (delBtn) setButtonLoading(delBtn, true);
+    try {
+      entries = entries.filter(e => e.id != id);
+      await saveTimesheet();
+      showToast("Entry deleted.");
+      await refreshView();
+    } catch (err) {
+      showToast("Delete failed: " + err.message, "error");
+    } finally {
+      if (delBtn) setButtonLoading(delBtn, false);
     }
   }
 
@@ -318,7 +387,8 @@
       showToast("End time must be after start.", "error");
       return;
     }
-    window.showLoading("Updating entry...");
+    const saveBtn = document.getElementById('saveEditBtn');
+    setButtonLoading(saveBtn, true);
     try {
       entries[index] = { ...entries[index], date, start, end, hours, project, category, billable, notes };
       await saveTimesheet();
@@ -328,7 +398,7 @@
     } catch (err) {
       showToast("Update failed: " + err.message, "error");
     } finally {
-      window.hideLoading();
+      setButtonLoading(saveBtn, false);
     }
   }
 
@@ -397,6 +467,7 @@
       const delBtn = document.createElement('button');
       delBtn.className = 'btn btn-sm btn-danger';
       delBtn.innerHTML = '<i class="fa fa-trash"></i>';
+      delBtn.dataset.id = entry.id;
       delBtn.onclick = () => deleteEntry(entry.id);
       actionCell.appendChild(editBtn);
       actionCell.appendChild(dupBtn);
