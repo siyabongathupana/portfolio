@@ -1,14 +1,14 @@
 [
   {
-    "id": 1779100886170,
-    "date": "2026-04-18",
+    "id": 1779101084800,
+    "date": "2026-05-18",
     "start": "08:30",
-    "end": "12:40",
-    "hours": 4.17,
+    "end": "12:44",
+    "hours": 4.23,
     "project": "Omnia Phase 3",
     "category": "Other",
     "billable": "no",
-    "notes": "Fixing VM for Omnia"
+    "notes": "Creating anf fixing VMs for Omnia"
   },
   {
     "id": 1779029692319,
@@ -97,5 +97,16 @@
     "billable": "yes",
     "notes": "test1",
     "project": "Other"
+  },
+  {
+    "id": 1779100886170,
+    "date": "2026-04-18",
+    "start": "08:30",
+    "end": "12:40",
+    "hours": 4.17,
+    "project": "Omnia Phase 3",
+    "category": "Other",
+    "billable": "no",
+    "notes": "Fixing VM for Omnia"
   }
 ]
