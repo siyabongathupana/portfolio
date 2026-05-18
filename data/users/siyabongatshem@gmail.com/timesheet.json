@@ -75,16 +75,5 @@
     "category": "Meetings",
     "billable": "yes",
     "notes": ""
-  },
-  {
-    "id": 1778952701580,
-    "date": "2026-05-16",
-    "start": "19:31",
-    "end": "22:31",
-    "hours": 3,
-    "project": "Steam Station 1 Boiler 6",
-    "category": "CodeReview",
-    "billable": "yes",
-    "notes": "Testuing"
   }
 ]
