@@ -2,7 +2,6 @@ name: Timesheet Reminder
 
 on:
   schedule:
-    # Monday and Friday at 8:00 AM UTC
     - cron: '0 8 * * 1,5'
   workflow_dispatch:
 
@@ -14,26 +13,16 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4          # ✅ Fixed: was v4.2.2
+        uses: actions/setup-node@v4
         with:
           node-version: '22'
 
       - name: Install dependencies
         run: npm install nodemailer
 
-      - name: Send reminder emails
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SMTP_HOST: ${{ secrets.SMTP_HOST }}
-          SMTP_PORT: ${{ secrets.SMTP_PORT }}
-          SMTP_USER: ${{ secrets.SMTP_USER }}
-          SMTP_PASS: ${{ secrets.SMTP_PASS }}
-          NOTIFY_FROM: ${{ secrets.NOTIFY_FROM_EMAIL }}
-          REPO_OWNER: ${{ github.repository_owner }}
-          REPO_NAME: ${{ github.event.repository.name }}
-          BRANCH: main
-          PORTFOLIO_URL: ${{ vars.PORTFOLIO_URL }}
+      - name: Create reminder script
         run: |
+          cat > send-reminders.js << 'EOF'
           const nodemailer = require('nodemailer');
 
           const owner = process.env.REPO_OWNER;
@@ -152,3 +141,18 @@ jobs:
           }
 
           main().catch(console.error);
+          EOF
+
+      - name: Send reminder emails
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          NOTIFY_FROM: ${{ secrets.NOTIFY_FROM_EMAIL }}
+          REPO_OWNER: ${{ github.repository_owner }}
+          REPO_NAME: ${{ github.event.repository.name }}
+          BRANCH: main
+          PORTFOLIO_URL: ${{ vars.PORTFOLIO_URL }}
+        run: node send-reminders.js
