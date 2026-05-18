@@ -1,5 +1,16 @@
 [
   {
+    "id": 1779106868221,
+    "date": "2026-05-18",
+    "start": "14:20",
+    "end": "16:42",
+    "hours": 2.37,
+    "project": "15",
+    "category": "IFAT",
+    "billable": "yes",
+    "notes": "Graphics IFAT"
+  },
+  {
     "id": 1779106237607,
     "date": "2026-05-18",
     "start": "13:09",
