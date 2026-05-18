@@ -1,5 +1,16 @@
 [
   {
+    "id": 1779111194816,
+    "date": "2026-05-18",
+    "start": "15:32",
+    "end": "21:32",
+    "hours": 6,
+    "project": "DeltaV Demo Project ",
+    "category": "Training",
+    "billable": "no",
+    "notes": "test"
+  },
+  {
     "id": 1779106868221,
     "date": "2026-05-18",
     "start": "14:20",
