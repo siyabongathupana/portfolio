@@ -1,5 +1,16 @@
 [
   {
+    "id": 1779100886170,
+    "date": "2026-04-18",
+    "start": "08:30",
+    "end": "12:40",
+    "hours": 4.17,
+    "project": "Omnia Phase 3",
+    "category": "Other",
+    "billable": "no",
+    "notes": "Fixing VM for Omnia"
+  },
+  {
     "id": 1779029692319,
     "date": "2026-05-17",
     "start": "16:54",
