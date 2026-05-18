@@ -42,16 +42,5 @@
     "category": "Training",
     "billable": "yes",
     "notes": ""
-  },
-  {
-    "id": 1778972991012,
-    "date": "2026-05-16",
-    "start": "01:09",
-    "end": "05:09",
-    "hours": 4,
-    "project": "11",
-    "category": "Admin",
-    "billable": "no",
-    "notes": ""
   }
 ]
