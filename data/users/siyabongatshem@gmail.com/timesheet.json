@@ -108,16 +108,5 @@
     "billable": "yes",
     "notes": "Testing",
     "project": "Other"
-  },
-  {
-    "id": 1778879923053,
-    "date": "2026-05-15",
-    "start": "23:18",
-    "end": "23:22",
-    "hours": 0.07,
-    "category": "Development",
-    "billable": "yes",
-    "notes": "test1",
-    "project": "Other"
   }
 ]
