@@ -1,5 +1,16 @@
 [
   {
+    "id": 1779120326630,
+    "date": "2026-05-18",
+    "start": "16:43",
+    "end": "17:04",
+    "hours": 0.35,
+    "project": "Omnia Phase 3",
+    "category": "Other",
+    "billable": "no",
+    "notes": "Admin"
+  },
+  {
     "id": 1779106868221,
     "date": "2026-05-18",
     "start": "14:20",
