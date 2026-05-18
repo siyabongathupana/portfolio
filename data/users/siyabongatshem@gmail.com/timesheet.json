@@ -31,16 +31,5 @@
     "category": "Other",
     "billable": "no",
     "notes": "Creating anf fixing VMs for Omnia"
-  },
-  {
-    "id": 1779029692319,
-    "date": "2026-05-17",
-    "start": "16:54",
-    "end": "20:54",
-    "hours": 4,
-    "project": "15",
-    "category": "Training",
-    "billable": "yes",
-    "notes": ""
   }
 ]
