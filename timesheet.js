@@ -1,4 +1,4 @@
-// timesheet.js – non‑blocking background saves with conflict retry, notification toggle
+// timesheet.js – complete with background queue, conflict retry, notification toggle, and professional PDF reports
 (function() {
   const user = window.SessionManager?.getCurrentUser();
   if (!user) {
@@ -315,7 +315,7 @@
     try {
       const newEntry = { id: Date.now(), date, start, end, hours, project, category, billable, notes };
       entries.unshift(newEntry);
-      await saveTimesheet();  // background queue + retry
+      await saveTimesheet();
       showToast(duplicateData ? "Entry duplicated!" : "Entry saved.");
       await refreshView();
       if (!duplicateData) {
@@ -334,7 +334,6 @@
 
   async function deleteEntry(id) {
     if (!confirm("Delete this entry?")) return;
-    // find the delete button to show spinner (optional, we'll use a generic approach)
     const delBtn = document.querySelector(`button[data-id='${id}']`);
     if (delBtn) setButtonLoading(delBtn, true);
     try {
@@ -514,6 +513,182 @@
     }
   }
 
+  // Helper to get entries for a date range
+  function getEntriesForPeriod(startDate, endDate) {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    end.setHours(23,59,59,999);
+    return entries.filter(e => {
+      const d = new Date(e.date);
+      return d >= start && d <= end;
+    });
+  }
+
+  // Updated PDF generation with professional styling, charts embedded
+  async function generateStyledPDF(startDate, endDate, periodLabel) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const filtered = getEntriesForPeriod(startDate, endDate);
+    if (filtered.length === 0) {
+      showToast("No entries in selected period.", "error");
+      return false;
+    }
+
+    const name = document.getElementById('reportName').value || userFullName || user.username;
+    const totalHours = filtered.reduce((s,e) => s + e.hours, 0);
+    const billableHours = filtered.filter(e => e.billable === 'yes').reduce((s,e) => s + e.hours, 0);
+    const nonBillable = totalHours - billableHours;
+    const overtime = calculateOvertimeForPeriod(filtered);
+
+    // Prepare data for charts (same as UI charts)
+    const projMap = {};
+    filtered.forEach(e => { projMap[e.project] = (projMap[e.project] || 0) + e.hours; });
+    const catMap = {};
+    filtered.forEach(e => { catMap[e.category] = (catMap[e.category] || 0) + e.hours; });
+    let billable = 0, nonBill = 0;
+    filtered.forEach(e => { if (e.billable === 'yes') billable += e.hours; else nonBill += e.hours; });
+
+    // Create canvas elements for charts (hidden)
+    const chartDiv = document.createElement('div');
+    chartDiv.style.position = 'absolute';
+    chartDiv.style.top = '-9999px';
+    chartDiv.style.left = '-9999px';
+    chartDiv.style.width = '400px';
+    chartDiv.style.height = '300px';
+    document.body.appendChild(chartDiv);
+
+    const canvas1 = document.createElement('canvas');
+    canvas1.width = 400;
+    canvas1.height = 300;
+    chartDiv.appendChild(canvas1);
+    const ctx1 = canvas1.getContext('2d');
+    const projChart = new Chart(ctx1, {
+      type: 'pie',
+      data: { labels: Object.keys(projMap), datasets: [{ data: Object.values(projMap), backgroundColor: ['#2fc7ff','#ffc107','#28a745','#dc3545','#6f42c1','#fd7e14','#17a2b8','#e83e8c'] }] },
+      options: { responsive: false }
+    });
+
+    const canvas2 = document.createElement('canvas');
+    canvas2.width = 400;
+    canvas2.height = 300;
+    chartDiv.appendChild(canvas2);
+    const ctx2 = canvas2.getContext('2d');
+    const catChart = new Chart(ctx2, {
+      type: 'pie',
+      data: { labels: Object.keys(catMap), datasets: [{ data: Object.values(catMap), backgroundColor: ['#2fc7ff','#ffc107','#28a745','#dc3545','#6f42c1','#fd7e14'] }] },
+      options: { responsive: false }
+    });
+
+    const canvas3 = document.createElement('canvas');
+    canvas3.width = 400;
+    canvas3.height = 300;
+    chartDiv.appendChild(canvas3);
+    const ctx3 = canvas3.getContext('2d');
+    const billChart = new Chart(ctx3, {
+      type: 'pie',
+      data: { labels: ['Billable', 'Non-billable'], datasets: [{ data: [billable, nonBill], backgroundColor: ['#28a745','#dc3545'] }] },
+      options: { responsive: false }
+    });
+
+    await new Promise(r => setTimeout(r, 200));
+    const imgData1 = canvas1.toDataURL('image/png');
+    const imgData2 = canvas2.toDataURL('image/png');
+    const imgData3 = canvas3.toDataURL('image/png');
+    projChart.destroy();
+    catChart.destroy();
+    billChart.destroy();
+    document.body.removeChild(chartDiv);
+
+    // Build table
+    const tableData = filtered.map(e => [e.date, e.start, e.end, e.hours.toFixed(2), e.project, e.category, e.billable === 'yes' ? 'Billable' : 'Non-billable', e.notes || '']);
+
+    // PDF content
+    doc.setFontSize(20);
+    doc.setTextColor(11, 43, 59);
+    doc.text('Timesheet Report', 20, 20);
+    doc.setFontSize(12);
+    doc.setTextColor(47, 199, 255);
+    doc.text(`Period: ${periodLabel} (${startDate} to ${endDate})`, 20, 32);
+    doc.setTextColor(80, 80, 80);
+    doc.text(`Prepared for: ${name}`, 20, 42);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, 20, 52);
+    doc.setFontSize(14);
+    doc.setTextColor(0, 0, 0);
+    doc.text(`Summary: ${totalHours.toFixed(2)} total hours (Billable: ${billableHours.toFixed(2)}, Non-billable: ${nonBillable.toFixed(2)}, Overtime: ${overtime.toFixed(2)})`, 20, 65);
+
+    // Add charts
+    doc.addImage(imgData1, 'PNG', 20, 75, 50, 40);
+    doc.addImage(imgData2, 'PNG', 85, 75, 50, 40);
+    doc.addImage(imgData3, 'PNG', 150, 75, 50, 40);
+    doc.setFontSize(10);
+    doc.text('By Project', 20, 120);
+    doc.text('By Category', 85, 120);
+    doc.text('Billable vs Non-Billable', 150, 120);
+
+    // Table
+    doc.autoTable({
+      startY: 130,
+      head: [['Date','Start','End','Hours','Project','Category','Billable','Notes']],
+      body: tableData,
+      foot: [['','','',totalHours.toFixed(2),'','','','']],
+      theme: 'striped',
+      headStyles: { fillColor: [11, 43, 59], textColor: 255, fontStyle: 'bold' },
+      footStyles: { fillColor: [240, 240, 240], textColor: 0, fontStyle: 'bold' },
+      margin: { left: 20, right: 20 },
+      columnStyles: { 0: { cellWidth: 25 }, 1: { cellWidth: 16 }, 2: { cellWidth: 16 }, 3: { cellWidth: 16 }, 4: { cellWidth: 35 }, 5: { cellWidth: 30 }, 6: { cellWidth: 25 }, 7: { cellWidth: 45 } }
+    });
+
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(9);
+      doc.setTextColor(150, 150, 150);
+      doc.text(`Your Portfolio – Timesheet | Page ${i} of ${pageCount}`, 20, doc.internal.pageSize.height - 10);
+    }
+    doc.save(`timesheet_${periodLabel}_${startDate}_to_${endDate}.pdf`);
+    showToast("PDF report generated.");
+    return true;
+  }
+
+  // Excel export for custom period
+  function exportExcelRange(startDate, endDate, periodLabel) {
+    const filtered = getEntriesForPeriod(startDate, endDate);
+    if (!filtered.length) { showToast("No entries in selected range.", "error"); return; }
+    const data = filtered.map(e => ({
+      Date: e.date, Start: e.start, End: e.end, Hours: e.hours,
+      Project: e.project, Category: e.category, Billable: e.billable === 'yes' ? 'Billable' : 'Non-billable',
+      Notes: e.notes || ''
+    }));
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Timesheet');
+    XLSX.writeFile(wb, `timesheet_${periodLabel}_${startDate}_to_${endDate}.xlsx`);
+    showToast("Excel downloaded.");
+  }
+
+  function exportToExcel() {
+    const filtered = getFilteredEntries();
+    if (!filtered.length) { showToast("No data to export.", "error"); return; }
+    const data = filtered.map(e => ({
+      Date: e.date, Start: e.start, End: e.end, Hours: e.hours,
+      Project: e.project, Category: e.category, Billable: e.billable === 'yes' ? 'Billable' : 'Non-billable',
+      Notes: e.notes || ''
+    }));
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Timesheet');
+    XLSX.writeFile(wb, `timesheet_${formatDate(new Date())}.xlsx`);
+    showToast("Excel downloaded.");
+  }
+
+  async function refreshView() {
+    await loadTimesheet();
+    await loadProjectsFromPortfolio();
+    renderHistory();
+    updateSummaryAndProgress();
+    updateCharts();
+  }
+
   function updateCharts() {
     const filtered = getFilteredEntries();
     const projMap = {};
@@ -537,63 +712,6 @@
     if (ctxBill && (billable+nonBill > 0)) {
       billableChart = new Chart(ctxBill, { type: 'pie', data: { labels: ['Billable', 'Non-billable'], datasets: [{ data: [billable, nonBill], backgroundColor: ['#28a745','#dc3545'] }] }, options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } } } } });
     }
-  }
-
-  function exportToExcel() {
-    const filtered = getFilteredEntries();
-    if (!filtered.length) { showToast("No data to export.", "error"); return; }
-    const data = filtered.map(e => ({ Date: e.date, Start: e.start, End: e.end, Hours: e.hours, Project: e.project, Category: e.category, Billable: e.billable === 'yes' ? 'Billable' : 'Non-billable', Notes: e.notes || '' }));
-    const ws = XLSX.utils.json_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Timesheet');
-    XLSX.writeFile(wb, `timesheet_${formatDate(new Date())}.xlsx`);
-    showToast("Excel downloaded.");
-  }
-
-  async function generatePDFReport(startDate, endDate) {
-    try {
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-      const filtered = entries.filter(e => e.date >= startDate && e.date <= endDate);
-      if (!filtered.length) { showToast("No entries in selected range.", "error"); return; }
-      const name = document.getElementById('reportName')?.value || userFullName || user.username;
-      const totalHours = filtered.reduce((s,e) => s + e.hours, 0);
-      const billableHours = filtered.filter(e => e.billable === 'yes').reduce((s,e) => s + e.hours, 0);
-      const nonBillable = totalHours - billableHours;
-      const overtime = calculateOvertimeForPeriod(filtered);
-      const tableData = filtered.map(e => [e.date, e.start, e.end, e.hours.toFixed(2), e.project, e.category, e.billable === 'yes' ? 'Billable' : 'Non-billable', e.notes || '']);
-      doc.setFontSize(16);
-      doc.text('Timesheet Report', 14, 20);
-      doc.setFontSize(11);
-      doc.text(`Name: ${name}`, 14, 30);
-      doc.text(`Period: ${startDate} to ${endDate}`, 14, 37);
-      doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 44);
-      doc.text(`Total Hours: ${totalHours.toFixed(2)} (Billable: ${billableHours.toFixed(2)} | Non-billable: ${nonBillable.toFixed(2)} | Overtime: ${overtime.toFixed(2)})`, 14, 51);
-      doc.autoTable({ startY: 58, head: [['Date','Start','End','Hours','Project','Category','Billable','Notes']], body: tableData, foot: [['','','',totalHours.toFixed(2),'','','','']], theme: 'striped', headStyles: { fillColor: [11,43,59], textColor: 255, fontStyle: 'bold' }, footStyles: { fillColor: [240,240,240], textColor: 0, fontStyle: 'bold' }, margin: { left: 14, right: 14 }, columnStyles: { 0: { cellWidth: 22 }, 1: { cellWidth: 16 }, 2: { cellWidth: 16 }, 3: { cellWidth: 16 }, 4: { cellWidth: 30 }, 5: { cellWidth: 25 }, 6: { cellWidth: 20 }, 7: { cellWidth: 35 } } });
-      const pageCount = doc.internal.getNumberOfPages();
-      for (let i = 1; i <= pageCount; i++) { doc.setPage(i); doc.setFontSize(9); doc.text(`Your Portfolio – Timesheet | Page ${i} of ${pageCount}`, 14, doc.internal.pageSize.height - 10); }
-      doc.save(`timesheet_${startDate}_to_${endDate}.pdf`);
-      showToast("PDF report generated.");
-    } catch (err) { console.error(err); showToast("PDF generation failed: " + err.message, "error"); }
-  }
-
-  function exportExcelRange(startDate, endDate) {
-    const filtered = entries.filter(e => e.date >= startDate && e.date <= endDate);
-    if (!filtered.length) { showToast("No entries in selected range.", "error"); return; }
-    const data = filtered.map(e => ({ Date: e.date, Start: e.start, End: e.end, Hours: e.hours, Project: e.project, Category: e.category, Billable: e.billable === 'yes' ? 'Billable' : 'Non-billable', Notes: e.notes || '' }));
-    const ws = XLSX.utils.json_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Timesheet');
-    XLSX.writeFile(wb, `timesheet_${startDate}_to_${endDate}.xlsx`);
-    showToast("Excel downloaded.");
-  }
-
-  async function refreshView() {
-    await loadTimesheet();
-    await loadProjectsFromPortfolio();
-    renderHistory();
-    updateSummaryAndProgress();
-    updateCharts();
   }
 
   function startAutoRefresh() {
@@ -638,23 +756,58 @@
       await addNewProject(newProj);
       $('#newProjectModal').modal('hide');
     };
+
+    // Report generation with period selection
+    const periodSelect = document.getElementById('reportPeriod');
+    const customDiv = document.getElementById('customRangeDiv');
+    periodSelect.addEventListener('change', () => {
+      customDiv.style.display = periodSelect.value === 'custom' ? 'block' : 'none';
+    });
     document.getElementById('generateReportBtn').onclick = () => {
       document.getElementById('reportName').value = userFullName;
       const end = new Date();
-      const start = new Date(); start.setDate(start.getDate() - 30);
+      const start = new Date();
+      start.setDate(start.getDate() - 30);
       document.getElementById('reportStartDate').value = formatDate(start);
       document.getElementById('reportEndDate').value = formatDate(end);
+      periodSelect.value = 'month';
+      customDiv.style.display = 'none';
       $('#reportModal').modal('show');
     };
-    document.getElementById('generateReportConfirmBtn').onclick = () => {
-      const start = document.getElementById('reportStartDate')?.value;
-      const end = document.getElementById('reportEndDate')?.value;
-      if (!start || !end) { showToast("Select both start and end dates.", "error"); return; }
-      const type = document.getElementById('reportType')?.value;
+    document.getElementById('generateReportConfirmBtn').onclick = async () => {
+      const period = periodSelect.value;
+      let start, end, label;
+      const today = new Date();
+      if (period === 'week') {
+        start = new Date(today);
+        start.setDate(today.getDate() - 7);
+        end = today;
+        label = 'weekly';
+      } else if (period === 'month') {
+        start = new Date(today);
+        start.setDate(today.getDate() - 30);
+        end = today;
+        label = 'monthly';
+      } else if (period === 'year') {
+        start = new Date(today);
+        start.setFullYear(today.getFullYear() - 1);
+        end = today;
+        label = 'yearly';
+      } else {
+        start = document.getElementById('reportStartDate').value;
+        end = document.getElementById('reportEndDate').value;
+        if (!start || !end) { showToast("Select both start and end dates.", "error"); return; }
+        label = 'custom';
+      }
+      const type = document.getElementById('reportType').value;
       $('#reportModal').modal('hide');
-      if (type === 'pdf') generatePDFReport(start, end);
-      else exportExcelRange(start, end);
+      if (type === 'pdf') {
+        await generateStyledPDF(formatDate(start), formatDate(end), label);
+      } else {
+        exportExcelRange(formatDate(start), formatDate(end), label);
+      }
     };
+
     document.getElementById('saveEditBtn').onclick = saveEdit;
 
     // Notification toggle
