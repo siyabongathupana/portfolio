@@ -1,4 +1,4 @@
-// api.js – GitHub API operations
+// api.js – GitHub API operations with conflict detection
 const GitHubAPI = (() => {
   function getAuthHeaders(token) {
     return {
@@ -31,14 +31,22 @@ const GitHubAPI = (() => {
       branch: branch
     };
     if (sha) body.sha = sha;
+    
     const resp = await fetch(url, {
       method: 'PUT',
       headers: getAuthHeaders(token),
       body: JSON.stringify(body)
     });
+    
     if (!resp.ok) {
       const err = await resp.json();
-      throw new Error(`Update failed: ${err.message}`);
+      // Detect conflict (SHA mismatch)
+      if (resp.status === 409 || (err.message && err.message.includes('sha'))) {
+        const conflictError = new Error('CONFLICT: SHA mismatch');
+        conflictError.isConflict = true;
+        throw conflictError;
+      }
+      throw new Error(`Update failed: ${err.message || resp.statusText}`);
     }
     return resp.json();
   }
