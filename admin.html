@@ -18,7 +18,6 @@
   <script src="api.js"></script>
   <script src="shared.js"></script>
   <style>
-    /* General admin styles */
     .image-input-group { margin-bottom:15px; background:#f8f9fa; padding:12px; border-radius:12px; display:flex; align-items:center; gap:12px; position:relative; }
     .image-input-group .img-preview-thumb { width:80px; height:80px; object-fit:cover; border-radius:8px; background:#e9ecef; }
     .image-input-group .img-details { flex:1; }
@@ -35,8 +34,8 @@
     .cert-thumb-preview { max-width:80px; max-height:80px; margin-top:8px; border-radius:12px; }
     .view-portfolio-btn { background: #28a745; color: white; border-radius: 20px; padding: 6px 16px; margin-right: 10px; transition: 0.2s; display: inline-flex; align-items:center; }
     .view-portfolio-btn:hover { background: #218838; color: white; text-decoration: none; }
+    .lock-project { transition: all 0.2s; }
 
-    /* Mobile responsiveness */
     @media (max-width: 768px) {
       .admin-container { padding: 20px 15px !important; margin: 15px !important; }
       h1 { font-size: 1.6rem; }
@@ -60,7 +59,6 @@
       .batch-actions button { width: 100%; margin-bottom: 8px; }
     }
 
-    /* Improved Logs Panel Styling */
     .logs-panel {
       background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
       border-radius: 24px;
@@ -69,78 +67,18 @@
       border: 1px solid rgba(47,199,255,0.15);
       transition: all 0.2s ease;
     }
-    .logs-panel:hover {
-      box-shadow: 0 12px 28px rgba(0,0,0,0.08);
-    }
-    .logs-icon {
-      font-size: 3rem;
-      color: #2fc7ff;
-      background: linear-gradient(135deg, #e6f7ff 0%, #d4efff 100%);
-      width: 70px;
-      height: 70px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 1rem auto;
-    }
-    .logs-panel h4 {
-      font-weight: 700;
-      color: #0b2b3b;
-      margin-bottom: 0.5rem;
-    }
-    .logs-panel .lead-text {
-      color: #5a7d9a;
-      font-size: 0.9rem;
-      margin-bottom: 1.5rem;
-    }
-    .log-user-select {
-      max-width: 280px;
-      margin: 0 auto 1rem auto;
-    }
-    .btn-log {
-      border-radius: 40px;
-      padding: 6px 18px;
-      font-weight: 600;
-      font-size: 0.85rem;
-      transition: all 0.2s;
-      margin: 0.25rem;
-      min-width: 140px;
-    }
-    .btn-log-primary {
-      background: #2fc7ff;
-      color: #0a2b33;
-      border: none;
-    }
-    .btn-log-primary:hover {
-      background: #1d9fcf;
-      transform: translateY(-2px);
-      color: white;
-      box-shadow: 0 6px 14px rgba(47,199,255,0.3);
-    }
-    .btn-log-secondary {
-      background: #6c757d;
-      color: white;
-      border: none;
-    }
-    .btn-log-secondary:hover {
-      background: #5a6268;
-      transform: translateY(-2px);
-      box-shadow: 0 6px 14px rgba(108,117,125,0.3);
-    }
-    .log-info-text {
-      background: #eef3fc;
-      border-radius: 16px;
-      padding: 10px 18px;
-      font-size: 0.8rem;
-      color: #2c5a6e;
-      margin-top: 1.5rem;
-      display: inline-block;
-    }
-    .log-info-text i {
-      margin-right: 6px;
-      color: #2fc7ff;
-    }
+    .logs-panel:hover { box-shadow: 0 12px 28px rgba(0,0,0,0.08); }
+    .logs-icon { font-size: 3rem; color: #2fc7ff; background: linear-gradient(135deg, #e6f7ff 0%, #d4efff 100%); width: 70px; height: 70px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem auto; }
+    .logs-panel h4 { font-weight: 700; color: #0b2b3b; margin-bottom: 0.5rem; }
+    .logs-panel .lead-text { color: #5a7d9a; font-size: 0.9rem; margin-bottom: 1.5rem; }
+    .log-user-select { max-width: 280px; margin: 0 auto 1rem auto; }
+    .btn-log { border-radius: 40px; padding: 6px 18px; font-weight: 600; font-size: 0.85rem; transition: all 0.2s; margin: 0.25rem; min-width: 140px; }
+    .btn-log-primary { background: #2fc7ff; color: #0a2b33; border: none; }
+    .btn-log-primary:hover { background: #1d9fcf; transform: translateY(-2px); color: white; box-shadow: 0 6px 14px rgba(47,199,255,0.3); }
+    .btn-log-secondary { background: #6c757d; color: white; border: none; }
+    .btn-log-secondary:hover { background: #5a6268; transform: translateY(-2px); box-shadow: 0 6px 14px rgba(108,117,125,0.3); }
+    .log-info-text { background: #eef3fc; border-radius: 16px; padding: 10px 18px; font-size: 0.8rem; color: #2c5a6e; margin-top: 1.5rem; display: inline-block; }
+    .log-info-text i { margin-right: 6px; color: #2fc7ff; }
     @media (max-width: 768px) {
       .logs-panel { padding: 1.5rem; }
       .btn-log { min-width: auto; width: 100%; margin: 8px 0; }
@@ -198,27 +136,20 @@
       <!-- Logs Tab -->
       <div class="tab-pane fade" id="logsTab">
         <div class="logs-panel text-center">
-          <div class="logs-icon">
-            <i class="fa fa-file-text-o"></i>
-          </div>
+          <div class="logs-icon"><i class="fa fa-file-text-o"></i></div>
           <h4>Activity Logs</h4>
           <p class="lead-text">Download your complete activity log as a text file.</p>
-
           <div class="log-user-select" id="logUserSelectGroup" style="display:none;">
             <label for="logUserSelect" class="sr-only">Select user</label>
             <select id="logUserSelect" class="form-control form-control-sm">
               <option value="">-- Select user to download logs --</option>
             </select>
           </div>
-
           <div class="d-flex flex-wrap justify-content-center mt-2">
             <button id="downloadMyLogBtn" class="btn btn-log btn-log-primary"><i class="fa fa-download"></i> Download My Logs</button>
             <button id="downloadAllLogsBtn" class="btn btn-log btn-log-secondary" style="display:none;"><i class="fa fa-archive"></i> Download All Logs (ZIP)</button>
           </div>
-
-          <div class="log-info-text">
-            <i class="fa fa-info-circle"></i> Logs include all actions: project creation/edits/deletion, certificate changes, image uploads, backups, syncs, and errors.
-          </div>
+          <div class="log-info-text"><i class="fa fa-info-circle"></i> Logs include all actions: project creation/edits/deletion, certificate changes, image uploads, backups, syncs, and errors.</div>
         </div>
       </div>
 
@@ -232,9 +163,7 @@
       </div>
     </div>
     <hr>
-    <div class="text-center footer-status">
-      <span id="userFooterStatus"></span>
-    </div>
+    <div class="text-center footer-status"><span id="userFooterStatus"></span></div>
   </div>
 </div>
 
@@ -294,6 +223,17 @@
             <select id="projGraphType" class="form-control">
               <option value="bar">Bar Chart</option><option value="pie">Pie Chart</option><option value="line">Line Chart</option>
             </select>
+          </div>
+
+          <!-- Lock from public view (admin only) -->
+          <div class="form-group" id="lockControlGroup" style="display: none;">
+            <div class="custom-control custom-switch">
+              <input type="checkbox" class="custom-control-input" id="projLocked">
+              <label class="custom-control-label" for="projLocked">
+                <i class="fa fa-lock"></i> Lock from public view
+                <small class="text-muted d-block">When locked, this project will NOT appear on public pages (index.html, projects.html). You will still see it when logged in.</small>
+              </label>
+            </div>
           </div>
 
           <div class="form-group">
@@ -525,35 +465,71 @@
       checkboxes.forEach(cb => cb.checked = !allChecked);
     });
 
+    // Render Projects with Lock UI
     async function renderProjects() {
       const projects = await window.portfolioData.loadProjects();
       const container = document.getElementById('projectsList');
+      const isAdmin = window.isAdminUser();
       container.innerHTML = '';
+      
       if (Object.keys(projects).length === 0) {
         container.innerHTML = '<div class="empty-state"><i class="fa fa-folder-open-o"></i><h5>No projects yet</h5></div>';
         return;
       }
+      
       for (const [id, proj] of Object.entries(projects)) {
         const card = document.createElement('div');
         card.className = 'card mb-3';
+        const lockStatus = proj.locked ? 'Locked 🔒' : 'Public 🌍';
+        const lockButtonText = proj.locked ? 'Unlock' : 'Lock';
+        const lockButtonClass = proj.locked ? 'btn-warning' : 'btn-secondary';
+        
         card.innerHTML = `
           <div class="card-body">
-            <div class="d-flex justify-content-between">
-              <h5>${window.escapeHtml(proj.title)}</h5>
+            <div class="d-flex justify-content-between align-items-start flex-wrap">
               <div>
+                <h5>${window.escapeHtml(proj.title)} 
+                  <span class="badge ${proj.locked ? 'badge-danger' : 'badge-success'} ml-2">${lockStatus}</span>
+                </h5>
+                <p><strong>Controller:</strong> ${proj.controllerType} | <strong>Cabinets:</strong> ${proj.cabinetCount} | <strong>Location:</strong> ${proj.siteLocation || ''}</p>
+                <small>${window.escapeHtml(proj.description?.substring(0, 120) || '')}...</small>
+              </div>
+              <div class="btn-group-vertical btn-group-sm">
                 <button class="btn btn-sm btn-outline-primary edit-project" data-id="${id}">Edit</button>
                 <button class="btn btn-sm btn-outline-danger delete-project" data-id="${id}">Delete</button>
+                ${isAdmin ? `<button class="btn btn-sm ${lockButtonClass} lock-project" data-id="${id}" data-locked="${proj.locked}">${lockButtonText}</button>` : ''}
               </div>
             </div>
-            <p><strong>Controller:</strong> ${proj.controllerType} | <strong>Cabinets:</strong> ${proj.cabinetCount} | <strong>Location:</strong> ${proj.siteLocation || ''}</p>
-            <small>${window.escapeHtml(proj.description?.substring(0, 120) || '')}...</small>
-          </div>`;
+          </div>
+        `;
         container.appendChild(card);
       }
+      
       document.querySelectorAll('.edit-project').forEach(btn => btn.addEventListener('click', () => openProjectModal(btn.dataset.id)));
       document.querySelectorAll('.delete-project').forEach(btn => btn.addEventListener('click', () => {
         if (confirm('Delete this project?')) safeDeleteProject(btn.dataset.id);
       }));
+      
+      document.querySelectorAll('.lock-project').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const projectId = btn.dataset.id;
+          const currentlyLocked = btn.dataset.locked === 'true';
+          const action = currentlyLocked ? 'unlock' : 'lock';
+          if (confirm(`Are you sure you want to ${action} this project?${currentlyLocked ? ' It will become visible to the public.' : ' It will be hidden from public view.'}`)) {
+            window.showLoading(`${action === 'lock' ? 'Locking' : 'Unlocking'} project...`);
+            try {
+              await window.portfolioData.toggleProjectLock(projectId, !currentlyLocked);
+              await renderProjects();
+              window.Logger.log('toggle_lock', `${action}ed project: ${projectId}`);
+              showToast(`Project ${action}ed successfully!`, 'success');
+            } catch (err) {
+              showToast(`Failed to ${action} project: ${err.message}`, 'error');
+            } finally {
+              window.hideLoading();
+            }
+          }
+        });
+      });
     }
 
     async function renderCertificates() {
@@ -646,6 +622,10 @@
     }
 
     async function openProjectModal(projectId = null) {
+      const isAdmin = window.isAdminUser();
+      const lockControl = document.getElementById('lockControlGroup');
+      if (lockControl) lockControl.style.display = isAdmin ? 'block' : 'none';
+      
       const isEdit = projectId !== null;
       document.getElementById('projectModalTitle').innerText = isEdit ? 'Edit Project' : 'New Project';
       if (isEdit) {
@@ -672,11 +652,9 @@
           document.getElementById('projTech').value = proj.team.technician;
           document.getElementById('projDesc').value = proj.description;
           document.getElementById('projGraphType').value = proj.graphType;
-          imgContainer.innerHTML = '';
-          if (proj.selectedImages && proj.selectedImages.length) {
-            proj.selectedImages.forEach(img => addImageRow(img.url, img.caption));
-          }
-          updateImageCounter();
+          const lockedCheckbox = document.getElementById('projLocked');
+          if (lockedCheckbox) lockedCheckbox.checked = proj.locked === true;
+          renderExistingImages(proj.selectedImages || []);
         }
       } else {
         document.getElementById('projectId').value = '';
@@ -690,10 +668,23 @@
         document.getElementById('projDO').value = 0;
         document.getElementById('projGraphType').value = 'bar';
         ['projStart','projFinish','projIFAT','projCFAT'].forEach(id => document.getElementById(id).value = '');
-        imgContainer.innerHTML = '';
-        updateImageCounter();
+        const lockedCheckbox = document.getElementById('projLocked');
+        if (lockedCheckbox) lockedCheckbox.checked = false;
+        clearImages();
       }
       $('#projectModal').modal('show');
+    }
+
+    function renderExistingImages(images) {
+      clearImages();
+      if (images && images.length) {
+        images.forEach(img => addImageRow(img.url, img.caption));
+      }
+    }
+
+    function clearImages() {
+      imgContainer.innerHTML = '';
+      updateImageCounter();
     }
 
     document.getElementById('projectForm').addEventListener('submit', async (e) => {
@@ -702,18 +693,19 @@
       const newId = projectId || ('proj_' + Date.now());
       const imgGroups = document.querySelectorAll('#imagesContainer .image-input-group');
       const selectedImages = [];
-      for (const group of imgGroups) {
+      imgGroups.forEach(group => {
         const urlInput = group.querySelector('.img-url-input');
         const capInput = group.querySelector('.img-caption-input');
         if (urlInput && urlInput.value) {
           selectedImages.push({ url: urlInput.value, caption: capInput.value });
         }
-      }
+      });
+      const projectType = document.getElementById('projType').value || 'Other';
       const project = {
         id: newId,
         title: document.getElementById('projTitle').value,
         controllerType: document.getElementById('projController').value,
-        projectType: document.getElementById('projType').value || 'Other',
+        projectType: projectType,
         deltaVVersion: document.getElementById('projVersion').value,
         cabinetCount: parseInt(document.getElementById('projCabinet').value) || 0,
         io: {
@@ -736,7 +728,8 @@
         },
         description: document.getElementById('projDesc').value,
         graphType: document.getElementById('projGraphType').value,
-        selectedImages
+        selectedImages,
+        locked: document.getElementById('projLocked')?.checked || false
       };
       await safeSaveProject(project);
     });
@@ -795,7 +788,6 @@
       document.getElementById('logUserSelectGroup').style.display = 'block';
     }
 
-    // ----- Log Download Functions -----
     async function downloadLogsForUser(username, isAdminView = false) {
       window.showLoading(`Fetching logs for ${username}...`);
       try {
@@ -887,7 +879,6 @@
     });
 
     document.getElementById('downloadAllLogsBtn').addEventListener('click', downloadAllLogs);
-
     await populateUserSelect();
 
     async function loadUsers() {
@@ -954,7 +945,6 @@
       window.hideLoading();
     }
 
-    // Backup button now downloads the latest backup from GitHub
     document.getElementById('backupBtn').addEventListener('click', async () => {
       try {
         window.showLoading('Downloading latest backup from GitHub...');
@@ -1044,6 +1034,23 @@
       window.SessionManager.logout();
       window.location.href = 'login.html';
     });
+
+    function showToast(message, type = "success") {
+      const toastContainer = document.getElementById('toastContainer');
+      if (!toastContainer) {
+        const container = document.createElement('div');
+        container.id = 'toastContainer';
+        container.className = 'toast-container';
+        document.body.appendChild(container);
+      }
+      const toastId = "toast-" + Date.now();
+      const bgClass = type === "success" ? "bg-success" : (type === "error" ? "bg-danger" : "bg-info");
+      const html = `<div id="${toastId}" class="toast ${bgClass} text-white" role="alert" data-autohide="true" data-delay="3000"><div class="toast-body">${message}</div></div>`;
+      document.getElementById('toastContainer').insertAdjacentHTML("beforeend", html);
+      const toastEl = document.getElementById(toastId);
+      $(toastEl).toast("show");
+      toastEl.addEventListener("hidden.bs.toast", () => toastEl.remove());
+    }
 
     await renderProjects();
     await renderCertificates();
