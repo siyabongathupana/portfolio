@@ -1,7 +1,7 @@
-// timesheet.js – complete with background queue, conflict retry, notification toggle, professional PDF reports, and QR code footer
+// timesheet.js – Full fail‑safe with snapshot saving, conflict merging, and read‑only share view
 (function() {
   const user = window.SessionManager?.getCurrentUser();
-  if (!user) {
+  if (!user && !window.location.search.includes('view=readonly')) {
     window.location.href = "login.html?redirect=timesheet";
     return;
   }
@@ -14,11 +14,10 @@
   let projectList = [];
   let notificationsEnabled = true;
   let autoRefreshInterval = null;
-
-  // Write queue & retry logic
   let isSaving = false;
   let saveQueue = [];
 
+  // ---------- Helper functions ----------
   function setButtonLoading(btn, isLoading, originalText = null) {
     if (!btn) return;
     if (isLoading) {
@@ -29,67 +28,6 @@
       btn.disabled = false;
       if (btn.originalText) btn.innerHTML = btn.originalText;
     }
-  }
-
-  async function queueSave() {
-    return new Promise((resolve, reject) => {
-      if (!isSaving) {
-        executeSave(resolve, reject);
-      } else {
-        saveQueue.push({ resolve, reject });
-      }
-    });
-  }
-
-  async function executeSave(resolve, reject) {
-    isSaving = true;
-    try {
-      await saveTimesheetWithRetry();
-      resolve();
-    } catch (err) {
-      reject(err);
-    } finally {
-      isSaving = false;
-      if (saveQueue.length > 0) {
-        const next = saveQueue.shift();
-        executeSave(next.resolve, next.reject);
-      }
-    }
-  }
-
-  async function saveTimesheetWithRetry(maxRetries = 3, baseDelay = 500) {
-    let lastError;
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        await saveTimesheetInternal();
-        return;
-      } catch (err) {
-        lastError = err;
-        if (err.message && (err.message.includes('sha') || err.message.includes('does not match'))) {
-          console.warn(`Conflict detected, retrying (${attempt}/${maxRetries})...`);
-          await new Promise(resolve => setTimeout(resolve, baseDelay * Math.pow(2, attempt - 1)));
-          continue;
-        }
-        throw err;
-      }
-    }
-    throw lastError;
-  }
-
-  async function saveTimesheetInternal() {
-    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const encUser = encodeURIComponent(user.username);
-    const path = `${dataPath}/users/${encUser}/${TIMESHEET_FILE}`;
-    let sha = null;
-    try {
-      const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
-      if (existing) sha = existing.sha;
-    } catch(e) {}
-    await GitHubAPI.updateFile(owner, repo, path, entries, "Update timesheet", branch, user.pat, sha);
-  }
-
-  async function saveTimesheet() {
-    return queueSave();
   }
 
   function showToast(message, type = "success") {
@@ -124,6 +62,111 @@
     document.getElementById('hoursAuto').value = calcHours(start, end).toFixed(2);
   }
 
+  // ---------- GitHub data layer with conflict resolution ----------
+  async function fetchCurrentTimesheet() {
+    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+    const encUser = encodeURIComponent(user.username);
+    const path = `${dataPath}/users/${encUser}/${TIMESHEET_FILE}`;
+    try {
+      const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
+      if (file && file.content) {
+        const parsed = JSON.parse(file.content);
+        return { entries: parsed, sha: file.sha };
+      }
+      return { entries: [], sha: null };
+    } catch(e) {
+      return { entries: [], sha: null };
+    }
+  }
+
+  // Merge strategy: incoming (ours) wins, but if an entry exists with same id, use ours (newest)
+  function mergeEntries(remoteEntries, localEntries) {
+    const map = new Map();
+    for (const e of remoteEntries) map.set(e.id, e);
+    for (const e of localEntries) map.set(e.id, e); // ours overwrites remote if same id
+    return Array.from(map.values()).sort((a,b) => new Date(b.date) - new Date(a.date));
+  }
+
+  async function saveTimesheetWithSnapshot(snapshotEntries, retryCount = 0) {
+    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+    const encUser = encodeURIComponent(user.username);
+    const path = `${dataPath}/users/${encUser}/${TIMESHEET_FILE}`;
+
+    // Get current remote state and SHA
+    let remoteData;
+    try {
+      remoteData = await fetchCurrentTimesheet();
+    } catch (err) {
+      throw new Error("Could not fetch remote timesheet: " + err.message);
+    }
+
+    // If conflict detected (local snapshot differs from what we think remote should be)
+    // We will merge instead of overwriting blindly.
+    let finalEntries = snapshotEntries;
+    let shaToUse = remoteData.sha;
+
+    // If we have a remote version, merge with our snapshot (this handles concurrent edits safely)
+    if (remoteData.entries.length > 0) {
+      finalEntries = mergeEntries(remoteData.entries, snapshotEntries);
+    }
+
+    // Write merged entries
+    try {
+      await GitHubAPI.updateFile(owner, repo, path, finalEntries, "Update timesheet", branch, user.pat, shaToUse);
+      // After successful write, update global entries to reflect what was written
+      entries = finalEntries;
+      return finalEntries;
+    } catch (err) {
+      // If SHA mismatch (409 conflict) and we haven't retried too many times, fetch latest and merge again
+      if (err.message.includes('sha') && retryCount < 3) {
+        console.warn(`Conflict detected, retrying merge (${retryCount+1}/3)...`);
+        await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount+1)));
+        return saveTimesheetWithSnapshot(snapshotEntries, retryCount + 1);
+      }
+      throw err;
+    }
+  }
+
+  async function queueSave(snapshot = null) {
+    return new Promise((resolve, reject) => {
+      const saveTask = { snapshot: snapshot !== null ? snapshot : [...entries], resolve, reject };
+      if (!isSaving) {
+        executeSave(saveTask);
+      } else {
+        saveQueue.push(saveTask);
+      }
+    });
+  }
+
+  async function executeSave(task) {
+    isSaving = true;
+    try {
+      const savedEntries = await saveTimesheetWithSnapshot(task.snapshot);
+      task.resolve(savedEntries);
+    } catch (err) {
+      task.reject(err);
+    } finally {
+      isSaving = false;
+      if (saveQueue.length > 0) {
+        const next = saveQueue.shift();
+        executeSave(next);
+      }
+    }
+  }
+
+  // Public save function: captures snapshot and queues
+  async function saveTimesheet() {
+    const snapshot = [...entries];
+    return queueSave(snapshot);
+  }
+
+  async function loadTimesheet() {
+    const remote = await fetchCurrentTimesheet();
+    entries = remote.entries;
+    entries.sort((a, b) => new Date(b.date) - new Date(a.date));
+  }
+
+  // ---------- Projects & Meta ----------
   async function loadProjectsFromPortfolio() {
     try {
       const projectsData = await window.portfolioData.loadProjects();
@@ -201,22 +244,6 @@
     }
   }
 
-  async function loadTimesheet() {
-    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const encUser = encodeURIComponent(user.username);
-    const path = `${dataPath}/users/${encUser}/${TIMESHEET_FILE}`;
-    try {
-      const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
-      if (file && file.content) {
-        entries = JSON.parse(file.content);
-        entries = entries.map(e => ({ ...e, project: e.project || "Other" }));
-      } else {
-        entries = [];
-      }
-    } catch(e) { entries = []; }
-    entries.sort((a, b) => new Date(b.date) - new Date(a.date));
-  }
-
   async function loadUserMeta() {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(user.username);
@@ -280,6 +307,7 @@
     notificationsEnabled = enabled;
   }
 
+  // ---------- Entry CRUD ----------
   async function addEntry(duplicateData = null) {
     let date, start, end, project, category, billable, notes;
     if (duplicateData) {
@@ -401,6 +429,7 @@
     }
   }
 
+  // ---------- Filtering & UI ----------
   function getFilteredEntries() {
     const range = document.getElementById('filterRange').value;
     const project = document.getElementById('filterProject').value;
@@ -455,22 +484,27 @@
       row.insertCell(7).innerText = entry.notes || '-';
       const actionCell = row.insertCell(8);
       actionCell.className = 'print-hide';
-      const editBtn = document.createElement('button');
-      editBtn.className = 'btn btn-sm btn-edit mr-1';
-      editBtn.innerHTML = '<i class="fa fa-pencil"></i>';
-      editBtn.onclick = () => editEntry(entry.id);
-      const dupBtn = document.createElement('button');
-      dupBtn.className = 'btn btn-sm btn-duplicate mr-1';
-      dupBtn.innerHTML = '<i class="fa fa-copy"></i>';
-      dupBtn.onclick = () => duplicateEntry(entry);
-      const delBtn = document.createElement('button');
-      delBtn.className = 'btn btn-sm btn-danger';
-      delBtn.innerHTML = '<i class="fa fa-trash"></i>';
-      delBtn.dataset.id = entry.id;
-      delBtn.onclick = () => deleteEntry(entry.id);
-      actionCell.appendChild(editBtn);
-      actionCell.appendChild(dupBtn);
-      actionCell.appendChild(delBtn);
+      // Only show edit/duplicate/delete if not read-only
+      if (!isReadOnlyView) {
+        const editBtn = document.createElement('button');
+        editBtn.className = 'btn btn-sm btn-edit mr-1';
+        editBtn.innerHTML = '<i class="fa fa-pencil"></i>';
+        editBtn.onclick = () => editEntry(entry.id);
+        const dupBtn = document.createElement('button');
+        dupBtn.className = 'btn btn-sm btn-duplicate mr-1';
+        dupBtn.innerHTML = '<i class="fa fa-copy"></i>';
+        dupBtn.onclick = () => duplicateEntry(entry);
+        const delBtn = document.createElement('button');
+        delBtn.className = 'btn btn-sm btn-danger';
+        delBtn.innerHTML = '<i class="fa fa-trash"></i>';
+        delBtn.dataset.id = entry.id;
+        delBtn.onclick = () => deleteEntry(entry.id);
+        actionCell.appendChild(editBtn);
+        actionCell.appendChild(dupBtn);
+        actionCell.appendChild(delBtn);
+      } else {
+        actionCell.innerText = '';
+      }
     });
     document.getElementById('totalHoursCell').innerHTML = '<strong>' + totalHours.toFixed(2) + '</strong>';
     tfoot.style.display = 'table-footer-group';
@@ -513,7 +547,44 @@
     }
   }
 
-  // Helper to get entries for a date range
+  function updateCharts() {
+    const filtered = getFilteredEntries();
+    const projMap = {};
+    filtered.forEach(e => { projMap[e.project] = (projMap[e.project] || 0) + e.hours; });
+    if (projectChart) projectChart.destroy();
+    const ctxProj = document.getElementById('projectChart');
+    if (ctxProj && Object.keys(projMap).length) {
+      projectChart = new Chart(ctxProj, { type: 'pie', data: { labels: Object.keys(projMap), datasets: [{ data: Object.values(projMap), backgroundColor: ['#2fc7ff','#ffc107','#28a745','#dc3545','#6f42c1','#fd7e14','#17a2b8','#e83e8c'] }] }, options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } } } } });
+    }
+    const catMap = {};
+    filtered.forEach(e => { catMap[e.category] = (catMap[e.category] || 0) + e.hours; });
+    if (categoryChart) categoryChart.destroy();
+    const ctxCat = document.getElementById('categoryChart');
+    if (ctxCat && Object.keys(catMap).length) {
+      categoryChart = new Chart(ctxCat, { type: 'pie', data: { labels: Object.keys(catMap), datasets: [{ data: Object.values(catMap), backgroundColor: ['#2fc7ff','#ffc107','#28a745','#dc3545','#6f42c1','#fd7e14'] }] }, options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } } } } });
+    }
+    let billable = 0, nonBill = 0;
+    filtered.forEach(e => { if (e.billable === 'yes') billable += e.hours; else nonBill += e.hours; });
+    if (billableChart) billableChart.destroy();
+    const ctxBill = document.getElementById('billableChart');
+    if (ctxBill && (billable+nonBill > 0)) {
+      billableChart = new Chart(ctxBill, { type: 'pie', data: { labels: ['Billable', 'Non-billable'], datasets: [{ data: [billable, nonBill], backgroundColor: ['#28a745','#dc3545'] }] }, options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } } } } });
+    }
+  }
+
+  async function refreshView() {
+    if (isSaving) {
+      console.log("Refresh skipped – save in progress");
+      return;
+    }
+    await loadTimesheet();
+    await loadProjectsFromPortfolio();
+    renderHistory();
+    updateSummaryAndProgress();
+    updateCharts();
+  }
+
+  // ---------- Report & Export ----------
   function getEntriesForPeriod(startDate, endDate) {
     const start = new Date(startDate);
     const end = new Date(endDate);
@@ -524,7 +595,6 @@
     });
   }
 
-  // Function to generate QR code as data URL using free API
   async function getQRCodeDataURL(url, size = 100) {
     const apiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(url)}`;
     const response = await fetch(apiUrl);
@@ -537,7 +607,6 @@
     });
   }
 
-  // Updated PDF generation with professional styling, charts embedded, and QR code footer
   async function generateStyledPDF(startDate, endDate, periodLabel) {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
@@ -553,7 +622,6 @@
     const nonBillable = totalHours - billableHours;
     const overtime = calculateOvertimeForPeriod(filtered);
 
-    // Prepare data for charts
     const projMap = {};
     filtered.forEach(e => { projMap[e.project] = (projMap[e.project] || 0) + e.hours; });
     const catMap = {};
@@ -561,7 +629,6 @@
     let billable = 0, nonBill = 0;
     filtered.forEach(e => { if (e.billable === 'yes') billable += e.hours; else nonBill += e.hours; });
 
-    // Create canvas elements for charts (hidden)
     const chartDiv = document.createElement('div');
     chartDiv.style.position = 'absolute';
     chartDiv.style.top = '-9999px';
@@ -571,8 +638,7 @@
     document.body.appendChild(chartDiv);
 
     const canvas1 = document.createElement('canvas');
-    canvas1.width = 400;
-    canvas1.height = 300;
+    canvas1.width = 400; canvas1.height = 300;
     chartDiv.appendChild(canvas1);
     const ctx1 = canvas1.getContext('2d');
     const projChart = new Chart(ctx1, {
@@ -582,8 +648,7 @@
     });
 
     const canvas2 = document.createElement('canvas');
-    canvas2.width = 400;
-    canvas2.height = 300;
+    canvas2.width = 400; canvas2.height = 300;
     chartDiv.appendChild(canvas2);
     const ctx2 = canvas2.getContext('2d');
     const catChart = new Chart(ctx2, {
@@ -593,8 +658,7 @@
     });
 
     const canvas3 = document.createElement('canvas');
-    canvas3.width = 400;
-    canvas3.height = 300;
+    canvas3.width = 400; canvas3.height = 300;
     chartDiv.appendChild(canvas3);
     const ctx3 = canvas3.getContext('2d');
     const billChart = new Chart(ctx3, {
@@ -607,24 +671,15 @@
     const imgData1 = canvas1.toDataURL('image/png');
     const imgData2 = canvas2.toDataURL('image/png');
     const imgData3 = canvas3.toDataURL('image/png');
-    projChart.destroy();
-    catChart.destroy();
-    billChart.destroy();
+    projChart.destroy(); catChart.destroy(); billChart.destroy();
     document.body.removeChild(chartDiv);
 
-    // Generate QR code
     const repoUrl = 'https://github.com/siyabongathupana/portfolio/';
     let qrDataUrl = null;
-    try {
-      qrDataUrl = await getQRCodeDataURL(repoUrl, 80);
-    } catch (err) {
-      console.warn('QR code generation failed:', err);
-    }
+    try { qrDataUrl = await getQRCodeDataURL(repoUrl, 80); } catch(err) { console.warn(err); }
 
-    // Build table
     const tableData = filtered.map(e => [e.date, e.start, e.end, e.hours.toFixed(2), e.project, e.category, e.billable === 'yes' ? 'Billable' : 'Non-billable', e.notes || '']);
 
-    // PDF content
     doc.setFontSize(20);
     doc.setTextColor(11, 43, 59);
     doc.text('Timesheet Report', 20, 20);
@@ -638,7 +693,6 @@
     doc.setTextColor(0, 0, 0);
     doc.text(`Summary: ${totalHours.toFixed(2)} total hours (Billable: ${billableHours.toFixed(2)}, Non-billable: ${nonBillable.toFixed(2)}, Overtime: ${overtime.toFixed(2)})`, 20, 65);
 
-    // Add charts
     doc.addImage(imgData1, 'PNG', 20, 75, 50, 40);
     doc.addImage(imgData2, 'PNG', 85, 75, 50, 40);
     doc.addImage(imgData3, 'PNG', 150, 75, 50, 40);
@@ -647,7 +701,6 @@
     doc.text('By Category', 85, 120);
     doc.text('Billable vs Non-Billable', 150, 120);
 
-    // Table
     doc.autoTable({
       startY: 130,
       head: [['Date','Start','End','Hours','Project','Category','Billable','Notes']],
@@ -660,7 +713,6 @@
       columnStyles: { 0: { cellWidth: 25 }, 1: { cellWidth: 16 }, 2: { cellWidth: 16 }, 3: { cellWidth: 16 }, 4: { cellWidth: 35 }, 5: { cellWidth: 30 }, 6: { cellWidth: 25 }, 7: { cellWidth: 45 } }
     });
 
-    // Add QR code footer on all pages
     const pageCount = doc.internal.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i);
@@ -668,11 +720,9 @@
       doc.setTextColor(150, 150, 150);
       doc.text(`Your Portfolio – Timesheet | Page ${i} of ${pageCount}`, 20, doc.internal.pageSize.height - 10);
       if (qrDataUrl) {
-        // Place QR code at bottom right corner
         const pageWidth = doc.internal.pageSize.width;
-        const qrSize = 20; // mm
+        const qrSize = 20;
         doc.addImage(qrDataUrl, 'PNG', pageWidth - qrSize - 10, doc.internal.pageSize.height - qrSize - 10, qrSize, qrSize);
-        // Optionally add small label
         doc.setFontSize(6);
         doc.text('Scan to view repo', pageWidth - qrSize - 8, doc.internal.pageSize.height - qrSize - 12);
       }
@@ -683,7 +733,6 @@
     return true;
   }
 
-  // Excel export for custom period
   function exportExcelRange(startDate, endDate, periodLabel) {
     const filtered = getEntriesForPeriod(startDate, endDate);
     if (!filtered.length) { showToast("No entries in selected range.", "error"); return; }
@@ -714,45 +763,71 @@
     showToast("Excel downloaded.");
   }
 
-  async function refreshView() {
-    await loadTimesheet();
-    await loadProjectsFromPortfolio();
-    renderHistory();
-    updateSummaryAndProgress();
-    updateCharts();
-  }
-
-  function updateCharts() {
-    const filtered = getFilteredEntries();
-    const projMap = {};
-    filtered.forEach(e => { projMap[e.project] = (projMap[e.project] || 0) + e.hours; });
-    if (projectChart) projectChart.destroy();
-    const ctxProj = document.getElementById('projectChart');
-    if (ctxProj && Object.keys(projMap).length) {
-      projectChart = new Chart(ctxProj, { type: 'pie', data: { labels: Object.keys(projMap), datasets: [{ data: Object.values(projMap), backgroundColor: ['#2fc7ff','#ffc107','#28a745','#dc3545','#6f42c1','#fd7e14','#17a2b8','#e83e8c'] }] }, options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } } } } });
-    }
-    const catMap = {};
-    filtered.forEach(e => { catMap[e.category] = (catMap[e.category] || 0) + e.hours; });
-    if (categoryChart) categoryChart.destroy();
-    const ctxCat = document.getElementById('categoryChart');
-    if (ctxCat && Object.keys(catMap).length) {
-      categoryChart = new Chart(ctxCat, { type: 'pie', data: { labels: Object.keys(catMap), datasets: [{ data: Object.values(catMap), backgroundColor: ['#2fc7ff','#ffc107','#28a745','#dc3545','#6f42c1','#fd7e14'] }] }, options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } } } } });
-    }
-    let billable = 0, nonBill = 0;
-    filtered.forEach(e => { if (e.billable === 'yes') billable += e.hours; else nonBill += e.hours; });
-    if (billableChart) billableChart.destroy();
-    const ctxBill = document.getElementById('billableChart');
-    if (ctxBill && (billable+nonBill > 0)) {
-      billableChart = new Chart(ctxBill, { type: 'pie', data: { labels: ['Billable', 'Non-billable'], datasets: [{ data: [billable, nonBill], backgroundColor: ['#28a745','#dc3545'] }] }, options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } } } } });
+  // ---------- Share Read-Only ----------
+  let isReadOnlyView = false;
+  function setupReadOnlyMode() {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('view') === 'readonly') {
+      isReadOnlyView = true;
+      // Hide all editing UI
+      document.getElementById('quickLogCard')?.classList.add('d-none');
+      document.getElementById('summaryCard')?.classList.add('d-none');
+      document.getElementById('dailyProgressContainer')?.classList.add('d-none');
+      document.getElementById('filterBar')?.classList.add('d-none');
+      document.getElementById('exportExcelBtn')?.classList.add('d-none');
+      document.getElementById('generateReportBtn')?.classList.add('d-none');
+      document.getElementById('printBtn')?.classList.add('d-none');
+      document.getElementById('saveNameBtn')?.parentElement?.parentElement?.classList.add('d-none');
+      document.getElementById('notificationsToggle')?.closest('.row')?.classList.add('d-none');
+      // Also hide the "Add Entry" button
+      const addEntryBtn = document.getElementById('addEntryBtn');
+      if (addEntryBtn) addEntryBtn.style.display = 'none';
+      // Hide charts if desired
+      document.querySelectorAll('.chart-card').forEach(c => c.classList.add('d-none'));
+      // Show a banner
+      const banner = document.createElement('div');
+      banner.className = 'alert alert-info text-center mb-3';
+      banner.innerHTML = '<i class="fa fa-eye"></i> You are viewing a read‑only shared timesheet. No changes can be made.';
+      const container = document.querySelector('.timesheet-container');
+      if (container) container.insertBefore(banner, container.firstChild);
     }
   }
 
+  // ---------- Auto-refresh (now with isSaving check) ----------
   function startAutoRefresh() {
     if (autoRefreshInterval) clearInterval(autoRefreshInterval);
-    autoRefreshInterval = setInterval(async () => { if (!document.hidden) await refreshView(); }, 60000);
+    autoRefreshInterval = setInterval(async () => {
+      if (!document.hidden && !isSaving) {
+        await refreshView();
+      }
+    }, 300000); // 5 minutes
   }
 
+  // ---------- Share button handler ----------
+  function shareReadOnly() {
+    const url = new URL(window.location.href);
+    url.searchParams.set('view', 'readonly');
+    // Copy to clipboard
+    navigator.clipboard.writeText(url.href).then(() => {
+      showToast('Read-only link copied to clipboard!', 'success');
+    }).catch(() => {
+      alert('Shareable link: ' + url.href);
+    });
+  }
+
+  // ---------- Initialization ----------
   async function init() {
+    setupReadOnlyMode();
+
+    if (isReadOnlyView) {
+      // Load data and render only the table
+      await loadTimesheet();
+      await loadProjectsFromPortfolio(); // for project names in table
+      renderHistory();
+      return;
+    }
+
+    // Normal editable mode
     const dateInput = document.getElementById('logDate');
     if (dateInput) dateInput.value = formatDate(new Date());
     document.getElementById('startTime')?.addEventListener('change', updateHoursAuto);
@@ -790,7 +865,10 @@
       $('#newProjectModal').modal('hide');
     };
 
-    // Report generation with period selection
+    // Share button
+    const shareBtn = document.getElementById('shareReadOnlyBtn');
+    if (shareBtn) shareBtn.onclick = shareReadOnly;
+
     const periodSelect = document.getElementById('reportPeriod');
     const customDiv = document.getElementById('customRangeDiv');
     if (periodSelect) {
@@ -845,7 +923,6 @@
 
     document.getElementById('saveEditBtn').onclick = saveEdit;
 
-    // Notification toggle
     await loadNotificationPreference();
     const toggle = document.getElementById('notificationsToggle');
     if (toggle) {
