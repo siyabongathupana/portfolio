@@ -1,4 +1,4 @@
-// shared.js – Complete with all features + project locking (public hide + cross‑user admin)
+// shared.js – Complete with project locking (locked projects show placeholder, no content access)
 
 window.showLoading = function (msg = 'Processing...') {
   let loader = document.getElementById('globalLoader');
@@ -82,7 +82,7 @@ window.SessionManager = (() => {
   };
 })();
 
-// ---------- LOGGING SYSTEM (complete with HTML conversion) ----------
+// ---------- LOGGING SYSTEM ----------
 window.Logger = {
   async log(action, details, level = 'INFO') {
     const user = window.SessionManager.getCurrentUser();
@@ -104,9 +104,7 @@ window.Logger = {
     const newContent = logEntry + existingContent;
     try {
       await GitHubAPI.updateFile(owner, repo, logPath, newContent, `Log: ${action}`, branch, user.pat, sha);
-    } catch (err) {
-      console.error('Failed to write log:', err);
-    }
+    } catch (err) { console.error('Failed to write log:', err); }
   },
   async getLogsForUser(targetUsername, adminToken) {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
@@ -116,9 +114,7 @@ window.Logger = {
       const file = await GitHubAPI.getFileContent(owner, repo, logPath, branch, adminToken);
       if (file && file.content) return file.content;
       return 'No logs found for this user.';
-    } catch (e) {
-      return 'Unable to retrieve logs.';
-    }
+    } catch (e) { return 'Unable to retrieve logs.'; }
   },
   async getAllUserLogs(adminToken) {
     const usernames = await window.AccountManager.listUsers(adminToken);
@@ -133,22 +129,7 @@ window.Logger = {
       return `<div style="font-family: monospace; padding: 20px; color: #666;">${logText}</div>`;
     }
     const lines = logText.split('\n').filter(l => l.trim());
-    let html = `<!DOCTYPE html>
-    <html>
-    <head><meta charset="UTF-8"><title>Activity Logs - ${username}</title>
-    <style>
-      body { font-family: 'Segoe UI', monospace; background: #1e1e1e; padding: 20px; margin: 0; }
-      .log-container { max-width: 1400px; margin: 0 auto; background: #2d2d2d; border-radius: 12px; overflow: hidden; }
-      .log-header { background: #0b2b3b; color: #2fc7ff; padding: 15px 20px; font-size: 1.2rem; font-weight: bold; }
-      .log-table { width: 100%; border-collapse: collapse; }
-      .log-table th { text-align: left; padding: 12px 15px; background: #3a3a3a; color: #ddd; }
-      .log-table td { padding: 10px 15px; border-bottom: 1px solid #444; font-size: 13px; }
-      .error-row { background-color: #5a1e1e; } .warn-row { background-color: #6b4c1a; }
-      .info-row { background-color: #1a4d3a; } .action-row { background-color: #1e3a5f; }
-      .timestamp { color: #88aaff; } .level-ERROR { color: #ff6666; }
-    </style>
-    </head><body><div class="log-container"><div class="log-header">📋 Activity Logs – ${window.escapeHtml(username)}</div>
-    <table class="log-table"><thead><tr><th>Timestamp</th><th>Level</th><th>Action</th><th>Details</th></tr></thead><tbody>`;
+    let html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Activity Logs - ${username}</title><style>body{font-family:'Segoe UI',monospace;background:#1e1e1e;padding:20px;}.log-container{max-width:1400px;margin:0 auto;background:#2d2d2d;border-radius:12px;}.log-header{background:#0b2b3b;color:#2fc7ff;padding:15px 20px;font-size:1.2rem;}.log-table{width:100%;border-collapse:collapse;}.log-table th{text-align:left;padding:12px 15px;background:#3a3a3a;color:#ddd;}.log-table td{padding:10px 15px;border-bottom:1px solid #444;}.error-row{background:#5a1e1e;}.warn-row{background:#6b4c1a;}.info-row{background:#1a4d3a;}.action-row{background:#1e3a5f;}</style></head><body><div class="log-container"><div class="log-header">📋 Activity Logs – ${window.escapeHtml(username)}</div><table class="log-table"><thead><tr><th>Timestamp</th><th>Level</th><th>Action</th><th>Details</th></tr></thead><tbody>`;
     for (const line of lines) {
       const match = line.match(/\[(.*?)\]\s*\[(.*?)\]\s*\[(.*?)\]\s*(.*)/);
       if (match) {
@@ -158,10 +139,7 @@ window.Logger = {
         else if (level === 'WARN') rowClass = 'warn-row';
         else if (level === 'INFO') rowClass = 'info-row';
         else if (action.includes('login') || action.includes('logout')) rowClass = 'action-row';
-        html += `<tr class="${rowClass}"><td class="timestamp">${window.escapeHtml(timestamp)}</td>
-        <td class="level-${level}">${window.escapeHtml(level)}</td>
-        <td>${window.escapeHtml(action)}</td>
-        <td>${window.escapeHtml(details)}</td></tr>`;
+        html += `<tr class="${rowClass}"><td>${window.escapeHtml(timestamp)}</td><td>${window.escapeHtml(level)}</td><td>${window.escapeHtml(action)}</td><td>${window.escapeHtml(details)}</td></tr>`;
       } else {
         html += `<tr><td colspan="4">${window.escapeHtml(line)}</td></tr>`;
       }
@@ -184,11 +162,7 @@ window.uploadImageToGitHub = async function(file, user, folder = 'images') {
   });
   const url = `https://api.github.com/repos/${window.REPO_CONFIG.owner}/${window.REPO_CONFIG.repo}/contents/${path}`;
   const body = { message: `Upload image ${fileName}`, content, branch: window.REPO_CONFIG.branch };
-  const resp = await fetch(url, {
-    method: 'PUT',
-    headers: { Authorization: `token ${user.pat}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
-  });
+  const resp = await fetch(url, { method: 'PUT', headers: { Authorization: `token ${user.pat}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
   if (!resp.ok) throw new Error('Image upload failed');
   const data = await resp.json();
   await window.Logger.log('image_upload', `Uploaded ${fileName} to ${folder}`);
@@ -202,11 +176,7 @@ window.deleteImageFromGitHub = async function(imageUrl, user) {
   const getResp = await fetch(url, { headers: { Authorization: `token ${user.pat}` } });
   if (!getResp.ok) return;
   const fileData = await getResp.json();
-  const deleteResp = await fetch(url, {
-    method: 'DELETE',
-    headers: { Authorization: `token ${user.pat}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message: 'Delete image', sha: fileData.sha, branch: window.REPO_CONFIG.branch })
-  });
+  const deleteResp = await fetch(url, { method: 'DELETE', headers: { Authorization: `token ${user.pat}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ message: 'Delete image', sha: fileData.sha, branch: window.REPO_CONFIG.branch }) });
   if (!deleteResp.ok) throw new Error('Failed to delete image');
   await window.Logger.log('image_delete', `Deleted ${path}`);
 };
@@ -234,7 +204,7 @@ window.compressImage = function(file, maxW = 1600, maxH = 1600, quality = 0.85) 
   });
 };
 
-// ---------- ACCOUNT MANAGER (complete) ----------
+// ---------- ACCOUNT MANAGER ----------
 window.AccountManager = {
   async _ensureEmailJS() {
     if (typeof emailjs === 'undefined') {
@@ -375,7 +345,7 @@ window.AccountManager = {
   }
 };
 
-// ---------- PORTFOLIO DATA (complete with locking + cross‑user admin) ----------
+// ---------- PORTFOLIO DATA (with locking) ----------
 window.portfolioData = (() => {
   const PROJECTS_KEY = 'portfolioProjects';
   const CERTS_KEY = 'portfolioCertificates';
@@ -406,7 +376,6 @@ window.portfolioData = (() => {
     return type === 'projects' ? {} : [];
   }
 
-  // PUBLIC VIEW – strictly filters locked projects (locked === true hidden)
   async function loadProjectsForView() {
     const user = window.SessionManager.getCurrentUser();
     const isAdmin = window.isAdminUser();
@@ -429,14 +398,7 @@ window.portfolioData = (() => {
       const publicEmail = window.APP_CONFIG.publicProfileEmail;
       if (publicEmail) projects = await fetchPublicData(publicEmail, 'projects');
     }
-    // 🔒 LOCK FILTER: hide any project with locked === true from non‑admin
-    if (!isAdmin) {
-      const filtered = {};
-      for (const [id, proj] of Object.entries(projects)) {
-        if (proj.locked !== true) filtered[id] = proj;
-      }
-      return filtered;
-    }
+    // Return all projects; the frontend will check the 'locked' flag to show placeholder.
     return projects;
   }
 
@@ -462,7 +424,6 @@ window.portfolioData = (() => {
     return [];
   }
 
-  // ADMIN LOAD – ensures every project has a locked property (default false)
   async function loadProjects() {
     const user = window.SessionManager.getCurrentUser();
     if (user && user.pat) {
@@ -579,7 +540,10 @@ window.portfolioData = (() => {
     const encUser = encodeURIComponent(user.username);
     const path = `${dataPath}/users/${encUser}/projects.json`;
     try {
-      await updateFileWithRetry(owner, repo, path, data, 'Update projects', branch, user.pat);
+      let sha = null;
+      const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat).catch(() => null);
+      if (existing) sha = existing.sha;
+      await GitHubAPI.updateFile(owner, repo, path, data, 'Update projects', branch, user.pat, sha);
       await window.Logger.log('save_projects', `Saved ${Object.keys(data).length} projects`);
     } catch (err) {
       if (prev) localStorage.setItem(PROJECTS_KEY, prev);
@@ -604,7 +568,10 @@ window.portfolioData = (() => {
     const encUser = encodeURIComponent(user.username);
     const path = `${dataPath}/users/${encUser}/certificates.json`;
     try {
-      await updateFileWithRetry(owner, repo, path, data, 'Update certificates', branch, user.pat);
+      let sha = null;
+      const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat).catch(() => null);
+      if (existing) sha = existing.sha;
+      await GitHubAPI.updateFile(owner, repo, path, data, 'Update certificates', branch, user.pat, sha);
       await window.Logger.log('save_certificates', `Saved ${data.length} certificates`);
     } catch (err) {
       if (prev) localStorage.setItem(CERTS_KEY, prev);
@@ -613,7 +580,6 @@ window.portfolioData = (() => {
     }
   }
 
-  // Lock for current user’s own projects
   async function toggleProjectLock(projectId, locked) {
     const user = window.SessionManager.getCurrentUser();
     if (!user) throw new Error('Not logged in');
@@ -625,7 +591,7 @@ window.portfolioData = (() => {
     return true;
   }
 
-  // Admin cross‑user: load any user's projects
+  // Admin cross‑user functions
   async function loadProjectsForUser(targetUsername, adminToken) {
     if (!window.isAdminUser()) throw new Error('Only admin can view other users’ projects');
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
@@ -644,7 +610,6 @@ window.portfolioData = (() => {
     } catch (e) { return {}; }
   }
 
-  // Admin cross‑user: save any user's projects
   async function saveProjectsForUser(targetUsername, projectsData, adminToken) {
     if (!window.isAdminUser()) throw new Error('Only admin can modify other users’ projects');
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
@@ -658,7 +623,6 @@ window.portfolioData = (() => {
     await updateFileWithRetry(owner, repo, path, projectsData, `Admin update projects for ${targetUsername}`, branch, adminToken, sha);
   }
 
-  // Admin cross‑user: lock/unlock a project for another user
   async function adminToggleProjectLock(targetUsername, projectId, locked, adminToken) {
     if (!window.isAdminUser()) throw new Error('Only admin can lock/unlock other users’ projects');
     const projects = await loadProjectsForUser(targetUsername, adminToken);
@@ -781,8 +745,8 @@ window.generateProjectReport = async function(projectId) {
   const isAdmin = window.isAdminUser();
   const data = await window.portfolioData.loadProjectsForView();
   const proj = data[projectId];
-  if (!proj) { alert("Project not found or is locked for public viewing."); return; }
-  if (proj.locked === true && !isAdmin) { alert("This project is locked and cannot be viewed publicly."); return; }
+  if (!proj) { alert("Project not found."); return; }
+  if (proj.locked === true && !isAdmin) { alert("This project is locked and its PDF report is not available."); return; }
 
   let projectType = proj.projectType || 'Other';
   let primaryColor, bgColor;
