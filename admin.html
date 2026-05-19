@@ -98,6 +98,7 @@
         <a href="index.html" class="btn view-portfolio-btn mr-2"><i class="fa fa-eye"></i> View Portfolio</a>
         <button class="btn btn-outline-danger btn-sm mr-2" id="logoutBtn"><i class="fa fa-sign-out"></i> Logout</button>
         <button class="btn btn-outline-success btn-sm" id="downloadDataBtn"><i class="fa fa-download"></i> Export</button>
+        <button id="migrateLockBtn" class="btn btn-sm btn-warning mr-2" style="display:none;"><i class="fa fa-magic"></i> Migrate Lock Property</button>
       </div>
     </div>
     <hr>
@@ -786,6 +787,26 @@
       document.getElementById('restoreLabel').style.display = 'inline-flex';
       document.getElementById('downloadAllLogsBtn').style.display = 'inline-block';
       document.getElementById('logUserSelectGroup').style.display = 'block';
+    }
+
+    // Migration button logic (only for admin)
+    const migrateBtn = document.getElementById('migrateLockBtn');
+    if (migrateBtn && isAdmin) {
+      migrateBtn.style.display = 'inline-block';
+      migrateBtn.onclick = async () => {
+        if (confirm('This will add "locked: false" to all projects that miss it. Continue?')) {
+          window.showLoading('Migrating projects...');
+          try {
+            await window.portfolioData.loadProjects(); // triggers migration inside loadProjects
+            alert('Migration complete! All projects now have a locked property.');
+            await renderProjects();
+          } catch (err) {
+            alert('Migration failed: ' + err.message);
+          } finally {
+            window.hideLoading();
+          }
+        }
+      };
     }
 
     async function downloadLogsForUser(username, isAdminView = false) {
