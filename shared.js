@@ -1,4 +1,4 @@
-// shared.js – Full version with HTML log generation, session persistence, backup/restore, image upload
+// shared.js – Full version with HTML log generation, session persistence, backup/restore, image upload, and PROJECT LOCKING
 
 window.showLoading = function (msg = 'Processing...') {
   let loader = document.getElementById('globalLoader');
@@ -25,6 +25,12 @@ window.hideLoading = function () {
 window.escapeHtml = function (str) {
   if (!str) return '';
   return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m] || m);
+};
+
+window.isAdminUser = function() {
+  const user = window.SessionManager?.getCurrentUser();
+  if (!user) return false;
+  return window.APP_CONFIG.adminUsers && window.APP_CONFIG.adminUsers.includes(user.username);
 };
 
 window.updateUserFooter = function () {
@@ -131,7 +137,6 @@ window.Logger = {
     return allLogs;
   },
 
-  // Convert raw log text to styled HTML table with color coding
   logsToHTML(logText, username) {
     if (!logText || logText === 'No logs found for this user.' || logText === 'Unable to retrieve logs.') {
       return `<div style="font-family: monospace; padding: 20px; color: #666;">${logText}</div>`;
@@ -192,13 +197,13 @@ window.Logger = {
           <td class="level level-${level}">${window.escapeHtml(level)}</td>
           <td class="action">${window.escapeHtml(action)}</td>
           <td>${window.escapeHtml(details)}</td>
-        </tr>`;
+         </tr>`;
       } else {
         html += `<tr><td colspan="4">${window.escapeHtml(line)}</td></tr>`;
       }
     }
     
-    html += `</tbody>}</table></div></body></html>`;
+    html += `</tbody></table></div></body></html>`;
     return html;
   }
 };
@@ -448,7 +453,7 @@ window.AccountManager = {
   }
 };
 
-// ---------- PORTFOLIO DATA (with backup, restore, user views) ----------
+// ---------- PORTFOLIO DATA (with PROJECT LOCKING) ----------
 window.portfolioData = (() => {
   const PROJECTS_KEY = 'portfolioProjects';
   const CERTS_KEY = 'portfolioCertificates';
@@ -479,8 +484,13 @@ window.portfolioData = (() => {
     return type === 'projects' ? {} : [];
   }
 
+  // UPDATED: Load projects with visibility filtering based on lock status
   async function loadProjectsForView() {
     const user = window.SessionManager.getCurrentUser();
+    const isAdmin = window.isAdminUser();
+    
+    let projects = {};
+    
     if (user && user.pat) {
       await verifyNotBlocked();
       try {
@@ -489,20 +499,33 @@ window.portfolioData = (() => {
         const path = `${dataPath}/users/${encUser}/projects.json`;
         const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
         if (file && file.content) {
-          const data = JSON.parse(file.content);
-          return data;
+          projects = JSON.parse(file.content);
         } else {
           if (user.username === window.APP_CONFIG.publicProfileEmail) {
             const publicData = await fetchPublicData(user.username, 'projects');
-            if (Object.keys(publicData).length > 0) return publicData;
+            if (Object.keys(publicData).length > 0) projects = publicData;
           }
-          return {};
         }
-      } catch (e) { return {}; }
+      } catch (e) { projects = {}; }
+    } else {
+      const publicEmail = window.APP_CONFIG.publicProfileEmail;
+      if (publicEmail) {
+        projects = await fetchPublicData(publicEmail, 'projects');
+      }
     }
-    const publicEmail = window.APP_CONFIG.publicProfileEmail;
-    if (publicEmail) return await fetchPublicData(publicEmail, 'projects');
-    return {};
+    
+    // Filter out locked projects for non-admin users
+    if (!isAdmin && !user) {
+      const filtered = {};
+      for (const [id, proj] of Object.entries(projects)) {
+        if (!proj.locked) {
+          filtered[id] = proj;
+        }
+      }
+      return filtered;
+    }
+    
+    return projects;
   }
 
   async function loadCertificatesForView() {
@@ -668,6 +691,39 @@ window.portfolioData = (() => {
     }
   }
 
+  // NEW: Toggle project lock status
+  async function toggleProjectLock(projectId, locked) {
+    const user = window.SessionManager.getCurrentUser();
+    if (!user || !window.isAdminUser()) {
+      throw new Error('Only admin can lock/unlock projects');
+    }
+    
+    const allProjects = await loadProjects();
+    if (!allProjects[projectId]) {
+      throw new Error('Project not found');
+    }
+    
+    allProjects[projectId].locked = locked;
+    await saveProjects(allProjects);
+    await window.Logger.log('toggle_project_lock', `${locked ? 'Locked' : 'Unlocked'} project: ${allProjects[projectId].title}`);
+    return true;
+  }
+
+  // NEW: Get list of locked projects
+  async function loadLockedProjects() {
+    const user = window.SessionManager.getCurrentUser();
+    if (!user || !window.isAdminUser()) return [];
+    
+    const allProjects = await loadProjects();
+    const locked = [];
+    for (const [id, proj] of Object.entries(allProjects)) {
+      if (proj.locked) {
+        locked.push({ id, title: proj.title });
+      }
+    }
+    return locked;
+  }
+
   function exportData() {
     Promise.all([loadProjects(), loadCertificates()]).then(([projects, certs]) => {
       const zip = new JSZip();
@@ -736,9 +792,17 @@ window.portfolioData = (() => {
   }
 
   return {
-    loadProjects, saveProjects, loadCertificates, saveCertificates, exportData,
-    downloadLatestBackup, restoreBackup,
-    loadProjectsForView, loadCertificatesForView
+    loadProjects,
+    saveProjects,
+    loadCertificates,
+    saveCertificates,
+    exportData,
+    downloadLatestBackup,
+    restoreBackup,
+    loadProjectsForView,
+    loadCertificatesForView,
+    loadLockedProjects,
+    toggleProjectLock
   };
 })();
 
