@@ -1,4 +1,4 @@
-// timesheet.js – Full fail‑safe with snapshot saving, conflict merging, and read‑only share view
+// timesheet.js – Ultimate fail‑safe with aggressive conflict resolution
 (function() {
   const user = window.SessionManager?.getCurrentUser();
   if (!user && !window.location.search.includes('view=readonly')) {
@@ -16,6 +16,7 @@
   let autoRefreshInterval = null;
   let isSaving = false;
   let saveQueue = [];
+  let lastSaveTimestamp = 0;
 
   // ---------- Helper functions ----------
   function setButtonLoading(btn, isLoading, originalText = null) {
@@ -62,7 +63,7 @@
     document.getElementById('hoursAuto').value = calcHours(start, end).toFixed(2);
   }
 
-  // ---------- GitHub data layer with conflict resolution ----------
+  // ---------- Core: conflict‑resistant save ----------
   async function fetchCurrentTimesheet() {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(user.username);
@@ -79,54 +80,45 @@
     }
   }
 
-  // Merge strategy: incoming (ours) wins, but if an entry exists with same id, use ours (newest)
+  // Merge: local entries (ours) take precedence over remote for same ID.
+  // New entries from remote that we don't have are kept.
   function mergeEntries(remoteEntries, localEntries) {
     const map = new Map();
     for (const e of remoteEntries) map.set(e.id, e);
-    for (const e of localEntries) map.set(e.id, e); // ours overwrites remote if same id
+    for (const e of localEntries) map.set(e.id, e); // local overwrites remote if same id
     return Array.from(map.values()).sort((a,b) => new Date(b.date) - new Date(a.date));
   }
 
-  async function saveTimesheetWithSnapshot(snapshotEntries, retryCount = 0) {
-    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const encUser = encodeURIComponent(user.username);
-    const path = `${dataPath}/users/${encUser}/${TIMESHEET_FILE}`;
-
-    // Get current remote state and SHA
-    let remoteData;
+  // Save with retry and automatic merge on conflict
+  async function saveWithRetry(snapshotEntries, attempt = 1) {
+    const maxAttempts = 5;
+    const delay = Math.min(8000, Math.pow(2, attempt - 1) * 1000);
+    
     try {
-      remoteData = await fetchCurrentTimesheet();
+      // 1) Always fetch the latest remote state
+      const remote = await fetchCurrentTimesheet();
+      // 2) Merge remote with our snapshot (preserves all data)
+      const mergedEntries = mergeEntries(remote.entries, snapshotEntries);
+      // 3) Write back using the latest SHA
+      const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+      const encUser = encodeURIComponent(user.username);
+      const path = `${dataPath}/users/${encUser}/${TIMESHEET_FILE}`;
+      await GitHubAPI.updateFile(owner, repo, path, mergedEntries, "Update timesheet", branch, user.pat, remote.sha);
+      // Success – update global entries to what we just wrote
+      entries = mergedEntries;
+      return mergedEntries;
     } catch (err) {
-      throw new Error("Could not fetch remote timesheet: " + err.message);
-    }
-
-    // If conflict detected (local snapshot differs from what we think remote should be)
-    // We will merge instead of overwriting blindly.
-    let finalEntries = snapshotEntries;
-    let shaToUse = remoteData.sha;
-
-    // If we have a remote version, merge with our snapshot (this handles concurrent edits safely)
-    if (remoteData.entries.length > 0) {
-      finalEntries = mergeEntries(remoteData.entries, snapshotEntries);
-    }
-
-    // Write merged entries
-    try {
-      await GitHubAPI.updateFile(owner, repo, path, finalEntries, "Update timesheet", branch, user.pat, shaToUse);
-      // After successful write, update global entries to reflect what was written
-      entries = finalEntries;
-      return finalEntries;
-    } catch (err) {
-      // If SHA mismatch (409 conflict) and we haven't retried too many times, fetch latest and merge again
-      if (err.message.includes('sha') && retryCount < 3) {
-        console.warn(`Conflict detected, retrying merge (${retryCount+1}/3)...`);
-        await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount+1)));
-        return saveTimesheetWithSnapshot(snapshotEntries, retryCount + 1);
+      const isConflict = err.isConflict === true || (err.message && err.message.includes('CONFLICT'));
+      if (isConflict && attempt < maxAttempts) {
+        console.warn(`Conflict on attempt ${attempt}, retrying in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        return saveWithRetry(snapshotEntries, attempt + 1);
       }
       throw err;
     }
   }
 
+  // Queue manager
   async function queueSave(snapshot = null) {
     return new Promise((resolve, reject) => {
       const saveTask = { snapshot: snapshot !== null ? snapshot : [...entries], resolve, reject };
@@ -141,9 +133,10 @@
   async function executeSave(task) {
     isSaving = true;
     try {
-      const savedEntries = await saveTimesheetWithSnapshot(task.snapshot);
+      const savedEntries = await saveWithRetry(task.snapshot);
       task.resolve(savedEntries);
     } catch (err) {
+      console.error("Save failed after retries:", err);
       task.reject(err);
     } finally {
       isSaving = false;
@@ -154,7 +147,6 @@
     }
   }
 
-  // Public save function: captures snapshot and queues
   async function saveTimesheet() {
     const snapshot = [...entries];
     return queueSave(snapshot);
@@ -166,7 +158,7 @@
     entries.sort((a, b) => new Date(b.date) - new Date(a.date));
   }
 
-  // ---------- Projects & Meta ----------
+  // ---------- Projects & Meta (unchanged from previous, but included for completeness) ----------
   async function loadProjectsFromPortfolio() {
     try {
       const projectsData = await window.portfolioData.loadProjects();
@@ -464,6 +456,7 @@
     const filtered = getFilteredEntries();
     const tbody = document.getElementById('historyBody');
     const tfoot = document.getElementById('historyFoot');
+    const isReadOnly = window.location.search.includes('view=readonly');
     if (filtered.length === 0) {
       tbody.innerHTML = '<tr><td colspan="9" class="text-center">No entries found.</td></tr>';
       tfoot.style.display = 'none';
@@ -484,8 +477,7 @@
       row.insertCell(7).innerText = entry.notes || '-';
       const actionCell = row.insertCell(8);
       actionCell.className = 'print-hide';
-      // Only show edit/duplicate/delete if not read-only
-      if (!isReadOnlyView) {
+      if (!isReadOnly) {
         const editBtn = document.createElement('button');
         editBtn.className = 'btn btn-sm btn-edit mr-1';
         editBtn.innerHTML = '<i class="fa fa-pencil"></i>';
@@ -502,8 +494,6 @@
         actionCell.appendChild(editBtn);
         actionCell.appendChild(dupBtn);
         actionCell.appendChild(delBtn);
-      } else {
-        actionCell.innerText = '';
       }
     });
     document.getElementById('totalHoursCell').innerHTML = '<strong>' + totalHours.toFixed(2) + '</strong>';
@@ -584,7 +574,7 @@
     updateCharts();
   }
 
-  // ---------- Report & Export ----------
+  // ---------- Report & Export (unchanged but required) ----------
   function getEntriesForPeriod(startDate, endDate) {
     const start = new Date(startDate);
     const end = new Date(endDate);
@@ -763,15 +753,11 @@
     showToast("Excel downloaded.");
   }
 
-  // ---------- Share Read-Only ----------
-  let isReadOnlyView = false;
+  // ---------- Read‑only mode ----------
   function setupReadOnlyMode() {
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('view') === 'readonly') {
-      isReadOnlyView = true;
-      // Hide all editing UI
       document.getElementById('quickLogCard')?.classList.add('d-none');
-      document.getElementById('summaryCard')?.classList.add('d-none');
       document.getElementById('dailyProgressContainer')?.classList.add('d-none');
       document.getElementById('filterBar')?.classList.add('d-none');
       document.getElementById('exportExcelBtn')?.classList.add('d-none');
@@ -779,12 +765,9 @@
       document.getElementById('printBtn')?.classList.add('d-none');
       document.getElementById('saveNameBtn')?.parentElement?.parentElement?.classList.add('d-none');
       document.getElementById('notificationsToggle')?.closest('.row')?.classList.add('d-none');
-      // Also hide the "Add Entry" button
       const addEntryBtn = document.getElementById('addEntryBtn');
       if (addEntryBtn) addEntryBtn.style.display = 'none';
-      // Hide charts if desired
       document.querySelectorAll('.chart-card').forEach(c => c.classList.add('d-none'));
-      // Show a banner
       const banner = document.createElement('div');
       banner.className = 'alert alert-info text-center mb-3';
       banner.innerHTML = '<i class="fa fa-eye"></i> You are viewing a read‑only shared timesheet. No changes can be made.';
@@ -793,21 +776,20 @@
     }
   }
 
-  // ---------- Auto-refresh (now with isSaving check) ----------
+  // ---------- Auto‑refresh (5 minutes, blocked during saves) ----------
   function startAutoRefresh() {
     if (autoRefreshInterval) clearInterval(autoRefreshInterval);
     autoRefreshInterval = setInterval(async () => {
       if (!document.hidden && !isSaving) {
         await refreshView();
       }
-    }, 300000); // 5 minutes
+    }, 300000);
   }
 
-  // ---------- Share button handler ----------
+  // ---------- Share button ----------
   function shareReadOnly() {
     const url = new URL(window.location.href);
     url.searchParams.set('view', 'readonly');
-    // Copy to clipboard
     navigator.clipboard.writeText(url.href).then(() => {
       showToast('Read-only link copied to clipboard!', 'success');
     }).catch(() => {
@@ -819,10 +801,9 @@
   async function init() {
     setupReadOnlyMode();
 
-    if (isReadOnlyView) {
-      // Load data and render only the table
+    if (window.location.search.includes('view=readonly')) {
       await loadTimesheet();
-      await loadProjectsFromPortfolio(); // for project names in table
+      await loadProjectsFromPortfolio();
       renderHistory();
       return;
     }
@@ -865,7 +846,6 @@
       $('#newProjectModal').modal('hide');
     };
 
-    // Share button
     const shareBtn = document.getElementById('shareReadOnlyBtn');
     if (shareBtn) shareBtn.onclick = shareReadOnly;
 
