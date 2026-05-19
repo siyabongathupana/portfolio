@@ -1,4 +1,4 @@
-// timesheet.js – Ultimate fail‑safe with aggressive conflict resolution
+// timesheet.js – SHA-conflict PROOF – always fetches latest before saving
 (function() {
   const user = window.SessionManager?.getCurrentUser();
   if (!user && !window.location.search.includes('view=readonly')) {
@@ -16,21 +16,9 @@
   let autoRefreshInterval = null;
   let isSaving = false;
   let saveQueue = [];
-  let lastSaveTimestamp = 0;
+  let pendingSaveSnapshot = null;
 
   // ---------- Helper functions ----------
-  function setButtonLoading(btn, isLoading, originalText = null) {
-    if (!btn) return;
-    if (isLoading) {
-      btn.originalText = btn.innerHTML;
-      btn.disabled = true;
-      btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Saving...';
-    } else {
-      btn.disabled = false;
-      if (btn.originalText) btn.innerHTML = btn.originalText;
-    }
-  }
-
   function showToast(message, type = "success") {
     const container = document.getElementById("toastContainer");
     if (!container) return;
@@ -63,7 +51,19 @@
     document.getElementById('hoursAuto').value = calcHours(start, end).toFixed(2);
   }
 
-  // ---------- Core: conflict‑resistant save ----------
+  function setButtonLoading(btn, isLoading, originalText = null) {
+    if (!btn) return;
+    if (isLoading) {
+      btn.originalText = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Saving...';
+    } else {
+      btn.disabled = false;
+      if (btn.originalText) btn.innerHTML = btn.originalText;
+    }
+  }
+
+  // ---------- CORE: Conflict-proof save (always fetches latest) ----------
   async function fetchCurrentTimesheet() {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(user.username);
@@ -76,52 +76,65 @@
       }
       return { entries: [], sha: null };
     } catch(e) {
+      console.warn("Fetch error:", e);
       return { entries: [], sha: null };
     }
   }
 
-  // Merge: local entries (ours) take precedence over remote for same ID.
-  // New entries from remote that we don't have are kept.
+  // Merge: local entries take priority for same ID, but keep remote entries we don't have
   function mergeEntries(remoteEntries, localEntries) {
     const map = new Map();
+    // Add all remote entries first
     for (const e of remoteEntries) map.set(e.id, e);
-    for (const e of localEntries) map.set(e.id, e); // local overwrites remote if same id
-    return Array.from(map.values()).sort((a,b) => new Date(b.date) - new Date(a.date));
+    // Overwrite with local entries (same ID)
+    for (const e of localEntries) map.set(e.id, e);
+    // Return sorted by date (newest first)
+    return Array.from(map.values()).sort((a, b) => new Date(b.date) - new Date(a.date));
   }
 
-  // Save with retry and automatic merge on conflict
-  async function saveWithRetry(snapshotEntries, attempt = 1) {
-    const maxAttempts = 5;
-    const delay = Math.min(8000, Math.pow(2, attempt - 1) * 1000);
+  // The main save function – ALWAYS fetches latest before writing
+  async function saveTimesheetInternal(snapshotEntries, retryCount = 0) {
+    const maxRetries = 5;
+    const delay = Math.min(5000, Math.pow(2, retryCount) * 500);
     
     try {
-      // 1) Always fetch the latest remote state
+      // STEP 1: Always fetch the LATEST remote version
       const remote = await fetchCurrentTimesheet();
-      // 2) Merge remote with our snapshot (preserves all data)
+      
+      // STEP 2: Merge remote with our snapshot (preserves ALL data)
       const mergedEntries = mergeEntries(remote.entries, snapshotEntries);
-      // 3) Write back using the latest SHA
+      
+      // STEP 3: Write using the latest SHA
       const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
       const encUser = encodeURIComponent(user.username);
       const path = `${dataPath}/users/${encUser}/${TIMESHEET_FILE}`;
+      
       await GitHubAPI.updateFile(owner, repo, path, mergedEntries, "Update timesheet", branch, user.pat, remote.sha);
-      // Success – update global entries to what we just wrote
+      
+      // SUCCESS – update global entries to what we just saved
       entries = mergedEntries;
       return mergedEntries;
+      
     } catch (err) {
-      const isConflict = err.isConflict === true || (err.message && err.message.includes('CONFLICT'));
-      if (isConflict && attempt < maxAttempts) {
-        console.warn(`Conflict on attempt ${attempt}, retrying in ${delay}ms...`);
+      console.error(`Save attempt ${retryCount + 1} failed:`, err);
+      
+      // Retry on any error (network, conflict, etc.)
+      if (retryCount < maxRetries) {
+        console.log(`Retrying in ${delay}ms... (${retryCount + 1}/${maxRetries})`);
         await new Promise(resolve => setTimeout(resolve, delay));
-        return saveWithRetry(snapshotEntries, attempt + 1);
+        return saveTimesheetInternal(snapshotEntries, retryCount + 1);
       }
-      throw err;
+      throw new Error(`Failed to save after ${maxRetries} attempts: ${err.message}`);
     }
   }
 
-  // Queue manager
+  // Queue manager to prevent concurrent saves
   async function queueSave(snapshot = null) {
+    const snapshotToSave = snapshot !== null ? snapshot : [...entries];
+    
     return new Promise((resolve, reject) => {
-      const saveTask = { snapshot: snapshot !== null ? snapshot : [...entries], resolve, reject };
+      const saveTask = { snapshot: snapshotToSave, resolve, reject };
+      
       if (!isSaving) {
         executeSave(saveTask);
       } else {
@@ -133,10 +146,10 @@
   async function executeSave(task) {
     isSaving = true;
     try {
-      const savedEntries = await saveWithRetry(task.snapshot);
+      const savedEntries = await saveTimesheetInternal(task.snapshot);
       task.resolve(savedEntries);
     } catch (err) {
-      console.error("Save failed after retries:", err);
+      console.error("Save execution failed:", err);
       task.reject(err);
     } finally {
       isSaving = false;
@@ -158,7 +171,7 @@
     entries.sort((a, b) => new Date(b.date) - new Date(a.date));
   }
 
-  // ---------- Projects & Meta (unchanged from previous, but included for completeness) ----------
+  // ---------- Projects & Meta ----------
   async function loadProjectsFromPortfolio() {
     try {
       const projectsData = await window.portfolioData.loadProjects();
@@ -334,7 +347,9 @@
 
     try {
       const newEntry = { id: Date.now(), date, start, end, hours, project, category, billable, notes };
+      // Update local entries array
       entries.unshift(newEntry);
+      // Save to GitHub (will fetch latest, merge, and write)
       await saveTimesheet();
       showToast(duplicateData ? "Entry duplicated!" : "Entry saved.");
       await refreshView();
@@ -347,6 +362,8 @@
     } catch (err) {
       console.error(err);
       showToast("Failed to save entry: " + err.message, "error");
+      // Revert local change on error
+      await loadTimesheet();
     } finally {
       setButtonLoading(addBtn, false);
     }
@@ -363,6 +380,7 @@
       await refreshView();
     } catch (err) {
       showToast("Delete failed: " + err.message, "error");
+      await loadTimesheet();
     } finally {
       if (delBtn) setButtonLoading(delBtn, false);
     }
@@ -457,8 +475,9 @@
     const tbody = document.getElementById('historyBody');
     const tfoot = document.getElementById('historyFoot');
     const isReadOnly = window.location.search.includes('view=readonly');
+    
     if (filtered.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="9" class="text-center">No entries found.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" class="text-center">No entries found. Nein</td></tr>';
       tfoot.style.display = 'none';
       return;
     }
@@ -574,7 +593,7 @@
     updateCharts();
   }
 
-  // ---------- Report & Export (unchanged but required) ----------
+  // ---------- Report & Export ----------
   function getEntriesForPeriod(startDate, endDate) {
     const start = new Date(startDate);
     const end = new Date(endDate);
@@ -630,8 +649,7 @@
     const canvas1 = document.createElement('canvas');
     canvas1.width = 400; canvas1.height = 300;
     chartDiv.appendChild(canvas1);
-    const ctx1 = canvas1.getContext('2d');
-    const projChart = new Chart(ctx1, {
+    const projChart = new Chart(canvas1.getContext('2d'), {
       type: 'pie',
       data: { labels: Object.keys(projMap), datasets: [{ data: Object.values(projMap), backgroundColor: ['#2fc7ff','#ffc107','#28a745','#dc3545','#6f42c1','#fd7e14','#17a2b8','#e83e8c'] }] },
       options: { responsive: false }
@@ -640,8 +658,7 @@
     const canvas2 = document.createElement('canvas');
     canvas2.width = 400; canvas2.height = 300;
     chartDiv.appendChild(canvas2);
-    const ctx2 = canvas2.getContext('2d');
-    const catChart = new Chart(ctx2, {
+    const catChart = new Chart(canvas2.getContext('2d'), {
       type: 'pie',
       data: { labels: Object.keys(catMap), datasets: [{ data: Object.values(catMap), backgroundColor: ['#2fc7ff','#ffc107','#28a745','#dc3545','#6f42c1','#fd7e14'] }] },
       options: { responsive: false }
@@ -650,8 +667,7 @@
     const canvas3 = document.createElement('canvas');
     canvas3.width = 400; canvas3.height = 300;
     chartDiv.appendChild(canvas3);
-    const ctx3 = canvas3.getContext('2d');
-    const billChart = new Chart(ctx3, {
+    const billChart = new Chart(canvas3.getContext('2d'), {
       type: 'pie',
       data: { labels: ['Billable', 'Non-billable'], datasets: [{ data: [billable, nonBill], backgroundColor: ['#28a745','#dc3545'] }] },
       options: { responsive: false }
@@ -753,12 +769,13 @@
     showToast("Excel downloaded.");
   }
 
-  // ---------- Read‑only mode ----------
+  // ---------- Read-only mode ----------
   function setupReadOnlyMode() {
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('view') === 'readonly') {
       document.getElementById('quickLogCard')?.classList.add('d-none');
       document.getElementById('dailyProgressContainer')?.classList.add('d-none');
+      document.getElementById('summaryCard')?.classList.add('d-none');
       document.getElementById('filterBar')?.classList.add('d-none');
       document.getElementById('exportExcelBtn')?.classList.add('d-none');
       document.getElementById('generateReportBtn')?.classList.add('d-none');
@@ -776,7 +793,7 @@
     }
   }
 
-  // ---------- Auto‑refresh (5 minutes, blocked during saves) ----------
+  // ---------- Auto-refresh (5 minutes, blocked during saves) ----------
   function startAutoRefresh() {
     if (autoRefreshInterval) clearInterval(autoRefreshInterval);
     autoRefreshInterval = setInterval(async () => {
