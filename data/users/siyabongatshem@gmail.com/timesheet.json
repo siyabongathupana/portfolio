@@ -1,1 +1,13 @@
-[]
+[
+  {
+    "id": 1779192961527,
+    "date": "2026-05-19",
+    "start": "14:16",
+    "end": "16:15",
+    "hours": 1.98,
+    "project": "15",
+    "category": "Training",
+    "billable": "yes",
+    "notes": ""
+  }
+]
