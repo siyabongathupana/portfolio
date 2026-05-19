@@ -204,7 +204,8 @@
         "url": "https://raw.githubusercontent.com/siyabongathupana/portfolio/main/data/users/siyabongatshem%40gmail.com/project_images/1778975317004_1000321813.jpg",
         "caption": ""
       }
-    ]
+    ],
+    "locked": false
   },
   "proj_1778637147436": {
     "id": "proj_1778637147436",
@@ -242,7 +243,8 @@
         "url": "https://raw.githubusercontent.com/siyabongathupana/portfolio/main/data/users/siyabongatshem%40gmail.com/project_images/1778976265268_1000269073.jpg",
         "caption": ""
       }
-    ]
+    ],
+    "locked": false
   },
   "proj_1778637212185": {
     "id": "proj_1778637212185",
@@ -343,7 +345,8 @@
         "url": "https://raw.githubusercontent.com/siyabongathupana/portfolio/main/data/users/siyabongatshem%40gmail.com/project_images/1778977270962_1000387384.jpg",
         "caption": ""
       }
-    ]
+    ],
+    "locked": false
   },
   "proj_1778637558785": {
     "id": "proj_1778637558785",
@@ -397,7 +400,8 @@
         "url": "https://raw.githubusercontent.com/siyabongathupana/portfolio/main/data/users/siyabongatshem%40gmail.com/project_images/1778978755022_1000282618.jpg",
         "caption": ""
       }
-    ]
+    ],
+    "locked": false
   },
   "proj_1778637594890": {
     "id": "proj_1778637594890",
@@ -439,7 +443,8 @@
         "url": "https://raw.githubusercontent.com/siyabongathupana/portfolio/main/data/users/siyabongatshem%40gmail.com/project_images/1778978033545_1000244467.jpg",
         "caption": ""
       }
-    ]
+    ],
+    "locked": false
   },
   "proj_1778637819862": {
     "id": "proj_1778637819862",
@@ -477,7 +482,8 @@
         "url": "https://raw.githubusercontent.com/siyabongathupana/portfolio/main/data/users/siyabongatshem%40gmail.com/project_images/1778978223418_1000238085.jpg",
         "caption": ""
       }
-    ]
+    ],
+    "locked": false
   },
   "proj_1778856671014": {
     "id": "proj_1778856671014",
@@ -519,7 +525,8 @@
         "url": "https://raw.githubusercontent.com/siyabongathupana/portfolio/main/data/users/siyabongatshem%40gmail.com/project_images/1778978534948_1000433732.jpg",
         "caption": ""
       }
-    ]
+    ],
+    "locked": false
   },
   "proj_1778856729193": {
     "id": "proj_1778856729193",
@@ -565,7 +572,8 @@
         "url": "https://raw.githubusercontent.com/siyabongathupana/portfolio/main/data/users/siyabongatshem%40gmail.com/project_images/1778979181085_1000542561.jpg",
         "caption": ""
       }
-    ]
+    ],
+    "locked": false
   },
   "proj_1778856792675": {
     "id": "proj_1778856792675",
@@ -619,7 +627,8 @@
         "url": "https://raw.githubusercontent.com/siyabongathupana/portfolio/main/data/users/siyabongatshem%40gmail.com/project_images/1778979301427_1000557953.jpg",
         "caption": ""
       }
-    ]
+    ],
+    "locked": false
   },
   "proj_1778857100833": {
     "id": "proj_1778857100833",
@@ -661,7 +670,8 @@
         "url": "https://raw.githubusercontent.com/siyabongathupana/portfolio/main/data/users/siyabongatshem%40gmail.com/project_images/1778979415325_1000567201.jpg",
         "caption": ""
       }
-    ]
+    ],
+    "locked": false
   },
   "proj_1778857329680": {
     "id": "proj_1778857329680",
@@ -690,7 +700,8 @@
     },
     "description": "",
     "graphType": "bar",
-    "selectedImages": []
+    "selectedImages": [],
+    "locked": false
   },
   "proj_1778857420543": {
     "id": "proj_1778857420543",
@@ -719,7 +730,8 @@
     },
     "description": "",
     "graphType": "bar",
-    "selectedImages": []
+    "selectedImages": [],
+    "locked": false
   },
   "proj_1778857540659": {
     "id": "proj_1778857540659",
@@ -748,7 +760,8 @@
     },
     "description": "",
     "graphType": "bar",
-    "selectedImages": []
+    "selectedImages": [],
+    "locked": false
   },
   "proj_1778857656290": {
     "id": "proj_1778857656290",
@@ -777,7 +790,8 @@
     },
     "description": "",
     "graphType": "bar",
-    "selectedImages": []
+    "selectedImages": [],
+    "locked": false
   },
   "proj_1778858886464": {
     "id": "proj_1778858886464",
@@ -806,7 +820,8 @@
     },
     "description": "",
     "graphType": "bar",
-    "selectedImages": []
+    "selectedImages": [],
+    "locked": false
   },
   "proj_1778859244873": {
     "id": "proj_1778859244873",
@@ -835,7 +850,8 @@
     },
     "description": "",
     "graphType": "bar",
-    "selectedImages": []
+    "selectedImages": [],
+    "locked": false
   },
   "proj_1778859949457": {
     "id": "proj_1778859949457",
@@ -864,7 +880,8 @@
     },
     "description": "",
     "graphType": "bar",
-    "selectedImages": []
+    "selectedImages": [],
+    "locked": false
   },
   "proj_1778871312556": {
     "id": "proj_1778871312556",
@@ -893,6 +910,7 @@
     },
     "description": "",
     "graphType": "bar",
-    "selectedImages": []
+    "selectedImages": [],
+    "locked": false
   }
 }
