@@ -128,6 +128,7 @@
       .history-table th { background: #f0f0f0 !important; color: black !important; }
       @page { size: landscape; margin: 1.5cm; }
     }
+    .d-none { display: none !important; }
   </style>
 </head>
 <body style="background:#eef3fc;">
@@ -154,6 +155,7 @@
   <div class="d-flex justify-content-between align-items-center flex-wrap mb-3">
     <h3><i class="fa fa-clock-o"></i> Timesheet</h3>
     <div>
+      <button id="shareReadOnlyBtn" class="btn btn-sm btn-info mr-2"><i class="fa fa-share-alt"></i> Share Read‑Only</button>
       <button id="exportExcelBtn" class="btn btn-sm btn-success mr-2"><i class="fa fa-file-excel-o"></i> Excel</button>
       <button id="generateReportBtn" class="btn btn-sm btn-primary mr-2"><i class="fa fa-file-pdf-o"></i> PDF Report</button>
       <button id="printBtn" class="btn btn-sm btn-secondary"><i class="fa fa-print"></i> Print</button>
@@ -193,7 +195,7 @@
   </div>
 
   <!-- Quick Log Form -->
-  <div class="quick-log-card">
+  <div class="quick-log-card" id="quickLogCard">
     <h6 class="mb-3"><i class="fa fa-pencil-square-o"></i> Log Task</h6>
     <div class="form-row">
       <div class="col-12 col-md-2 mb-2"><label>Date</label><input type="date" id="logDate" class="form-control"></div>
@@ -233,7 +235,7 @@
   </div>
 
   <!-- Daily Progress -->
-  <div class="mb-3">
+  <div class="mb-3" id="dailyProgressContainer">
     <h6>Today's Progress (8h target)</h6>
     <div class="progress-bar-container"><div id="dailyProgressFill" class="progress-fill">0h</div></div>
     <div id="overtimeWarning" class="small text-danger mt-1" style="display: none;"></div>
@@ -255,7 +257,7 @@
   </div>
 
   <!-- Filters -->
-  <div class="filter-bar">
+  <div class="filter-bar" id="filterBar">
     <div class="filter-controls">
       <label class="mb-0 mr-2">View:</label>
       <select id="filterRange" class="form-control form-control-sm" style="width:110px;">
@@ -288,7 +290,7 @@
   </div>
 </div>
 
-<div class="page-footer"><p>© 2025 Your Portfolio</p><p class="footer-status"><span id="userFooterStatus"></span></p></div>
+<div class="page-footer"><p>© 2026 Your Portfolio</p><p class="footer-status"><span id="userFooterStatus"></span></p></div>
 <div class="toast-container" id="toastContainer"></div>
 
 <!-- Edit Modal -->
