@@ -35,8 +35,6 @@
     .view-portfolio-btn { background: #28a745; color: white; border-radius: 20px; padding: 6px 16px; margin-right: 10px; transition: 0.2s; display: inline-flex; align-items:center; }
     .view-portfolio-btn:hover { background: #218838; color: white; text-decoration: none; }
     .lock-project { transition: all 0.2s; }
-    .locked-badge { background-color: #dc3545; color: white; font-size: 0.7rem; padding: 2px 6px; border-radius: 20px; margin-left: 8px; }
-    .admin-user-select { max-width: 300px; margin-bottom: 20px; }
     @media (max-width: 768px) {
       .admin-container { padding: 20px 15px !important; margin: 15px !important; }
       h1 { font-size: 1.6rem; }
@@ -107,7 +105,7 @@
     <div class="mb-3 d-flex flex-wrap">
       <button id="lockAllProjectsBtn" class="btn btn-danger mr-2"><i class="fa fa-lock"></i> Lock All Projects</button>
       <button id="unlockAllProjectsBtn" class="btn btn-success mr-2"><i class="fa fa-unlock-alt"></i> Unlock All Projects</button>
-      <span class="text-muted small ml-2">⚠️ This will affect EVERY project in your portfolio</span>
+      <span class="text-muted small ml-2">⚠️ This will affect EVERY project in your portfolio (makes them private / public)</span>
     </div>
 
     <!-- Admin cross‑user locking panel (visible only to admin) -->
@@ -257,7 +255,7 @@
               <input type="checkbox" class="custom-control-input" id="projLocked">
               <label class="custom-control-label" for="projLocked">
                 <i class="fa fa-lock"></i> Lock from public view
-                <small class="text-muted d-block">When locked, this project will NOT appear on public pages (index.html, projects.html). You will still see it when logged in.</small>
+                <small class="text-muted d-block">When locked, this project will be shown as private (placeholder) on public pages. No content will be accessible.</small>
               </label>
             </div>
           </div>
@@ -491,7 +489,7 @@
       checkboxes.forEach(cb => cb.checked = !allChecked);
     });
 
-    // Render Projects with Lock UI
+    // Render Projects with Lock UI and lock buttons
     async function renderProjects() {
       const projects = await window.portfolioData.loadProjects();
       const container = document.getElementById('projectsList');
@@ -504,7 +502,7 @@
       for (const [id, proj] of Object.entries(projects)) {
         const card = document.createElement('div');
         card.className = 'card mb-3';
-        const lockStatus = proj.locked ? '🔒 Locked' : '🌍 Public';
+        const lockStatus = proj.locked ? '🔒 Locked (Private)' : '🌍 Public';
         const lockButtonText = proj.locked ? 'Unlock' : 'Lock';
         const lockButtonClass = proj.locked ? 'btn-warning' : 'btn-secondary';
         card.innerHTML = `
@@ -528,13 +526,15 @@
         container.appendChild(card);
       }
       document.querySelectorAll('.edit-project').forEach(btn => btn.addEventListener('click', () => openProjectModal(btn.dataset.id)));
-      document.querySelectorAll('.delete-project').forEach(btn => btn.addEventListener('click', () => { if (confirm('Delete this project?')) safeDeleteProject(btn.dataset.id); }));
+      document.querySelectorAll('.delete-project').forEach(btn => btn.addEventListener('click', () => {
+        if (confirm('Delete this project?')) safeDeleteProject(btn.dataset.id);
+      }));
       document.querySelectorAll('.lock-project').forEach(btn => {
         btn.addEventListener('click', async () => {
           const projectId = btn.dataset.id;
           const currentlyLocked = btn.dataset.locked === 'true';
           const action = currentlyLocked ? 'unlock' : 'lock';
-          if (confirm(`Are you sure you want to ${action} this project?${currentlyLocked ? ' It will become visible to the public.' : ' It will be hidden from public view.'}`)) {
+          if (confirm(`Are you sure you want to ${action} this project?${currentlyLocked ? ' It will become visible to the public.' : ' It will be hidden from public view (placeholder only).'}`)) {
             window.showLoading(`${action === 'lock' ? 'Locking' : 'Unlocking'} project...`);
             try {
               await window.portfolioData.toggleProjectLock(projectId, !currentlyLocked);
@@ -551,9 +551,9 @@
       });
     }
 
-    // LOCK ALL PROJECTS
+    // Bulk lock / unlock functions
     async function lockAllProjects() {
-      if (!confirm('⚠️ LOCK ALL your projects? They will be hidden from the public. This can be undone.')) return;
+      if (!confirm('⚠️ LOCK ALL your projects? They will become PRIVATE – visitors will see a locked placeholder with no content.')) return;
       window.showLoading('Locking all projects...');
       try {
         const projects = await window.portfolioData.loadProjects();
@@ -572,9 +572,8 @@
       }
     }
 
-    // UNLOCK ALL PROJECTS
     async function unlockAllProjects() {
-      if (!confirm('⚠️ UNLOCK ALL your projects? They will become visible to the public.')) return;
+      if (!confirm('⚠️ UNLOCK ALL your projects? They will become fully visible to the public again.')) return;
       window.showLoading('Unlocking all projects...');
       try {
         const projects = await window.portfolioData.loadProjects();
@@ -596,6 +595,7 @@
     document.getElementById('lockAllProjectsBtn').addEventListener('click', lockAllProjects);
     document.getElementById('unlockAllProjectsBtn').addEventListener('click', unlockAllProjects);
 
+    // Certificates rendering (unchanged)
     async function renderCertificates() {
       const certs = await window.portfolioData.loadCertificates();
       const container = document.getElementById('certificatesList');
@@ -623,6 +623,7 @@
       }));
     }
 
+    // Safe delete functions
     async function safeDeleteProject(id) {
       window.showLoading('Deleting project...');
       const current = await window.portfolioData.loadProjects();
