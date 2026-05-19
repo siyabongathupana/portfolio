@@ -1,4 +1,4 @@
-// shared.js – Full version with HTML log generation, session persistence, backup/restore, image upload, and PROJECT LOCKING
+// shared.js – Full version with HTML log generation, session persistence, backup/restore, image upload, and PROJECT LOCKING (FIXED)
 
 window.showLoading = function (msg = 'Processing...') {
   let loader = document.getElementById('globalLoader');
@@ -197,13 +197,13 @@ window.Logger = {
           <td class="level level-${level}">${window.escapeHtml(level)}</td>
           <td class="action">${window.escapeHtml(action)}</td>
           <td>${window.escapeHtml(details)}</td>
-         </tr>`;
+        </tr>`;
       } else {
         html += `<tr><td colspan="4">${window.escapeHtml(line)}</td></tr>`;
       }
     }
     
-    html += `</tbody></table></div></body></html>`;
+    html += `</tbody>} </table></div></body></html>`;
     return html;
   }
 };
@@ -453,7 +453,7 @@ window.AccountManager = {
   }
 };
 
-// ---------- PORTFOLIO DATA (with PROJECT LOCKING) ----------
+// ---------- PORTFOLIO DATA (with PROJECT LOCKING - FIXED FOR PUBLIC VIEW) ----------
 window.portfolioData = (() => {
   const PROJECTS_KEY = 'portfolioProjects';
   const CERTS_KEY = 'portfolioCertificates';
@@ -484,7 +484,7 @@ window.portfolioData = (() => {
     return type === 'projects' ? {} : [];
   }
 
-  // UPDATED: Load projects with visibility filtering based on lock status
+  // FIXED: Correctly filter locked projects for public visitors
   async function loadProjectsForView() {
     const user = window.SessionManager.getCurrentUser();
     const isAdmin = window.isAdminUser();
@@ -508,14 +508,15 @@ window.portfolioData = (() => {
         }
       } catch (e) { projects = {}; }
     } else {
+      // Public visitor – fetch from public profile email
       const publicEmail = window.APP_CONFIG.publicProfileEmail;
       if (publicEmail) {
         projects = await fetchPublicData(publicEmail, 'projects');
       }
     }
     
-    // Filter out locked projects for non-admin users
-    if (!isAdmin && !user) {
+    // Filter out locked projects for non-admin users (including public visitors)
+    if (!isAdmin) {
       const filtered = {};
       for (const [id, proj] of Object.entries(projects)) {
         if (!proj.locked) {
@@ -691,7 +692,6 @@ window.portfolioData = (() => {
     }
   }
 
-  // NEW: Toggle project lock status
   async function toggleProjectLock(projectId, locked) {
     const user = window.SessionManager.getCurrentUser();
     if (!user || !window.isAdminUser()) {
@@ -709,7 +709,6 @@ window.portfolioData = (() => {
     return true;
   }
 
-  // NEW: Get list of locked projects
   async function loadLockedProjects() {
     const user = window.SessionManager.getCurrentUser();
     if (!user || !window.isAdminUser()) return [];
@@ -839,11 +838,24 @@ window.protectImages = function () {
   });
 };
 
-// ---------- PDF REPORT GENERATION ----------
+// ---------- PDF REPORT GENERATION (with lock check) ----------
 window.generateProjectReport = async function(projectId) {
+  const user = window.SessionManager.getCurrentUser();
+  const isAdmin = window.isAdminUser();
+  
   const data = await window.portfolioData.loadProjectsForView();
   const proj = data[projectId];
-  if (!proj) { alert("Project not found!"); return; }
+  
+  if (!proj) { 
+    alert("Project not found or is locked."); 
+    return; 
+  }
+  
+  // Block PDF generation for locked projects if not admin
+  if (proj.locked && !isAdmin) {
+    alert("This project is locked and cannot be viewed publicly.");
+    return;
+  }
 
   let projectType = proj.projectType || 'Other';
   let primaryColor, bgColor;
