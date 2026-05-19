@@ -103,6 +103,13 @@
     </div>
     <hr>
 
+    <!-- Bulk Lock / Unlock Buttons -->
+    <div class="mb-3 d-flex flex-wrap">
+      <button id="lockAllProjectsBtn" class="btn btn-danger mr-2"><i class="fa fa-lock"></i> Lock All Projects</button>
+      <button id="unlockAllProjectsBtn" class="btn btn-success mr-2"><i class="fa fa-unlock-alt"></i> Unlock All Projects</button>
+      <span class="text-muted small ml-2">⚠️ This will affect EVERY project in your portfolio</span>
+    </div>
+
     <!-- Admin cross‑user locking panel (visible only to admin) -->
     <div id="adminLockPanel" style="display:none; background:#f0f7ff; padding:15px; border-radius:16px; margin-bottom:20px;">
       <div class="row align-items-center">
@@ -543,6 +550,51 @@
         });
       });
     }
+
+    // LOCK ALL PROJECTS
+    async function lockAllProjects() {
+      if (!confirm('⚠️ LOCK ALL your projects? They will be hidden from the public. This can be undone.')) return;
+      window.showLoading('Locking all projects...');
+      try {
+        const projects = await window.portfolioData.loadProjects();
+        for (const [id, proj] of Object.entries(projects)) {
+          if (!proj.locked) {
+            await window.portfolioData.toggleProjectLock(id, true);
+          }
+        }
+        await renderProjects();
+        showToast('All projects have been locked.', 'success');
+        window.Logger.log('lock_all_projects', 'Locked all projects');
+      } catch (err) {
+        showToast('Failed to lock all projects: ' + err.message, 'error');
+      } finally {
+        window.hideLoading();
+      }
+    }
+
+    // UNLOCK ALL PROJECTS
+    async function unlockAllProjects() {
+      if (!confirm('⚠️ UNLOCK ALL your projects? They will become visible to the public.')) return;
+      window.showLoading('Unlocking all projects...');
+      try {
+        const projects = await window.portfolioData.loadProjects();
+        for (const [id, proj] of Object.entries(projects)) {
+          if (proj.locked) {
+            await window.portfolioData.toggleProjectLock(id, false);
+          }
+        }
+        await renderProjects();
+        showToast('All projects have been unlocked.', 'success');
+        window.Logger.log('unlock_all_projects', 'Unlocked all projects');
+      } catch (err) {
+        showToast('Failed to unlock all projects: ' + err.message, 'error');
+      } finally {
+        window.hideLoading();
+      }
+    }
+
+    document.getElementById('lockAllProjectsBtn').addEventListener('click', lockAllProjects);
+    document.getElementById('unlockAllProjectsBtn').addEventListener('click', unlockAllProjects);
 
     async function renderCertificates() {
       const certs = await window.portfolioData.loadCertificates();
