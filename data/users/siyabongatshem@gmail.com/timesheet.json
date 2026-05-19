@@ -40,7 +40,7 @@
     "hours": 4.23,
     "project": "Omnia Phase 3",
     "category": "Other",
-    "billable": "no",
+    "billable": "yes",
     "notes": "Creating anf fixing VMs for Omnia"
   }
 ]
