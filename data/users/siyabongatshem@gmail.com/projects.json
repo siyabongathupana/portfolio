@@ -145,8 +145,7 @@
         "url": "https://raw.githubusercontent.com/siyabongathupana/portfolio/main/data/users/siyabongatshem%40gmail.com/project_images/1778974855227_1000340803.jpg",
         "caption": ""
       }
-    ],
-    "locked": true
+    ]
   },
   "proj_1778637107099": {
     "id": "proj_1778637107099",
@@ -304,7 +303,8 @@
         "url": "https://raw.githubusercontent.com/siyabongathupana/portfolio/main/data/users/siyabongatshem%40gmail.com/project_images/1778976497799_1000495767.jpg",
         "caption": ""
       }
-    ]
+    ],
+    "locked": true
   },
   "proj_1778637465672": {
     "id": "proj_1778637465672",
