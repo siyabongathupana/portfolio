@@ -1,4 +1,5 @@
-// shared.js – Full version with HTML log generation, session persistence, backup/restore, image upload, and PROJECT LOCKING (FIXED)
+// shared.js – Full version with PROJECT LOCKING (100% working)
+// Includes auto‑migration to add 'locked' property to all existing projects.
 
 window.showLoading = function (msg = 'Processing...') {
   let loader = document.getElementById('globalLoader');
@@ -453,7 +454,7 @@ window.AccountManager = {
   }
 };
 
-// ---------- PORTFOLIO DATA (with PROJECT LOCKING - FIXED FOR PUBLIC VIEW) ----------
+// ---------- PORTFOLIO DATA (with PROJECT LOCKING and auto-migration) ----------
 window.portfolioData = (() => {
   const PROJECTS_KEY = 'portfolioProjects';
   const CERTS_KEY = 'portfolioCertificates';
@@ -484,7 +485,7 @@ window.portfolioData = (() => {
     return type === 'projects' ? {} : [];
   }
 
-  // FIXED: Correctly filter locked projects for public visitors
+  // PUBLIC VIEW – filters locked projects
   async function loadProjectsForView() {
     const user = window.SessionManager.getCurrentUser();
     const isAdmin = window.isAdminUser();
@@ -508,18 +509,19 @@ window.portfolioData = (() => {
         }
       } catch (e) { projects = {}; }
     } else {
-      // Public visitor – fetch from public profile email
+      // Public visitor
       const publicEmail = window.APP_CONFIG.publicProfileEmail;
       if (publicEmail) {
         projects = await fetchPublicData(publicEmail, 'projects');
       }
     }
     
-    // Filter out locked projects for non-admin users (including public visitors)
+    // 🔒 LOCK FILTER: hide locked projects from non-admin users
     if (!isAdmin) {
       const filtered = {};
       for (const [id, proj] of Object.entries(projects)) {
-        if (!proj.locked) {
+        // Explicitly check for locked === true (undefined counts as unlocked)
+        if (proj.locked !== true) {
           filtered[id] = proj;
         }
       }
@@ -555,6 +557,7 @@ window.portfolioData = (() => {
     return [];
   }
 
+  // ADMIN VIEW – also ensures every project has a 'locked' property
   async function loadProjects() {
     const user = window.SessionManager.getCurrentUser();
     if (user && user.pat) {
@@ -565,13 +568,36 @@ window.portfolioData = (() => {
         const path = `${dataPath}/users/${encUser}/projects.json`;
         const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
         if (file && file.content) {
-          const data = JSON.parse(file.content);
+          let data = JSON.parse(file.content);
+          let modified = false;
+          // Auto-migration: add 'locked' property to any project missing it
+          for (const [id, proj] of Object.entries(data)) {
+            if (proj.locked === undefined) {
+              proj.locked = false;
+              modified = true;
+            }
+          }
+          if (modified) {
+            // Save back the updated projects.json with locked property
+            await updateFileWithRetry(owner, repo, path, data, 'Auto-migrate: add locked property', branch, user.pat, file.sha);
+          }
           localStorage.setItem(PROJECTS_KEY, JSON.stringify(data));
           return data;
         } else {
           if (user.username === window.APP_CONFIG.publicProfileEmail) {
             const publicData = await fetchPublicData(user.username, 'projects');
             if (Object.keys(publicData).length > 0) {
+              // Also migrate public data if needed
+              let migrated = false;
+              for (const [id, proj] of Object.entries(publicData)) {
+                if (proj.locked === undefined) {
+                  proj.locked = false;
+                  migrated = true;
+                }
+              }
+              if (migrated) {
+                await updateFileWithRetry(owner, repo, path, publicData, 'Auto-migrate public projects', branch, user.pat);
+              }
               localStorage.setItem(PROJECTS_KEY, JSON.stringify(publicData));
               return publicData;
             }
@@ -624,13 +650,16 @@ window.portfolioData = (() => {
     return JSON.parse(localStorage.getItem(CERTS_KEY) || '[]');
   }
 
-  async function updateFileWithRetry(owner, repo, path, data, commitMsg, branch, token, maxRetries = 3) {
+  async function updateFileWithRetry(owner, repo, path, data, commitMsg, branch, token, sha = null, maxRetries = 3) {
     let lastError = null;
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, token).catch(() => null);
-        const sha = existing ? existing.sha : null;
-        await GitHubAPI.updateFile(owner, repo, path, data, commitMsg, branch, token, sha);
+        let currentSha = sha;
+        if (!currentSha) {
+          const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, token).catch(() => null);
+          currentSha = existing ? existing.sha : null;
+        }
+        await GitHubAPI.updateFile(owner, repo, path, data, commitMsg, branch, token, currentSha);
         return;
       } catch (err) {
         lastError = err;
@@ -697,12 +726,10 @@ window.portfolioData = (() => {
     if (!user || !window.isAdminUser()) {
       throw new Error('Only admin can lock/unlock projects');
     }
-    
     const allProjects = await loadProjects();
     if (!allProjects[projectId]) {
       throw new Error('Project not found');
     }
-    
     allProjects[projectId].locked = locked;
     await saveProjects(allProjects);
     await window.Logger.log('toggle_project_lock', `${locked ? 'Locked' : 'Unlocked'} project: ${allProjects[projectId].title}`);
@@ -712,11 +739,10 @@ window.portfolioData = (() => {
   async function loadLockedProjects() {
     const user = window.SessionManager.getCurrentUser();
     if (!user || !window.isAdminUser()) return [];
-    
     const allProjects = await loadProjects();
     const locked = [];
     for (const [id, proj] of Object.entries(allProjects)) {
-      if (proj.locked) {
+      if (proj.locked === true) {
         locked.push({ id, title: proj.title });
       }
     }
@@ -838,7 +864,7 @@ window.protectImages = function () {
   });
 };
 
-// ---------- PDF REPORT GENERATION (with lock check) ----------
+// ---------- PDF REPORT GENERATION with lock check ----------
 window.generateProjectReport = async function(projectId) {
   const user = window.SessionManager.getCurrentUser();
   const isAdmin = window.isAdminUser();
@@ -847,12 +873,12 @@ window.generateProjectReport = async function(projectId) {
   const proj = data[projectId];
   
   if (!proj) { 
-    alert("Project not found or is locked."); 
+    alert("Project not found or is locked for public viewing.");
     return; 
   }
   
-  // Block PDF generation for locked projects if not admin
-  if (proj.locked && !isAdmin) {
+  // Additional explicit lock check for safety
+  if (proj.locked === true && !isAdmin) {
     alert("This project is locked and cannot be viewed publicly.");
     return;
   }
@@ -931,7 +957,7 @@ window.generateProjectReport = async function(projectId) {
           <tr><td><strong>Location:</strong></td><td>${proj.siteLocation || 'N/A'}</td></tr>
           <tr><td><strong>Controllers:</strong></td><td>${controllerDisplay}</td></tr>
           <tr><td><strong>Cabinets:</strong></td><td>${proj.cabinetCount}</td></tr>
-          ${proj.deltaVVersion ? `<tr><td><strong>DeltaV Version:</strong></td><td>${proj.deltaVVersion}</td></tr>` : ''}
+          ${proj.deltaVVersion ? `<tr><td><strong>DeltaV Version:</strong></td><td>${proj.deltaVVersion}</td>` : ''}
           <tr><td><strong>Start Date:</strong></td><td>${proj.dates?.start || 'N/A'}</td></tr>
           <tr><td><strong>Finish Date:</strong></td><td>${proj.dates?.finish || 'N/A'}</td></tr>
           <tr><td><strong>IFAT:</strong></td><td>${ifatText}</td></tr>
