@@ -35,7 +35,8 @@
     .view-portfolio-btn { background: #28a745; color: white; border-radius: 20px; padding: 6px 16px; margin-right: 10px; transition: 0.2s; display: inline-flex; align-items:center; }
     .view-portfolio-btn:hover { background: #218838; color: white; text-decoration: none; }
     .lock-project { transition: all 0.2s; }
-
+    .locked-badge { background-color: #dc3545; color: white; font-size: 0.7rem; padding: 2px 6px; border-radius: 20px; margin-left: 8px; }
+    .admin-user-select { max-width: 300px; margin-bottom: 20px; }
     @media (max-width: 768px) {
       .admin-container { padding: 20px 15px !important; margin: 15px !important; }
       h1 { font-size: 1.6rem; }
@@ -58,7 +59,6 @@
       .batch-actions { flex-direction: column; align-items: stretch; }
       .batch-actions button { width: 100%; margin-bottom: 8px; }
     }
-
     .logs-panel {
       background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
       border-radius: 24px;
@@ -98,10 +98,28 @@
         <a href="index.html" class="btn view-portfolio-btn mr-2"><i class="fa fa-eye"></i> View Portfolio</a>
         <button class="btn btn-outline-danger btn-sm mr-2" id="logoutBtn"><i class="fa fa-sign-out"></i> Logout</button>
         <button class="btn btn-outline-success btn-sm" id="downloadDataBtn"><i class="fa fa-download"></i> Export</button>
-        <button id="migrateLockBtn" class="btn btn-sm btn-warning mr-2" style="display:none;"><i class="fa fa-magic"></i> Migrate Lock Property</button>
+        <button id="migrateLockBtn" class="btn btn-sm btn-warning mr-2" style="display:none;"><i class="fa fa-magic"></i> Migrate Lock</button>
       </div>
     </div>
     <hr>
+
+    <!-- Admin cross‑user locking panel (visible only to admin) -->
+    <div id="adminLockPanel" style="display:none; background:#f0f7ff; padding:15px; border-radius:16px; margin-bottom:20px;">
+      <div class="row align-items-center">
+        <div class="col-md-4">
+          <label><strong><i class="fa fa-users"></i> Lock/Unlock Other User's Projects</strong></label>
+          <select id="adminLockUserSelect" class="form-control form-control-sm">
+            <option value="">-- Select user --</option>
+          </select>
+        </div>
+        <div class="col-md-8">
+          <div id="adminUserProjectsList" style="max-height:200px; overflow-y:auto; background:white; border-radius:12px; padding:10px;">
+            <p class="text-muted">Select a user to see their projects</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <ul class="nav nav-tabs" id="adminTabs">
       <li class="nav-item"><a class="nav-link active" data-toggle="tab" href="#projectsTab">Projects</a></li>
       <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#certificatesTab">Certificates</a></li>
@@ -472,19 +490,16 @@
       const container = document.getElementById('projectsList');
       const isAdmin = window.isAdminUser();
       container.innerHTML = '';
-      
       if (Object.keys(projects).length === 0) {
         container.innerHTML = '<div class="empty-state"><i class="fa fa-folder-open-o"></i><h5>No projects yet</h5></div>';
         return;
       }
-      
       for (const [id, proj] of Object.entries(projects)) {
         const card = document.createElement('div');
         card.className = 'card mb-3';
-        const lockStatus = proj.locked ? 'Locked 🔒' : 'Public 🌍';
+        const lockStatus = proj.locked ? '🔒 Locked' : '🌍 Public';
         const lockButtonText = proj.locked ? 'Unlock' : 'Lock';
         const lockButtonClass = proj.locked ? 'btn-warning' : 'btn-secondary';
-        
         card.innerHTML = `
           <div class="card-body">
             <div class="d-flex justify-content-between align-items-start flex-wrap">
@@ -498,19 +513,15 @@
               <div class="btn-group-vertical btn-group-sm">
                 <button class="btn btn-sm btn-outline-primary edit-project" data-id="${id}">Edit</button>
                 <button class="btn btn-sm btn-outline-danger delete-project" data-id="${id}">Delete</button>
-                ${isAdmin ? `<button class="btn btn-sm ${lockButtonClass} lock-project" data-id="${id}" data-locked="${proj.locked}">${lockButtonText}</button>` : ''}
+                <button class="btn btn-sm ${lockButtonClass} lock-project" data-id="${id}" data-locked="${proj.locked}">${lockButtonText}</button>
               </div>
             </div>
           </div>
         `;
         container.appendChild(card);
       }
-      
       document.querySelectorAll('.edit-project').forEach(btn => btn.addEventListener('click', () => openProjectModal(btn.dataset.id)));
-      document.querySelectorAll('.delete-project').forEach(btn => btn.addEventListener('click', () => {
-        if (confirm('Delete this project?')) safeDeleteProject(btn.dataset.id);
-      }));
-      
+      document.querySelectorAll('.delete-project').forEach(btn => btn.addEventListener('click', () => { if (confirm('Delete this project?')) safeDeleteProject(btn.dataset.id); }));
       document.querySelectorAll('.lock-project').forEach(btn => {
         btn.addEventListener('click', async () => {
           const projectId = btn.dataset.id;
@@ -808,6 +819,71 @@
         }
       };
     }
+
+    // Cross‑user admin locking panel
+    async function loadAdminLockPanel() {
+      if (!isAdmin) return;
+      const panel = document.getElementById('adminLockPanel');
+      if (panel) panel.style.display = 'block';
+      const userSelect = document.getElementById('adminLockUserSelect');
+      const users = await window.AccountManager.listUsers(user.pat);
+      userSelect.innerHTML = '<option value="">-- Select user --</option>';
+      for (const u of users) {
+        userSelect.innerHTML += `<option value="${u}">${u}</option>`;
+      }
+      userSelect.onchange = async () => {
+        const selectedUser = userSelect.value;
+        if (!selectedUser) {
+          document.getElementById('adminUserProjectsList').innerHTML = '<p class="text-muted">Select a user to see their projects</p>';
+          return;
+        }
+        window.showLoading(`Loading projects for ${selectedUser}...`);
+        try {
+          const projects = await window.portfolioData.loadProjectsForUser(selectedUser, user.pat);
+          const container = document.getElementById('adminUserProjectsList');
+          container.innerHTML = '';
+          if (Object.keys(projects).length === 0) {
+            container.innerHTML = '<p class="text-muted">No projects found for this user.</p>';
+          } else {
+            for (const [id, proj] of Object.entries(projects)) {
+              const div = document.createElement('div');
+              div.className = 'd-flex justify-content-between align-items-center mb-2 p-2 border rounded';
+              div.innerHTML = `
+                <div><strong>${window.escapeHtml(proj.title)}</strong> ${proj.locked ? '<span class="badge badge-danger">Locked</span>' : '<span class="badge badge-success">Public</span>'}</div>
+                <button class="btn btn-sm ${proj.locked ? 'btn-warning' : 'btn-secondary'} admin-lock-btn" data-user="${selectedUser}" data-id="${id}" data-locked="${proj.locked}">${proj.locked ? 'Unlock' : 'Lock'}</button>
+              `;
+              container.appendChild(div);
+            }
+            document.querySelectorAll('.admin-lock-btn').forEach(btn => {
+              btn.addEventListener('click', async () => {
+                const targetUser = btn.dataset.user;
+                const projectId = btn.dataset.id;
+                const currentlyLocked = btn.dataset.locked === 'true';
+                const projName = btn.parentElement.querySelector('strong').innerText;
+                if (confirm(`Admin: ${currentlyLocked ? 'Unlock' : 'Lock'} project "${projName}" for user ${targetUser}?`)) {
+                  window.showLoading(`Updating lock status...`);
+                  try {
+                    await window.portfolioData.adminToggleProjectLock(targetUser, projectId, !currentlyLocked, user.pat);
+                    await loadAdminLockPanel(); // refresh
+                    showToast(`Project ${currentlyLocked ? 'unlocked' : 'locked'} for ${targetUser}`, 'success');
+                  } catch (err) {
+                    showToast(`Failed: ${err.message}`, 'error');
+                  } finally {
+                    window.hideLoading();
+                  }
+                }
+              });
+            });
+          }
+        } catch (err) {
+          document.getElementById('adminUserProjectsList').innerHTML = `<p class="text-danger">Error: ${err.message}</p>`;
+        } finally {
+          window.hideLoading();
+        }
+      };
+    }
+
+    await loadAdminLockPanel();
 
     async function downloadLogsForUser(username, isAdminView = false) {
       window.showLoading(`Fetching logs for ${username}...`);
