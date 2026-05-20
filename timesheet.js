@@ -1,4 +1,4 @@
-// timesheet.js – Failsafe version with atomic save queue, conflict resolution, and enhanced PDF with QR code
+// timesheet.js – Failsafe version with atomic save queue, conflict resolution, and enhanced PDF with QR code (fixed)
 (function() {
   const user = window.SessionManager?.getCurrentUser();
   if (!user) {
@@ -13,10 +13,9 @@
   let userFullName = "";
   let projectList = [];
   let autoRefreshInterval = null;
-  let isSaving = false;               // Mutex for write operations
-  let saveQueue = Promise.resolve();   // Queue for sequential saves
+  let isSaving = false;
+  let saveQueue = Promise.resolve();
 
-  // Helper: show toast notification
   function showToast(message, type = "success") {
     const container = document.getElementById("toastContainer");
     if (!container) return;
@@ -126,10 +125,8 @@
     }
   }
 
-  // ATOMIC SAVE FUNCTION WITH MUTEX AND CONFLICT RETRY
   async function saveTimesheetAtomically(newEntries, retryCount = 0) {
     if (isSaving) {
-      // Queue the save to run after current save finishes
       return new Promise((resolve, reject) => {
         saveQueue = saveQueue.then(() => saveTimesheetAtomically(newEntries, retryCount).then(resolve).catch(reject));
       });
@@ -140,7 +137,6 @@
       const encUser = encodeURIComponent(user.username);
       const path = `${dataPath}/users/${encUser}/${TIMESHEET_FILE}`;
       
-      // First, fetch latest file to get current SHA
       let sha = null;
       let latestContent = null;
       try {
@@ -149,30 +145,23 @@
           sha = existing.sha;
           latestContent = JSON.parse(existing.content);
         }
-      } catch(e) { /* file may not exist */ }
+      } catch(e) { }
       
-      // Optional: detect if our current entries are older than latest (optimistic lock)
       if (latestContent && Array.isArray(latestContent)) {
-        // If the latest version has more entries or different timestamps, we might need to merge.
-        // For simplicity, we trust that the caller has the correct state. But to prevent accidental overwrite,
-        // we compare the length as a basic check. A more robust solution would use version numbers.
         if (latestContent.length !== entries.length && retryCount === 0) {
-          console.warn("Entries length mismatch during save. Reloading latest data and merging...");
-          // Reload entries and merge changes? Instead, abort and let caller retry.
           throw new Error("CONFLICT: Data changed since last load. Please refresh and try again.");
         }
       }
       
       await GitHubAPI.updateFile(owner, repo, path, newEntries, "Update timesheet", branch, user.pat, sha);
-      entries = [...newEntries]; // update global state only after successful save
+      entries = [...newEntries];
       await window.Logger.log('save_timesheet', `Saved ${newEntries.length} entries`);
       showToast("Timesheet saved successfully.");
     } catch (err) {
       console.error("Save failed:", err);
       if (err.message.includes("CONFLICT") && retryCount < 3) {
         showToast("Data conflict, reloading and retrying...", "warning");
-        await loadTimesheet(); // refresh entries
-        // Retry with current entries (which now include latest)
+        await loadTimesheet();
         return saveTimesheetAtomically(entries, retryCount + 1);
       }
       showToast("Failed to save timesheet: " + err.message, "error");
@@ -196,7 +185,6 @@
       }
     } catch(e) { 
       console.error("Load timesheet error:", e);
-      // Preserve existing entries if load fails (don't reset to empty)
       if (!entries.length) entries = [];
     }
     entries.sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -389,7 +377,7 @@
     const tbody = document.getElementById('historyBody');
     const tfoot = document.getElementById('historyFoot');
     if (filtered.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="9" class="text-center">No entries found.</tr>';
+      tbody.innerHTML = '<tr><td colspan="9" class="text-center">No entries found.<tr>';
       tfoot.style.display = 'none';
       return;
     }
@@ -501,24 +489,15 @@
     showToast("Excel downloaded.");
   }
 
-  // Generate QR code as data URL (GitHub profile)
-  function generateQRCodeDataURL(url, size = 150) {
-    return new Promise((resolve) => {
-      const qr = qrcode(0, 'M'); // error correction level M
-      qr.addData(url);
-      qr.make();
-      const cellSize = size / qr.getModuleCount();
+  // Fixed QR code generation using the QRCode library
+  async function generateQRCodeDataURL(url, size = 150) {
+    return new Promise((resolve, reject) => {
+      // The QRCode library expects a canvas element, but we can create an offscreen canvas
       const canvas = document.createElement('canvas');
-      canvas.width = size;
-      canvas.height = size;
-      const ctx = canvas.getContext('2d');
-      for (let row = 0; row < qr.getModuleCount(); row++) {
-        for (let col = 0; col < qr.getModuleCount(); col++) {
-          ctx.fillStyle = qr.isDark(row, col) ? '#000000' : '#ffffff';
-          ctx.fillRect(col * cellSize, row * cellSize, cellSize, cellSize);
-        }
-      }
-      resolve(canvas.toDataURL('image/png'));
+      QRCode.toCanvas(canvas, url, { width: size, margin: 1 }, (error) => {
+        if (error) reject(error);
+        else resolve(canvas.toDataURL('image/png'));
+      });
     });
   }
 
@@ -535,7 +514,6 @@
       const nonBillable = totalHours - billableHours;
       const overtime = calculateOvertimeForPeriod(filtered);
       
-      // Prepare chart canvases (same as before but ensure they render)
       const projMap = {};
       filtered.forEach(e => { projMap[e.project] = (projMap[e.project] || 0) + e.hours; });
       const catMap = {};
@@ -543,34 +521,28 @@
       let billableTotal = 0, nonBillTotal = 0;
       filtered.forEach(e => { if (e.billable === 'yes') billableTotal += e.hours; else nonBillTotal += e.hours; });
       
-      // Create temporary canvas for charts
       const chartCanvas = document.createElement('canvas');
       chartCanvas.width = 400;
       chartCanvas.height = 250;
       const ctx = chartCanvas.getContext('2d');
       
-      // Project chart
       const projChart = new Chart(ctx, { type: 'pie', data: { labels: Object.keys(projMap), datasets: [{ data: Object.values(projMap), backgroundColor: ['#2fc7ff','#ffc107','#28a745','#dc3545','#6f42c1','#fd7e14'] }] }, options: { responsive: false } });
       await new Promise(r => setTimeout(r, 200));
       const projChartDataURL = chartCanvas.toDataURL();
       projChart.destroy();
       
-      // Category chart
       const catChart = new Chart(ctx, { type: 'pie', data: { labels: Object.keys(catMap), datasets: [{ data: Object.values(catMap), backgroundColor: ['#2fc7ff','#ffc107','#28a745','#dc3545','#6f42c1','#fd7e14'] }] }, options: { responsive: false } });
       await new Promise(r => setTimeout(r, 200));
       const catChartDataURL = chartCanvas.toDataURL();
       catChart.destroy();
       
-      // Billable chart
       const billChart = new Chart(ctx, { type: 'pie', data: { labels: ['Billable', 'Non-billable'], datasets: [{ data: [billableTotal, nonBillTotal], backgroundColor: ['#28a745','#dc3545'] }] }, options: { responsive: false } });
       await new Promise(r => setTimeout(r, 200));
       const billChartDataURL = chartCanvas.toDataURL();
       billChart.destroy();
       
-      // Generate QR code
       const qrDataURL = await generateQRCodeDataURL("https://github.com/siyabongathupana/", 60);
       
-      // Table data
       const tableData = filtered.map(e => [e.date, e.start, e.end, e.hours.toFixed(2), e.project, e.category, e.billable === 'yes' ? 'Billable' : 'Non-billable', e.notes || '']);
       
       doc.setFontSize(16);
@@ -581,21 +553,17 @@
       doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 44);
       doc.text(`Total Hours: ${totalHours.toFixed(2)} (Billable: ${billableHours.toFixed(2)} | Non-billable: ${nonBillable.toFixed(2)} | Overtime: ${overtime.toFixed(2)})`, 14, 51);
       
-      // Add summary charts (three small images)
       doc.addImage(projChartDataURL, 'PNG', 14, 60, 50, 35);
       doc.addImage(catChartDataURL, 'PNG', 70, 60, 50, 35);
       doc.addImage(billChartDataURL, 'PNG', 126, 60, 50, 35);
       
-      // Add table below charts
       doc.autoTable({ startY: 105, head: [['Date','Start','End','Hours','Project','Category','Billable','Notes']], body: tableData, foot: [['','','',totalHours.toFixed(2),'','','','']], theme: 'striped', headStyles: { fillColor: [11,43,59], textColor: 255, fontStyle: 'bold' }, footStyles: { fillColor: [240,240,240], textColor: 0, fontStyle: 'bold' }, margin: { left: 14, right: 14 }, columnStyles: { 0: { cellWidth: 22 }, 1: { cellWidth: 16 }, 2: { cellWidth: 16 }, 3: { cellWidth: 16 }, 4: { cellWidth: 30 }, 5: { cellWidth: 25 }, 6: { cellWidth: 20 }, 7: { cellWidth: 35 } } });
       
-      // Add QR code footer on last page
       const pageCount = doc.internal.getNumberOfPages();
       for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
         doc.setFontSize(9);
         doc.text(`Your Portfolio – Timesheet | Page ${i} of ${pageCount}`, 14, doc.internal.pageSize.height - 10);
-        // QR code on bottom right
         doc.addImage(qrDataURL, 'PNG', doc.internal.pageSize.width - 20, doc.internal.pageSize.height - 20, 12, 12);
       }
       doc.save(`timesheet_${startDate}_to_${endDate}.pdf`);
@@ -642,7 +610,6 @@
     document.getElementById('filterProject').onchange = () => { renderHistory(); updateSummaryAndProgress(); updateCharts(); };
     document.getElementById('filterCategory').onchange = () => { renderHistory(); updateSummaryAndProgress(); updateCharts(); };
     
-    // Enhanced report modal with period preset
     const periodPreset = document.getElementById('reportPeriodPreset');
     const customDateDiv = document.getElementById('customDateRange');
     periodPreset.addEventListener('change', () => {
@@ -694,7 +661,6 @@
     };
     document.getElementById('generateReportBtn').onclick = () => {
       document.getElementById('reportName').value = userFullName;
-      // Trigger preset to set default dates
       periodPreset.dispatchEvent(new Event('change'));
       $('#reportModal').modal('show');
     };
