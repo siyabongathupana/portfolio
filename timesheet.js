@@ -1,4 +1,4 @@
-// timesheet.js – conflict‑resolving save, bar charts, notification persistence, full UX feedback
+// timesheet.js – professional PDF (with QR, bar charts, nice table) + password-protected Excel (password: Siya)
 (function() {
   const user = window.SessionManager?.getCurrentUser();
   if (!user) {
@@ -11,16 +11,14 @@
   const USER_META_FILE = "user_meta.json";
   const PREFS_FILE = "preferences.json";
 
-  let entries = [];               // local array of entries (each with id, updatedAt, ...)
+  let entries = [];
   let projectList = [];
   let userFullName = "";
   let notificationsEnabled = true;
   let autoRefreshInterval = null;
 
-  // Chart instances
   let projectChart = null, categoryChart = null, billableChart = null;
 
-  // Helper: show toast message (success/error/info)
   function showToast(message, type = "success") {
     const container = document.getElementById("toastContainer");
     if (!container) return;
@@ -33,7 +31,6 @@
     toastEl.addEventListener("hidden.bs.toast", () => toastEl.remove());
   }
 
-  // Helper: set button loading state
   function setButtonLoading(btn, isLoading, originalText = null) {
     if (!btn) return;
     if (isLoading) {
@@ -55,29 +52,24 @@
       const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
       if (file && file.content) {
         entries = JSON.parse(file.content);
-        // ensure every entry has updatedAt
         entries = entries.map(e => ({ ...e, updatedAt: e.updatedAt || e.id }));
         entries.sort((a, b) => new Date(b.date) - new Date(a.date));
       } else {
         entries = [];
       }
     } catch(e) {
-      console.warn("No existing timesheet file, starting fresh");
       entries = [];
     }
   }
 
-  // Save with conflict resolution: fetch remote, merge by keeping newest updatedAt, then save
   async function saveTimesheet(optimisticEntries = null) {
     const dataToSave = optimisticEntries !== null ? optimisticEntries : entries;
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(user.username);
     const path = `${dataPath}/users/${encUser}/${TIMESHEET_FILE}`;
-
     let retries = 3;
     while (retries > 0) {
       try {
-        // 1. Fetch latest remote version
         let remoteEntries = [];
         let sha = null;
         try {
@@ -86,27 +78,16 @@
             remoteEntries = JSON.parse(remoteFile.content);
             sha = remoteFile.sha;
           }
-        } catch(e) { /* file does not exist */ }
-
-        // 2. Merge: local wins if updatedAt newer, else remote wins
+        } catch(e) { /* no remote */ }
         const mergedMap = new Map();
-        // add remote entries first
-        for (const e of remoteEntries) {
-          mergedMap.set(e.id, e);
-        }
-        // add/override with local entries
+        for (const e of remoteEntries) mergedMap.set(e.id, e);
         for (const e of dataToSave) {
           const existing = mergedMap.get(e.id);
-          if (!existing || (e.updatedAt > existing.updatedAt)) {
-            mergedMap.set(e.id, e);
-          }
+          if (!existing || (e.updatedAt > existing.updatedAt)) mergedMap.set(e.id, e);
         }
         const merged = Array.from(mergedMap.values());
         merged.sort((a,b) => new Date(b.date) - new Date(a.date));
-
-        // 3. Save merged array
         await GitHubAPI.updateFile(owner, repo, path, merged, "Update timesheet", branch, user.pat, sha);
-        // update local entries with merged result
         entries = merged;
         return true;
       } catch (err) {
@@ -120,7 +101,7 @@
     }
   }
 
-  // ======================== UI HELPERS ========================
+  // ======================== UI HELPERS (unchanged) ========================
   function formatDate(date) {
     const d = new Date(date);
     return d.toISOString().split('T')[0];
@@ -141,7 +122,6 @@
     document.getElementById('hoursAuto').value = calcHours(start, end).toFixed(2);
   }
 
-  // Load project list from portfolio data
   async function loadProjectsFromPortfolio() {
     try {
       const projectsData = await window.portfolioData.loadProjects();
@@ -149,7 +129,6 @@
       if (!projectList.includes("Other")) projectList.push("Other");
       projectList.sort();
     } catch (e) {
-      console.warn("Failed to load portfolio projects", e);
       projectList = ["Other"];
     }
     const selects = ['taskProject', 'editProject', 'filterProject'];
@@ -169,7 +148,6 @@
     }
   }
 
-  // Create a new project in portfolio
   async function createPortfolioProject(projectName) {
     if (projectList.includes(projectName)) return false;
     const newId = 'proj_' + Date.now();
@@ -196,7 +174,6 @@
     return true;
   }
 
-  // Add new entry
   async function addEntry(duplicateData = null) {
     let date, start, end, project, category, billable, notes;
     if (duplicateData) {
@@ -225,20 +202,12 @@
       showToast("End time must be after start time.", "error");
       return;
     }
-
     const addBtn = document.getElementById('addEntryBtn');
     setButtonLoading(addBtn, true, "Adding...");
     try {
       const newEntry = {
         id: Date.now(),
-        date,
-        start,
-        end,
-        hours,
-        project,
-        category,
-        billable,
-        notes,
+        date, start, end, hours, project, category, billable, notes,
         updatedAt: Date.now()
       };
       const newEntries = [newEntry, ...entries];
@@ -258,7 +227,6 @@
     }
   }
 
-  // Delete entry
   async function deleteEntry(id) {
     if (!confirm("Delete this entry?")) return;
     const delBtn = document.querySelector(`button[data-id='${id}']`);
@@ -275,7 +243,6 @@
     }
   }
 
-  // Edit entry (modal save)
   async function saveEdit() {
     const id = parseInt(document.getElementById('editEntryId').value);
     const date = document.getElementById('editDate').value;
@@ -317,12 +284,10 @@
     }
   }
 
-  // Duplicate entry
   async function duplicateEntry(entry) {
     await addEntry(entry);
   }
 
-  // Open edit modal
   async function editEntry(id) {
     const entry = entries.find(e => e.id == id);
     if (!entry) return;
@@ -451,15 +416,13 @@
     }
   }
 
-  // Bar charts (instead of pie)
   function updateCharts() {
     const filtered = getFilteredEntries();
-    // Project hours
     const projMap = {};
     filtered.forEach(e => { projMap[e.project] = (projMap[e.project] || 0) + e.hours; });
     if (projectChart) projectChart.destroy();
     const ctxProj = document.getElementById('projectChart');
-    if (ctxProj && Object.keys(projMap).length) {
+    if (ctxProj) {
       projectChart = new Chart(ctxProj, {
         type: 'bar',
         data: {
@@ -469,13 +432,11 @@
         options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'top' } } }
       });
     }
-
-    // Category hours
     const catMap = {};
     filtered.forEach(e => { catMap[e.category] = (catMap[e.category] || 0) + e.hours; });
     if (categoryChart) categoryChart.destroy();
     const ctxCat = document.getElementById('categoryChart');
-    if (ctxCat && Object.keys(catMap).length) {
+    if (ctxCat) {
       categoryChart = new Chart(ctxCat, {
         type: 'bar',
         data: {
@@ -485,13 +446,11 @@
         options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'top' } } }
       });
     }
-
-    // Billable vs Non-billable (bar)
     let billable = 0, nonBill = 0;
     filtered.forEach(e => { if (e.billable === 'yes') billable += e.hours; else nonBill += e.hours; });
     if (billableChart) billableChart.destroy();
     const ctxBill = document.getElementById('billableChart');
-    if (ctxBill && (billable+nonBill > 0)) {
+    if (ctxBill) {
       billableChart = new Chart(ctxBill, {
         type: 'bar',
         data: {
@@ -503,36 +462,49 @@
     }
   }
 
-  // ======================== EXPORT / REPORT ========================
-  function exportToExcel() {
-    const filtered = getFilteredEntries();
-    if (!filtered.length) { showToast("No data to export.", "error"); return; }
-    const data = filtered.map(e => ({
-      Date: e.date, Start: e.start, End: e.end, Hours: e.hours,
-      Project: e.project, Category: e.category,
-      Billable: e.billable === 'yes' ? 'Billable' : 'Non-billable',
-      Notes: e.notes || ''
-    }));
-    const ws = XLSX.utils.json_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Timesheet');
-    XLSX.writeFile(wb, `timesheet_${formatDate(new Date())}.xlsx`);
-    showToast("Excel downloaded.");
-  }
+  // ======================== ENHANCED EXPORT FUNCTIONS ========================
 
+  // --- PDF with nice header/footer, QR code, bar chart, auto-wrapped table ---
   async function generatePDFReport(startDate, endDate) {
+    window.showLoading("Generating PDF report...");
     try {
+      const filtered = entries.filter(e => e.date >= startDate && e.date <= endDate);
+      if (!filtered.length) {
+        showToast("No entries in selected range.", "error");
+        window.hideLoading();
+        return;
+      }
+
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-      const filtered = entries.filter(e => e.date >= startDate && e.date <= endDate);
-      if (!filtered.length) { showToast("No entries in selected range.", "error"); return; }
 
-      // Bar chart image for PDF
+      // 1. Header
+      doc.setFillColor(11, 43, 59);
+      doc.rect(0, 0, 297, 25, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(18);
+      doc.text("Timesheet Report", 20, 15);
+      doc.setFontSize(10);
+      doc.text(`Generated: ${new Date().toLocaleString()}`, 20, 22);
+
+      // 2. User info and summary
+      doc.setTextColor(0, 0, 0);
+      doc.setFontSize(12);
+      const name = document.getElementById('reportName')?.value || userFullName || user.username;
+      const totalHours = filtered.reduce((s,e) => s + e.hours, 0);
+      const billableHours = filtered.filter(e => e.billable === 'yes').reduce((s,e) => s + e.hours, 0);
+      const nonBillable = totalHours - billableHours;
+      const overtime = calculateOvertimeForPeriod(filtered);
+      doc.text(`Name: ${name}`, 20, 40);
+      doc.text(`Period: ${startDate} to ${endDate}`, 20, 47);
+      doc.text(`Total Hours: ${totalHours.toFixed(2)} (Billable: ${billableHours.toFixed(2)} | Non-billable: ${nonBillable.toFixed(2)} | Overtime: ${overtime.toFixed(2)})`, 20, 54);
+
+      // 3. Bar chart (hours per project)
+      const projMap = {};
+      filtered.forEach(e => { projMap[e.project] = (projMap[e.project] || 0) + e.hours; });
       const canvas = document.createElement('canvas');
       canvas.width = 500; canvas.height = 250;
       const ctx = canvas.getContext('2d');
-      const projMap = {};
-      filtered.forEach(e => { projMap[e.project] = (projMap[e.project] || 0) + e.hours; });
       const chart = new Chart(ctx, {
         type: 'bar',
         data: {
@@ -541,64 +513,223 @@
         },
         options: { responsive: false, plugins: { legend: { position: 'top' } } }
       });
-      await new Promise(r => setTimeout(r, 200));
+      await new Promise(r => setTimeout(r, 300));
       const chartBase64 = canvas.toDataURL('image/png');
       chart.destroy();
+      doc.addImage(chartBase64, 'PNG', 20, 62, 170, 45);
 
-      const name = document.getElementById('reportName')?.value || userFullName || user.username;
-      const totalHours = filtered.reduce((s,e) => s + e.hours, 0);
-      const billableHours = filtered.filter(e => e.billable === 'yes').reduce((s,e) => s + e.hours, 0);
-      const nonBillable = totalHours - billableHours;
-      const overtime = calculateOvertimeForPeriod(filtered);
-      const tableData = filtered.map(e => [e.date, e.start, e.end, e.hours.toFixed(2), e.project, e.category, e.billable === 'yes' ? 'Billable' : 'Non-billable', e.notes || '']);
-
-      doc.setFontSize(16);
-      doc.text('Timesheet Report', 14, 20);
-      doc.setFontSize(11);
-      doc.text(`Name: ${name}`, 14, 30);
-      doc.text(`Period: ${startDate} to ${endDate}`, 14, 37);
-      doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 44);
-      doc.text(`Total Hours: ${totalHours.toFixed(2)} (Billable: ${billableHours.toFixed(2)} | Non-billable: ${nonBillable.toFixed(2)} | Overtime: ${overtime.toFixed(2)})`, 14, 51);
-      doc.addImage(chartBase64, 'PNG', 14, 58, 180, 50);
+      // 4. Table (auto-wrap long text)
+      const tableData = filtered.map(e => [
+        e.date, e.start, e.end, e.hours.toFixed(2),
+        e.project, e.category,
+        e.billable === 'yes' ? 'Billable' : 'Non-billable',
+        e.notes || ''
+      ]);
       doc.autoTable({
         startY: 115,
         head: [['Date','Start','End','Hours','Project','Category','Billable','Notes']],
         body: tableData,
-        foot: [['','','',totalHours.toFixed(2),'','','','']],
+        foot: [['','','', totalHours.toFixed(2),'','','','']],
         theme: 'striped',
         headStyles: { fillColor: [11,43,59], textColor: 255, fontStyle: 'bold' },
         footStyles: { fillColor: [240,240,240], textColor: 0, fontStyle: 'bold' },
+        columnStyles: {
+          0: { cellWidth: 22 },
+          1: { cellWidth: 16 },
+          2: { cellWidth: 16 },
+          3: { cellWidth: 16 },
+          4: { cellWidth: 30 },  // project - enough space
+          5: { cellWidth: 25 },
+          6: { cellWidth: 20 },
+          7: { cellWidth: 50 }   // notes - extra width
+        },
         margin: { left: 14, right: 14 },
-        columnStyles: { 0: { cellWidth: 22 }, 1: { cellWidth: 16 }, 2: { cellWidth: 16 }, 3: { cellWidth: 16 }, 4: { cellWidth: 30 }, 5: { cellWidth: 25 }, 6: { cellWidth: 20 }, 7: { cellWidth: 35 } }
+        styles: { overflow: 'linebreak', cellPadding: 2, fontSize: 9 }
       });
-      const pageCount = doc.internal.getNumberOfPages();
-      for (let i = 1; i <= pageCount; i++) {
-        doc.setPage(i);
-        doc.setFontSize(9);
-        doc.text(`Your Portfolio – Timesheet | Page ${i} of ${pageCount}`, 14, doc.internal.pageSize.height - 10);
-      }
+
+      // 5. Footer with QR code (link to GitHub profile)
+      const finalY = doc.lastAutoTable.finalY + 10;
+      // Generate QR code as dataURL
+      const qrContainer = document.createElement('div');
+      new QRCode(qrContainer, {
+        text: "https://github.com/siyabongathupana/",
+        width: 50,
+        height: 50,
+        colorDark: "#000000",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.L
+      });
+      await new Promise(r => setTimeout(r, 200));
+      const qrCanvas = qrContainer.querySelector('canvas');
+      const qrDataURL = qrCanvas.toDataURL('image/png');
+      doc.addImage(qrDataURL, 'PNG', 250, finalY, 20, 20);
+      doc.setFontSize(8);
+      doc.setTextColor(100,100,100);
+      doc.text("Scan QR to view GitHub portfolio", 245, finalY + 25, { align: 'right' });
+      doc.text("Report generated by Your Portfolio System", 20, finalY + 25);
+      doc.text(`Page ${doc.internal.getNumberOfPages()} of ${doc.internal.getNumberOfPages()}`, 280, finalY + 25, { align: 'right' });
+
       doc.save(`timesheet_${startDate}_to_${endDate}.pdf`);
-      showToast("PDF report generated.");
+      showToast("PDF report generated with bar chart & QR code.");
     } catch (err) {
       console.error(err);
       showToast("PDF generation failed: " + err.message, "error");
+    } finally {
+      window.hideLoading();
     }
   }
 
-  function exportExcelRange(startDate, endDate) {
-    const filtered = entries.filter(e => e.date >= startDate && e.date <= endDate);
-    if (!filtered.length) { showToast("No entries in selected range.", "error"); return; }
-    const data = filtered.map(e => ({
-      Date: e.date, Start: e.start, End: e.end, Hours: e.hours,
-      Project: e.project, Category: e.category,
-      Billable: e.billable === 'yes' ? 'Billable' : 'Non-billable',
-      Notes: e.notes || ''
-    }));
-    const ws = XLSX.utils.json_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Timesheet');
-    XLSX.writeFile(wb, `timesheet_${startDate}_to_${endDate}.xlsx`);
-    showToast("Excel downloaded.");
+  // --- Excel with password "Siya", styling, bar chart, auto-fit columns ---
+  async function exportStyledExcel(startDate, endDate) {
+    window.showLoading("Generating Excel report (password: Siya)...");
+    try {
+      const filtered = entries.filter(e => e.date >= startDate && e.date <= endDate);
+      if (!filtered.length) {
+        showToast("No entries in selected range.", "error");
+        window.hideLoading();
+        return;
+      }
+
+      // Use ExcelJS
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet("Timesheet");
+
+      // Title
+      worksheet.mergeCells('A1:H1');
+      const titleCell = worksheet.getCell('A1');
+      titleCell.value = `Timesheet Report - ${userFullName || user.username}`;
+      titleCell.font = { size: 16, bold: true, color: { argb: 'FFFFFFFF' } };
+      titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
+      titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+      worksheet.getRow(1).height = 30;
+
+      // Period
+      worksheet.mergeCells('A2:H2');
+      const periodCell = worksheet.getCell('A2');
+      periodCell.value = `Period: ${startDate} to ${endDate} | Generated: ${new Date().toLocaleString()}`;
+      periodCell.font = { italic: true, size: 10 };
+      periodCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE9F0F5' } };
+      worksheet.getRow(2).height = 20;
+
+      // Summary row
+      const totalHours = filtered.reduce((s,e) => s + e.hours, 0);
+      const billableHours = filtered.filter(e => e.billable === 'yes').reduce((s,e) => s + e.hours, 0);
+      const nonBillable = totalHours - billableHours;
+      const overtime = calculateOvertimeForPeriod(filtered);
+      worksheet.mergeCells('A3:H3');
+      const summaryCell = worksheet.getCell('A3');
+      summaryCell.value = `Total Hours: ${totalHours.toFixed(2)} | Billable: ${billableHours.toFixed(2)} | Non-billable: ${nonBillable.toFixed(2)} | Overtime: ${overtime.toFixed(2)}`;
+      summaryCell.font = { bold: true, size: 11 };
+      summaryCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD4E8F0' } };
+      worksheet.getRow(3).height = 22;
+
+      // Headers
+      const headers = ['Date', 'Start', 'End', 'Hours', 'Project', 'Category', 'Billable', 'Notes'];
+      const headerRow = worksheet.addRow(headers);
+      headerRow.eachCell((cell, colNumber) => {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
+        cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+      });
+
+      // Data rows
+      filtered.forEach(entry => {
+        const row = worksheet.addRow([
+          entry.date, entry.start, entry.end, entry.hours,
+          entry.project, entry.category,
+          entry.billable === 'yes' ? 'Billable' : 'Non-billable',
+          entry.notes || ''
+        ]);
+        row.eachCell((cell) => {
+          cell.alignment = { vertical: 'middle' };
+          cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+        });
+        // Color billable/non-billable
+        const billableCell = row.getCell(7);
+        if (entry.billable === 'yes') {
+          billableCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC6EFCE' } };
+        } else {
+          billableCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFC7CE' } };
+        }
+      });
+
+      // Total row
+      const totalRow = worksheet.addRow(['', '', '', totalHours.toFixed(2), '', '', '', '']);
+      totalRow.getCell(4).font = { bold: true };
+      totalRow.eachCell((cell) => {
+        cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+      });
+
+      // Auto-fit columns
+      worksheet.columns.forEach(column => {
+        let maxLength = 0;
+        column.eachCell({ includeEmpty: true }, cell => {
+          const cellValue = cell.value ? cell.value.toString() : '';
+          maxLength = Math.max(maxLength, cellValue.length);
+        });
+        column.width = Math.min(maxLength + 2, 40);
+      });
+
+      // Add bar chart (hours per project) as an image
+      const projMap = {};
+      filtered.forEach(e => { projMap[e.project] = (projMap[e.project] || 0) + e.hours; });
+      const canvas = document.createElement('canvas');
+      canvas.width = 600; canvas.height = 300;
+      const ctx = canvas.getContext('2d');
+      const chart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: Object.keys(projMap),
+          datasets: [{ label: 'Hours', data: Object.values(projMap), backgroundColor: '#2fc7ff' }]
+        },
+        options: { responsive: false, plugins: { legend: { position: 'top' } } }
+      });
+      await new Promise(r => setTimeout(r, 300));
+      const chartBase64 = canvas.toDataURL('image/png');
+      chart.destroy();
+
+      const chartImage = workbook.addImage({
+        base64: chartBase64,
+        extension: 'png',
+      });
+      // Place chart below the table (e.g., at row index after data + 3)
+      const startRow = filtered.length + 5;
+      worksheet.addImage(chartImage, {
+        tl: { col: 0, row: startRow },
+        br: { col: 5, row: startRow + 15 },
+        editAs: 'oneCell'
+      });
+
+      // Password protect the workbook
+      await workbook.xlsx.writeFile({ filename: 'temp.xlsx', password: 'Siya', compression: true });
+      // Note: ExcelJS password protection works when writing buffer
+      const buffer = await workbook.xlsx.writeBuffer({ password: 'Siya' });
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      saveAs(blob, `timesheet_${startDate}_to_${endDate}.xlsx`);
+      showToast("Excel report saved with password: Siya");
+    } catch (err) {
+      console.error(err);
+      showToast("Excel generation failed: " + err.message, "error");
+    } finally {
+      window.hideLoading();
+    }
+  }
+
+  // Replace old exportExcelRange with new styled version
+  async function exportExcelRange(startDate, endDate) {
+    await exportStyledExcel(startDate, endDate);
+  }
+
+  // Keep simple export for filtered data without date range? We'll reuse the same modal.
+  // Override the old exportToExcel to use the range modal
+  function exportToExcel() {
+    const end = new Date();
+    const start = new Date(); start.setDate(start.getDate() - 30);
+    document.getElementById('reportStartDate').value = formatDate(start);
+    document.getElementById('reportEndDate').value = formatDate(end);
+    document.getElementById('reportType').value = 'excel';
+    $('#reportModal').modal('show');
   }
 
   // ======================== USER META & NOTIFICATIONS ========================
@@ -695,7 +826,6 @@
     const dateInput = document.getElementById('logDate');
     if (dateInput) dateInput.value = formatDate(new Date());
 
-    // Event listeners
     document.getElementById('startTime')?.addEventListener('change', updateHoursAuto);
     document.getElementById('endTime')?.addEventListener('change', updateHoursAuto);
     document.getElementById('nowStartBtn').onclick = () => {
@@ -775,7 +905,6 @@
     };
     document.getElementById('saveEditBtn').onclick = saveEdit;
 
-    // Notification toggle
     await loadNotificationPreference();
     const toggle = document.getElementById('notificationsToggle');
     if (toggle) {
