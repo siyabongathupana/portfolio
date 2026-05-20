@@ -1,4 +1,4 @@
-// timesheet.js – professional PDF with pie charts, anti-tamper headers, and password-protected Excel
+// timesheet.js – Beautiful PDF with pie charts, integrated warnings, full-width charts, professional footer
 (function() {
   const user = window.SessionManager?.getCurrentUser();
   if (!user) {
@@ -43,7 +43,7 @@
     }
   }
 
-  // ======================== DATA LOAD & SAVE (CONFLICT RESOLUTION) ========================
+  // ======================== DATA LOAD & SAVE ========================
   async function loadTimesheet() {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(user.username);
@@ -462,9 +462,9 @@
     }
   }
 
-  // ======================== ENHANCED PDF REPORT (PIE CHARTS + ANTI-TAMPER) ========================
+  // ======================== BEAUTIFUL PDF REPORT (Pie charts, integrated header, footer at bottom) ========================
   async function generatePDFReport(startDate, endDate) {
-    window.showLoading("Generating PDF report with pie charts...");
+    window.showLoading("Generating beautiful PDF report...");
     try {
       const filtered = entries.filter(e => e.date >= startDate && e.date <= endDate);
       if (!filtered.length) {
@@ -475,22 +475,19 @@
 
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-
-      // ---- HEADER with anti-tamper warning ----
-      doc.setFillColor(200, 0, 0); // red
-      doc.rect(0, 0, 297, 15, 'F');
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(10);
-      doc.text("DO NOT EDIT THIS DOCUMENT – UNTAMPERED DATA", 148, 8, { align: 'center' });
-
-      // Main title
+      const pageWidth = doc.internal.pageSize.getWidth();
+      
+      // ---- BLUE HEADER (contains both title and warning) ----
       doc.setFillColor(11, 43, 59);
-      doc.rect(0, 15, 297, 12, 'F');
+      doc.rect(0, 0, pageWidth, 28, 'F');
       doc.setTextColor(255, 255, 255);
-      doc.setFontSize(14);
-      doc.text("Timesheet Report", 20, 24);
-
-      // User info and summary
+      doc.setFontSize(16);
+      doc.text("TIMESHEET REPORT", pageWidth / 2, 12, { align: 'center' });
+      doc.setFontSize(9);
+      doc.setTextColor(255, 200, 200);
+      doc.text("DO NOT EDIT – UNTAMPERED DATA", pageWidth / 2, 22, { align: 'center' });
+      
+      // ---- User & period info (below header) ----
       doc.setTextColor(0, 0, 0);
       doc.setFontSize(11);
       const name = document.getElementById('reportName')?.value || userFullName || user.username;
@@ -498,15 +495,16 @@
       const billableHours = filtered.filter(e => e.billable === 'yes').reduce((s,e) => s + e.hours, 0);
       const nonBillable = totalHours - billableHours;
       const overtime = calculateOvertimeForPeriod(filtered);
-      doc.text(`Name: ${name}`, 20, 40);
-      doc.text(`Period: ${startDate} to ${endDate}`, 20, 47);
-      doc.text(`Total Hours: ${totalHours.toFixed(2)} (Billable: ${billableHours.toFixed(2)} | Non-billable: ${nonBillable.toFixed(2)} | Overtime: ${overtime.toFixed(2)})`, 20, 54);
-
-      // ---- PIE CHART 1: Hours per project ----
+      doc.text(`Name: ${name}`, 14, 42);
+      doc.text(`Period: ${startDate} to ${endDate}`, 14, 49);
+      doc.text(`Total Hours: ${totalHours.toFixed(2)}  |  Billable: ${billableHours.toFixed(2)}  |  Non‑billable: ${nonBillable.toFixed(2)}  |  Overtime: ${overtime.toFixed(2)}`, 14, 56);
+      
+      // ---- THREE PIE CHARTS (full width, equally spaced, no stretching) ----
+      // Chart 1: Hours per Project
       const projMap = {};
       filtered.forEach(e => { projMap[e.project] = (projMap[e.project] || 0) + e.hours; });
       const canvas1 = document.createElement('canvas');
-      canvas1.width = 400; canvas1.height = 400;
+      canvas1.width = 350; canvas1.height = 350;
       const ctx1 = canvas1.getContext('2d');
       const pieColors = ['#2fc7ff','#ffc107','#28a745','#dc3545','#6f42c1','#fd7e14','#17a2b8','#e83e8c'];
       const chart1 = new Chart(ctx1, {
@@ -515,18 +513,17 @@
           labels: Object.keys(projMap),
           datasets: [{ data: Object.values(projMap), backgroundColor: pieColors.slice(0, Object.keys(projMap).length) }]
         },
-        options: { responsive: false, plugins: { legend: { position: 'right', labels: { font: { size: 10 } } } } }
+        options: { responsive: false, plugins: { legend: { position: 'right', labels: { font: { size: 9 } } } } }
       });
-      await new Promise(r => setTimeout(r, 300));
+      await new Promise(r => setTimeout(r, 200));
       const chartBase64_1 = canvas1.toDataURL('image/png');
       chart1.destroy();
-      doc.addImage(chartBase64_1, 'PNG', 20, 62, 80, 70);
-
-      // ---- PIE CHART 2: Hours per category ----
+      
+      // Chart 2: Hours per Category
       const catMap = {};
       filtered.forEach(e => { catMap[e.category] = (catMap[e.category] || 0) + e.hours; });
       const canvas2 = document.createElement('canvas');
-      canvas2.width = 400; canvas2.height = 400;
+      canvas2.width = 350; canvas2.height = 350;
       const ctx2 = canvas2.getContext('2d');
       const chart2 = new Chart(ctx2, {
         type: 'pie',
@@ -534,18 +531,17 @@
           labels: Object.keys(catMap),
           datasets: [{ data: Object.values(catMap), backgroundColor: ['#2fc7ff','#ffc107','#28a745','#dc3545','#6f42c1','#fd7e14','#17a2b8'] }]
         },
-        options: { responsive: false, plugins: { legend: { position: 'right', labels: { font: { size: 10 } } } } }
+        options: { responsive: false, plugins: { legend: { position: 'right', labels: { font: { size: 9 } } } } }
       });
-      await new Promise(r => setTimeout(r, 300));
+      await new Promise(r => setTimeout(r, 200));
       const chartBase64_2 = canvas2.toDataURL('image/png');
       chart2.destroy();
-      doc.addImage(chartBase64_2, 'PNG', 110, 62, 80, 70);
-
-      // ---- PIE CHART 3: Billable vs Non-billable ----
+      
+      // Chart 3: Billable vs Non-billable
       let billable = 0, nonBill = 0;
       filtered.forEach(e => { if (e.billable === 'yes') billable += e.hours; else nonBill += e.hours; });
       const canvas3 = document.createElement('canvas');
-      canvas3.width = 400; canvas3.height = 400;
+      canvas3.width = 350; canvas3.height = 350;
       const ctx3 = canvas3.getContext('2d');
       const chart3 = new Chart(ctx3, {
         type: 'pie',
@@ -553,14 +549,18 @@
           labels: ['Billable', 'Non-billable'],
           datasets: [{ data: [billable, nonBill], backgroundColor: ['#28a745', '#dc3545'] }]
         },
-        options: { responsive: false, plugins: { legend: { position: 'right', labels: { font: { size: 10 } } } } }
+        options: { responsive: false, plugins: { legend: { position: 'right', labels: { font: { size: 9 } } } } }
       });
-      await new Promise(r => setTimeout(r, 300));
+      await new Promise(r => setTimeout(r, 200));
       const chartBase64_3 = canvas3.toDataURL('image/png');
       chart3.destroy();
-      doc.addImage(chartBase64_3, 'PNG', 200, 62, 80, 70);
-
-      // ---- TABLE (auto-wrap long text) ----
+      
+      // Place charts side by side (each ~85mm wide)
+      doc.addImage(chartBase64_1, 'PNG', 12, 64, 85, 70);
+      doc.addImage(chartBase64_2, 'PNG', 105, 64, 85, 70);
+      doc.addImage(chartBase64_3, 'PNG', 198, 64, 85, 70);
+      
+      // ---- TABLE (auto‑wraps long notes/projects) ----
       const tableData = filtered.map(e => [
         e.date, e.start, e.end, e.hours.toFixed(2),
         e.project, e.category,
@@ -568,7 +568,7 @@
         e.notes || ''
       ]);
       doc.autoTable({
-        startY: 140,
+        startY: 145,
         head: [['Date','Start','End','Hours','Project','Category','Billable','Notes']],
         body: tableData,
         foot: [['','','', totalHours.toFixed(2),'','','','']],
@@ -580,23 +580,26 @@
           1: { cellWidth: 16 },
           2: { cellWidth: 16 },
           3: { cellWidth: 16 },
-          4: { cellWidth: 30 },  // project name
+          4: { cellWidth: 32 },  // project name
           5: { cellWidth: 25 },
-          6: { cellWidth: 20 },
-          7: { cellWidth: 50 }   // notes
+          6: { cellWidth: 22 },
+          7: { cellWidth: 55 }   // notes
         },
         margin: { left: 14, right: 14 },
         styles: { overflow: 'linebreak', cellPadding: 2, fontSize: 9 }
       });
-
-      // ---- FOOTER with QR code and integrity statement ----
+      
+      // ---- FOOTER (at bottom of the page) ----
       const finalY = doc.lastAutoTable.finalY + 10;
-      // QR code (GitHub profile)
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const footerY = Math.min(finalY, pageHeight - 25);
+      
+      // QR code
       const qrContainer = document.createElement('div');
       new QRCode(qrContainer, {
         text: "https://github.com/siyabongathupana/",
-        width: 50,
-        height: 50,
+        width: 45,
+        height: 45,
         colorDark: "#000000",
         colorLight: "#ffffff",
         correctLevel: QRCode.CorrectLevel.L
@@ -604,22 +607,23 @@
       await new Promise(r => setTimeout(r, 200));
       const qrCanvas = qrContainer.querySelector('canvas');
       const qrDataURL = qrCanvas.toDataURL('image/png');
-      doc.addImage(qrDataURL, 'PNG', 250, finalY, 20, 20);
+      doc.addImage(qrDataURL, 'PNG', pageWidth - 30, footerY, 18, 18);
+      
       doc.setFontSize(8);
-      doc.setTextColor(100,100,100);
-      doc.text("This document shows untampered, verifiable timesheet data.", 20, finalY + 10);
-      doc.text("Scan QR to view GitHub portfolio", 245, finalY + 25, { align: 'right' });
-      doc.text("Generated by Your Portfolio System – Controlled Copy", 20, finalY + 20);
-      doc.text(`Page ${doc.internal.getNumberOfPages()} of ${doc.internal.getNumberOfPages()}`, 280, finalY + 25, { align: 'right' });
-
-      // Light watermark "FINAL REPORT" across the page
-      doc.setFontSize(60);
+      doc.setTextColor(80, 80, 80);
+      doc.text("This document shows untampered, verifiable timesheet data.", 14, footerY + 5);
+      doc.text("Scan QR to view GitHub portfolio", pageWidth - 32, footerY + 22, { align: 'right' });
+      doc.text("Generated by Your Portfolio System – Controlled Copy", 14, footerY + 12);
+      doc.text(`Page ${doc.internal.getNumberOfPages()}`, pageWidth - 14, footerY + 18, { align: 'right' });
+      
+      // Watermark (light)
+      doc.setFontSize(50);
       doc.setTextColor(200, 200, 200);
-      doc.setGState(new doc.GState({ opacity: 0.15 }));
-      doc.text("FINAL REPORT", 148, 150, { align: 'center', angle: 45 });
+      doc.setGState(new doc.GState({ opacity: 0.12 }));
+      doc.text("FINAL", pageWidth / 2, pageHeight / 2, { align: 'center', angle: 45 });
       doc.setGState(new doc.GState({ opacity: 1 }));
-
-      // Save with permissions hint (metadata)
+      
+      // Metadata
       doc.setProperties({
         title: `Timesheet_${startDate}_to_${endDate}`,
         subject: "Untampered timesheet data",
@@ -627,8 +631,9 @@
         keywords: "timesheet, report, controlled",
         creator: "Your Portfolio System"
       });
+      
       doc.save(`timesheet_${startDate}_to_${endDate}.pdf`);
-      showToast("PDF generated with pie charts & anti-tamper features.");
+      showToast("PDF generated – beautiful pie charts & tamper‑proof design.");
     } catch (err) {
       console.error(err);
       showToast("PDF generation failed: " + err.message, "error");
@@ -637,7 +642,7 @@
     }
   }
 
-  // ======================== EXCEL WITH PASSWORD (unchanged, uses bar chart inside Excel) ========================
+  // ======================== EXCEL WITH PASSWORD (unchanged, but uses bar chart inside Excel) ========================
   async function exportStyledExcel(startDate, endDate) {
     window.showLoading("Generating Excel report (password: Siya)...");
     try {
