@@ -1,4 +1,4 @@
-// shared.js – Complete with conflict resolution, plain‑text logs, no backup/restore
+// shared.js – Complete with conflict resolution, plain‑text logs, fixed SHA handling
 
 // ======================== LOADING OVERLAY ========================
 window.showLoading = function (msg = 'Processing...') {
@@ -59,7 +59,7 @@ window.SessionManager = (() => {
   };
 })();
 
-// ======================== PLAIN‑TEXT LOGGING (format like attached log.txt) ========================
+// ======================== PLAIN‑TEXT LOGGING ========================
 window.Logger = {
   async log(action, details, level = 'INFO') {
     const user = window.SessionManager.getCurrentUser();
@@ -76,8 +76,8 @@ window.Logger = {
     let sha = null;
     try {
       const file = await GitHubAPI.getFileContent(owner, repo, logPath, branch, user.pat);
-      if (file && file.content) {
-        existingContent = file.content;
+      if (file && file.sha) {
+        existingContent = file.content || '';
         sha = file.sha;
       }
     } catch (e) { /* file doesn't exist yet */ }
@@ -273,8 +273,8 @@ window.AccountManager = {
     const encUser = encodeURIComponent(username);
     const path = `${dataPath}/users/${encUser}/account.json`;
     const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, pat).catch(() => null);
-    if (existing) throw new Error('An account with this email already exists on GitHub.');
-    await GitHubAPI.updateFile(owner, repo, path, encrypted, `Register ${username}`, branch, pat);
+    if (existing && existing.sha) throw new Error('An account with this email already exists on GitHub.');
+    await GitHubAPI.updateFile(owner, repo, path, encrypted, `Register ${username}`, branch, pat, existing?.sha);
     this._notifyAdminNewUser(username);
     this._notifyUserConfirmation(username);
     await window.Logger.log('register', `New user registered: ${username}`, 'INFO');
@@ -311,7 +311,7 @@ window.AccountManager = {
     const path = `${dataPath}/blocked_users.json`;
     let sha = null;
     const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, adminToken).catch(() => null);
-    if (existing) sha = existing.sha;
+    if (existing && existing.sha) sha = existing.sha;
     await GitHubAPI.updateFile(owner, repo, path, blocked, 'Update blocked users', branch, adminToken, sha);
     await window.Logger.log('toggle_block', `${block ? 'Blocked' : 'Unblocked'} user ${username}`, 'INFO');
     return true;
@@ -381,7 +381,7 @@ window.AccountManager = {
   }
 };
 
-// ======================== PORTFOLIO DATA (conflict‑free, updatedAt) ========================
+// ======================== PORTFOLIO DATA (conflict‑free, fixed SHA handling) ========================
 window.portfolioData = (() => {
   const PROJECTS_KEY = 'portfolioProjects';
   const CERTS_KEY = 'portfolioCertificates';
@@ -533,7 +533,7 @@ window.portfolioData = (() => {
     return JSON.parse(localStorage.getItem(CERTS_KEY) || '[]');
   }
 
-  // Conflict-resolving save for projects (merge by updatedAt)
+  // Fixed saveProjects – always retrieve SHA correctly
   async function saveProjects(data, forceEmpty = false) {
     const prev = localStorage.getItem(PROJECTS_KEY);
     if (prev && !forceEmpty) {
@@ -561,11 +561,16 @@ window.portfolioData = (() => {
         let sha = null;
         try {
           const remoteFile = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
-          if (remoteFile && remoteFile.content) {
-            remoteData = JSON.parse(remoteFile.content);
+          // IMPORTANT: check for sha existence, not just content
+          if (remoteFile && remoteFile.sha) {
             sha = remoteFile.sha;
+            if (remoteFile.content) {
+              remoteData = JSON.parse(remoteFile.content);
+            }
           }
-        } catch(e) {}
+        } catch(e) {
+          // File might not exist – that's fine, sha stays null
+        }
         // Merge: newer updatedAt wins
         const merged = { ...remoteData };
         for (const [id, proj] of Object.entries(data)) {
@@ -588,6 +593,7 @@ window.portfolioData = (() => {
     }
   }
 
+  // Fixed saveCertificates – always retrieve SHA correctly
   async function saveCertificates(data, forceEmpty = false) {
     const prev = localStorage.getItem(CERTS_KEY);
     if (prev && !forceEmpty) {
@@ -616,15 +622,16 @@ window.portfolioData = (() => {
         let sha = null;
         try {
           const remoteFile = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
-          if (remoteFile && remoteFile.content) {
-            remoteData = JSON.parse(remoteFile.content);
+          if (remoteFile && remoteFile.sha) {
             sha = remoteFile.sha;
+            if (remoteFile.content) {
+              remoteData = JSON.parse(remoteFile.content);
+            }
           }
         } catch(e) {}
+        // Merge based on id and updatedAt
         const remoteMap = new Map();
         for (const cert of remoteData) remoteMap.set(cert.id, cert);
-        const localMap = new Map();
-        for (const cert of data) localMap.set(cert.id, cert);
         const mergedMap = new Map();
         for (const cert of remoteData) mergedMap.set(cert.id, cert);
         for (const cert of data) {
@@ -703,7 +710,7 @@ window.protectImages = function () {
   });
 };
 
-// ======================== PDF REPORT GENERATION (for projects) ========================
+// ======================== PDF PROJECT REPORT ========================
 window.generateProjectReport = async function(projectId) {
   const data = await window.portfolioData.loadProjectsForView();
   const proj = data[projectId];
@@ -783,7 +790,7 @@ window.generateProjectReport = async function(projectId) {
           <tr><td><strong>Location:</strong></td><td>${proj.siteLocation || 'N/A'}</td></tr>
           <tr><td><strong>Controllers:</strong></td><td>${controllerDisplay}</td></tr>
           <tr><td><strong>Cabinets:</strong></td><td>${proj.cabinetCount}</td></tr>
-          ${proj.deltaVVersion ? `<tr><td><strong>DeltaV Version:</strong></td><td>${proj.deltaVVersion}</td></tr>` : ''}
+          ${proj.deltaVVersion ? `<tr><td><strong>DeltaV Version:</strong></td><td>${proj.deltaVVersion}</td>` : ''}
           <tr><td><strong>Start Date:</strong></td><td>${proj.dates?.start || 'N/A'}</td></tr>
           <tr><td><strong>Finish Date:</strong></td><td>${proj.dates?.finish || 'N/A'}</td></tr>
           <tr><td><strong>IFAT:</strong></td><td>${ifatText}</td></tr>
