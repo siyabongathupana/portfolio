@@ -1,4 +1,4 @@
-// timesheet.js – Failsafe, bar charts in PDF, fully responsive
+// timesheet.js – non‑blocking background saves with conflict retry, notification toggle
 (function() {
   const user = window.SessionManager?.getCurrentUser();
   if (!user) {
@@ -12,9 +12,85 @@
   let categoryChart = null, billableChart = null, projectChart = null;
   let userFullName = "";
   let projectList = [];
+  let notificationsEnabled = true;
   let autoRefreshInterval = null;
+
+  // Write queue & retry logic
   let isSaving = false;
-  let saveQueue = Promise.resolve();
+  let saveQueue = [];
+
+  function setButtonLoading(btn, isLoading, originalText = null) {
+    if (!btn) return;
+    if (isLoading) {
+      btn.originalText = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Saving...';
+    } else {
+      btn.disabled = false;
+      if (btn.originalText) btn.innerHTML = btn.originalText;
+    }
+  }
+
+  async function queueSave() {
+    return new Promise((resolve, reject) => {
+      if (!isSaving) {
+        executeSave(resolve, reject);
+      } else {
+        saveQueue.push({ resolve, reject });
+      }
+    });
+  }
+
+  async function executeSave(resolve, reject) {
+    isSaving = true;
+    try {
+      await saveTimesheetWithRetry();
+      resolve();
+    } catch (err) {
+      reject(err);
+    } finally {
+      isSaving = false;
+      if (saveQueue.length > 0) {
+        const next = saveQueue.shift();
+        executeSave(next.resolve, next.reject);
+      }
+    }
+  }
+
+  async function saveTimesheetWithRetry(maxRetries = 3, baseDelay = 500) {
+    let lastError;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        await saveTimesheetInternal();
+        return;
+      } catch (err) {
+        lastError = err;
+        if (err.message && (err.message.includes('sha') || err.message.includes('does not match'))) {
+          console.warn(`Conflict detected, retrying (${attempt}/${maxRetries})...`);
+          await new Promise(resolve => setTimeout(resolve, baseDelay * Math.pow(2, attempt - 1)));
+          continue;
+        }
+        throw err;
+      }
+    }
+    throw lastError;
+  }
+
+  async function saveTimesheetInternal() {
+    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+    const encUser = encodeURIComponent(user.username);
+    const path = `${dataPath}/users/${encUser}/${TIMESHEET_FILE}`;
+    let sha = null;
+    try {
+      const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
+      if (existing) sha = existing.sha;
+    } catch(e) {}
+    await GitHubAPI.updateFile(owner, repo, path, entries, "Update timesheet", branch, user.pat, sha);
+  }
+
+  async function saveTimesheet() {
+    return queueSave();
+  }
 
   function showToast(message, type = "success") {
     const container = document.getElementById("toastContainer");
@@ -125,52 +201,6 @@
     }
   }
 
-  async function saveTimesheetAtomically(newEntries, retryCount = 0) {
-    if (isSaving) {
-      return new Promise((resolve, reject) => {
-        saveQueue = saveQueue.then(() => saveTimesheetAtomically(newEntries, retryCount).then(resolve).catch(reject));
-      });
-    }
-    isSaving = true;
-    try {
-      const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-      const encUser = encodeURIComponent(user.username);
-      const path = `${dataPath}/users/${encUser}/${TIMESHEET_FILE}`;
-      
-      let sha = null;
-      let latestContent = null;
-      try {
-        const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
-        if (existing) {
-          sha = existing.sha;
-          latestContent = JSON.parse(existing.content);
-        }
-      } catch(e) { }
-      
-      if (latestContent && Array.isArray(latestContent)) {
-        if (latestContent.length !== entries.length && retryCount === 0) {
-          throw new Error("CONFLICT: Data changed since last load. Please refresh and try again.");
-        }
-      }
-      
-      await GitHubAPI.updateFile(owner, repo, path, newEntries, "Update timesheet", branch, user.pat, sha);
-      entries = [...newEntries];
-      await window.Logger.log('save_timesheet', `Saved ${newEntries.length} entries`);
-      showToast("Timesheet saved successfully.");
-    } catch (err) {
-      console.error("Save failed:", err);
-      if (err.message.includes("CONFLICT") && retryCount < 3) {
-        showToast("Data conflict, reloading and retrying...", "warning");
-        await loadTimesheet();
-        return saveTimesheetAtomically(entries, retryCount + 1);
-      }
-      showToast("Failed to save timesheet: " + err.message, "error");
-      throw err;
-    } finally {
-      isSaving = false;
-    }
-  }
-
   async function loadTimesheet() {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(user.username);
@@ -183,15 +213,8 @@
       } else {
         entries = [];
       }
-    } catch(e) { 
-      console.error("Load timesheet error:", e);
-      if (!entries.length) entries = [];
-    }
+    } catch(e) { entries = []; }
     entries.sort((a, b) => new Date(b.date) - new Date(a.date));
-  }
-
-  async function saveTimesheetWrapper(newEntries) {
-    return saveTimesheetAtomically(newEntries);
   }
 
   async function loadUserMeta() {
@@ -224,6 +247,39 @@
     await GitHubAPI.updateFile(owner, repo, path, meta, "Update user name", branch, user.pat, sha);
   }
 
+  async function loadNotificationPreference() {
+    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+    const encUser = encodeURIComponent(user.username);
+    const path = `${dataPath}/users/${encUser}/preferences.json`;
+    try {
+      const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
+      if (file && file.content) {
+        const prefs = JSON.parse(file.content);
+        notificationsEnabled = prefs.notifications !== undefined ? prefs.notifications : true;
+      } else {
+        notificationsEnabled = true;
+      }
+    } catch(e) {
+      notificationsEnabled = true;
+    }
+    const toggle = document.getElementById('notificationsToggle');
+    if (toggle) toggle.checked = notificationsEnabled;
+  }
+
+  async function saveNotificationPreference(enabled) {
+    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+    const encUser = encodeURIComponent(user.username);
+    const path = `${dataPath}/users/${encUser}/preferences.json`;
+    let sha = null;
+    try {
+      const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
+      if (existing) sha = existing.sha;
+    } catch(e) {}
+    const prefs = { notifications: enabled };
+    await GitHubAPI.updateFile(owner, repo, path, prefs, "Update notification preference", branch, user.pat, sha);
+    notificationsEnabled = enabled;
+  }
+
   async function addEntry(duplicateData = null) {
     let date, start, end, project, category, billable, notes;
     if (duplicateData) {
@@ -252,11 +308,14 @@
       showToast("End time must be after start time.", "error");
       return;
     }
-    window.showLoading(duplicateData ? "Duplicating entry..." : "Adding entry...");
+
+    const addBtn = document.getElementById('addEntryBtn');
+    setButtonLoading(addBtn, true);
+
     try {
-      const newEntry = { id: Date.now(), date, start, end, hours, project, category, billable, notes, _v: Date.now() };
-      const newEntries = [newEntry, ...entries];
-      await saveTimesheetWrapper(newEntries);
+      const newEntry = { id: Date.now(), date, start, end, hours, project, category, billable, notes };
+      entries.unshift(newEntry);
+      await saveTimesheet();  // background queue + retry
       showToast(duplicateData ? "Entry duplicated!" : "Entry saved.");
       await refreshView();
       if (!duplicateData) {
@@ -269,23 +328,24 @@
       console.error(err);
       showToast("Failed to save entry: " + err.message, "error");
     } finally {
-      window.hideLoading();
+      setButtonLoading(addBtn, false);
     }
   }
 
   async function deleteEntry(id) {
-    if (confirm("Delete this entry?")) {
-      window.showLoading("Deleting entry...");
-      try {
-        const newEntries = entries.filter(e => e.id != id);
-        await saveTimesheetWrapper(newEntries);
-        showToast("Entry deleted.");
-        await refreshView();
-      } catch (err) {
-        showToast("Delete failed: " + err.message, "error");
-      } finally {
-        window.hideLoading();
-      }
+    if (!confirm("Delete this entry?")) return;
+    // find the delete button to show spinner (optional, we'll use a generic approach)
+    const delBtn = document.querySelector(`button[data-id='${id}']`);
+    if (delBtn) setButtonLoading(delBtn, true);
+    try {
+      entries = entries.filter(e => e.id != id);
+      await saveTimesheet();
+      showToast("Entry deleted.");
+      await refreshView();
+    } catch (err) {
+      showToast("Delete failed: " + err.message, "error");
+    } finally {
+      if (delBtn) setButtonLoading(delBtn, false);
     }
   }
 
@@ -327,18 +387,18 @@
       showToast("End time must be after start.", "error");
       return;
     }
-    window.showLoading("Updating entry...");
+    const saveBtn = document.getElementById('saveEditBtn');
+    setButtonLoading(saveBtn, true);
     try {
-      const newEntries = [...entries];
-      newEntries[index] = { ...newEntries[index], date, start, end, hours, project, category, billable, notes, _v: Date.now() };
-      await saveTimesheetWrapper(newEntries);
+      entries[index] = { ...entries[index], date, start, end, hours, project, category, billable, notes };
+      await saveTimesheet();
       $('#editModal').modal('hide');
       showToast("Entry updated.");
       await refreshView();
     } catch (err) {
       showToast("Update failed: " + err.message, "error");
     } finally {
-      window.hideLoading();
+      setButtonLoading(saveBtn, false);
     }
   }
 
@@ -377,7 +437,7 @@
     const tbody = document.getElementById('historyBody');
     const tfoot = document.getElementById('historyFoot');
     if (filtered.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="9" class="text-center">No entries found.</td>';
+      tbody.innerHTML = '<tr><td colspan="9" class="text-center">No entries found.</td></tr>';
       tfoot.style.display = 'none';
       return;
     }
@@ -407,6 +467,7 @@
       const delBtn = document.createElement('button');
       delBtn.className = 'btn btn-sm btn-danger';
       delBtn.innerHTML = '<i class="fa fa-trash"></i>';
+      delBtn.dataset.id = entry.id;
       delBtn.onclick = () => deleteEntry(entry.id);
       actionCell.appendChild(editBtn);
       actionCell.appendChild(dupBtn);
@@ -453,7 +514,6 @@
     }
   }
 
-  // Web page charts – pie (square canvases)
   function updateCharts() {
     const filtered = getFilteredEntries();
     const projMap = {};
@@ -490,90 +550,18 @@
     showToast("Excel downloaded.");
   }
 
-  async function generateQRCodeDataURL(url, size = 150) {
-    return new Promise((resolve, reject) => {
-      const canvas = document.createElement('canvas');
-      QRCode.toCanvas(canvas, url, { width: size, margin: 1 }, (error) => {
-        if (error) reject(error);
-        else resolve(canvas.toDataURL('image/png'));
-      });
-    });
-  }
-
-  // PDF report – now using BAR CHARTS (more reliable and distortion-free)
   async function generatePDFReport(startDate, endDate) {
     try {
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
       const filtered = entries.filter(e => e.date >= startDate && e.date <= endDate);
       if (!filtered.length) { showToast("No entries in selected range.", "error"); return; }
-      
       const name = document.getElementById('reportName')?.value || userFullName || user.username;
       const totalHours = filtered.reduce((s,e) => s + e.hours, 0);
       const billableHours = filtered.filter(e => e.billable === 'yes').reduce((s,e) => s + e.hours, 0);
       const nonBillable = totalHours - billableHours;
       const overtime = calculateOvertimeForPeriod(filtered);
-      
-      // Prepare data for bar charts
-      const projMap = {};
-      filtered.forEach(e => { projMap[e.project] = (projMap[e.project] || 0) + e.hours; });
-      const projLabels = Object.keys(projMap);
-      const projData = Object.values(projMap);
-      
-      const catMap = {};
-      filtered.forEach(e => { catMap[e.category] = (catMap[e.category] || 0) + e.hours; });
-      const catLabels = Object.keys(catMap);
-      const catData = Object.values(catMap);
-      
-      const billableTotal = filtered.filter(e => e.billable === 'yes').reduce((s,e) => s + e.hours, 0);
-      const nonBillTotal = totalHours - billableTotal;
-      
-      // Create bar chart for Projects
-      const canvasProj = document.createElement('canvas');
-      canvasProj.width = 400;
-      canvasProj.height = 250;
-      const ctxProj = canvasProj.getContext('2d');
-      const projChart = new Chart(ctxProj, {
-        type: 'bar',
-        data: { labels: projLabels, datasets: [{ label: 'Hours', data: projData, backgroundColor: '#2fc7ff' }] },
-        options: { responsive: false, maintainAspectRatio: true, plugins: { legend: { display: false } } }
-      });
-      await new Promise(r => setTimeout(r, 200));
-      const projChartDataURL = canvasProj.toDataURL();
-      projChart.destroy();
-      
-      // Bar chart for Categories
-      const canvasCat = document.createElement('canvas');
-      canvasCat.width = 400;
-      canvasCat.height = 250;
-      const ctxCat = canvasCat.getContext('2d');
-      const catChart = new Chart(ctxCat, {
-        type: 'bar',
-        data: { labels: catLabels, datasets: [{ label: 'Hours', data: catData, backgroundColor: '#ffc107' }] },
-        options: { responsive: false, maintainAspectRatio: true, plugins: { legend: { display: false } } }
-      });
-      await new Promise(r => setTimeout(r, 200));
-      const catChartDataURL = canvasCat.toDataURL();
-      catChart.destroy();
-      
-      // Bar chart for Billable vs Non-billable
-      const canvasBill = document.createElement('canvas');
-      canvasBill.width = 400;
-      canvasBill.height = 250;
-      const ctxBill = canvasBill.getContext('2d');
-      const billChart = new Chart(ctxBill, {
-        type: 'bar',
-        data: { labels: ['Billable', 'Non-billable'], datasets: [{ label: 'Hours', data: [billableTotal, nonBillTotal], backgroundColor: ['#28a745', '#dc3545'] }] },
-        options: { responsive: false, maintainAspectRatio: true, plugins: { legend: { display: false } } }
-      });
-      await new Promise(r => setTimeout(r, 200));
-      const billChartDataURL = canvasBill.toDataURL();
-      billChart.destroy();
-      
-      const qrDataURL = await generateQRCodeDataURL("https://github.com/siyabongathupana/", 60);
-      
       const tableData = filtered.map(e => [e.date, e.start, e.end, e.hours.toFixed(2), e.project, e.category, e.billable === 'yes' ? 'Billable' : 'Non-billable', e.notes || '']);
-      
       doc.setFontSize(16);
       doc.text('Timesheet Report', 14, 20);
       doc.setFontSize(11);
@@ -581,23 +569,11 @@
       doc.text(`Period: ${startDate} to ${endDate}`, 14, 37);
       doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 44);
       doc.text(`Total Hours: ${totalHours.toFixed(2)} (Billable: ${billableHours.toFixed(2)} | Non-billable: ${nonBillable.toFixed(2)} | Overtime: ${overtime.toFixed(2)})`, 14, 51);
-      
-      // Add bar charts (sized nicely)
-      doc.addImage(projChartDataURL, 'PNG', 14, 60, 70, 45);
-      doc.addImage(catChartDataURL, 'PNG', 90, 60, 70, 45);
-      doc.addImage(billChartDataURL, 'PNG', 166, 60, 70, 45);
-      
-      doc.autoTable({ startY: 115, head: [['Date','Start','End','Hours','Project','Category','Billable','Notes']], body: tableData, foot: [['','','',totalHours.toFixed(2),'','','','']], theme: 'striped', headStyles: { fillColor: [11,43,59], textColor: 255, fontStyle: 'bold' }, footStyles: { fillColor: [240,240,240], textColor: 0, fontStyle: 'bold' }, margin: { left: 14, right: 14 }, columnStyles: { 0: { cellWidth: 22 }, 1: { cellWidth: 16 }, 2: { cellWidth: 16 }, 3: { cellWidth: 16 }, 4: { cellWidth: 30 }, 5: { cellWidth: 25 }, 6: { cellWidth: 20 }, 7: { cellWidth: 35 } } });
-      
+      doc.autoTable({ startY: 58, head: [['Date','Start','End','Hours','Project','Category','Billable','Notes']], body: tableData, foot: [['','','',totalHours.toFixed(2),'','','','']], theme: 'striped', headStyles: { fillColor: [11,43,59], textColor: 255, fontStyle: 'bold' }, footStyles: { fillColor: [240,240,240], textColor: 0, fontStyle: 'bold' }, margin: { left: 14, right: 14 }, columnStyles: { 0: { cellWidth: 22 }, 1: { cellWidth: 16 }, 2: { cellWidth: 16 }, 3: { cellWidth: 16 }, 4: { cellWidth: 30 }, 5: { cellWidth: 25 }, 6: { cellWidth: 20 }, 7: { cellWidth: 35 } } });
       const pageCount = doc.internal.getNumberOfPages();
-      for (let i = 1; i <= pageCount; i++) {
-        doc.setPage(i);
-        doc.setFontSize(9);
-        doc.text(`Your Portfolio – Timesheet | Page ${i} of ${pageCount}`, 14, doc.internal.pageSize.height - 10);
-        doc.addImage(qrDataURL, 'PNG', doc.internal.pageSize.width - 20, doc.internal.pageSize.height - 20, 12, 12);
-      }
+      for (let i = 1; i <= pageCount; i++) { doc.setPage(i); doc.setFontSize(9); doc.text(`Your Portfolio – Timesheet | Page ${i} of ${pageCount}`, 14, doc.internal.pageSize.height - 10); }
       doc.save(`timesheet_${startDate}_to_${endDate}.pdf`);
-      showToast("PDF report generated with bar charts.");
+      showToast("PDF report generated.");
     } catch (err) { console.error(err); showToast("PDF generation failed: " + err.message, "error"); }
   }
 
@@ -639,33 +615,6 @@
     document.getElementById('filterRange').onchange = () => { renderHistory(); updateSummaryAndProgress(); updateCharts(); };
     document.getElementById('filterProject').onchange = () => { renderHistory(); updateSummaryAndProgress(); updateCharts(); };
     document.getElementById('filterCategory').onchange = () => { renderHistory(); updateSummaryAndProgress(); updateCharts(); };
-    
-    const periodPreset = document.getElementById('reportPeriodPreset');
-    const customDateDiv = document.getElementById('customDateRange');
-    periodPreset.addEventListener('change', () => {
-      if (periodPreset.value === 'custom') {
-        customDateDiv.style.display = 'block';
-      } else {
-        customDateDiv.style.display = 'none';
-        const now = new Date();
-        let start, end;
-        if (periodPreset.value === 'week') {
-          const day = now.getDay();
-          const diff = (day === 0 ? 6 : day - 1);
-          start = new Date(now); start.setDate(now.getDate() - diff);
-          end = new Date(now); end.setDate(start.getDate() + 6);
-        } else if (periodPreset.value === 'month') {
-          start = new Date(now.getFullYear(), now.getMonth(), 1);
-          end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-        } else if (periodPreset.value === 'year') {
-          start = new Date(now.getFullYear(), 0, 1);
-          end = new Date(now.getFullYear(), 11, 31);
-        }
-        document.getElementById('reportStartDate').value = formatDate(start);
-        document.getElementById('reportEndDate').value = formatDate(end);
-      }
-    });
-    
     document.getElementById('saveNameBtn').onclick = async () => {
       const newName = document.getElementById('userFullName')?.value.trim();
       if (!newName) { showToast("Please enter a name.", "error"); return; }
@@ -691,18 +640,15 @@
     };
     document.getElementById('generateReportBtn').onclick = () => {
       document.getElementById('reportName').value = userFullName;
-      periodPreset.dispatchEvent(new Event('change'));
+      const end = new Date();
+      const start = new Date(); start.setDate(start.getDate() - 30);
+      document.getElementById('reportStartDate').value = formatDate(start);
+      document.getElementById('reportEndDate').value = formatDate(end);
       $('#reportModal').modal('show');
     };
     document.getElementById('generateReportConfirmBtn').onclick = () => {
-      let start, end;
-      if (periodPreset.value === 'custom') {
-        start = document.getElementById('reportStartDate')?.value;
-        end = document.getElementById('reportEndDate')?.value;
-      } else {
-        start = document.getElementById('reportStartDate')?.value;
-        end = document.getElementById('reportEndDate')?.value;
-      }
+      const start = document.getElementById('reportStartDate')?.value;
+      const end = document.getElementById('reportEndDate')?.value;
       if (!start || !end) { showToast("Select both start and end dates.", "error"); return; }
       const type = document.getElementById('reportType')?.value;
       $('#reportModal').modal('hide');
@@ -710,6 +656,26 @@
       else exportExcelRange(start, end);
     };
     document.getElementById('saveEditBtn').onclick = saveEdit;
+
+    // Notification toggle
+    await loadNotificationPreference();
+    const toggle = document.getElementById('notificationsToggle');
+    if (toggle) {
+      toggle.addEventListener('change', async (e) => {
+        const enabled = e.target.checked;
+        window.showLoading("Saving notification preference...");
+        try {
+          await saveNotificationPreference(enabled);
+          showToast(enabled ? "Email notifications enabled" : "Email notifications disabled");
+        } catch (err) {
+          showToast("Failed to save preference: " + err.message, "error");
+          e.target.checked = !enabled;
+        } finally {
+          window.hideLoading();
+        }
+      });
+    }
+
     await loadUserMeta();
     await loadProjectsFromPortfolio();
     await refreshView();

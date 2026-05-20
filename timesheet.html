@@ -9,20 +9,17 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
   <link rel="icon" type="image/png" href="favicon.png">
-  <!-- Chart.js & PDF libraries -->
+  <!-- Third-party libraries -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
-  <!-- QR Code Generator -->
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
   <!-- Core app scripts -->
   <script src="config.js"></script>
   <script src="crypto.js"></script>
   <script src="api.js"></script>
   <script src="shared.js"></script>
   <style>
-    /* Additional responsive overrides for timesheet */
     .timesheet-container {
       max-width: 1400px;
       margin: 20px auto;
@@ -59,7 +56,9 @@
       font-weight: 600;
       font-size: 0.85rem;
     }
-    .progress-fill.overtime { background: #dc3545; }
+    .progress-fill.overtime {
+      background: #dc3545;
+    }
     .summary-card {
       background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
       border-radius: 16px;
@@ -106,13 +105,9 @@
     .btn-edit { background: #ffc107; color: #212529; margin-right: 5px; }
     .btn-duplicate { background: #17a2b8; color: white; margin-right: 5px; }
     .btn-duplicate:hover { background: #138496; }
-
-    /* Responsive: up to 27" monitors */
-    @media (min-width: 1920px) {
-      .timesheet-container { max-width: 1600px; padding: 30px; }
-      .chart-card canvas { max-width: 280px; }
-      .summary-stat .number { font-size: 2.2rem; }
-    }
+    /* Notification toggle switch */
+    .custom-switch .custom-control-label:before { border-radius: 20px; background-color: #e2e8f0; }
+    .custom-switch .custom-control-input:checked ~ .custom-control-label:before { background-color: #2fc7ff; }
     @media (max-width: 768px) {
       .timesheet-container { padding: 12px; margin: 10px; border-radius: 16px; }
       .quick-log-card { padding: 15px; }
@@ -120,15 +115,11 @@
       .btn-sm { min-height: 38px; }
       .progress-bar-container { height: 40px; }
       .progress-fill { font-size: 0.75rem; padding-right: 8px; }
+      .chart-card canvas { max-width: 220px; }
       .filter-bar { flex-direction: column; align-items: stretch; }
       .filter-controls { justify-content: space-between; }
       .history-table th, .history-table td { font-size: 0.7rem; padding: 6px 4px; }
       .summary-stat .number { font-size: 1.2rem; }
-      .summary-stat { padding: 5px 8px; }
-    }
-    @media (max-width: 480px) {
-      .history-table th, .history-table td { font-size: 0.65rem; padding: 4px 2px; }
-      .btn-sm { font-size: 0.7rem; padding: 4px 8px; }
     }
     @media print {
       body { background: white; padding: 0; margin: 0; }
@@ -182,6 +173,24 @@
         </div>
       </div>
       <small class="text-muted">This name appears on reports.</small>
+    </div>
+  </div>
+
+  <!-- Notification Toggle -->
+  <div class="row mb-3">
+    <div class="col-md-6 offset-md-3">
+      <div class="card bg-light">
+        <div class="card-body d-flex justify-content-between align-items-center">
+          <div>
+            <i class="fa fa-envelope-o"></i> <strong>Weekly Email Summaries</strong><br>
+            <small class="text-muted">Get a reminder every Monday & Friday to fill in your timesheet</small>
+          </div>
+          <div class="custom-control custom-switch">
+            <input type="checkbox" class="custom-control-input" id="notificationsToggle">
+            <label class="custom-control-label" for="notificationsToggle">Enable notifications</label>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -239,11 +248,11 @@
     <div class="summary-stat"><div class="number overtime-number" id="summaryOvertime">0</div><div class="label">Overtime (>8h/day)</div></div>
   </div>
 
-  <!-- Charts (square canvases for perfect circles on web) -->
+  <!-- Charts -->
   <div class="row mb-4">
-    <div class="col-12 col-md-4 mb-3"><div class="chart-card"><h6>By Project</h6><canvas id="projectChart" width="200" height="200"></canvas></div></div>
-    <div class="col-12 col-md-4 mb-3"><div class="chart-card"><h6>By Category</h6><canvas id="categoryChart" width="200" height="200"></canvas></div></div>
-    <div class="col-12 col-md-4 mb-3"><div class="chart-card"><h6>Billable vs Non-Billable</h6><canvas id="billableChart" width="200" height="200"></canvas></div></div>
+    <div class="col-12 col-md-4 mb-3"><div class="chart-card"><h6>By Project</h6><canvas id="projectChart" width="220" height="200"></canvas></div></div>
+    <div class="col-12 col-md-4 mb-3"><div class="chart-card"><h6>By Category</h6><canvas id="categoryChart" width="220" height="200"></canvas></div></div>
+    <div class="col-12 col-md-4 mb-3"><div class="chart-card"><h6>Billable vs Non-Billable</h6><canvas id="billableChart" width="220" height="200"></canvas></div></div>
   </div>
 
   <!-- Filters -->
@@ -267,14 +276,14 @@
   <!-- History Table -->
   <div class="table-responsive">
     <table class="table table-bordered history-table">
-      <thead><tr><th>Date</th><th>Start</th><th>End</th><th>Hours</th><th>Project</th><th>Category</th><th>Billable</th><th>Notes</th><th class="print-hide">Actions</th></thead>
-      <tbody id="historyBody"><tr><td colspan="9" class="text-center">Loading...</td></tbody>
-      <tfoot id="historyFoot" style="display: none;"><tr class="total-row"><td colspan="3" class="text-right"><strong>Total:</strong></td><td id="totalHoursCell"><strong>0.00</strong></td><td colspan="5"></td></tfoot>
+      <thead><tr><th>Date</th><th>Start</th><th>End</th><th>Hours</th><th>Project</th><th>Category</th><th>Billable</th><th>Notes</th><th class="print-hide">Actions</th></tr></thead>
+      <tbody id="historyBody"><tr><td colspan="9" class="text-center">Loading...</td></tr></tbody>
+      <tfoot id="historyFoot" style="display: none;"><tr class="total-row"><td colspan="3" class="text-right"><strong>Total:</strong></td><td id="totalHoursCell"><strong>0.00</strong></td><td colspan="5"></td></tr></tfoot>
     </table>
   </div>
 </div>
 
-<div class="page-footer"><p>© 2026 Your Portfolio</p><p class="footer-status"><span id="userFooterStatus"></span></p></div>
+<div class="page-footer"><p>© 2025 Your Portfolio</p><p class="footer-status"><span id="userFooterStatus"></span></p></div>
 <div class="toast-container" id="toastContainer"></div>
 
 <!-- Edit Modal -->
@@ -314,21 +323,9 @@
       <div class="modal-header"><h5><i class="fa fa-file-pdf-o"></i> Generate Report</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div>
       <div class="modal-body">
         <div class="form-group"><label>Full Name (as on report)</label><input type="text" id="reportName" class="form-control" readonly></div>
-        <div class="form-group"><label>Period Preset</label>
-          <select id="reportPeriodPreset" class="form-control">
-            <option value="week">This Week</option>
-            <option value="month" selected>This Month</option>
-            <option value="year">This Year</option>
-            <option value="custom">Custom Range</option>
-          </select>
-        </div>
-        <div id="customDateRange" style="display: none;">
-          <div class="form-row">
-            <div class="col"><label>Start Date</label><input type="date" id="reportStartDate" class="form-control"></div>
-            <div class="col"><label>End Date</label><input type="date" id="reportEndDate" class="form-control"></div>
-          </div>
-        </div>
-        <div class="form-group mt-2"><label>Format</label><select id="reportType" class="form-control"><option value="pdf">PDF Document</option><option value="excel">Excel Workbook (.xlsx)</option></select></div>
+        <div class="form-group"><label>Start Date</label><input type="date" id="reportStartDate" class="form-control"></div>
+        <div class="form-group"><label>End Date</label><input type="date" id="reportEndDate" class="form-control"></div>
+        <div class="form-group"><label>Format</label><select id="reportType" class="form-control"><option value="pdf">PDF Document</option><option value="excel">Excel Workbook (.xlsx)</option></select></div>
       </div>
       <div class="modal-footer"><button class="btn btn-secondary" data-dismiss="modal">Cancel</button><button id="generateReportConfirmBtn" class="btn btn-primary">Generate</button></div>
     </div>
