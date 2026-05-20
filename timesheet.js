@@ -1,7 +1,7 @@
-// timesheet.js – SHA-conflict PROOF – always fetches latest before saving
+// timesheet.js – with loading indicators for project creation, entry addition, name saving
 (function() {
   const user = window.SessionManager?.getCurrentUser();
-  if (!user && !window.location.search.includes('view=readonly')) {
+  if (!user) {
     window.location.href = "login.html?redirect=timesheet";
     return;
   }
@@ -12,13 +12,8 @@
   let categoryChart = null, billableChart = null, projectChart = null;
   let userFullName = "";
   let projectList = [];
-  let notificationsEnabled = true;
   let autoRefreshInterval = null;
-  let isSaving = false;
-  let saveQueue = [];
-  let pendingSaveSnapshot = null;
 
-  // ---------- Helper functions ----------
   function showToast(message, type = "success") {
     const container = document.getElementById("toastContainer");
     if (!container) return;
@@ -51,127 +46,6 @@
     document.getElementById('hoursAuto').value = calcHours(start, end).toFixed(2);
   }
 
-  function setButtonLoading(btn, isLoading, originalText = null) {
-    if (!btn) return;
-    if (isLoading) {
-      btn.originalText = btn.innerHTML;
-      btn.disabled = true;
-      btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Saving...';
-    } else {
-      btn.disabled = false;
-      if (btn.originalText) btn.innerHTML = btn.originalText;
-    }
-  }
-
-  // ---------- CORE: Conflict-proof save (always fetches latest) ----------
-  async function fetchCurrentTimesheet() {
-    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const encUser = encodeURIComponent(user.username);
-    const path = `${dataPath}/users/${encUser}/${TIMESHEET_FILE}`;
-    try {
-      const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
-      if (file && file.content) {
-        const parsed = JSON.parse(file.content);
-        return { entries: parsed, sha: file.sha };
-      }
-      return { entries: [], sha: null };
-    } catch(e) {
-      console.warn("Fetch error:", e);
-      return { entries: [], sha: null };
-    }
-  }
-
-  // Merge: local entries take priority for same ID, but keep remote entries we don't have
-  function mergeEntries(remoteEntries, localEntries) {
-    const map = new Map();
-    // Add all remote entries first
-    for (const e of remoteEntries) map.set(e.id, e);
-    // Overwrite with local entries (same ID)
-    for (const e of localEntries) map.set(e.id, e);
-    // Return sorted by date (newest first)
-    return Array.from(map.values()).sort((a, b) => new Date(b.date) - new Date(a.date));
-  }
-
-  // The main save function – ALWAYS fetches latest before writing
-  async function saveTimesheetInternal(snapshotEntries, retryCount = 0) {
-    const maxRetries = 5;
-    const delay = Math.min(5000, Math.pow(2, retryCount) * 500);
-    
-    try {
-      // STEP 1: Always fetch the LATEST remote version
-      const remote = await fetchCurrentTimesheet();
-      
-      // STEP 2: Merge remote with our snapshot (preserves ALL data)
-      const mergedEntries = mergeEntries(remote.entries, snapshotEntries);
-      
-      // STEP 3: Write using the latest SHA
-      const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-      const encUser = encodeURIComponent(user.username);
-      const path = `${dataPath}/users/${encUser}/${TIMESHEET_FILE}`;
-      
-      await GitHubAPI.updateFile(owner, repo, path, mergedEntries, "Update timesheet", branch, user.pat, remote.sha);
-      
-      // SUCCESS – update global entries to what we just saved
-      entries = mergedEntries;
-      return mergedEntries;
-      
-    } catch (err) {
-      console.error(`Save attempt ${retryCount + 1} failed:`, err);
-      
-      // Retry on any error (network, conflict, etc.)
-      if (retryCount < maxRetries) {
-        console.log(`Retrying in ${delay}ms... (${retryCount + 1}/${maxRetries})`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-        return saveTimesheetInternal(snapshotEntries, retryCount + 1);
-      }
-      throw new Error(`Failed to save after ${maxRetries} attempts: ${err.message}`);
-    }
-  }
-
-  // Queue manager to prevent concurrent saves
-  async function queueSave(snapshot = null) {
-    const snapshotToSave = snapshot !== null ? snapshot : [...entries];
-    
-    return new Promise((resolve, reject) => {
-      const saveTask = { snapshot: snapshotToSave, resolve, reject };
-      
-      if (!isSaving) {
-        executeSave(saveTask);
-      } else {
-        saveQueue.push(saveTask);
-      }
-    });
-  }
-
-  async function executeSave(task) {
-    isSaving = true;
-    try {
-      const savedEntries = await saveTimesheetInternal(task.snapshot);
-      task.resolve(savedEntries);
-    } catch (err) {
-      console.error("Save execution failed:", err);
-      task.reject(err);
-    } finally {
-      isSaving = false;
-      if (saveQueue.length > 0) {
-        const next = saveQueue.shift();
-        executeSave(next);
-      }
-    }
-  }
-
-  async function saveTimesheet() {
-    const snapshot = [...entries];
-    return queueSave(snapshot);
-  }
-
-  async function loadTimesheet() {
-    const remote = await fetchCurrentTimesheet();
-    entries = remote.entries;
-    entries.sort((a, b) => new Date(b.date) - new Date(a.date));
-  }
-
-  // ---------- Projects & Meta ----------
   async function loadProjectsFromPortfolio() {
     try {
       const projectsData = await window.portfolioData.loadProjects();
@@ -227,6 +101,7 @@
 
   async function addNewProject(projectName) {
     if (!projectName) return false;
+    // Show loading indicator
     window.showLoading(`Creating project "${projectName}"...`);
     try {
       const success = await createPortfolioProject(projectName);
@@ -247,6 +122,34 @@
     } finally {
       window.hideLoading();
     }
+  }
+
+  async function loadTimesheet() {
+    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+    const encUser = encodeURIComponent(user.username);
+    const path = `${dataPath}/users/${encUser}/${TIMESHEET_FILE}`;
+    try {
+      const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
+      if (file && file.content) {
+        entries = JSON.parse(file.content);
+        entries = entries.map(e => ({ ...e, project: e.project || "Other" }));
+      } else {
+        entries = [];
+      }
+    } catch(e) { entries = []; }
+    entries.sort((a, b) => new Date(b.date) - new Date(a.date));
+  }
+
+  async function saveTimesheet() {
+    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+    const encUser = encodeURIComponent(user.username);
+    const path = `${dataPath}/users/${encUser}/${TIMESHEET_FILE}`;
+    let sha = null;
+    try {
+      const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
+      if (existing) sha = existing.sha;
+    } catch(e) {}
+    await GitHubAPI.updateFile(owner, repo, path, entries, "Update timesheet", branch, user.pat, sha);
   }
 
   async function loadUserMeta() {
@@ -279,40 +182,6 @@
     await GitHubAPI.updateFile(owner, repo, path, meta, "Update user name", branch, user.pat, sha);
   }
 
-  async function loadNotificationPreference() {
-    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const encUser = encodeURIComponent(user.username);
-    const path = `${dataPath}/users/${encUser}/preferences.json`;
-    try {
-      const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
-      if (file && file.content) {
-        const prefs = JSON.parse(file.content);
-        notificationsEnabled = prefs.notifications !== undefined ? prefs.notifications : true;
-      } else {
-        notificationsEnabled = true;
-      }
-    } catch(e) {
-      notificationsEnabled = true;
-    }
-    const toggle = document.getElementById('notificationsToggle');
-    if (toggle) toggle.checked = notificationsEnabled;
-  }
-
-  async function saveNotificationPreference(enabled) {
-    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const encUser = encodeURIComponent(user.username);
-    const path = `${dataPath}/users/${encUser}/preferences.json`;
-    let sha = null;
-    try {
-      const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
-      if (existing) sha = existing.sha;
-    } catch(e) {}
-    const prefs = { notifications: enabled };
-    await GitHubAPI.updateFile(owner, repo, path, prefs, "Update notification preference", branch, user.pat, sha);
-    notificationsEnabled = enabled;
-  }
-
-  // ---------- Entry CRUD ----------
   async function addEntry(duplicateData = null) {
     let date, start, end, project, category, billable, notes;
     if (duplicateData) {
@@ -341,15 +210,11 @@
       showToast("End time must be after start time.", "error");
       return;
     }
-
-    const addBtn = document.getElementById('addEntryBtn');
-    setButtonLoading(addBtn, true);
-
+    // Show loading indicator
+    window.showLoading(duplicateData ? "Duplicating entry..." : "Adding entry...");
     try {
       const newEntry = { id: Date.now(), date, start, end, hours, project, category, billable, notes };
-      // Update local entries array
       entries.unshift(newEntry);
-      // Save to GitHub (will fetch latest, merge, and write)
       await saveTimesheet();
       showToast(duplicateData ? "Entry duplicated!" : "Entry saved.");
       await refreshView();
@@ -362,27 +227,24 @@
     } catch (err) {
       console.error(err);
       showToast("Failed to save entry: " + err.message, "error");
-      // Revert local change on error
-      await loadTimesheet();
     } finally {
-      setButtonLoading(addBtn, false);
+      window.hideLoading();
     }
   }
 
   async function deleteEntry(id) {
-    if (!confirm("Delete this entry?")) return;
-    const delBtn = document.querySelector(`button[data-id='${id}']`);
-    if (delBtn) setButtonLoading(delBtn, true);
-    try {
-      entries = entries.filter(e => e.id != id);
-      await saveTimesheet();
-      showToast("Entry deleted.");
-      await refreshView();
-    } catch (err) {
-      showToast("Delete failed: " + err.message, "error");
-      await loadTimesheet();
-    } finally {
-      if (delBtn) setButtonLoading(delBtn, false);
+    if (confirm("Delete this entry?")) {
+      window.showLoading("Deleting entry...");
+      try {
+        entries = entries.filter(e => e.id != id);
+        await saveTimesheet();
+        showToast("Entry deleted.");
+        await refreshView();
+      } catch (err) {
+        showToast("Delete failed: " + err.message, "error");
+      } finally {
+        window.hideLoading();
+      }
     }
   }
 
@@ -424,8 +286,7 @@
       showToast("End time must be after start.", "error");
       return;
     }
-    const saveBtn = document.getElementById('saveEditBtn');
-    setButtonLoading(saveBtn, true);
+    window.showLoading("Updating entry...");
     try {
       entries[index] = { ...entries[index], date, start, end, hours, project, category, billable, notes };
       await saveTimesheet();
@@ -435,11 +296,10 @@
     } catch (err) {
       showToast("Update failed: " + err.message, "error");
     } finally {
-      setButtonLoading(saveBtn, false);
+      window.hideLoading();
     }
   }
 
-  // ---------- Filtering & UI ----------
   function getFilteredEntries() {
     const range = document.getElementById('filterRange').value;
     const project = document.getElementById('filterProject').value;
@@ -474,10 +334,8 @@
     const filtered = getFilteredEntries();
     const tbody = document.getElementById('historyBody');
     const tfoot = document.getElementById('historyFoot');
-    const isReadOnly = window.location.search.includes('view=readonly');
-    
     if (filtered.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="9" class="text-center">No entries found. Nein</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" class="text-center">No entries found.</td></tr>';
       tfoot.style.display = 'none';
       return;
     }
@@ -496,24 +354,21 @@
       row.insertCell(7).innerText = entry.notes || '-';
       const actionCell = row.insertCell(8);
       actionCell.className = 'print-hide';
-      if (!isReadOnly) {
-        const editBtn = document.createElement('button');
-        editBtn.className = 'btn btn-sm btn-edit mr-1';
-        editBtn.innerHTML = '<i class="fa fa-pencil"></i>';
-        editBtn.onclick = () => editEntry(entry.id);
-        const dupBtn = document.createElement('button');
-        dupBtn.className = 'btn btn-sm btn-duplicate mr-1';
-        dupBtn.innerHTML = '<i class="fa fa-copy"></i>';
-        dupBtn.onclick = () => duplicateEntry(entry);
-        const delBtn = document.createElement('button');
-        delBtn.className = 'btn btn-sm btn-danger';
-        delBtn.innerHTML = '<i class="fa fa-trash"></i>';
-        delBtn.dataset.id = entry.id;
-        delBtn.onclick = () => deleteEntry(entry.id);
-        actionCell.appendChild(editBtn);
-        actionCell.appendChild(dupBtn);
-        actionCell.appendChild(delBtn);
-      }
+      const editBtn = document.createElement('button');
+      editBtn.className = 'btn btn-sm btn-edit mr-1';
+      editBtn.innerHTML = '<i class="fa fa-pencil"></i>';
+      editBtn.onclick = () => editEntry(entry.id);
+      const dupBtn = document.createElement('button');
+      dupBtn.className = 'btn btn-sm btn-duplicate mr-1';
+      dupBtn.innerHTML = '<i class="fa fa-copy"></i>';
+      dupBtn.onclick = () => duplicateEntry(entry);
+      const delBtn = document.createElement('button');
+      delBtn.className = 'btn btn-sm btn-danger';
+      delBtn.innerHTML = '<i class="fa fa-trash"></i>';
+      delBtn.onclick = () => deleteEntry(entry.id);
+      actionCell.appendChild(editBtn);
+      actionCell.appendChild(dupBtn);
+      actionCell.appendChild(delBtn);
     });
     document.getElementById('totalHoursCell').innerHTML = '<strong>' + totalHours.toFixed(2) + '</strong>';
     tfoot.style.display = 'table-footer-group';
@@ -581,187 +436,10 @@
     }
   }
 
-  async function refreshView() {
-    if (isSaving) {
-      console.log("Refresh skipped – save in progress");
-      return;
-    }
-    await loadTimesheet();
-    await loadProjectsFromPortfolio();
-    renderHistory();
-    updateSummaryAndProgress();
-    updateCharts();
-  }
-
-  // ---------- Report & Export ----------
-  function getEntriesForPeriod(startDate, endDate) {
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    end.setHours(23,59,59,999);
-    return entries.filter(e => {
-      const d = new Date(e.date);
-      return d >= start && d <= end;
-    });
-  }
-
-  async function getQRCodeDataURL(url, size = 100) {
-    const apiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(url)}`;
-    const response = await fetch(apiUrl);
-    if (!response.ok) throw new Error('QR code generation failed');
-    const blob = await response.blob();
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result);
-      reader.readAsDataURL(blob);
-    });
-  }
-
-  async function generateStyledPDF(startDate, endDate, periodLabel) {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-    const filtered = getEntriesForPeriod(startDate, endDate);
-    if (filtered.length === 0) {
-      showToast("No entries in selected period.", "error");
-      return false;
-    }
-
-    const name = document.getElementById('reportName').value || userFullName || user.username;
-    const totalHours = filtered.reduce((s,e) => s + e.hours, 0);
-    const billableHours = filtered.filter(e => e.billable === 'yes').reduce((s,e) => s + e.hours, 0);
-    const nonBillable = totalHours - billableHours;
-    const overtime = calculateOvertimeForPeriod(filtered);
-
-    const projMap = {};
-    filtered.forEach(e => { projMap[e.project] = (projMap[e.project] || 0) + e.hours; });
-    const catMap = {};
-    filtered.forEach(e => { catMap[e.category] = (catMap[e.category] || 0) + e.hours; });
-    let billable = 0, nonBill = 0;
-    filtered.forEach(e => { if (e.billable === 'yes') billable += e.hours; else nonBill += e.hours; });
-
-    const chartDiv = document.createElement('div');
-    chartDiv.style.position = 'absolute';
-    chartDiv.style.top = '-9999px';
-    chartDiv.style.left = '-9999px';
-    chartDiv.style.width = '400px';
-    chartDiv.style.height = '300px';
-    document.body.appendChild(chartDiv);
-
-    const canvas1 = document.createElement('canvas');
-    canvas1.width = 400; canvas1.height = 300;
-    chartDiv.appendChild(canvas1);
-    const projChart = new Chart(canvas1.getContext('2d'), {
-      type: 'pie',
-      data: { labels: Object.keys(projMap), datasets: [{ data: Object.values(projMap), backgroundColor: ['#2fc7ff','#ffc107','#28a745','#dc3545','#6f42c1','#fd7e14','#17a2b8','#e83e8c'] }] },
-      options: { responsive: false }
-    });
-
-    const canvas2 = document.createElement('canvas');
-    canvas2.width = 400; canvas2.height = 300;
-    chartDiv.appendChild(canvas2);
-    const catChart = new Chart(canvas2.getContext('2d'), {
-      type: 'pie',
-      data: { labels: Object.keys(catMap), datasets: [{ data: Object.values(catMap), backgroundColor: ['#2fc7ff','#ffc107','#28a745','#dc3545','#6f42c1','#fd7e14'] }] },
-      options: { responsive: false }
-    });
-
-    const canvas3 = document.createElement('canvas');
-    canvas3.width = 400; canvas3.height = 300;
-    chartDiv.appendChild(canvas3);
-    const billChart = new Chart(canvas3.getContext('2d'), {
-      type: 'pie',
-      data: { labels: ['Billable', 'Non-billable'], datasets: [{ data: [billable, nonBill], backgroundColor: ['#28a745','#dc3545'] }] },
-      options: { responsive: false }
-    });
-
-    await new Promise(r => setTimeout(r, 200));
-    const imgData1 = canvas1.toDataURL('image/png');
-    const imgData2 = canvas2.toDataURL('image/png');
-    const imgData3 = canvas3.toDataURL('image/png');
-    projChart.destroy(); catChart.destroy(); billChart.destroy();
-    document.body.removeChild(chartDiv);
-
-    const repoUrl = 'https://github.com/siyabongathupana/portfolio/';
-    let qrDataUrl = null;
-    try { qrDataUrl = await getQRCodeDataURL(repoUrl, 80); } catch(err) { console.warn(err); }
-
-    const tableData = filtered.map(e => [e.date, e.start, e.end, e.hours.toFixed(2), e.project, e.category, e.billable === 'yes' ? 'Billable' : 'Non-billable', e.notes || '']);
-
-    doc.setFontSize(20);
-    doc.setTextColor(11, 43, 59);
-    doc.text('Timesheet Report', 20, 20);
-    doc.setFontSize(12);
-    doc.setTextColor(47, 199, 255);
-    doc.text(`Period: ${periodLabel} (${startDate} to ${endDate})`, 20, 32);
-    doc.setTextColor(80, 80, 80);
-    doc.text(`Prepared for: ${name}`, 20, 42);
-    doc.text(`Generated: ${new Date().toLocaleString()}`, 20, 52);
-    doc.setFontSize(14);
-    doc.setTextColor(0, 0, 0);
-    doc.text(`Summary: ${totalHours.toFixed(2)} total hours (Billable: ${billableHours.toFixed(2)}, Non-billable: ${nonBillable.toFixed(2)}, Overtime: ${overtime.toFixed(2)})`, 20, 65);
-
-    doc.addImage(imgData1, 'PNG', 20, 75, 50, 40);
-    doc.addImage(imgData2, 'PNG', 85, 75, 50, 40);
-    doc.addImage(imgData3, 'PNG', 150, 75, 50, 40);
-    doc.setFontSize(10);
-    doc.text('By Project', 20, 120);
-    doc.text('By Category', 85, 120);
-    doc.text('Billable vs Non-Billable', 150, 120);
-
-    doc.autoTable({
-      startY: 130,
-      head: [['Date','Start','End','Hours','Project','Category','Billable','Notes']],
-      body: tableData,
-      foot: [['','','',totalHours.toFixed(2),'','','','']],
-      theme: 'striped',
-      headStyles: { fillColor: [11, 43, 59], textColor: 255, fontStyle: 'bold' },
-      footStyles: { fillColor: [240, 240, 240], textColor: 0, fontStyle: 'bold' },
-      margin: { left: 20, right: 20 },
-      columnStyles: { 0: { cellWidth: 25 }, 1: { cellWidth: 16 }, 2: { cellWidth: 16 }, 3: { cellWidth: 16 }, 4: { cellWidth: 35 }, 5: { cellWidth: 30 }, 6: { cellWidth: 25 }, 7: { cellWidth: 45 } }
-    });
-
-    const pageCount = doc.internal.getNumberOfPages();
-    for (let i = 1; i <= pageCount; i++) {
-      doc.setPage(i);
-      doc.setFontSize(9);
-      doc.setTextColor(150, 150, 150);
-      doc.text(`Your Portfolio – Timesheet | Page ${i} of ${pageCount}`, 20, doc.internal.pageSize.height - 10);
-      if (qrDataUrl) {
-        const pageWidth = doc.internal.pageSize.width;
-        const qrSize = 20;
-        doc.addImage(qrDataUrl, 'PNG', pageWidth - qrSize - 10, doc.internal.pageSize.height - qrSize - 10, qrSize, qrSize);
-        doc.setFontSize(6);
-        doc.text('Scan to view repo', pageWidth - qrSize - 8, doc.internal.pageSize.height - qrSize - 12);
-      }
-    }
-
-    doc.save(`timesheet_${periodLabel}_${startDate}_to_${endDate}.pdf`);
-    showToast("PDF report generated.");
-    return true;
-  }
-
-  function exportExcelRange(startDate, endDate, periodLabel) {
-    const filtered = getEntriesForPeriod(startDate, endDate);
-    if (!filtered.length) { showToast("No entries in selected range.", "error"); return; }
-    const data = filtered.map(e => ({
-      Date: e.date, Start: e.start, End: e.end, Hours: e.hours,
-      Project: e.project, Category: e.category, Billable: e.billable === 'yes' ? 'Billable' : 'Non-billable',
-      Notes: e.notes || ''
-    }));
-    const ws = XLSX.utils.json_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Timesheet');
-    XLSX.writeFile(wb, `timesheet_${periodLabel}_${startDate}_to_${endDate}.xlsx`);
-    showToast("Excel downloaded.");
-  }
-
   function exportToExcel() {
     const filtered = getFilteredEntries();
     if (!filtered.length) { showToast("No data to export.", "error"); return; }
-    const data = filtered.map(e => ({
-      Date: e.date, Start: e.start, End: e.end, Hours: e.hours,
-      Project: e.project, Category: e.category, Billable: e.billable === 'yes' ? 'Billable' : 'Non-billable',
-      Notes: e.notes || ''
-    }));
+    const data = filtered.map(e => ({ Date: e.date, Start: e.start, End: e.end, Hours: e.hours, Project: e.project, Category: e.category, Billable: e.billable === 'yes' ? 'Billable' : 'Non-billable', Notes: e.notes || '' }));
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Timesheet');
@@ -769,63 +447,58 @@
     showToast("Excel downloaded.");
   }
 
-  // ---------- Read-only mode ----------
-  function setupReadOnlyMode() {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('view') === 'readonly') {
-      document.getElementById('quickLogCard')?.classList.add('d-none');
-      document.getElementById('dailyProgressContainer')?.classList.add('d-none');
-      document.getElementById('summaryCard')?.classList.add('d-none');
-      document.getElementById('filterBar')?.classList.add('d-none');
-      document.getElementById('exportExcelBtn')?.classList.add('d-none');
-      document.getElementById('generateReportBtn')?.classList.add('d-none');
-      document.getElementById('printBtn')?.classList.add('d-none');
-      document.getElementById('saveNameBtn')?.parentElement?.parentElement?.classList.add('d-none');
-      document.getElementById('notificationsToggle')?.closest('.row')?.classList.add('d-none');
-      const addEntryBtn = document.getElementById('addEntryBtn');
-      if (addEntryBtn) addEntryBtn.style.display = 'none';
-      document.querySelectorAll('.chart-card').forEach(c => c.classList.add('d-none'));
-      const banner = document.createElement('div');
-      banner.className = 'alert alert-info text-center mb-3';
-      banner.innerHTML = '<i class="fa fa-eye"></i> You are viewing a read‑only shared timesheet. No changes can be made.';
-      const container = document.querySelector('.timesheet-container');
-      if (container) container.insertBefore(banner, container.firstChild);
-    }
+  async function generatePDFReport(startDate, endDate) {
+    try {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+      const filtered = entries.filter(e => e.date >= startDate && e.date <= endDate);
+      if (!filtered.length) { showToast("No entries in selected range.", "error"); return; }
+      const name = document.getElementById('reportName')?.value || userFullName || user.username;
+      const totalHours = filtered.reduce((s,e) => s + e.hours, 0);
+      const billableHours = filtered.filter(e => e.billable === 'yes').reduce((s,e) => s + e.hours, 0);
+      const nonBillable = totalHours - billableHours;
+      const overtime = calculateOvertimeForPeriod(filtered);
+      const tableData = filtered.map(e => [e.date, e.start, e.end, e.hours.toFixed(2), e.project, e.category, e.billable === 'yes' ? 'Billable' : 'Non-billable', e.notes || '']);
+      doc.setFontSize(16);
+      doc.text('Timesheet Report', 14, 20);
+      doc.setFontSize(11);
+      doc.text(`Name: ${name}`, 14, 30);
+      doc.text(`Period: ${startDate} to ${endDate}`, 14, 37);
+      doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 44);
+      doc.text(`Total Hours: ${totalHours.toFixed(2)} (Billable: ${billableHours.toFixed(2)} | Non-billable: ${nonBillable.toFixed(2)} | Overtime: ${overtime.toFixed(2)})`, 14, 51);
+      doc.autoTable({ startY: 58, head: [['Date','Start','End','Hours','Project','Category','Billable','Notes']], body: tableData, foot: [['','','',totalHours.toFixed(2),'','','','']], theme: 'striped', headStyles: { fillColor: [11,43,59], textColor: 255, fontStyle: 'bold' }, footStyles: { fillColor: [240,240,240], textColor: 0, fontStyle: 'bold' }, margin: { left: 14, right: 14 }, columnStyles: { 0: { cellWidth: 22 }, 1: { cellWidth: 16 }, 2: { cellWidth: 16 }, 3: { cellWidth: 16 }, 4: { cellWidth: 30 }, 5: { cellWidth: 25 }, 6: { cellWidth: 20 }, 7: { cellWidth: 35 } } });
+      const pageCount = doc.internal.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) { doc.setPage(i); doc.setFontSize(9); doc.text(`Your Portfolio – Timesheet | Page ${i} of ${pageCount}`, 14, doc.internal.pageSize.height - 10); }
+      doc.save(`timesheet_${startDate}_to_${endDate}.pdf`);
+      showToast("PDF report generated.");
+    } catch (err) { console.error(err); showToast("PDF generation failed: " + err.message, "error"); }
   }
 
-  // ---------- Auto-refresh (5 minutes, blocked during saves) ----------
+  function exportExcelRange(startDate, endDate) {
+    const filtered = entries.filter(e => e.date >= startDate && e.date <= endDate);
+    if (!filtered.length) { showToast("No entries in selected range.", "error"); return; }
+    const data = filtered.map(e => ({ Date: e.date, Start: e.start, End: e.end, Hours: e.hours, Project: e.project, Category: e.category, Billable: e.billable === 'yes' ? 'Billable' : 'Non-billable', Notes: e.notes || '' }));
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Timesheet');
+    XLSX.writeFile(wb, `timesheet_${startDate}_to_${endDate}.xlsx`);
+    showToast("Excel downloaded.");
+  }
+
+  async function refreshView() {
+    await loadTimesheet();
+    await loadProjectsFromPortfolio();
+    renderHistory();
+    updateSummaryAndProgress();
+    updateCharts();
+  }
+
   function startAutoRefresh() {
     if (autoRefreshInterval) clearInterval(autoRefreshInterval);
-    autoRefreshInterval = setInterval(async () => {
-      if (!document.hidden && !isSaving) {
-        await refreshView();
-      }
-    }, 300000);
+    autoRefreshInterval = setInterval(async () => { if (!document.hidden) await refreshView(); }, 60000);
   }
 
-  // ---------- Share button ----------
-  function shareReadOnly() {
-    const url = new URL(window.location.href);
-    url.searchParams.set('view', 'readonly');
-    navigator.clipboard.writeText(url.href).then(() => {
-      showToast('Read-only link copied to clipboard!', 'success');
-    }).catch(() => {
-      alert('Shareable link: ' + url.href);
-    });
-  }
-
-  // ---------- Initialization ----------
   async function init() {
-    setupReadOnlyMode();
-
-    if (window.location.search.includes('view=readonly')) {
-      await loadTimesheet();
-      await loadProjectsFromPortfolio();
-      renderHistory();
-      return;
-    }
-
-    // Normal editable mode
     const dateInput = document.getElementById('logDate');
     if (dateInput) dateInput.value = formatDate(new Date());
     document.getElementById('startTime')?.addEventListener('change', updateHoursAuto);
@@ -839,9 +512,13 @@
     document.getElementById('filterRange').onchange = () => { renderHistory(); updateSummaryAndProgress(); updateCharts(); };
     document.getElementById('filterProject').onchange = () => { renderHistory(); updateSummaryAndProgress(); updateCharts(); };
     document.getElementById('filterCategory').onchange = () => { renderHistory(); updateSummaryAndProgress(); updateCharts(); };
+    // Save name with loader
     document.getElementById('saveNameBtn').onclick = async () => {
       const newName = document.getElementById('userFullName')?.value.trim();
-      if (!newName) { showToast("Please enter a name.", "error"); return; }
+      if (!newName) {
+        showToast("Please enter a name.", "error");
+        return;
+      }
       window.showLoading("Saving your name...");
       try {
         userFullName = newName;
@@ -862,82 +539,24 @@
       await addNewProject(newProj);
       $('#newProjectModal').modal('hide');
     };
-
-    const shareBtn = document.getElementById('shareReadOnlyBtn');
-    if (shareBtn) shareBtn.onclick = shareReadOnly;
-
-    const periodSelect = document.getElementById('reportPeriod');
-    const customDiv = document.getElementById('customRangeDiv');
-    if (periodSelect) {
-      periodSelect.addEventListener('change', () => {
-        customDiv.style.display = periodSelect.value === 'custom' ? 'block' : 'none';
-      });
-    }
     document.getElementById('generateReportBtn').onclick = () => {
       document.getElementById('reportName').value = userFullName;
       const end = new Date();
-      const start = new Date();
-      start.setDate(start.getDate() - 30);
+      const start = new Date(); start.setDate(start.getDate() - 30);
       document.getElementById('reportStartDate').value = formatDate(start);
       document.getElementById('reportEndDate').value = formatDate(end);
-      if (periodSelect) periodSelect.value = 'month';
-      customDiv.style.display = 'none';
       $('#reportModal').modal('show');
     };
-    document.getElementById('generateReportConfirmBtn').onclick = async () => {
-      const period = periodSelect ? periodSelect.value : 'month';
-      let start, end, label;
-      const today = new Date();
-      if (period === 'week') {
-        start = new Date(today);
-        start.setDate(today.getDate() - 7);
-        end = today;
-        label = 'weekly';
-      } else if (period === 'month') {
-        start = new Date(today);
-        start.setDate(today.getDate() - 30);
-        end = today;
-        label = 'monthly';
-      } else if (period === 'year') {
-        start = new Date(today);
-        start.setFullYear(today.getFullYear() - 1);
-        end = today;
-        label = 'yearly';
-      } else {
-        start = document.getElementById('reportStartDate').value;
-        end = document.getElementById('reportEndDate').value;
-        if (!start || !end) { showToast("Select both start and end dates.", "error"); return; }
-        label = 'custom';
-      }
-      const type = document.getElementById('reportType').value;
+    document.getElementById('generateReportConfirmBtn').onclick = () => {
+      const start = document.getElementById('reportStartDate')?.value;
+      const end = document.getElementById('reportEndDate')?.value;
+      if (!start || !end) { showToast("Select both start and end dates.", "error"); return; }
+      const type = document.getElementById('reportType')?.value;
       $('#reportModal').modal('hide');
-      if (type === 'pdf') {
-        await generateStyledPDF(formatDate(start), formatDate(end), label);
-      } else {
-        exportExcelRange(formatDate(start), formatDate(end), label);
-      }
+      if (type === 'pdf') generatePDFReport(start, end);
+      else exportExcelRange(start, end);
     };
-
     document.getElementById('saveEditBtn').onclick = saveEdit;
-
-    await loadNotificationPreference();
-    const toggle = document.getElementById('notificationsToggle');
-    if (toggle) {
-      toggle.addEventListener('change', async (e) => {
-        const enabled = e.target.checked;
-        window.showLoading("Saving notification preference...");
-        try {
-          await saveNotificationPreference(enabled);
-          showToast(enabled ? "Email notifications enabled" : "Email notifications disabled");
-        } catch (err) {
-          showToast("Failed to save preference: " + err.message, "error");
-          e.target.checked = !enabled;
-        } finally {
-          window.hideLoading();
-        }
-      });
-    }
-
     await loadUserMeta();
     await loadProjectsFromPortfolio();
     await refreshView();
