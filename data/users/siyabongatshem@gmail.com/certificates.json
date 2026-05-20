@@ -104,14 +104,6 @@
     "thumbnail": "https://raw.githubusercontent.com/siyabongathupana/portfolio/main/data/users/siyabongatshem%40gmail.com/cert_thumbnails/1779201603977_Screenshot_2026-05-19_163817.png"
   },
   {
-    "id": "cert_1778859787767",
-    "title": "16",
-    "issuer": "",
-    "date": "",
-    "link": "",
-    "thumbnail": ""
-  },
-  {
     "id": "cert_1778864249601",
     "title": "20",
     "issuer": "",
@@ -122,6 +114,14 @@
   {
     "id": "cert_1778870238089",
     "title": "test",
+    "issuer": "",
+    "date": "",
+    "link": "",
+    "thumbnail": ""
+  },
+  {
+    "id": "cert_1778871338400",
+    "title": "cert what what",
     "issuer": "",
     "date": "",
     "link": "",
