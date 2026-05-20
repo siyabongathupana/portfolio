@@ -18,7 +18,6 @@
   <script src="api.js"></script>
   <script src="shared.js"></script>
   <style>
-    /* General admin styles */
     .image-input-group { margin-bottom:15px; background:#f8f9fa; padding:12px; border-radius:12px; display:flex; align-items:center; gap:12px; position:relative; }
     .image-input-group .img-preview-thumb { width:80px; height:80px; object-fit:cover; border-radius:8px; background:#e9ecef; }
     .image-input-group .img-details { flex:1; }
@@ -36,116 +35,16 @@
     .view-portfolio-btn { background: #28a745; color: white; border-radius: 20px; padding: 6px 16px; margin-right: 10px; transition: 0.2s; display: inline-flex; align-items:center; }
     .view-portfolio-btn:hover { background: #218838; color: white; text-decoration: none; }
 
-    /* Mobile responsiveness */
+    /* Toast container */
+    .toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 1050; }
+    .toast { min-width: 250px; }
+
     @media (max-width: 768px) {
       .admin-container { padding: 20px 15px !important; margin: 15px !important; }
       h1 { font-size: 1.6rem; }
-      .d-flex.flex-wrap { flex-direction: column; align-items: stretch; }
-      .d-flex.flex-wrap .btn, .d-flex.flex-wrap .btn-group { margin: 5px 0; width: 100%; text-align: center; }
-      .user-badge { margin-bottom: 10px; display: inline-block; }
       .image-input-group { flex-direction: column; align-items: flex-start; }
-      .image-input-group .img-preview-thumb { width: 100%; height: auto; max-width: 200px; margin-bottom: 10px; }
+      .image-input-group .img-preview-thumb { width: 100%; height: auto; max-width: 200px; }
       .remove-img-btn { position: absolute; top: 10px; right: 10px; }
-      .modal-dialog { margin: 20px; }
-      .form-row { flex-direction: column; }
-      .form-row .col-md-3, .form-row .col-md-4, .form-row .col-md-6 { margin-bottom: 10px; width: 100%; max-width: 100%; flex: none; }
-      .btn-log { width: 100%; margin: 8px 0; }
-      .log-user-select { width: 100%; }
-      .d-flex.justify-content-between { flex-direction: column; align-items: flex-start; gap: 10px; }
-      .card-body .d-flex.justify-content-between { flex-direction: column; }
-      .card-body .d-flex.justify-content-between div:last-child { margin-top: 10px; }
-      .nav-tabs .nav-link { padding: 8px 12px; font-size: 0.85rem; }
-      .drop-zone { padding: 20px; }
-      .batch-actions { flex-direction: column; align-items: stretch; }
-      .batch-actions button { width: 100%; margin-bottom: 8px; }
-    }
-
-    /* Improved Logs Panel Styling */
-    .logs-panel {
-      background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-      border-radius: 24px;
-      padding: 2rem;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.05);
-      border: 1px solid rgba(47,199,255,0.15);
-      transition: all 0.2s ease;
-    }
-    .logs-panel:hover {
-      box-shadow: 0 12px 28px rgba(0,0,0,0.08);
-    }
-    .logs-icon {
-      font-size: 3rem;
-      color: #2fc7ff;
-      background: linear-gradient(135deg, #e6f7ff 0%, #d4efff 100%);
-      width: 70px;
-      height: 70px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 1rem auto;
-    }
-    .logs-panel h4 {
-      font-weight: 700;
-      color: #0b2b3b;
-      margin-bottom: 0.5rem;
-    }
-    .logs-panel .lead-text {
-      color: #5a7d9a;
-      font-size: 0.9rem;
-      margin-bottom: 1.5rem;
-    }
-    .log-user-select {
-      max-width: 280px;
-      margin: 0 auto 1rem auto;
-    }
-    .btn-log {
-      border-radius: 40px;
-      padding: 6px 18px;
-      font-weight: 600;
-      font-size: 0.85rem;
-      transition: all 0.2s;
-      margin: 0.25rem;
-      min-width: 140px;
-    }
-    .btn-log-primary {
-      background: #2fc7ff;
-      color: #0a2b33;
-      border: none;
-    }
-    .btn-log-primary:hover {
-      background: #1d9fcf;
-      transform: translateY(-2px);
-      color: white;
-      box-shadow: 0 6px 14px rgba(47,199,255,0.3);
-    }
-    .btn-log-secondary {
-      background: #6c757d;
-      color: white;
-      border: none;
-    }
-    .btn-log-secondary:hover {
-      background: #5a6268;
-      transform: translateY(-2px);
-      box-shadow: 0 6px 14px rgba(108,117,125,0.3);
-    }
-    .log-info-text {
-      background: #eef3fc;
-      border-radius: 16px;
-      padding: 10px 18px;
-      font-size: 0.8rem;
-      color: #2c5a6e;
-      margin-top: 1.5rem;
-      display: inline-block;
-    }
-    .log-info-text i {
-      margin-right: 6px;
-      color: #2fc7ff;
-    }
-    @media (max-width: 768px) {
-      .logs-panel { padding: 1.5rem; }
-      .btn-log { min-width: auto; width: 100%; margin: 8px 0; }
-      .logs-icon { width: 55px; height: 55px; font-size: 2.2rem; }
-      .log-user-select { max-width: 100%; }
     }
   </style>
 </head>
@@ -177,7 +76,7 @@
         <div class="mb-3 d-flex flex-wrap">
           <button class="btn btn-delta mr-2" id="addProjectBtn"><i class="fa fa-plus"></i> Add New Project</button>
           <button class="btn btn-outline-danger mr-2" id="deleteAllProjectsBtn"><i class="fa fa-trash"></i> Delete All</button>
-          <button class="btn btn-outline-info" id="syncProjectsBtn"><i class="fa fa-refresh"></i> Sync from GitHub</button>
+          <button class="btn btn-outline-info" id="syncProjectsBtn"><i class="fa fa-refresh"></i> Refresh Now</button>
         </div>
         <div id="projectsList"></div>
       </div>
@@ -187,10 +86,6 @@
         <div class="mb-3 d-flex flex-wrap">
           <button class="btn btn-delta mr-2" id="addCertBtn"><i class="fa fa-plus"></i> Add Certificate</button>
           <button class="btn btn-outline-danger mr-2" id="deleteAllCertsBtn"><i class="fa fa-trash"></i> Delete All</button>
-          <button class="btn btn-outline-primary mr-2" id="backupBtn" style="display:none;"><i class="fa fa-cloud-download"></i> Download Backup</button>
-          <label class="btn btn-outline-warning mb-0" id="restoreLabel" style="display:none; cursor:pointer;"><i class="fa fa-upload"></i> Restore from Backup
-            <input type="file" id="restoreFileInput" accept=".zip" style="display:none;">
-          </label>
         </div>
         <div id="certificatesList"></div>
       </div>
@@ -203,21 +98,14 @@
           </div>
           <h4>Activity Logs</h4>
           <p class="lead-text">Download your complete activity log as a text file.</p>
-
           <div class="log-user-select" id="logUserSelectGroup" style="display:none;">
-            <label for="logUserSelect" class="sr-only">Select user</label>
             <select id="logUserSelect" class="form-control form-control-sm">
               <option value="">-- Select user to download logs --</option>
             </select>
           </div>
-
           <div class="d-flex flex-wrap justify-content-center mt-2">
             <button id="downloadMyLogBtn" class="btn btn-log btn-log-primary"><i class="fa fa-download"></i> Download My Logs</button>
             <button id="downloadAllLogsBtn" class="btn btn-log btn-log-secondary" style="display:none;"><i class="fa fa-archive"></i> Download All Logs (ZIP)</button>
-          </div>
-
-          <div class="log-info-text">
-            <i class="fa fa-info-circle"></i> Logs include all actions: project creation/edits/deletion, certificate changes, image uploads, backups, syncs, and errors.
           </div>
         </div>
       </div>
@@ -237,6 +125,9 @@
     </div>
   </div>
 </div>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toastContainer"></div>
 
 <!-- Project Modal -->
 <div class="modal fade" id="projectModal" tabindex="-1">
@@ -301,7 +192,6 @@
             <div class="drop-zone" id="imageDropZone">
               <i class="fa fa-cloud-upload"></i>
               <span>Drop images here or click to browse</span>
-              <div class="size-warning">Images are compressed & uploaded to GitHub.</div>
               <input type="file" id="imageFileInput" multiple accept="image/*" style="display:none;">
             </div>
             <div class="progress-bar-container" id="uploadProgressBar" style="display:none;">
@@ -352,6 +242,10 @@
   </div>
 </div>
 
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
 <script>
   const user = window.SessionManager?.getCurrentUser();
   if (!user) {
@@ -364,7 +258,21 @@
     initDashboard();
   }
 
+  // Helper toast
+  function showToast(message, type = 'success') {
+    const container = document.getElementById('toastContainer');
+    if (!container) return;
+    const toastId = 'toast-' + Date.now();
+    const bgClass = type === 'success' ? 'bg-success' : (type === 'error' ? 'bg-danger' : 'bg-info');
+    const html = `<div id="${toastId}" class="toast ${bgClass} text-white" role="alert" data-autohide="true" data-delay="3000"><div class="toast-body">${message}</div></div>`;
+    container.insertAdjacentHTML('beforeend', html);
+    const toastEl = document.getElementById(toastId);
+    $(toastEl).toast('show');
+    toastEl.addEventListener('hidden.bs.toast', () => toastEl.remove());
+  }
+
   async function initDashboard() {
+    // Image handling variables (same as before, keep as is)
     const imgContainer = document.getElementById('imagesContainer');
     const dropZone = document.getElementById('imageDropZone');
     const fileInput = document.getElementById('imageFileInput');
@@ -379,17 +287,16 @@
       document.getElementById('imageCountInfo').textContent = `${count} image${count !== 1 ? 's' : ''}`;
       document.getElementById('batchActions').style.display = count > 0 ? 'flex' : 'none';
     }
+    window.updateImageCounter = updateImageCounter;
 
     async function uploadSingleImage(file) {
       try {
-        const url = await window.uploadImageToGitHub(file, user, 'project_images');
-        return url;
+        return await window.uploadImageToGitHub(file, user, 'project_images');
       } catch (err) {
         console.error('Upload failed', err);
         throw err;
       }
     }
-
     async function processUploadQueue() {
       if (pendingUploads.length === 0 && activeUploads === 0) {
         progressBar.style.display = 'none';
@@ -403,9 +310,11 @@
         uploadSingleImage(file).then(url => {
           addImageRow(url, '');
           uploadedCount++;
-          progressFill.style.width = (uploadedCount / (uploadedCount + pendingUploads.length + activeUploads)) * 100 + '%';
+          const total = uploadedCount + pendingUploads.length + activeUploads;
+          const percent = total ? (uploadedCount / total) * 100 : 0;
+          progressFill.style.width = percent + '%';
         }).catch(err => {
-          alert(`Failed to upload ${file.name}: ${err.message}`);
+          showToast(`Failed to upload ${file.name}: ${err.message}`, 'error');
           window.Logger.log('error', `Image upload failed: ${err.message}`, 'ERROR');
         }).finally(() => {
           activeUploads--;
@@ -418,16 +327,12 @@
         uploadedCount = 0;
       }
     }
-
     function addFilesToQueue(files) {
       for (const file of files) {
-        if (file.type.startsWith('image/')) {
-          pendingUploads.push(file);
-        }
+        if (file.type.startsWith('image/')) pendingUploads.push(file);
       }
       processUploadQueue();
     }
-
     function addImageRow(url = '', caption = '') {
       const placeholder = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><rect width="80" height="80" fill="#ddd"/><text x="50%" y="50%" font-size="14" fill="#999" text-anchor="middle" dy=".3em">No Img</text></svg>');
       const row = document.createElement('div');
@@ -449,7 +354,6 @@
       updateImageCounter();
       return row;
     }
-
     window.replaceImage = async function(input, oldUrl) {
       const file = input.files[0];
       if (!file) return;
@@ -462,13 +366,12 @@
           try { await window.deleteImageFromGitHub(oldUrl, user); } catch(e) { console.warn(e); }
         }
         window.Logger.log('image_replace', `Replaced image in project`);
+        showToast('Image replaced', 'success');
       } catch (err) {
-        alert('Replace failed: ' + err.message);
+        showToast('Replace failed: ' + err.message, 'error');
       }
       input.value = '';
     };
-
-    window.updateImageCounter = updateImageCounter;
 
     document.getElementById('certThumbFile').addEventListener('change', async (e) => {
       const file = e.target.files[0];
@@ -480,8 +383,9 @@
         preview.src = url;
         preview.style.display = 'inline-block';
         window.Logger.log('cert_thumb_upload', `Uploaded certificate thumbnail`);
+        showToast('Thumbnail uploaded', 'success');
       } catch (err) {
-        alert('Thumb upload failed: ' + err.message);
+        showToast('Thumb upload failed: ' + err.message, 'error');
       }
     });
 
@@ -518,6 +422,7 @@
       }
       updateImageCounter();
       window.Logger.log('delete_selected_images', `Deleted ${checkboxes.length} images`);
+      showToast(`${checkboxes.length} image(s) deleted`, 'success');
     });
     document.getElementById('selectAllImagesBtn')?.addEventListener('click', () => {
       const checkboxes = imgContainer.querySelectorAll('.image-select-checkbox');
@@ -525,6 +430,7 @@
       checkboxes.forEach(cb => cb.checked = !allChecked);
     });
 
+    // Render functions with toast feedback
     async function renderProjects() {
       const projects = await window.portfolioData.loadProjects();
       const container = document.getElementById('projectsList');
@@ -551,8 +457,8 @@
         container.appendChild(card);
       }
       document.querySelectorAll('.edit-project').forEach(btn => btn.addEventListener('click', () => openProjectModal(btn.dataset.id)));
-      document.querySelectorAll('.delete-project').forEach(btn => btn.addEventListener('click', () => {
-        if (confirm('Delete this project?')) safeDeleteProject(btn.dataset.id);
+      document.querySelectorAll('.delete-project').forEach(btn => btn.addEventListener('click', async () => {
+        if (confirm('Delete this project?')) await safeDeleteProject(btn.dataset.id);
       }));
     }
 
@@ -578,60 +484,71 @@
         container.appendChild(card);
       });
       document.querySelectorAll('.edit-cert').forEach(btn => btn.addEventListener('click', () => openCertModal(parseInt(btn.dataset.index))));
-      document.querySelectorAll('.delete-cert').forEach(btn => btn.addEventListener('click', () => {
-        if (confirm('Delete this certificate?')) safeDeleteCertificate(parseInt(btn.dataset.index));
+      document.querySelectorAll('.delete-cert').forEach(btn => btn.addEventListener('click', async () => {
+        if (confirm('Delete this certificate?')) await safeDeleteCertificate(parseInt(btn.dataset.index));
       }));
     }
 
     async function safeDeleteProject(id) {
       window.showLoading('Deleting project...');
-      const current = await window.portfolioData.loadProjects();
-      if (!current[id]) { window.hideLoading(); return; }
-      const images = current[id].selectedImages || [];
-      for (const img of images) {
-        if (img.url && img.url.startsWith('https://raw.githubusercontent.com')) {
-          try { await window.deleteImageFromGitHub(img.url, user); } catch(e) { console.warn(e); }
-        }
-      }
-      delete current[id];
       try {
-        await window.portfolioData.saveProjects(current);
+        const current = await window.portfolioData.loadProjects();
+        if (!current[id]) { window.hideLoading(); return; }
+        const images = current[id].selectedImages || [];
+        for (const img of images) {
+          if (img.url && img.url.startsWith('https://raw.githubusercontent.com')) {
+            try { await window.deleteImageFromGitHub(img.url, user); } catch(e) { console.warn(e); }
+          }
+        }
+        delete current[id];
+        await window.portfolioData.saveProjects(current, true);
         await renderProjects();
-        window.Logger.log('delete_project', `Deleted project: ${id} (${current[id]?.title || 'unknown'})`);
-      } catch (err) { alert('Delete failed: ' + err.message); }
-      window.hideLoading();
+        window.Logger.log('delete_project', `Deleted project: ${id}`);
+        showToast('Project deleted successfully', 'success');
+      } catch (err) {
+        showToast('Delete failed: ' + err.message, 'error');
+      } finally {
+        window.hideLoading();
+      }
     }
 
     async function safeDeleteCertificate(idx) {
       window.showLoading('Deleting certificate...');
-      const certs = await window.portfolioData.loadCertificates();
-      if (!certs[idx]) { window.hideLoading(); return; }
-      const thumb = certs[idx].thumbnail;
-      if (thumb && thumb.startsWith('https://raw.githubusercontent.com')) {
-        try { await window.deleteImageFromGitHub(thumb, user); } catch(e) { console.warn(e); }
-      }
-      const certTitle = certs[idx].title;
-      certs.splice(idx, 1);
       try {
-        await window.portfolioData.saveCertificates(certs);
+        const certs = await window.portfolioData.loadCertificates();
+        if (!certs[idx]) { window.hideLoading(); return; }
+        const thumb = certs[idx].thumbnail;
+        if (thumb && thumb.startsWith('https://raw.githubusercontent.com')) {
+          try { await window.deleteImageFromGitHub(thumb, user); } catch(e) { console.warn(e); }
+        }
+        certs.splice(idx, 1);
+        await window.portfolioData.saveCertificates(certs, true);
         await renderCertificates();
-        window.Logger.log('delete_certificate', `Deleted certificate: ${certTitle}`);
-      } catch (err) { alert('Delete failed: ' + err.message); }
-      window.hideLoading();
+        window.Logger.log('delete_certificate', `Deleted certificate`);
+        showToast('Certificate deleted', 'success');
+      } catch (err) {
+        showToast('Delete failed: ' + err.message, 'error');
+      } finally {
+        window.hideLoading();
+      }
     }
 
     async function safeSaveProject(project) {
       window.showLoading('Saving project...');
-      const allProjects = await window.portfolioData.loadProjects();
-      const isNew = !allProjects[project.id];
-      allProjects[project.id] = project;
       try {
+        const allProjects = await window.portfolioData.loadProjects();
+        const isNew = !allProjects[project.id];
+        allProjects[project.id] = project;
         await window.portfolioData.saveProjects(allProjects);
         await renderProjects();
         $('#projectModal').modal('hide');
-        window.Logger.log(isNew ? 'create_project' : 'edit_project', `${isNew ? 'Created' : 'Edited'} project: ${project.title} (${project.id})`);
-      } catch (err) { alert('Save failed: ' + err.message); }
-      window.hideLoading();
+        window.Logger.log(isNew ? 'create_project' : 'edit_project', `${isNew ? 'Created' : 'Edited'} project: ${project.title}`);
+        showToast(`Project ${isNew ? 'created' : 'updated'} successfully`, 'success');
+      } catch (err) {
+        showToast('Save failed: ' + err.message, 'error');
+      } finally {
+        window.hideLoading();
+      }
     }
 
     async function safeSaveCertificate(certs) {
@@ -640,9 +557,13 @@
         await window.portfolioData.saveCertificates(certs);
         await renderCertificates();
         $('#certModal').modal('hide');
-        window.Logger.log('save_certificate', `Saved ${certs.length} certificates`);
-      } catch (err) { alert('Save failed: ' + err.message); }
-      window.hideLoading();
+        window.Logger.log('save_certificate', `Saved certificates`);
+        showToast('Certificate saved', 'success');
+      } catch (err) {
+        showToast('Save failed: ' + err.message, 'error');
+      } finally {
+        window.hideLoading();
+      }
     }
 
     async function openProjectModal(projectId = null) {
@@ -736,7 +657,8 @@
         },
         description: document.getElementById('projDesc').value,
         graphType: document.getElementById('projGraphType').value,
-        selectedImages
+        selectedImages,
+        updatedAt: Date.now()
       };
       await safeSaveProject(project);
     });
@@ -777,25 +699,25 @@
         issuer: document.getElementById('certIssuer').value,
         date: document.getElementById('certDate').value,
         link: document.getElementById('certLink').value,
-        thumbnail: document.getElementById('certThumb').value
+        thumbnail: document.getElementById('certThumb').value,
+        updatedAt: Date.now()
       };
       if (idx !== '' && certs[idx]) certs[idx] = newCert;
       else certs.push(newCert);
       await safeSaveCertificate(certs);
     });
 
+    // Admin and users
     const isAdmin = window.APP_CONFIG.adminUsers && window.APP_CONFIG.adminUsers.includes(user.username);
     if (isAdmin) {
       document.getElementById('usersTabNav').style.display = 'block';
       document.getElementById('refreshUsersBtn').addEventListener('click', loadUsers);
-      loadUsers();
-      document.getElementById('backupBtn').style.display = 'inline-block';
-      document.getElementById('restoreLabel').style.display = 'inline-flex';
       document.getElementById('downloadAllLogsBtn').style.display = 'inline-block';
       document.getElementById('logUserSelectGroup').style.display = 'block';
+      loadUsers();
     }
 
-    // ----- Log Download Functions -----
+    // Log functions (same as before)
     async function downloadLogsForUser(username, isAdminView = false) {
       window.showLoading(`Fetching logs for ${username}...`);
       try {
@@ -815,18 +737,16 @@
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
         window.Logger.log('download_logs', `Downloaded logs for ${username}`);
+        showToast('Logs downloaded', 'success');
       } catch (err) {
-        alert(`Failed to download logs: ${err.message}`);
+        showToast(`Failed to download logs: ${err.message}`, 'error');
       } finally {
         window.hideLoading();
       }
     }
 
     async function downloadAllLogs() {
-      if (!isAdmin) {
-        alert('Only admin can download all logs.');
-        return;
-      }
+      if (!isAdmin) { showToast('Only admin can download all logs.', 'error'); return; }
       window.showLoading('Fetching all user logs...');
       try {
         const users = await window.AccountManager.listUsers(user.pat);
@@ -840,7 +760,7 @@
           }
         }
         if (fileCount === 0) {
-          alert('No logs found for any user.');
+          showToast('No logs found for any user.', 'error');
         } else {
           const blob = await zip.generateAsync({ type: 'blob' });
           const a = document.createElement('a');
@@ -852,9 +772,10 @@
           document.body.removeChild(a);
           URL.revokeObjectURL(url);
           window.Logger.log('download_all_logs', `Downloaded ZIP of all users' logs (${fileCount} users)`);
+          showToast('All logs downloaded', 'success');
         }
       } catch (err) {
-        alert(`Failed to download all logs: ${err.message}`);
+        showToast(`Failed to download all logs: ${err.message}`, 'error');
       } finally {
         window.hideLoading();
       }
@@ -877,7 +798,6 @@
     document.getElementById('downloadMyLogBtn').addEventListener('click', async () => {
       await downloadLogsForUser(user.username, false);
     });
-
     document.getElementById('logUserSelect').addEventListener('change', async (e) => {
       const selected = e.target.value;
       if (selected && isAdmin) {
@@ -885,9 +805,7 @@
         e.target.value = '';
       }
     });
-
     document.getElementById('downloadAllLogsBtn').addEventListener('click', downloadAllLogs);
-
     await populateUserSelect();
 
     async function loadUsers() {
@@ -931,7 +849,8 @@
               try {
                 await window.AccountManager.toggleBlock(username, block, user.pat);
                 await loadUsers();
-              } catch(err) { alert('Failed: ' + err.message); }
+                showToast(`User ${block ? 'blocked' : 'unblocked'}`, 'success');
+              } catch(err) { showToast('Failed: ' + err.message, 'error'); }
               window.hideLoading();
             });
           });
@@ -943,55 +862,23 @@
               try {
                 await window.AccountManager.deleteUser(username, user.pat);
                 await loadUsers();
-              } catch(err) { alert('Failed: ' + err.message); }
+                showToast(`User ${username} deleted`, 'success');
+              } catch(err) { showToast('Failed: ' + err.message, 'error'); }
               window.hideLoading();
             });
           });
         }
       } catch (err) {
         container.innerHTML = `<div class="alert alert-danger">Unable to load users: ${err.message}</div>`;
+      } finally {
+        window.hideLoading();
       }
-      window.hideLoading();
     }
 
-    // Backup button now downloads the latest backup from GitHub
-    document.getElementById('backupBtn').addEventListener('click', async () => {
-      try {
-        window.showLoading('Downloading latest backup from GitHub...');
-        await window.portfolioData.downloadLatestBackup();
-      } catch (err) {
-        alert('Backup download failed: ' + err.message);
-      } finally {
-        window.hideLoading();
-      }
-    });
-
-    document.getElementById('restoreFileInput').addEventListener('change', async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      if (!confirm('⚠️ Restoring will OVERWRITE all your current projects and certificates with the backup data. This cannot be undone. Continue?')) {
-        e.target.value = '';
-        return;
-      }
-      window.showLoading('Restoring from backup...');
-      try {
-        await window.portfolioData.restoreBackup(file);
-        await renderProjects();
-        await renderCertificates();
-        alert('Restore completed successfully!');
-        window.Logger.log('restore_backup', `Restored from ${file.name}`);
-      } catch (err) {
-        alert('Restore failed: ' + err.message);
-      } finally {
-        window.hideLoading();
-        e.target.value = '';
-      }
-    });
-
+    // Buttons
     document.getElementById('addProjectBtn').addEventListener('click', () => openProjectModal());
     document.getElementById('addCertBtn').addEventListener('click', () => openCertModal());
     document.getElementById('downloadDataBtn').addEventListener('click', () => window.portfolioData.exportData());
-
     document.getElementById('deleteAllProjectsBtn').addEventListener('click', async () => {
       if (confirm('⚠️ PERMANENTLY delete ALL your projects? This action cannot be undone.')) {
         window.showLoading('Deleting all projects...');
@@ -1007,11 +894,11 @@
           await window.portfolioData.saveProjects({}, true);
           await renderProjects();
           window.Logger.log('delete_all_projects', 'Deleted all projects');
-        } catch (err) { alert('Failed: ' + err.message); }
+          showToast('All projects deleted', 'success');
+        } catch (err) { showToast('Failed: ' + err.message, 'error'); }
         window.hideLoading();
       }
     });
-
     document.getElementById('deleteAllCertsBtn').addEventListener('click', async () => {
       if (confirm('⚠️ PERMANENTLY delete ALL certificates? This action cannot be undone.')) {
         window.showLoading('Deleting all certificates...');
@@ -1025,34 +912,37 @@
           await window.portfolioData.saveCertificates([], true);
           await renderCertificates();
           window.Logger.log('delete_all_certificates', 'Deleted all certificates');
-        } catch (err) { alert('Failed: ' + err.message); }
+          showToast('All certificates deleted', 'success');
+        } catch (err) { showToast('Failed: ' + err.message, 'error'); }
         window.hideLoading();
       }
     });
-
     document.getElementById('syncProjectsBtn').addEventListener('click', async () => {
-      window.showLoading('Syncing from GitHub...');
+      window.showLoading('Refreshing from GitHub...');
       await renderProjects();
       await renderCertificates();
       window.hideLoading();
-      alert('Data refreshed.');
+      showToast('Data refreshed', 'success');
       window.Logger.log('sync', 'Manually synced from GitHub');
     });
-
     document.getElementById('logoutBtn').addEventListener('click', () => {
       window.Logger.log('logout', 'User logged out');
       window.SessionManager.logout();
       window.location.href = 'login.html';
     });
 
+    // Auto refresh every 60 seconds
+    let autoRefreshInterval = setInterval(async () => {
+      if (!document.hidden) {
+        await renderProjects();
+        await renderCertificates();
+      }
+    }, 60000);
+
     await renderProjects();
     await renderCertificates();
     window.hideLoading();
   }
 </script>
-
-<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script>
-<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
 </html>
