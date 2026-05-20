@@ -1,4 +1,4 @@
-// timesheet.js – Failsafe version with atomic save queue, conflict resolution, and enhanced PDF with QR code (fixed)
+// timesheet.js – Failsafe version with atomic save queue, conflict resolution, enhanced PDF, circular pie charts, QR code
 (function() {
   const user = window.SessionManager?.getCurrentUser();
   if (!user) {
@@ -377,7 +377,7 @@
     const tbody = document.getElementById('historyBody');
     const tfoot = document.getElementById('historyFoot');
     if (filtered.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="9" class="text-center">No entries found.<tr>';
+      tbody.innerHTML = '<tr><td colspan="9" class="text-center">No entries found.</td>';
       tfoot.style.display = 'none';
       return;
     }
@@ -489,10 +489,9 @@
     showToast("Excel downloaded.");
   }
 
-  // Fixed QR code generation using the QRCode library
+  // QR code generation using QRCode library (square)
   async function generateQRCodeDataURL(url, size = 150) {
     return new Promise((resolve, reject) => {
-      // The QRCode library expects a canvas element, but we can create an offscreen canvas
       const canvas = document.createElement('canvas');
       QRCode.toCanvas(canvas, url, { width: size, margin: 1 }, (error) => {
         if (error) reject(error);
@@ -521,22 +520,23 @@
       let billableTotal = 0, nonBillTotal = 0;
       filtered.forEach(e => { if (e.billable === 'yes') billableTotal += e.hours; else nonBillTotal += e.hours; });
       
+      // Square canvas for perfect circles
       const chartCanvas = document.createElement('canvas');
-      chartCanvas.width = 400;
-      chartCanvas.height = 250;
+      chartCanvas.width = 300;
+      chartCanvas.height = 300;
       const ctx = chartCanvas.getContext('2d');
       
-      const projChart = new Chart(ctx, { type: 'pie', data: { labels: Object.keys(projMap), datasets: [{ data: Object.values(projMap), backgroundColor: ['#2fc7ff','#ffc107','#28a745','#dc3545','#6f42c1','#fd7e14'] }] }, options: { responsive: false } });
+      const projChart = new Chart(ctx, { type: 'pie', data: { labels: Object.keys(projMap), datasets: [{ data: Object.values(projMap), backgroundColor: ['#2fc7ff','#ffc107','#28a745','#dc3545','#6f42c1','#fd7e14'] }] }, options: { responsive: false, maintainAspectRatio: true } });
       await new Promise(r => setTimeout(r, 200));
       const projChartDataURL = chartCanvas.toDataURL();
       projChart.destroy();
       
-      const catChart = new Chart(ctx, { type: 'pie', data: { labels: Object.keys(catMap), datasets: [{ data: Object.values(catMap), backgroundColor: ['#2fc7ff','#ffc107','#28a745','#dc3545','#6f42c1','#fd7e14'] }] }, options: { responsive: false } });
+      const catChart = new Chart(ctx, { type: 'pie', data: { labels: Object.keys(catMap), datasets: [{ data: Object.values(catMap), backgroundColor: ['#2fc7ff','#ffc107','#28a745','#dc3545','#6f42c1','#fd7e14'] }] }, options: { responsive: false, maintainAspectRatio: true } });
       await new Promise(r => setTimeout(r, 200));
       const catChartDataURL = chartCanvas.toDataURL();
       catChart.destroy();
       
-      const billChart = new Chart(ctx, { type: 'pie', data: { labels: ['Billable', 'Non-billable'], datasets: [{ data: [billableTotal, nonBillTotal], backgroundColor: ['#28a745','#dc3545'] }] }, options: { responsive: false } });
+      const billChart = new Chart(ctx, { type: 'pie', data: { labels: ['Billable', 'Non-billable'], datasets: [{ data: [billableTotal, nonBillTotal], backgroundColor: ['#28a745','#dc3545'] }] }, options: { responsive: false, maintainAspectRatio: true } });
       await new Promise(r => setTimeout(r, 200));
       const billChartDataURL = chartCanvas.toDataURL();
       billChart.destroy();
@@ -553,9 +553,9 @@
       doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 44);
       doc.text(`Total Hours: ${totalHours.toFixed(2)} (Billable: ${billableHours.toFixed(2)} | Non-billable: ${nonBillable.toFixed(2)} | Overtime: ${overtime.toFixed(2)})`, 14, 51);
       
-      doc.addImage(projChartDataURL, 'PNG', 14, 60, 50, 35);
-      doc.addImage(catChartDataURL, 'PNG', 70, 60, 50, 35);
-      doc.addImage(billChartDataURL, 'PNG', 126, 60, 50, 35);
+      doc.addImage(projChartDataURL, 'PNG', 14, 60, 50, 50);
+      doc.addImage(catChartDataURL, 'PNG', 70, 60, 50, 50);
+      doc.addImage(billChartDataURL, 'PNG', 126, 60, 50, 50);
       
       doc.autoTable({ startY: 105, head: [['Date','Start','End','Hours','Project','Category','Billable','Notes']], body: tableData, foot: [['','','',totalHours.toFixed(2),'','','','']], theme: 'striped', headStyles: { fillColor: [11,43,59], textColor: 255, fontStyle: 'bold' }, footStyles: { fillColor: [240,240,240], textColor: 0, fontStyle: 'bold' }, margin: { left: 14, right: 14 }, columnStyles: { 0: { cellWidth: 22 }, 1: { cellWidth: 16 }, 2: { cellWidth: 16 }, 3: { cellWidth: 16 }, 4: { cellWidth: 30 }, 5: { cellWidth: 25 }, 6: { cellWidth: 20 }, 7: { cellWidth: 35 } } });
       
