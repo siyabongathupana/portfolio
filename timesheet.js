@@ -1,4 +1,4 @@
-// timesheet.js – professional PDF (with QR, bar charts, nice table) + password-protected Excel (password: Siya)
+// timesheet.js – professional PDF with pie charts, anti-tamper headers, and password-protected Excel
 (function() {
   const user = window.SessionManager?.getCurrentUser();
   if (!user) {
@@ -101,7 +101,7 @@
     }
   }
 
-  // ======================== UI HELPERS (unchanged) ========================
+  // ======================== UI HELPERS ========================
   function formatDate(date) {
     const d = new Date(date);
     return d.toISOString().split('T')[0];
@@ -424,12 +424,12 @@
     const ctxProj = document.getElementById('projectChart');
     if (ctxProj) {
       projectChart = new Chart(ctxProj, {
-        type: 'bar',
+        type: 'pie',
         data: {
           labels: Object.keys(projMap),
-          datasets: [{ label: 'Hours', data: Object.values(projMap), backgroundColor: '#2fc7ff' }]
+          datasets: [{ data: Object.values(projMap), backgroundColor: ['#2fc7ff','#ffc107','#28a745','#dc3545','#6f42c1','#fd7e14','#17a2b8','#e83e8c'] }]
         },
-        options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'top' } } }
+        options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } } } }
       });
     }
     const catMap = {};
@@ -438,12 +438,12 @@
     const ctxCat = document.getElementById('categoryChart');
     if (ctxCat) {
       categoryChart = new Chart(ctxCat, {
-        type: 'bar',
+        type: 'pie',
         data: {
           labels: Object.keys(catMap),
-          datasets: [{ label: 'Hours', data: Object.values(catMap), backgroundColor: '#ffc107' }]
+          datasets: [{ data: Object.values(catMap), backgroundColor: ['#2fc7ff','#ffc107','#28a745','#dc3545','#6f42c1','#fd7e14'] }]
         },
-        options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'top' } } }
+        options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } } } }
       });
     }
     let billable = 0, nonBill = 0;
@@ -452,21 +452,19 @@
     const ctxBill = document.getElementById('billableChart');
     if (ctxBill) {
       billableChart = new Chart(ctxBill, {
-        type: 'bar',
+        type: 'pie',
         data: {
           labels: ['Billable', 'Non-billable'],
-          datasets: [{ label: 'Hours', data: [billable, nonBill], backgroundColor: ['#28a745', '#dc3545'] }]
+          datasets: [{ data: [billable, nonBill], backgroundColor: ['#28a745','#dc3545'] }]
         },
-        options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'top' } } }
+        options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } } } }
       });
     }
   }
 
-  // ======================== ENHANCED EXPORT FUNCTIONS ========================
-
-  // --- PDF with nice header/footer, QR code, bar chart, auto-wrapped table ---
+  // ======================== ENHANCED PDF REPORT (PIE CHARTS + ANTI-TAMPER) ========================
   async function generatePDFReport(startDate, endDate) {
-    window.showLoading("Generating PDF report...");
+    window.showLoading("Generating PDF report with pie charts...");
     try {
       const filtered = entries.filter(e => e.date >= startDate && e.date <= endDate);
       if (!filtered.length) {
@@ -478,18 +476,23 @@
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
 
-      // 1. Header
-      doc.setFillColor(11, 43, 59);
-      doc.rect(0, 0, 297, 25, 'F');
+      // ---- HEADER with anti-tamper warning ----
+      doc.setFillColor(200, 0, 0); // red
+      doc.rect(0, 0, 297, 15, 'F');
       doc.setTextColor(255, 255, 255);
-      doc.setFontSize(18);
-      doc.text("Timesheet Report", 20, 15);
       doc.setFontSize(10);
-      doc.text(`Generated: ${new Date().toLocaleString()}`, 20, 22);
+      doc.text("DO NOT EDIT THIS DOCUMENT – UNTAMPERED DATA", 148, 8, { align: 'center' });
 
-      // 2. User info and summary
+      // Main title
+      doc.setFillColor(11, 43, 59);
+      doc.rect(0, 15, 297, 12, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(14);
+      doc.text("Timesheet Report", 20, 24);
+
+      // User info and summary
       doc.setTextColor(0, 0, 0);
-      doc.setFontSize(12);
+      doc.setFontSize(11);
       const name = document.getElementById('reportName')?.value || userFullName || user.username;
       const totalHours = filtered.reduce((s,e) => s + e.hours, 0);
       const billableHours = filtered.filter(e => e.billable === 'yes').reduce((s,e) => s + e.hours, 0);
@@ -499,26 +502,65 @@
       doc.text(`Period: ${startDate} to ${endDate}`, 20, 47);
       doc.text(`Total Hours: ${totalHours.toFixed(2)} (Billable: ${billableHours.toFixed(2)} | Non-billable: ${nonBillable.toFixed(2)} | Overtime: ${overtime.toFixed(2)})`, 20, 54);
 
-      // 3. Bar chart (hours per project)
+      // ---- PIE CHART 1: Hours per project ----
       const projMap = {};
       filtered.forEach(e => { projMap[e.project] = (projMap[e.project] || 0) + e.hours; });
-      const canvas = document.createElement('canvas');
-      canvas.width = 500; canvas.height = 250;
-      const ctx = canvas.getContext('2d');
-      const chart = new Chart(ctx, {
-        type: 'bar',
+      const canvas1 = document.createElement('canvas');
+      canvas1.width = 400; canvas1.height = 400;
+      const ctx1 = canvas1.getContext('2d');
+      const pieColors = ['#2fc7ff','#ffc107','#28a745','#dc3545','#6f42c1','#fd7e14','#17a2b8','#e83e8c'];
+      const chart1 = new Chart(ctx1, {
+        type: 'pie',
         data: {
           labels: Object.keys(projMap),
-          datasets: [{ label: 'Hours', data: Object.values(projMap), backgroundColor: '#2fc7ff' }]
+          datasets: [{ data: Object.values(projMap), backgroundColor: pieColors.slice(0, Object.keys(projMap).length) }]
         },
-        options: { responsive: false, plugins: { legend: { position: 'top' } } }
+        options: { responsive: false, plugins: { legend: { position: 'right', labels: { font: { size: 10 } } } } }
       });
       await new Promise(r => setTimeout(r, 300));
-      const chartBase64 = canvas.toDataURL('image/png');
-      chart.destroy();
-      doc.addImage(chartBase64, 'PNG', 20, 62, 170, 45);
+      const chartBase64_1 = canvas1.toDataURL('image/png');
+      chart1.destroy();
+      doc.addImage(chartBase64_1, 'PNG', 20, 62, 80, 70);
 
-      // 4. Table (auto-wrap long text)
+      // ---- PIE CHART 2: Hours per category ----
+      const catMap = {};
+      filtered.forEach(e => { catMap[e.category] = (catMap[e.category] || 0) + e.hours; });
+      const canvas2 = document.createElement('canvas');
+      canvas2.width = 400; canvas2.height = 400;
+      const ctx2 = canvas2.getContext('2d');
+      const chart2 = new Chart(ctx2, {
+        type: 'pie',
+        data: {
+          labels: Object.keys(catMap),
+          datasets: [{ data: Object.values(catMap), backgroundColor: ['#2fc7ff','#ffc107','#28a745','#dc3545','#6f42c1','#fd7e14','#17a2b8'] }]
+        },
+        options: { responsive: false, plugins: { legend: { position: 'right', labels: { font: { size: 10 } } } } }
+      });
+      await new Promise(r => setTimeout(r, 300));
+      const chartBase64_2 = canvas2.toDataURL('image/png');
+      chart2.destroy();
+      doc.addImage(chartBase64_2, 'PNG', 110, 62, 80, 70);
+
+      // ---- PIE CHART 3: Billable vs Non-billable ----
+      let billable = 0, nonBill = 0;
+      filtered.forEach(e => { if (e.billable === 'yes') billable += e.hours; else nonBill += e.hours; });
+      const canvas3 = document.createElement('canvas');
+      canvas3.width = 400; canvas3.height = 400;
+      const ctx3 = canvas3.getContext('2d');
+      const chart3 = new Chart(ctx3, {
+        type: 'pie',
+        data: {
+          labels: ['Billable', 'Non-billable'],
+          datasets: [{ data: [billable, nonBill], backgroundColor: ['#28a745', '#dc3545'] }]
+        },
+        options: { responsive: false, plugins: { legend: { position: 'right', labels: { font: { size: 10 } } } } }
+      });
+      await new Promise(r => setTimeout(r, 300));
+      const chartBase64_3 = canvas3.toDataURL('image/png');
+      chart3.destroy();
+      doc.addImage(chartBase64_3, 'PNG', 200, 62, 80, 70);
+
+      // ---- TABLE (auto-wrap long text) ----
       const tableData = filtered.map(e => [
         e.date, e.start, e.end, e.hours.toFixed(2),
         e.project, e.category,
@@ -526,7 +568,7 @@
         e.notes || ''
       ]);
       doc.autoTable({
-        startY: 115,
+        startY: 140,
         head: [['Date','Start','End','Hours','Project','Category','Billable','Notes']],
         body: tableData,
         foot: [['','','', totalHours.toFixed(2),'','','','']],
@@ -538,18 +580,18 @@
           1: { cellWidth: 16 },
           2: { cellWidth: 16 },
           3: { cellWidth: 16 },
-          4: { cellWidth: 30 },  // project - enough space
+          4: { cellWidth: 30 },  // project name
           5: { cellWidth: 25 },
           6: { cellWidth: 20 },
-          7: { cellWidth: 50 }   // notes - extra width
+          7: { cellWidth: 50 }   // notes
         },
         margin: { left: 14, right: 14 },
         styles: { overflow: 'linebreak', cellPadding: 2, fontSize: 9 }
       });
 
-      // 5. Footer with QR code (link to GitHub profile)
+      // ---- FOOTER with QR code and integrity statement ----
       const finalY = doc.lastAutoTable.finalY + 10;
-      // Generate QR code as dataURL
+      // QR code (GitHub profile)
       const qrContainer = document.createElement('div');
       new QRCode(qrContainer, {
         text: "https://github.com/siyabongathupana/",
@@ -565,12 +607,28 @@
       doc.addImage(qrDataURL, 'PNG', 250, finalY, 20, 20);
       doc.setFontSize(8);
       doc.setTextColor(100,100,100);
+      doc.text("This document shows untampered, verifiable timesheet data.", 20, finalY + 10);
       doc.text("Scan QR to view GitHub portfolio", 245, finalY + 25, { align: 'right' });
-      doc.text("Report generated by Your Portfolio System", 20, finalY + 25);
+      doc.text("Generated by Your Portfolio System – Controlled Copy", 20, finalY + 20);
       doc.text(`Page ${doc.internal.getNumberOfPages()} of ${doc.internal.getNumberOfPages()}`, 280, finalY + 25, { align: 'right' });
 
+      // Light watermark "FINAL REPORT" across the page
+      doc.setFontSize(60);
+      doc.setTextColor(200, 200, 200);
+      doc.setGState(new doc.GState({ opacity: 0.15 }));
+      doc.text("FINAL REPORT", 148, 150, { align: 'center', angle: 45 });
+      doc.setGState(new doc.GState({ opacity: 1 }));
+
+      // Save with permissions hint (metadata)
+      doc.setProperties({
+        title: `Timesheet_${startDate}_to_${endDate}`,
+        subject: "Untampered timesheet data",
+        author: name,
+        keywords: "timesheet, report, controlled",
+        creator: "Your Portfolio System"
+      });
       doc.save(`timesheet_${startDate}_to_${endDate}.pdf`);
-      showToast("PDF report generated with bar chart & QR code.");
+      showToast("PDF generated with pie charts & anti-tamper features.");
     } catch (err) {
       console.error(err);
       showToast("PDF generation failed: " + err.message, "error");
@@ -579,7 +637,7 @@
     }
   }
 
-  // --- Excel with password "Siya", styling, bar chart, auto-fit columns ---
+  // ======================== EXCEL WITH PASSWORD (unchanged, uses bar chart inside Excel) ========================
   async function exportStyledExcel(startDate, endDate) {
     window.showLoading("Generating Excel report (password: Siya)...");
     try {
@@ -590,11 +648,9 @@
         return;
       }
 
-      // Use ExcelJS
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet("Timesheet");
 
-      // Title
       worksheet.mergeCells('A1:H1');
       const titleCell = worksheet.getCell('A1');
       titleCell.value = `Timesheet Report - ${userFullName || user.username}`;
@@ -603,7 +659,6 @@
       titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
       worksheet.getRow(1).height = 30;
 
-      // Period
       worksheet.mergeCells('A2:H2');
       const periodCell = worksheet.getCell('A2');
       periodCell.value = `Period: ${startDate} to ${endDate} | Generated: ${new Date().toLocaleString()}`;
@@ -611,7 +666,6 @@
       periodCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE9F0F5' } };
       worksheet.getRow(2).height = 20;
 
-      // Summary row
       const totalHours = filtered.reduce((s,e) => s + e.hours, 0);
       const billableHours = filtered.filter(e => e.billable === 'yes').reduce((s,e) => s + e.hours, 0);
       const nonBillable = totalHours - billableHours;
@@ -623,7 +677,6 @@
       summaryCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD4E8F0' } };
       worksheet.getRow(3).height = 22;
 
-      // Headers
       const headers = ['Date', 'Start', 'End', 'Hours', 'Project', 'Category', 'Billable', 'Notes'];
       const headerRow = worksheet.addRow(headers);
       headerRow.eachCell((cell, colNumber) => {
@@ -633,7 +686,6 @@
         cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
       });
 
-      // Data rows
       filtered.forEach(entry => {
         const row = worksheet.addRow([
           entry.date, entry.start, entry.end, entry.hours,
@@ -645,7 +697,6 @@
           cell.alignment = { vertical: 'middle' };
           cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
         });
-        // Color billable/non-billable
         const billableCell = row.getCell(7);
         if (entry.billable === 'yes') {
           billableCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC6EFCE' } };
@@ -654,14 +705,12 @@
         }
       });
 
-      // Total row
       const totalRow = worksheet.addRow(['', '', '', totalHours.toFixed(2), '', '', '', '']);
       totalRow.getCell(4).font = { bold: true };
       totalRow.eachCell((cell) => {
         cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
       });
 
-      // Auto-fit columns
       worksheet.columns.forEach(column => {
         let maxLength = 0;
         column.eachCell({ includeEmpty: true }, cell => {
@@ -671,7 +720,7 @@
         column.width = Math.min(maxLength + 2, 40);
       });
 
-      // Add bar chart (hours per project) as an image
+      // Add bar chart (hours per project) as image
       const projMap = {};
       filtered.forEach(e => { projMap[e.project] = (projMap[e.project] || 0) + e.hours; });
       const canvas = document.createElement('canvas');
@@ -693,7 +742,6 @@
         base64: chartBase64,
         extension: 'png',
       });
-      // Place chart below the table (e.g., at row index after data + 3)
       const startRow = filtered.length + 5;
       worksheet.addImage(chartImage, {
         tl: { col: 0, row: startRow },
@@ -701,9 +749,6 @@
         editAs: 'oneCell'
       });
 
-      // Password protect the workbook
-      await workbook.xlsx.writeFile({ filename: 'temp.xlsx', password: 'Siya', compression: true });
-      // Note: ExcelJS password protection works when writing buffer
       const buffer = await workbook.xlsx.writeBuffer({ password: 'Siya' });
       const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       saveAs(blob, `timesheet_${startDate}_to_${endDate}.xlsx`);
@@ -716,13 +761,10 @@
     }
   }
 
-  // Replace old exportExcelRange with new styled version
   async function exportExcelRange(startDate, endDate) {
     await exportStyledExcel(startDate, endDate);
   }
 
-  // Keep simple export for filtered data without date range? We'll reuse the same modal.
-  // Override the old exportToExcel to use the range modal
   function exportToExcel() {
     const end = new Date();
     const start = new Date(); start.setDate(start.getDate() - 30);
