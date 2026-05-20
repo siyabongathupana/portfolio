@@ -14,7 +14,7 @@
   <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
-  <!-- QR Code Generator (reliable) -->
+  <!-- QR Code Generator -->
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
   <!-- Core app scripts -->
   <script src="config.js"></script>
@@ -22,6 +22,7 @@
   <script src="api.js"></script>
   <script src="shared.js"></script>
   <style>
+    /* Additional responsive overrides for timesheet */
     .timesheet-container {
       max-width: 1400px;
       margin: 20px auto;
@@ -58,9 +59,7 @@
       font-weight: 600;
       font-size: 0.85rem;
     }
-    .progress-fill.overtime {
-      background: #dc3545;
-    }
+    .progress-fill.overtime { background: #dc3545; }
     .summary-card {
       background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
       border-radius: 16px;
@@ -107,6 +106,13 @@
     .btn-edit { background: #ffc107; color: #212529; margin-right: 5px; }
     .btn-duplicate { background: #17a2b8; color: white; margin-right: 5px; }
     .btn-duplicate:hover { background: #138496; }
+
+    /* Responsive: up to 27" monitors */
+    @media (min-width: 1920px) {
+      .timesheet-container { max-width: 1600px; padding: 30px; }
+      .chart-card canvas { max-width: 280px; }
+      .summary-stat .number { font-size: 2.2rem; }
+    }
     @media (max-width: 768px) {
       .timesheet-container { padding: 12px; margin: 10px; border-radius: 16px; }
       .quick-log-card { padding: 15px; }
@@ -114,11 +120,15 @@
       .btn-sm { min-height: 38px; }
       .progress-bar-container { height: 40px; }
       .progress-fill { font-size: 0.75rem; padding-right: 8px; }
-      .chart-card canvas { max-width: 220px; }
       .filter-bar { flex-direction: column; align-items: stretch; }
       .filter-controls { justify-content: space-between; }
       .history-table th, .history-table td { font-size: 0.7rem; padding: 6px 4px; }
       .summary-stat .number { font-size: 1.2rem; }
+      .summary-stat { padding: 5px 8px; }
+    }
+    @media (max-width: 480px) {
+      .history-table th, .history-table td { font-size: 0.65rem; padding: 4px 2px; }
+      .btn-sm { font-size: 0.7rem; padding: 4px 8px; }
     }
     @media print {
       body { background: white; padding: 0; margin: 0; }
@@ -229,7 +239,7 @@
     <div class="summary-stat"><div class="number overtime-number" id="summaryOvertime">0</div><div class="label">Overtime (>8h/day)</div></div>
   </div>
 
-  <!-- Charts (square canvases for perfect circles) -->
+  <!-- Charts (square canvases for perfect circles on web) -->
   <div class="row mb-4">
     <div class="col-12 col-md-4 mb-3"><div class="chart-card"><h6>By Project</h6><canvas id="projectChart" width="200" height="200"></canvas></div></div>
     <div class="col-12 col-md-4 mb-3"><div class="chart-card"><h6>By Category</h6><canvas id="categoryChart" width="200" height="200"></canvas></div></div>
@@ -297,7 +307,7 @@
   </div>
 </div>
 
-<!-- Report Modal (Enhanced with Weekly/Monthly/Yearly) -->
+<!-- Report Modal -->
 <div class="modal fade" id="reportModal" tabindex="-1">
   <div class="modal-dialog modal-md">
     <div class="modal-content">
