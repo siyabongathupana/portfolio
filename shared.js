@@ -1,5 +1,6 @@
-// shared.js – Full version with HTML log generation, session persistence, backup/restore, image upload
+// shared.js – Complete with conflict resolution, plain‑text logs, no backup/restore
 
+// ======================== LOADING OVERLAY ========================
 window.showLoading = function (msg = 'Processing...') {
   let loader = document.getElementById('globalLoader');
   if (!loader) {
@@ -22,31 +23,13 @@ window.hideLoading = function () {
   if (loader) loader.style.display = 'none';
 };
 
+// ======================== UTILITIES ========================
 window.escapeHtml = function (str) {
   if (!str) return '';
   return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m] || m);
 };
 
-window.updateUserFooter = function () {
-  const user = window.SessionManager.getCurrentUser();
-  const el = document.getElementById('userFooterStatus');
-  if (!el) return;
-  if (user) {
-    el.innerHTML = `Logged in as: <strong>${window.escapeHtml(user.username)}</strong> | <a href="admin.html" style="color:#2fc7ff;">Dashboard</a> | <a href="#" id="logoutFromFooter" style="color:#ff6b6b;">Logout</a>`;
-    const logoutBtn = document.getElementById('logoutFromFooter');
-    if (logoutBtn) {
-      logoutBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        window.Logger.log('logout', 'User logged out');
-        window.SessionManager.logout();
-        window.location.reload();
-      });
-    }
-  } else {
-    el.innerHTML = `Visitor – viewing portfolio of <strong>${window.APP_CONFIG.publicProfileEmail}</strong> | <a href="login.html" style="color:#2fc7ff;">Login</a>`;
-  }
-};
-
+// ======================== SESSION MANAGER ========================
 window.SessionManager = (() => {
   let current = null;
   return {
@@ -76,13 +59,13 @@ window.SessionManager = (() => {
   };
 })();
 
-// ---------- LOGGING SYSTEM (with HTML conversion) ----------
+// ======================== PLAIN‑TEXT LOGGING (format like attached log.txt) ========================
 window.Logger = {
   async log(action, details, level = 'INFO') {
     const user = window.SessionManager.getCurrentUser();
     if (!user) return;
     
-    const timestamp = new Date().toISOString();
+    const timestamp = new Date().toISOString().replace('T', ' ').slice(0, 19);
     const logEntry = `[${timestamp}] [${level}] [${action}] ${details}\n`;
     
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
@@ -129,81 +112,31 @@ window.Logger = {
       allLogs[username] = await this.getLogsForUser(username, adminToken);
     }
     return allLogs;
-  },
-
-  // Convert raw log text to styled HTML table with color coding
-  logsToHTML(logText, username) {
-    if (!logText || logText === 'No logs found for this user.' || logText === 'Unable to retrieve logs.') {
-      return `<div style="font-family: monospace; padding: 20px; color: #666;">${logText}</div>`;
-    }
-    const lines = logText.split('\n').filter(l => l.trim());
-    let html = `<!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="UTF-8">
-      <title>Activity Logs - ${username}</title>
-      <style>
-        body { font-family: 'Segoe UI', 'Courier New', monospace; background: #1e1e1e; padding: 20px; margin: 0; }
-        .log-container { max-width: 1400px; margin: 0 auto; background: #2d2d2d; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 20px rgba(0,0,0,0.3); }
-        .log-header { background: #0b2b3b; color: #2fc7ff; padding: 15px 20px; font-size: 1.2rem; font-weight: bold; border-bottom: 2px solid #2fc7ff; }
-        .log-table { width: 100%; border-collapse: collapse; }
-        .log-table th { text-align: left; padding: 12px 15px; background: #3a3a3a; color: #ddd; font-weight: 600; border-bottom: 1px solid #555; }
-        .log-table td { padding: 10px 15px; border-bottom: 1px solid #444; font-size: 13px; font-family: monospace; vertical-align: top; }
-        .log-table tr:hover { background: #3c3c3c; }
-        .error-row { background-color: #5a1e1e; }
-        .error-row td { color: #ffaaaa; }
-        .warn-row { background-color: #6b4c1a; }
-        .warn-row td { color: #ffdd99; }
-        .info-row { background-color: #1a4d3a; }
-        .info-row td { color: #aaffdd; }
-        .action-row { background-color: #1e3a5f; }
-        .action-row td { color: #bbddff; }
-        .timestamp { color: #88aaff; font-weight: 500; }
-        .level { font-weight: bold; }
-        .level-ERROR { color: #ff6666; }
-        .level-WARN { color: #ffaa66; }
-        .level-INFO { color: #66ffaa; }
-        .action { color: #66ccff; }
-      </style>
-    </head>
-    <body>
-      <div class="log-container">
-        <div class="log-header">
-          📋 Activity Logs – ${window.escapeHtml(username)} (Generated: ${new Date().toLocaleString()})
-        </div>
-        <table class="log-table">
-          <thead>
-            <tr><th>Timestamp</th><th>Level</th><th>Action</th><th>Details</th></tr>
-          </thead>
-          <tbody>`;
-    
-    for (const line of lines) {
-      const match = line.match(/\[(.*?)\]\s*\[(.*?)\]\s*\[(.*?)\]\s*(.*)/);
-      if (match) {
-        const [, timestamp, level, action, details] = match;
-        let rowClass = '';
-        if (level === 'ERROR') rowClass = 'error-row';
-        else if (level === 'WARN') rowClass = 'warn-row';
-        else if (level === 'INFO' && (action.includes('create') || action.includes('edit') || action.includes('delete') || action.includes('save'))) rowClass = 'info-row';
-        else if (action.includes('login') || action.includes('logout') || action.includes('sync')) rowClass = 'action-row';
-        
-        html += `<tr class="${rowClass}">
-          <td class="timestamp">${window.escapeHtml(timestamp)}</td>
-          <td class="level level-${level}">${window.escapeHtml(level)}</td>
-          <td class="action">${window.escapeHtml(action)}</td>
-          <td>${window.escapeHtml(details)}</td>
-        </tr>`;
-      } else {
-        html += `<tr><td colspan="4">${window.escapeHtml(line)}</td></tr>`;
-      }
-    }
-    
-    html += `</tbody>}</table></div></body></html>`;
-    return html;
   }
 };
 
-// ---------- GITHUB IMAGE UPLOAD HELPERS ----------
+// ======================== FOOTER ========================
+window.updateUserFooter = function () {
+  const user = window.SessionManager.getCurrentUser();
+  const el = document.getElementById('userFooterStatus');
+  if (!el) return;
+  if (user) {
+    el.innerHTML = `Logged in as: <strong>${window.escapeHtml(user.username)}</strong> | <a href="admin.html" style="color:#2fc7ff;">Dashboard</a> | <a href="#" id="logoutFromFooter" style="color:#ff6b6b;">Logout</a>`;
+    const logoutBtn = document.getElementById('logoutFromFooter');
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        window.Logger.log('logout', 'User logged out');
+        window.SessionManager.logout();
+        window.location.reload();
+      });
+    }
+  } else {
+    el.innerHTML = `Visitor – viewing portfolio of <strong>${window.APP_CONFIG.publicProfileEmail}</strong> | <a href="login.html" style="color:#2fc7ff;">Login</a>`;
+  }
+};
+
+// ======================== GITHUB IMAGE HELPERS ========================
 window.uploadImageToGitHub = async function(file, user, folder = 'images') {
   const compressedDataUrl = await window.compressImage(file, 1600, 1600, 0.85);
   const blob = await (await fetch(compressedDataUrl)).blob();
@@ -283,7 +216,7 @@ window.compressImage = function(file, maxW = 1600, maxH = 1600, quality = 0.85) 
   });
 };
 
-// ---------- ACCOUNT MANAGER ----------
+// ======================== ACCOUNT MANAGER ========================
 window.AccountManager = {
   async _ensureEmailJS() {
     if (typeof emailjs === 'undefined') {
@@ -448,7 +381,7 @@ window.AccountManager = {
   }
 };
 
-// ---------- PORTFOLIO DATA (with backup, restore, user views) ----------
+// ======================== PORTFOLIO DATA (conflict‑free, updatedAt) ========================
 window.portfolioData = (() => {
   const PROJECTS_KEY = 'portfolioProjects';
   const CERTS_KEY = 'portfolioCertificates';
@@ -600,24 +533,7 @@ window.portfolioData = (() => {
     return JSON.parse(localStorage.getItem(CERTS_KEY) || '[]');
   }
 
-  async function updateFileWithRetry(owner, repo, path, data, commitMsg, branch, token, maxRetries = 3) {
-    let lastError = null;
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, token).catch(() => null);
-        const sha = existing ? existing.sha : null;
-        await GitHubAPI.updateFile(owner, repo, path, data, commitMsg, branch, token, sha);
-        return;
-      } catch (err) {
-        lastError = err;
-        if (attempt < maxRetries) {
-          await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 500));
-        }
-      }
-    }
-    throw lastError;
-  }
-
+  // Conflict-resolving save for projects (merge by updatedAt)
   async function saveProjects(data, forceEmpty = false) {
     const prev = localStorage.getItem(PROJECTS_KEY);
     if (prev && !forceEmpty) {
@@ -626,6 +542,10 @@ window.portfolioData = (() => {
         throw new Error('Cannot delete all projects this way. Use "Delete All" button.');
       }
     }
+    // Add updatedAt to each project if missing
+    for (const id in data) {
+      if (!data[id].updatedAt) data[id].updatedAt = Date.now();
+    }
     localStorage.setItem(PROJECTS_KEY, JSON.stringify(data));
     const user = window.SessionManager.getCurrentUser();
     if (!user || !user.pat) return;
@@ -633,13 +553,38 @@ window.portfolioData = (() => {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(user.username);
     const path = `${dataPath}/users/${encUser}/projects.json`;
-    try {
-      await updateFileWithRetry(owner, repo, path, data, 'Update projects', branch, user.pat);
-      await window.Logger.log('save_projects', `Saved ${Object.keys(data).length} projects`);
-    } catch (err) {
-      if (prev) localStorage.setItem(PROJECTS_KEY, prev);
-      else localStorage.removeItem(PROJECTS_KEY);
-      throw new Error('GitHub write failed: ' + err.message);
+    
+    let retries = 3;
+    while (retries > 0) {
+      try {
+        let remoteData = {};
+        let sha = null;
+        try {
+          const remoteFile = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
+          if (remoteFile && remoteFile.content) {
+            remoteData = JSON.parse(remoteFile.content);
+            sha = remoteFile.sha;
+          }
+        } catch(e) {}
+        // Merge: newer updatedAt wins
+        const merged = { ...remoteData };
+        for (const [id, proj] of Object.entries(data)) {
+          if (!merged[id] || proj.updatedAt > (merged[id].updatedAt || 0)) {
+            merged[id] = proj;
+          }
+        }
+        await GitHubAPI.updateFile(owner, repo, path, merged, 'Update projects', branch, user.pat, sha);
+        await window.Logger.log('save_projects', `Saved ${Object.keys(merged).length} projects`);
+        return;
+      } catch (err) {
+        retries--;
+        if (retries === 0) {
+          if (prev) localStorage.setItem(PROJECTS_KEY, prev);
+          else localStorage.removeItem(PROJECTS_KEY);
+          throw new Error('GitHub write failed after retries: ' + err.message);
+        }
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
     }
   }
 
@@ -651,6 +596,11 @@ window.portfolioData = (() => {
         throw new Error('Cannot delete all certificates this way. Use "Delete All" button.');
       }
     }
+    // Add updatedAt to each cert if missing
+    data = data.map(cert => {
+      if (!cert.updatedAt) cert.updatedAt = Date.now();
+      return cert;
+    });
     localStorage.setItem(CERTS_KEY, JSON.stringify(data));
     const user = window.SessionManager.getCurrentUser();
     if (!user || !user.pat) return;
@@ -658,13 +608,44 @@ window.portfolioData = (() => {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(user.username);
     const path = `${dataPath}/users/${encUser}/certificates.json`;
-    try {
-      await updateFileWithRetry(owner, repo, path, data, 'Update certificates', branch, user.pat);
-      await window.Logger.log('save_certificates', `Saved ${data.length} certificates`);
-    } catch (err) {
-      if (prev) localStorage.setItem(CERTS_KEY, prev);
-      else localStorage.removeItem(CERTS_KEY);
-      throw new Error('GitHub write failed: ' + err.message);
+
+    let retries = 3;
+    while (retries > 0) {
+      try {
+        let remoteData = [];
+        let sha = null;
+        try {
+          const remoteFile = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
+          if (remoteFile && remoteFile.content) {
+            remoteData = JSON.parse(remoteFile.content);
+            sha = remoteFile.sha;
+          }
+        } catch(e) {}
+        const remoteMap = new Map();
+        for (const cert of remoteData) remoteMap.set(cert.id, cert);
+        const localMap = new Map();
+        for (const cert of data) localMap.set(cert.id, cert);
+        const mergedMap = new Map();
+        for (const cert of remoteData) mergedMap.set(cert.id, cert);
+        for (const cert of data) {
+          const existing = mergedMap.get(cert.id);
+          if (!existing || cert.updatedAt > existing.updatedAt) {
+            mergedMap.set(cert.id, cert);
+          }
+        }
+        const merged = Array.from(mergedMap.values());
+        await GitHubAPI.updateFile(owner, repo, path, merged, 'Update certificates', branch, user.pat, sha);
+        await window.Logger.log('save_certificates', `Saved ${merged.length} certificates`);
+        return;
+      } catch (err) {
+        retries--;
+        if (retries === 0) {
+          if (prev) localStorage.setItem(CERTS_KEY, prev);
+          else localStorage.removeItem(CERTS_KEY);
+          throw new Error('GitHub write failed after retries: ' + err.message);
+        }
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
     }
   }
 
@@ -683,66 +664,13 @@ window.portfolioData = (() => {
     });
   }
 
-  async function downloadLatestBackup() {
-    const user = window.SessionManager.getCurrentUser();
-    if (!user || !window.APP_CONFIG.adminUsers.includes(user.username)) {
-      throw new Error('Only admin can download backups.');
-    }
-    const { owner, repo, branch } = window.REPO_CONFIG;
-    const backupsPath = 'backups';
-    const url = `https://api.github.com/repos/${owner}/${repo}/contents/${backupsPath}?ref=${branch}`;
-    const resp = await fetch(url, {
-      headers: { 'Authorization': `token ${user.pat}`, 'Accept': 'application/vnd.github.v3+json' }
-    });
-    if (!resp.ok) throw new Error('Could not list backups folder');
-    const files = await resp.json();
-    const tarFiles = files.filter(f => f.name.endsWith('.tar.gz') && f.type === 'file');
-    if (tarFiles.length === 0) throw new Error('No backup files found');
-    tarFiles.sort((a, b) => b.name.localeCompare(a.name));
-    const latest = tarFiles[0];
-    const a = document.createElement('a');
-    a.href = latest.download_url;
-    a.download = latest.name;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    await window.Logger.log('download_latest_backup', `Downloaded latest backup: ${latest.name}`);
-  }
-
-  async function restoreBackup(file) {
-    const user = window.SessionManager.getCurrentUser();
-    if (!user || !window.APP_CONFIG.adminUsers.includes(user.username)) {
-      throw new Error('Only admin can restore backups.');
-    }
-    const fileName = file.name;
-    const isTarGz = fileName.endsWith('.tar.gz') || fileName.endsWith('.tgz');
-    if (isTarGz) {
-      throw new Error('Cannot restore .tar.gz backups in the app. Please extract and upload projects.json and certificates.json.');
-    }
-    const zip = await JSZip.loadAsync(file);
-    const projectsFile = zip.file("projects.json");
-    const certsFile = zip.file("certificates.json");
-    if (!projectsFile || !certsFile) throw new Error('Invalid backup: missing projects.json or certificates.json');
-    const projectsText = await projectsFile.async("string");
-    const certsText = await certsFile.async("string");
-    const projects = JSON.parse(projectsText);
-    const certs = JSON.parse(certsText);
-    if (typeof projects !== 'object') throw new Error('Invalid projects data');
-    if (!Array.isArray(certs)) throw new Error('Invalid certificates data');
-    await saveProjects(projects, true);
-    await saveCertificates(certs, true);
-    await window.Logger.log('restore_backup', `Restored from backup ${fileName}`);
-    return { projects, certs };
-  }
-
   return {
     loadProjects, saveProjects, loadCertificates, saveCertificates, exportData,
-    downloadLatestBackup, restoreBackup,
     loadProjectsForView, loadCertificatesForView
   };
 })();
 
-// ---------- LAZY LOAD & PROTECT ----------
+// ======================== LAZY LOAD & PROTECT IMAGES ========================
 window.lazyLoadImages = function() {
   if ('IntersectionObserver' in window) {
     const imgObserver = new IntersectionObserver((entries, observer) => {
@@ -775,7 +703,7 @@ window.protectImages = function () {
   });
 };
 
-// ---------- PDF REPORT GENERATION ----------
+// ======================== PDF REPORT GENERATION (for projects) ========================
 window.generateProjectReport = async function(projectId) {
   const data = await window.portfolioData.loadProjectsForView();
   const proj = data[projectId];
