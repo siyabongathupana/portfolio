@@ -18,7 +18,6 @@ const BRANCH = 'main';
 async function updateGitHubFile(filePath, content, message) {
   const url = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${filePath}`;
   
-  // Get current file SHA if it exists
   let sha = null;
   try {
     const getResp = await fetch(url, {
@@ -31,11 +30,8 @@ async function updateGitHubFile(filePath, content, message) {
       const data = await getResp.json();
       sha = data.sha;
     }
-  } catch (e) {
-    console.log(`File ${filePath} does not exist yet, will create new file`);
-  }
+  } catch (e) {}
   
-  // Prepare the update
   const body = {
     message: message,
     content: Buffer.from(JSON.stringify(content, null, 2)).toString('base64'),
@@ -85,7 +81,7 @@ async function loadVerifiedUsers() {
   return data || { verified: [] };
 }
 
-// Get all user emails from account.json files in the users directory
+// Get all user emails from account.json files
 async function getAllUserEmails() {
   const url = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${USERS_DIR}?ref=${BRANCH}`;
   const emails = [];
@@ -103,7 +99,6 @@ async function getAllUserEmails() {
       for (const item of items) {
         if (item.type === 'dir') {
           const email = decodeURIComponent(item.name);
-          // Verify there's an account.json file
           const accountUrl = `https://raw.githubusercontent.com/${OWNER}/${REPO}/${BRANCH}/${USERS_DIR}/${item.name}/account.json`;
           const accountResp = await fetch(accountUrl);
           if (accountResp.ok) {
@@ -198,56 +193,13 @@ async function sendVerificationEmail(email, token, siteUrl) {
   }
 }
 
-// Mark a user as verified (called from verify.html)
-async function markUserVerified(email, token) {
-  const pendingData = await loadPendingVerification();
-  const verifiedData = await loadVerifiedUsers();
-  
-  // Check if already verified
-  if (verifiedData.verified.includes(email)) {
-    return { success: true, message: 'Already verified' };
-  }
-  
-  // Find pending entry
-  const pendingEntry = pendingData.pending.find(p => p.email === email && p.token === token);
-  
-  if (!pendingEntry) {
-    return { success: false, message: 'Invalid or expired token' };
-  }
-  
-  // Check expiration
-  if (pendingEntry.expiresAt < Date.now()) {
-    return { success: false, message: 'Token expired' };
-  }
-  
-  // Remove from pending, add to verified
-  const newPending = pendingData.pending.filter(p => p.email !== email);
-  const newVerified = { verified: [...verifiedData.verified, email] };
-  
-  // Update GitHub files
-  await updateGitHubFile(PENDING_FILE, newPending, `Remove ${email} from pending`);
-  await updateGitHubFile(VERIFIED_FILE, newVerified, `Verify ${email}`);
-  
-  // Also update the user's verified.json file
-  const encUser = encodeURIComponent(email);
-  const userVerifiedPath = `${USERS_DIR}/${encUser}/verified.json`;
-  const userVerifiedContent = { verified: true, verifiedAt: Date.now() };
-  
-  await updateGitHubFile(userVerifiedPath, userVerifiedContent, `Mark ${email} as verified`);
-  
-  return { success: true, message: 'Email verified successfully' };
-}
-
-// Main function to process new users and send verification emails
+// Main function
 async function main() {
   console.log('Email verification process started...');
   console.log(`Repository: ${OWNER}/${REPO}`);
-  console.log(`Branch: ${BRANCH}`);
   
-  // Check SMTP configuration
   if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
     console.error('❌ SMTP configuration missing. Cannot send verification emails.');
-    console.error('Please set SMTP_HOST, SMTP_USER, SMTP_PASS secrets.');
     process.exit(0);
   }
   
@@ -260,7 +212,6 @@ async function main() {
   console.log(`Verified users: ${verifiedData.verified.length}`);
   console.log(`Pending verification: ${pendingData.pending.length}`);
   
-  // Find new users who haven't been verified or pending
   const existingPendingEmails = pendingData.pending.map(p => p.email);
   const newUsers = allUsers.filter(email => 
     !verifiedData.verified.includes(email) && 
@@ -274,14 +225,12 @@ async function main() {
   
   console.log(`Found ${newUsers.length} new users to verify:`, newUsers);
   
-  // Track changes
   let updatedPending = [...pendingData.pending];
   let emailsSent = 0;
   
-  // Send verification emails to new users
   for (const email of newUsers) {
     const token = generateToken(email);
-    const expiresAt = Date.now() + (24 * 60 * 60 * 1000); // 24 hours
+    const expiresAt = Date.now() + (24 * 60 * 60 * 1000);
     
     updatedPending.push({
       email: email,
@@ -295,16 +244,12 @@ async function main() {
       emailsSent++;
       console.log(`📧 Verification sent to ${email}`);
     } else {
-      // Remove from pending if email failed
       updatedPending = updatedPending.filter(p => p.email !== email);
-      console.error(`❌ Failed to send to ${email}, removed from pending`);
     }
     
-    // Delay to avoid rate limiting
     await new Promise(resolve => setTimeout(resolve, 1000));
   }
   
-  // Clean up expired tokens
   const now = Date.now();
   const beforeCleanup = updatedPending.length;
   updatedPending = updatedPending.filter(p => p.expiresAt > now);
@@ -313,7 +258,6 @@ async function main() {
     console.log(`Cleaned up ${expiredCount} expired tokens`);
   }
   
-  // Update pending_verification.json on GitHub if there are changes
   if (JSON.stringify(pendingData.pending) !== JSON.stringify(updatedPending)) {
     const newPendingData = { pending: updatedPending };
     await updateGitHubFile(PENDING_FILE, newPendingData, 'Update pending verification list');
@@ -321,16 +265,9 @@ async function main() {
   }
   
   console.log(`✅ Process completed. Sent ${emailsSent} verification emails.`);
-  console.log(`Currently pending: ${updatedPending.length} users`);
 }
 
-// Export functions for use in verify.html (if needed)
-module.exports = { markUserVerified };
-
-// Run main function if called directly
-if (require.main === module) {
-  main().catch(error => {
-    console.error('Fatal error:', error);
-    process.exit(1);
-  });
-}
+main().catch(error => {
+  console.error('Fatal error:', error);
+  process.exit(1);
+});
