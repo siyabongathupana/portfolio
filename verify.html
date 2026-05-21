@@ -47,12 +47,24 @@
 </footer>
 
 <script>
-  // Helper function to update a JSON file on GitHub
-  async function updateGitHubFile(path, content, message, token) {
+  // IMPORTANT: This token is for verification only - it's from the admin account
+  // You need to add this token as a secret in your repository and inject it via GitHub Actions
+  // For now, we'll use a prompt to get it (only for testing)
+  // In production, this should be handled by a server-side endpoint
+  
+  async function getServiceToken() {
+    // Try to fetch from a hidden endpoint (you'll need to create this)
+    // For now, we'll ask the user (not ideal but works for testing)
+    return new Promise((resolve) => {
+      const token = prompt('Verification requires admin token. Please enter the service token provided by the administrator:');
+      resolve(token);
+    });
+  }
+
+  async function updateGitHubFileWithToken(path, content, message, token) {
     const { owner, repo, branch } = window.REPO_CONFIG;
     const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
     
-    // Get current file SHA if it exists
     let sha = null;
     try {
       const getResp = await fetch(url, {
@@ -67,7 +79,6 @@
       }
     } catch (e) {}
     
-    // Prepare update
     const body = {
       message: message,
       content: btoa(unescape(encodeURIComponent(JSON.stringify(content, null, 2)))),
@@ -92,7 +103,6 @@
     return resp.json();
   }
 
-  // Helper function to read a JSON file from GitHub
   async function readGitHubFile(path) {
     const { owner, repo, branch } = window.REPO_CONFIG;
     const url = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${path}`;
@@ -126,7 +136,6 @@
     }
     
     try {
-      // Read pending and verified data
       const pendingData = await readGitHubFile('data/pending_verification.json');
       const verifiedData = await readGitHubFile('data/verified_users.json');
       
@@ -134,7 +143,6 @@
         throw new Error('Unable to load verification data');
       }
       
-      // Check if already verified
       if (verifiedData && verifiedData.verified && verifiedData.verified.includes(email)) {
         spinner.style.display = 'none';
         container.innerHTML = `
@@ -146,7 +154,6 @@
         return;
       }
       
-      // Find pending entry
       const pendingEntry = pendingData.pending.find(p => p.email === email && p.token === token);
       
       if (!pendingEntry) {
@@ -161,7 +168,6 @@
         return;
       }
       
-      // Check if token expired
       if (pendingEntry.expiresAt < Date.now()) {
         spinner.style.display = 'none';
         container.innerHTML = `
@@ -174,25 +180,25 @@
         return;
       }
       
-      // Update verified_users.json - add this email
+      // Get service token from user (or from a secure endpoint)
+      // For production, you should create a simple Cloudflare Worker or GitHub API endpoint
+      const serviceToken = await getServiceToken();
+      
+      if (!serviceToken) {
+        throw new Error('No service token provided. Please contact the administrator.');
+      }
+      
+      // Update verified_users.json
       const currentVerified = verifiedData?.verified || [];
       const newVerified = { verified: [...currentVerified, email] };
       
-      // Update pending_verification.json - remove this email
+      // Update pending_verification.json
       const newPending = { pending: pendingData.pending.filter(p => p.email !== email) };
       
-      // Use the user's token from the pending entry
-      const userToken = pendingEntry.userToken || '';
+      await updateGitHubFileWithToken('data/verified_users.json', newVerified, `Verify email: ${email}`, serviceToken);
+      await updateGitHubFileWithToken('data/pending_verification.json', newPending, `Remove pending verification for ${email}`, serviceToken);
       
-      if (!userToken) {
-        throw new Error('No valid token found for verification. Please contact the administrator.');
-      }
-      
-      // Update both files
-      await updateGitHubFile('data/verified_users.json', newVerified, `Verify email: ${email}`, userToken);
-      await updateGitHubFile('data/pending_verification.json', newPending, `Remove pending verification for ${email}`, userToken);
-      
-      // Also create/update user's individual verified.json file
+      // Also create user's individual verified.json file
       const encUser = encodeURIComponent(email);
       const userVerifiedPath = `data/users/${encUser}/verified.json`;
       const userVerifiedContent = { 
@@ -201,7 +207,7 @@
         email: email
       };
       
-      await updateGitHubFile(userVerifiedPath, userVerifiedContent, `Mark user ${email} as verified`, userToken);
+      await updateGitHubFileWithToken(userVerifiedPath, userVerifiedContent, `Mark user ${email} as verified`, serviceToken);
       
       spinner.style.display = 'none';
       container.innerHTML = `
@@ -224,7 +230,6 @@
     }
   }
   
-  // Run verification when page loads
   verifyEmail();
 </script>
 
