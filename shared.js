@@ -1,4 +1,4 @@
-// shared.js – Complete with conflict resolution, plain‑text logs, fixed SHA handling
+// shared.js – Complete with plain‑text logs (no JSON escaping), conflict resolution, fixed SHA handling
 
 // ======================== LOADING OVERLAY ========================
 window.showLoading = function (msg = 'Processing...') {
@@ -59,8 +59,33 @@ window.SessionManager = (() => {
   };
 })();
 
-// ======================== PLAIN‑TEXT LOGGING ========================
+// ======================== PLAIN‑TEXT LOGGING (fixed – no JSON escaping) ========================
 window.Logger = {
+  // Direct GitHub write for plain text (bypasses API helper that would JSON.stringify)
+  async _writeTextFile(path, content, commitMsg, branch, token, sha = null) {
+    const { owner, repo } = window.REPO_CONFIG;
+    const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
+    const body = {
+      message: commitMsg,
+      content: btoa(unescape(encodeURIComponent(content))),
+      branch: branch
+    };
+    if (sha) body.sha = sha;
+    const resp = await fetch(url, {
+      method: 'PUT',
+      headers: {
+        Authorization: `token ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+    if (!resp.ok) {
+      const err = await resp.json();
+      throw new Error(`Failed to write log: ${err.message}`);
+    }
+    return resp.json();
+  },
+
   async log(action, details, level = 'INFO') {
     const user = window.SessionManager.getCurrentUser();
     if (!user) return;
@@ -70,21 +95,26 @@ window.Logger = {
     
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(user.username);
-    const logPath = `${dataPath}/users/${encUser}/logs/activity.log`;
+    const logPath = `${dataPath}/users/${encUser}/logs/activity.txt`;   // .txt extension
     
     let existingContent = '';
     let sha = null;
     try {
-      const file = await GitHubAPI.getFileContent(owner, repo, logPath, branch, user.pat);
-      if (file && file.sha) {
-        existingContent = file.content || '';
-        sha = file.sha;
+      // Use raw fetch to get current file content (plain text)
+      const url = `https://api.github.com/repos/${owner}/${repo}/contents/${logPath}?ref=${branch}`;
+      const resp = await fetch(url, {
+        headers: { Authorization: `token ${user.pat}` }
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        sha = data.sha;
+        existingContent = atob(data.content.replace(/\n/g, ''));
       }
     } catch (e) { /* file doesn't exist yet */ }
     
     const newContent = logEntry + existingContent;
     try {
-      await GitHubAPI.updateFile(owner, repo, logPath, newContent, `Log: ${action}`, branch, user.pat, sha);
+      await this._writeTextFile(logPath, newContent, `Log: ${action}`, branch, user.pat, sha);
     } catch (err) {
       console.error('Failed to write log:', err);
     }
@@ -93,11 +123,15 @@ window.Logger = {
   async getLogsForUser(targetUsername, adminToken) {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(targetUsername);
-    const logPath = `${dataPath}/users/${encUser}/logs/activity.log`;
+    const logPath = `${dataPath}/users/${encUser}/logs/activity.txt`;
     try {
-      const file = await GitHubAPI.getFileContent(owner, repo, logPath, branch, adminToken);
-      if (file && file.content) {
-        return file.content;
+      const url = `https://api.github.com/repos/${owner}/${repo}/contents/${logPath}?ref=${branch}`;
+      const resp = await fetch(url, {
+        headers: { Authorization: `token ${adminToken}` }
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        return atob(data.content.replace(/\n/g, ''));
       }
       return 'No logs found for this user.';
     } catch (e) {
@@ -381,7 +415,7 @@ window.AccountManager = {
   }
 };
 
-// ======================== PORTFOLIO DATA (conflict‑free, fixed SHA handling) ========================
+// ======================== PORTFOLIO DATA (conflict‑free, fixed SHA) ========================
 window.portfolioData = (() => {
   const PROJECTS_KEY = 'portfolioProjects';
   const CERTS_KEY = 'portfolioCertificates';
@@ -533,7 +567,6 @@ window.portfolioData = (() => {
     return JSON.parse(localStorage.getItem(CERTS_KEY) || '[]');
   }
 
-  // Fixed saveProjects – always retrieve SHA correctly
   async function saveProjects(data, forceEmpty = false) {
     const prev = localStorage.getItem(PROJECTS_KEY);
     if (prev && !forceEmpty) {
@@ -542,7 +575,6 @@ window.portfolioData = (() => {
         throw new Error('Cannot delete all projects this way. Use "Delete All" button.');
       }
     }
-    // Add updatedAt to each project if missing
     for (const id in data) {
       if (!data[id].updatedAt) data[id].updatedAt = Date.now();
     }
@@ -561,17 +593,11 @@ window.portfolioData = (() => {
         let sha = null;
         try {
           const remoteFile = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
-          // IMPORTANT: check for sha existence, not just content
           if (remoteFile && remoteFile.sha) {
             sha = remoteFile.sha;
-            if (remoteFile.content) {
-              remoteData = JSON.parse(remoteFile.content);
-            }
+            if (remoteFile.content) remoteData = JSON.parse(remoteFile.content);
           }
-        } catch(e) {
-          // File might not exist – that's fine, sha stays null
-        }
-        // Merge: newer updatedAt wins
+        } catch(e) {}
         const merged = { ...remoteData };
         for (const [id, proj] of Object.entries(data)) {
           if (!merged[id] || proj.updatedAt > (merged[id].updatedAt || 0)) {
@@ -593,7 +619,6 @@ window.portfolioData = (() => {
     }
   }
 
-  // Fixed saveCertificates – always retrieve SHA correctly
   async function saveCertificates(data, forceEmpty = false) {
     const prev = localStorage.getItem(CERTS_KEY);
     if (prev && !forceEmpty) {
@@ -602,7 +627,6 @@ window.portfolioData = (() => {
         throw new Error('Cannot delete all certificates this way. Use "Delete All" button.');
       }
     }
-    // Add updatedAt to each cert if missing
     data = data.map(cert => {
       if (!cert.updatedAt) cert.updatedAt = Date.now();
       return cert;
@@ -624,12 +648,9 @@ window.portfolioData = (() => {
           const remoteFile = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
           if (remoteFile && remoteFile.sha) {
             sha = remoteFile.sha;
-            if (remoteFile.content) {
-              remoteData = JSON.parse(remoteFile.content);
-            }
+            if (remoteFile.content) remoteData = JSON.parse(remoteFile.content);
           }
         } catch(e) {}
-        // Merge based on id and updatedAt
         const remoteMap = new Map();
         for (const cert of remoteData) remoteMap.set(cert.id, cert);
         const mergedMap = new Map();
@@ -790,7 +811,7 @@ window.generateProjectReport = async function(projectId) {
           <tr><td><strong>Location:</strong></td><td>${proj.siteLocation || 'N/A'}</td></tr>
           <tr><td><strong>Controllers:</strong></td><td>${controllerDisplay}</td></tr>
           <tr><td><strong>Cabinets:</strong></td><td>${proj.cabinetCount}</td></tr>
-          ${proj.deltaVVersion ? `<tr><td><strong>DeltaV Version:</strong></td><td>${proj.deltaVVersion}</td>` : ''}
+          ${proj.deltaVVersion ? `<tr><td><strong>DeltaV Version:</strong></td><td>${proj.deltaVVersion}</td></tr>` : ''}
           <tr><td><strong>Start Date:</strong></td><td>${proj.dates?.start || 'N/A'}</td></tr>
           <tr><td><strong>Finish Date:</strong></td><td>${proj.dates?.finish || 'N/A'}</td></tr>
           <tr><td><strong>IFAT:</strong></td><td>${ifatText}</td></tr>
