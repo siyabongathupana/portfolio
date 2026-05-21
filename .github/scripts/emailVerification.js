@@ -126,6 +126,7 @@ function generateToken(email) {
 async function sendVerificationEmail(email, token, siteUrl) {
   const verificationLink = `${siteUrl}/verify.html?token=${token}&email=${encodeURIComponent(email)}`;
   
+  // Create transporter with proper sender name
   const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST,
     port: parseInt(process.env.SMTP_PORT) || 587,
@@ -137,9 +138,9 @@ async function sendVerificationEmail(email, token, siteUrl) {
   });
 
   const mailOptions = {
-    from: process.env.FROM_EMAIL,
+    from: `"Your Portfolio" <${process.env.FROM_EMAIL}>`,
     to: email,
-    subject: 'Verify Your Email - Portfolio Account',
+    subject: 'Verify Your Email - Your Portfolio',
     html: `
       <!DOCTYPE html>
       <html>
@@ -148,6 +149,7 @@ async function sendVerificationEmail(email, token, siteUrl) {
           body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
           .container { max-width: 600px; margin: 0 auto; padding: 20px; }
           .header { background: #0b2b3b; color: white; padding: 20px; text-align: center; }
+          .header h2 { margin: 0; }
           .content { padding: 20px; background: #f9f9f9; }
           .button { display: inline-block; background: #2fc7ff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
           .footer { text-align: center; padding: 20px; font-size: 12px; color: #666; }
@@ -157,25 +159,28 @@ async function sendVerificationEmail(email, token, siteUrl) {
       <body>
         <div class="container">
           <div class="header">
-            <h2>Verify Your Email Address</h2>
+            <h2>Your Portfolio</h2>
+            <p style="margin:0; opacity:0.9;">Engineering Portfolio System</p>
           </div>
           <div class="content">
-            <p>Thank you for registering for Your Portfolio!</p>
+            <p>Dear User,</p>
+            <p>Thank you for registering with <strong>Your Portfolio</strong>!</p>
             <p>Please verify your email address by clicking the button below:</p>
             <p style="text-align: center;">
               <a href="${verificationLink}" class="button">Verify Email Address</a>
             </p>
             <p>Or copy and paste this link into your browser:</p>
-            <p><code>${verificationLink}</code></p>
-            <p>This link will expire in 24 hours.</p>
+            <p><code style="word-break: break-all;">${verificationLink}</code></p>
+            <p>This link will expire in <strong>24 hours</strong>.</p>
             <div class="warning">
               <strong>⚠️ Important:</strong> If you did not create this account, please ignore this email.
               Your account will remain locked until verified.
             </div>
           </div>
           <div class="footer">
-            <p>This is an automated message. Please do not reply to this email.</p>
-            <p>&copy; ${new Date().getFullYear()} Your Portfolio System</p>
+            <p>This is an automated message from Your Portfolio System.</p>
+            <p>Please do not reply to this email.</p>
+            <p>&copy; ${new Date().getFullYear()} Your Portfolio. All rights reserved.</p>
           </div>
         </div>
       </body>
@@ -184,8 +189,9 @@ async function sendVerificationEmail(email, token, siteUrl) {
   };
 
   try {
-    await transporter.sendMail(mailOptions);
-    console.log(`✅ Verification email sent to ${email}`);
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`✅ Verification email sent to ${email} from "Your Portfolio" <${process.env.FROM_EMAIL}>`);
+    console.log(`   Message ID: ${info.messageId}`);
     return true;
   } catch (error) {
     console.error(`❌ Failed to send verification to ${email}:`, error.message);
@@ -197,9 +203,16 @@ async function sendVerificationEmail(email, token, siteUrl) {
 async function main() {
   console.log('Email verification process started...');
   console.log(`Repository: ${OWNER}/${REPO}`);
+  console.log(`From email: "Your Portfolio" <${process.env.FROM_EMAIL || 'not set'}>`);
   
   if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
     console.error('❌ SMTP configuration missing. Cannot send verification emails.');
+    console.error('Please set SMTP_HOST, SMTP_USER, SMTP_PASS secrets.');
+    process.exit(0);
+  }
+  
+  if (!process.env.FROM_EMAIL) {
+    console.error('❌ FROM_EMAIL not set. Please add FROM_EMAIL secret.');
     process.exit(0);
   }
   
@@ -245,11 +258,14 @@ async function main() {
       console.log(`📧 Verification sent to ${email}`);
     } else {
       updatedPending = updatedPending.filter(p => p.email !== email);
+      console.error(`❌ Failed to send to ${email}, removed from pending`);
     }
     
+    // Delay to avoid rate limiting
     await new Promise(resolve => setTimeout(resolve, 1000));
   }
   
+  // Clean up expired tokens
   const now = Date.now();
   const beforeCleanup = updatedPending.length;
   updatedPending = updatedPending.filter(p => p.expiresAt > now);
@@ -265,6 +281,7 @@ async function main() {
   }
   
   console.log(`✅ Process completed. Sent ${emailsSent} verification emails.`);
+  console.log(`Currently pending: ${updatedPending.length} users`);
 }
 
 main().catch(error => {
