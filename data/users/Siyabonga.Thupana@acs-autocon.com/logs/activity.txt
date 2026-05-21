@@ -1,3 +1,0 @@
-[2026-05-21 22:03:31] [INFO] [logout] User logged out
-[2026-05-21 21:32:33] [INFO] [login] User logged in as Siyabonga.Thupana@acs-autocon.com
-[2026-05-21 21:31:49] [INFO] [login] User logged in as Siyabonga.Thupana@acs-autocon.com
