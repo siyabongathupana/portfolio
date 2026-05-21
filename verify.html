@@ -181,12 +181,11 @@
       // Update pending_verification.json - remove this email
       const newPending = { pending: pendingData.pending.filter(p => p.email !== email) };
       
-      // We need a token with write access. Use the pending entry's token (from the user who registered)
-      // Note: This token needs write access to the repo
-      const userToken = pendingEntry.token || '';
+      // Use the user's token from the pending entry
+      const userToken = pendingEntry.userToken || '';
       
       if (!userToken) {
-        throw new Error('No valid token found for verification');
+        throw new Error('No valid token found for verification. Please contact the administrator.');
       }
       
       // Update both files
