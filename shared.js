@@ -1,4 +1,4 @@
-// shared.js – Full version with working delete, conflict resolution, plain‑text logs
+// shared.js – Full version with working delete, conflict resolution, plain‑text logs, and email verification
 
 window.showLoading = function (msg = 'Processing...') {
   let loader = document.getElementById('globalLoader');
@@ -242,45 +242,8 @@ window.compressImage = function(file, maxW = 1600, maxH = 1600, quality = 0.85) 
   });
 };
 
+// Account Manager with email verification support
 window.AccountManager = {
-  async _ensureEmailJS() {
-    if (typeof emailjs === 'undefined') {
-      await new Promise((resolve, reject) => {
-        const script = document.createElement('script');
-        script.src = 'https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js';
-        script.onload = resolve;
-        script.onerror = reject;
-        document.head.appendChild(script);
-      });
-      emailjs.init(window.APP_CONFIG.emailjs.publicKey);
-    }
-  },
-  async _sendEmail(templateID, params) {
-    await this._ensureEmailJS();
-    return emailjs.send(window.APP_CONFIG.emailjs.serviceID, templateID, params);
-  },
-  async _notifyAdminNewUser(userEmail) {
-    const cfg = window.APP_CONFIG.emailjs;
-    if (!cfg || !cfg.publicKey || !cfg.adminTemplateID) return;
-    try {
-      await this._sendEmail(cfg.adminTemplateID, {
-        to_email: cfg.adminEmail,
-        subject: `New user: ${userEmail}`,
-        message: `New account created: ${userEmail}`
-      });
-    } catch (e) { console.warn('Admin email failed', e); }
-  },
-  async _notifyUserConfirmation(userEmail) {
-    const cfg = window.APP_CONFIG.emailjs;
-    if (!cfg || !cfg.publicKey || !cfg.userTemplateID) return;
-    try {
-      await this._sendEmail(cfg.userTemplateID, {
-        to_email: userEmail,
-        subject: 'Welcome to Your Portfolio',
-        message: `Your account (${userEmail}) has been created. You can now log in and manage your portfolio.`
-      });
-    } catch (e) { console.warn('User email failed', e); }
-  },
   async fetchAccount(username) {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(username);
@@ -291,6 +254,25 @@ window.AccountManager = {
       return await resp.json();
     } catch { return null; }
   },
+  
+  // Check if email is verified
+  async isEmailVerified(email) {
+    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+    const encUser = encodeURIComponent(email);
+    const verifiedPath = `${dataPath}/users/${encUser}/verified.json`;
+    const url = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${verifiedPath}`;
+    try {
+      const resp = await fetch(url);
+      if (resp.ok) {
+        const data = await resp.json();
+        return data.verified === true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  },
+  
   async register(username, passphrase, pat) {
     const payload = JSON.stringify({ test: 'VALID', token: pat });
     const encrypted = await window.CryptoUtil.encrypt(payload, passphrase);
@@ -299,12 +281,19 @@ window.AccountManager = {
     const path = `${dataPath}/users/${encUser}/account.json`;
     const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, pat).catch(() => null);
     if (existing && existing.sha) throw new Error('An account with this email already exists on GitHub.');
+    
+    // Create account.json
     await GitHubAPI.updateFile(owner, repo, path, encrypted, `Register ${username}`, branch, pat, existing?.sha);
-    this._notifyAdminNewUser(username);
-    this._notifyUserConfirmation(username);
-    await window.Logger.log('register', `New user registered: ${username}`, 'INFO');
+    
+    // Create verification status file (unverified)
+    const verificationStatus = { verified: false, createdAt: Date.now() };
+    const verificationPath = `${dataPath}/users/${encUser}/verified.json`;
+    await GitHubAPI.updateFile(owner, repo, verificationPath, verificationStatus, `Create verification status for ${username}`, branch, pat);
+    
+    await window.Logger.log('register', `New user registered: ${username} (unverified)`, 'INFO');
     return true;
   },
+  
   async login(username, passphrase) {
     const blocked = await this.getBlockedUsers();
     if (blocked.includes(username)) throw new Error('Your account has been blocked. Contact the administrator.');
@@ -315,6 +304,7 @@ window.AccountManager = {
     if (data.test !== 'VALID') throw new Error('Corrupted account');
     return data.token;
   },
+  
   async getBlockedUsers() {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const url = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${dataPath}/blocked_users.json`;
@@ -324,6 +314,7 @@ window.AccountManager = {
       return await resp.json();
     } catch { return []; }
   },
+  
   async toggleBlock(username, block, adminToken) {
     const blocked = await this.getBlockedUsers();
     if (block) {
@@ -341,6 +332,7 @@ window.AccountManager = {
     await window.Logger.log('toggle_block', `${block ? 'Blocked' : 'Unblocked'} user ${username}`, 'INFO');
     return true;
   },
+  
   async listUsers(adminToken) {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const url = `https://api.github.com/repos/${owner}/${repo}/contents/${dataPath}/users?ref=${branch}`;
@@ -351,6 +343,7 @@ window.AccountManager = {
     const items = await resp.json();
     return items.filter(i => i.type === 'dir').map(i => i.name);
   },
+  
   async deleteUser(username, adminToken) {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(username);
@@ -367,6 +360,7 @@ window.AccountManager = {
     await window.Logger.log('delete_user', `Deleted user ${username}`, 'INFO');
     return true;
   },
+  
   async getUserStats(username, adminToken) {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(username);
@@ -553,11 +547,9 @@ window.portfolioData = (() => {
     return JSON.parse(localStorage.getItem(CERTS_KEY) || '[]');
   }
 
-  // FIXED: saveProjects - allows deletion (forceEmpty bypasses the protection)
   async function saveProjects(data, forceEmpty = false) {
     const prev = localStorage.getItem(PROJECTS_KEY);
     
-    // Only check for empty data if not forceEmpty
     if (!forceEmpty && prev) {
       const previous = JSON.parse(prev);
       if (Object.keys(previous).length > 0 && Object.keys(data).length === 0) {
@@ -565,7 +557,6 @@ window.portfolioData = (() => {
       }
     }
     
-    // Ensure updatedAt exists for existing projects
     for (const id in data) {
       if (!data[id].updatedAt) data[id].updatedAt = Date.now();
     }
@@ -591,7 +582,6 @@ window.portfolioData = (() => {
           }
         } catch(e) {}
         
-        // Merge: newer updatedAt wins
         const merged = { ...remoteData };
         for (const [id, proj] of Object.entries(data)) {
           if (!merged[id] || proj.updatedAt > (merged[id].updatedAt || 0)) {
@@ -599,7 +589,6 @@ window.portfolioData = (() => {
           }
         }
         
-        // If forceEmpty is true and data is empty, we want to delete everything
         let finalData = merged;
         if (forceEmpty && Object.keys(data).length === 0) {
           finalData = {};
@@ -814,7 +803,7 @@ window.generateProjectReport = async function(projectId) {
       <div style="background:${bgColor}; padding:20px; border-radius:16px; margin:20px 0;">
         <h3>Project Overview</h3>
         <table style="width:100%">
-          <tr><td><strong>Title:</strong></td><td>${proj.title}</td></tr>
+          <tr><td><strong>Title:</strong>${proj.title}</td></tr>
           <tr><td><strong>Location:</strong></td><td>${proj.siteLocation || 'N/A'}</td></tr>
           <tr><td><strong>Controllers:</strong></td><td>${controllerDisplay}</td></tr>
           <tr><td><strong>Cabinets:</strong></td><td>${proj.cabinetCount}</td></tr>
