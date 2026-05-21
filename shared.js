@@ -242,7 +242,6 @@ window.compressImage = function(file, maxW = 1600, maxH = 1600, quality = 0.85) 
   });
 };
 
-// Account Manager with email verification support
 window.AccountManager = {
   async fetchAccount(username) {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
@@ -255,40 +254,73 @@ window.AccountManager = {
     } catch { return null; }
   },
   
-  // Check if email is verified
+  // Check if email is verified (using global verified_users.json)
   async isEmailVerified(email) {
-    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const encUser = encodeURIComponent(email);
-    const verifiedPath = `${dataPath}/users/${encUser}/verified.json`;
-    const url = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${verifiedPath}`;
+    const { owner, repo, branch } = window.REPO_CONFIG;
+    
+    // First check the global verified_users.json
+    const globalUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/data/verified_users.json`;
     try {
-      const resp = await fetch(url);
+      const resp = await fetch(globalUrl);
       if (resp.ok) {
         const data = await resp.json();
-        return data.verified === true;
+        if (data.verified && data.verified.includes(email)) {
+          console.log('Email found in global verified list');
+          return true;
+        }
       }
-      return false;
-    } catch {
-      return false;
+    } catch (err) {
+      console.log('Global check failed:', err);
     }
+    
+    // Fallback: check user's individual verified.json
+    const encUser = encodeURIComponent(email);
+    const userUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/data/users/${encUser}/verified.json`;
+    try {
+      const resp = await fetch(userUrl);
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data.verified === true) {
+          return true;
+        }
+      }
+    } catch (err) {
+      console.log('User file check failed:', err);
+    }
+    
+    return false;
   },
   
   async register(username, passphrase, pat) {
-    const payload = JSON.stringify({ test: 'VALID', token: pat });
+    const payload = JSON.stringify({ 
+      test: 'VALID', 
+      token: pat,
+      registeredAt: Date.now()
+    });
     const encrypted = await window.CryptoUtil.encrypt(payload, passphrase);
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(username);
     const path = `${dataPath}/users/${encUser}/account.json`;
-    const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, pat).catch(() => null);
-    if (existing && existing.sha) throw new Error('An account with this email already exists on GitHub.');
     
-    // Create account.json
-    await GitHubAPI.updateFile(owner, repo, path, encrypted, `Register ${username}`, branch, pat, existing?.sha);
+    // Check if account already exists using public read
+    const publicUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${path}`;
+    const checkResp = await fetch(publicUrl);
+    if (checkResp.ok) {
+      throw new Error('An account with this email already exists.');
+    }
+    
+    // Create the account file
+    await GitHubAPI.updateFile(owner, repo, path, encrypted, `Register ${username}`, branch, pat);
     
     // Create verification status file (unverified)
     const verificationStatus = { verified: false, createdAt: Date.now() };
     const verificationPath = `${dataPath}/users/${encUser}/verified.json`;
-    await GitHubAPI.updateFile(owner, repo, verificationPath, verificationStatus, `Create verification status for ${username}`, branch, pat);
+    
+    try {
+      await GitHubAPI.updateFile(owner, repo, verificationPath, verificationStatus, `Create verification status for ${username}`, branch, pat);
+    } catch (err) {
+      console.warn('Could not create verification file:', err);
+    }
     
     await window.Logger.log('register', `New user registered: ${username} (unverified)`, 'INFO');
     return true;
@@ -803,15 +835,15 @@ window.generateProjectReport = async function(projectId) {
       <div style="background:${bgColor}; padding:20px; border-radius:16px; margin:20px 0;">
         <h3>Project Overview</h3>
         <table style="width:100%">
-          <tr><td><strong>Title:</strong>${proj.title}</td></tr>
-          <tr><td><strong>Location:</strong></td><td>${proj.siteLocation || 'N/A'}</td></tr>
-          <tr><td><strong>Controllers:</strong></td><td>${controllerDisplay}</td></tr>
-          <tr><td><strong>Cabinets:</strong></td><td>${proj.cabinetCount}</td></tr>
+          <tr><td><strong>Title:</strong>${proj.title}</td>
+          <tr><td><strong>Location:</strong></td><td>${proj.siteLocation || 'N/A'}</td>
+          <tr><td><strong>Controllers:</strong></td><td>${controllerDisplay}</td>
+          <tr><td><strong>Cabinets:</strong></td><td>${proj.cabinetCount}</td>
           ${proj.deltaVVersion ? `<tr><td><strong>DeltaV Version:</strong></td><td>${proj.deltaVVersion}</td></tr>` : ''}
-          <tr><td><strong>Start Date:</strong></td><td>${proj.dates?.start || 'N/A'}</td></tr>
-          <tr><td><strong>Finish Date:</strong></td><td>${proj.dates?.finish || 'N/A'}</td></tr>
-          <tr><td><strong>IFAT:</strong></td><td>${ifatText}</td></tr>
-          <tr><td><strong>CFAT:</strong></td><td>${cfatText}</td></tr>
+          <tr><td><strong>Start Date:</strong></td><td>${proj.dates?.start || 'N/A'}</td>
+          <tr><td><strong>Finish Date:</strong></td><td>${proj.dates?.finish || 'N/A'}</td>
+          <tr><td><strong>IFAT:</strong></td><td>${ifatText}</td>
+          <tr><td><strong>CFAT:</strong></td><td>${cfatText}</td>
         </table>
       </div>
       <div style="background:${bgColor}; padding:20px; border-radius:16px; margin-bottom:20px;">
