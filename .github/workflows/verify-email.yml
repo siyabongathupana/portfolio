@@ -1,245 +1,40 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Email Verification | Your Portfolio</title>
-  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
-  <script src="config.js"></script>
-  <script src="api.js"></script>
-  <style>
-    .verification-container {
-      max-width: 500px;
-      margin: 80px auto;
-      background: white;
-      border-radius: 24px;
-      padding: 40px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-      text-align: center;
-    }
-    .success-icon { color: #28a745; font-size: 4rem; margin-bottom: 20px; }
-    .error-icon { color: #dc3545; font-size: 4rem; margin-bottom: 20px; }
-    .warning-icon { color: #ffc107; font-size: 4rem; margin-bottom: 20px; }
-    .spinner { margin: 20px auto; width: 50px; height: 50px; border: 3px solid #f3f3f3; border-top: 3px solid #2fc7ff; border-radius: 50%; animation: spin 1s linear infinite; }
-    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-  </style>
-</head>
-<body style="background: #eef3fc;">
+name: Email Verification
 
-<nav class="navbar navbar-expand-lg custom_nav-container pt-3" style="background:#0b2b3b; padding:15px 0;">
-  <div class="container">
-    <a class="navbar-brand" href="index.html"><span>Your</span> Portfolio</a>
-  </div>
-</nav>
+on:
+  push:
+    paths:
+      - 'data/users/*/account.json'
+  workflow_dispatch:
 
-<div class="container">
-  <div class="verification-container" id="verificationContent">
-    <div class="spinner" id="loadingSpinner"></div>
-    <p id="loadingText">Verifying your email...</p>
-  </div>
-</div>
+permissions:
+  contents: write
 
-<footer class="mt-5">
-  <p>© 2026 Your Portfolio</p>
-</footer>
+jobs:
+  verify-new-users:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-<script>
-  // Helper function to update a JSON file on GitHub
-  async function updateGitHubFileWithToken(path, content, message, token) {
-    const { owner, repo, branch } = window.REPO_CONFIG;
-    const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
-    
-    let sha = null;
-    try {
-      const getResp = await fetch(url, {
-        headers: { 
-          'Authorization': `token ${token}`,
-          'Accept': 'application/vnd.github.v3+json'
-        }
-      });
-      if (getResp.ok) {
-        const data = await getResp.json();
-        sha = data.sha;
-      }
-    } catch (e) {}
-    
-    const body = {
-      message: message,
-      content: btoa(unescape(encodeURIComponent(JSON.stringify(content, null, 2)))),
-      branch: branch
-    };
-    if (sha) body.sha = sha;
-    
-    const resp = await fetch(url, {
-      method: 'PUT',
-      headers: {
-        'Authorization': `token ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(body)
-    });
-    
-    if (!resp.ok) {
-      const error = await resp.json();
-      throw new Error(`Failed to update ${path}: ${error.message}`);
-    }
-    
-    return resp.json();
-  }
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
 
-  async function readGitHubFile(path) {
-    const { owner, repo, branch } = window.REPO_CONFIG;
-    const url = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${path}`;
-    try {
-      const resp = await fetch(url);
-      if (resp.ok) {
-        return await resp.json();
-      }
-    } catch (e) {}
-    return null;
-  }
+      - name: Install dependencies
+        run: npm install nodemailer
 
-  // Send welcome email after verification
-  async function sendWelcomeEmail(email, name = 'User') {
-    // Call a serverless function or use a proxy to send email
-    // Since we can't send email directly from frontend, we'll create a trigger file
-    // that the GitHub Action will pick up
-    
-    const { owner, repo, branch } = window.REPO_CONFIG;
-    const welcomeTriggerPath = `data/welcome_triggers/${encodeURIComponent(email)}.json`;
-    const triggerData = {
-      email: email,
-      name: name,
-      triggeredAt: Date.now(),
-      status: 'pending'
-    };
-    
-    try {
-      // Ask for service token (from admin)
-      const serviceToken = prompt('Enter the service token to send welcome email:');
-      if (!serviceToken) return false;
-      
-      await updateGitHubFileWithToken(welcomeTriggerPath, triggerData, `Trigger welcome email for ${email}`, serviceToken);
-      console.log('Welcome email trigger created');
-      return true;
-    } catch (error) {
-      console.error('Failed to trigger welcome email:', error);
-      return false;
-    }
-  }
-
-  async function verifyEmail() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const token = urlParams.get('token');
-    const email = urlParams.get('email');
-    
-    const container = document.getElementById('verificationContent');
-    const spinner = document.getElementById('loadingSpinner');
-    const loadingText = document.getElementById('loadingText');
-    
-    if (!token || !email) {
-      spinner.style.display = 'none';
-      container.innerHTML = `
-        <i class="fa fa-exclamation-triangle error-icon"></i>
-        <h3>Invalid Verification Link</h3>
-        <p>The verification link is invalid or incomplete.</p>
-        <a href="login.html" class="btn btn-delta mt-3">Go to Login</a>
-      `;
-      return;
-    }
-    
-    try {
-      const pendingData = await readGitHubFile('data/pending_verification.json');
-      const verifiedData = await readGitHubFile('data/verified_users.json');
-      
-      if (!pendingData) {
-        throw new Error('Unable to load verification data');
-      }
-      
-      if (verifiedData && verifiedData.verified && verifiedData.verified.includes(email)) {
-        spinner.style.display = 'none';
-        container.innerHTML = `
-          <i class="fa fa-check-circle success-icon"></i>
-          <h3>Email Already Verified</h3>
-          <p>Your email has already been verified.</p>
-          <a href="login.html" class="btn btn-delta mt-3">Go to Login</a>
-        `;
-        return;
-      }
-      
-      const pendingEntry = pendingData.pending.find(p => p.email === email && p.token === token);
-      
-      if (!pendingEntry) {
-        spinner.style.display = 'none';
-        container.innerHTML = `
-          <i class="fa fa-times-circle error-icon"></i>
-          <h3>Verification Failed</h3>
-          <p>The verification link is invalid or has expired.</p>
-          <a href="login.html" class="btn btn-delta mt-3">Go to Login</a>
-        `;
-        return;
-      }
-      
-      if (pendingEntry.expiresAt < Date.now()) {
-        spinner.style.display = 'none';
-        container.innerHTML = `
-          <i class="fa fa-clock-o warning-icon"></i>
-          <h3>Verification Link Expired</h3>
-          <p>This verification link has expired (24 hour limit).</p>
-          <a href="login.html" class="btn btn-delta mt-3">Go to Login</a>
-        `;
-        return;
-      }
-      
-      // Update verified_users.json
-      const currentVerified = verifiedData?.verified || [];
-      const newVerified = { verified: [...currentVerified, email] };
-      const newPending = { pending: pendingData.pending.filter(p => p.email !== email) };
-      
-      const serviceToken = prompt('Enter service token to complete verification:');
-      if (!serviceToken) throw new Error('Service token required');
-      
-      await updateGitHubFileWithToken('data/verified_users.json', newVerified, `Verify email: ${email}`, serviceToken);
-      await updateGitHubFileWithToken('data/pending_verification.json', newPending, `Remove pending verification for ${email}`, serviceToken);
-      
-      const encUser = encodeURIComponent(email);
-      const userVerifiedPath = `data/users/${encUser}/verified.json`;
-      const userVerifiedContent = { verified: true, verifiedAt: Date.now(), email: email };
-      await updateGitHubFileWithToken(userVerifiedPath, userVerifiedContent, `Mark user ${email} as verified`, serviceToken);
-      
-      // Send welcome email
-      loadingText.textContent = 'Sending welcome email...';
-      await sendWelcomeEmail(email);
-      
-      spinner.style.display = 'none';
-      container.innerHTML = `
-        <i class="fa fa-check-circle success-icon"></i>
-        <h3>Email Verified Successfully!</h3>
-        <p>Your email has been verified and a welcome email has been sent to your inbox.</p>
-        <a href="login.html" class="btn btn-delta mt-3">Proceed to Login</a>
-      `;
-      
-    } catch (error) {
-      console.error('Verification error:', error);
-      spinner.style.display = 'none';
-      container.innerHTML = `
-        <i class="fa fa-times-circle error-icon"></i>
-        <h3>Verification Failed</h3>
-        <p>An error occurred during verification.</p>
-        <p class="text-muted">${error.message}</p>
-        <a href="login.html" class="btn btn-delta mt-3">Go to Login</a>
-      `;
-    }
-  }
-  
-  verifyEmail();
-</script>
-
-<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script>
-<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-</body>
-</html>
+      - name: Run email verification script
+        env:
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          FROM_EMAIL: ${{ secrets.FROM_EMAIL }}
+          SITE_URL: ${{ vars.SITE_URL || 'https://siyabongathupana.github.io/portfolio' }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: node .github/scripts/emailVerification.js
