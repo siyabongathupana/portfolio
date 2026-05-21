@@ -18,18 +18,18 @@
   <script src="api.js"></script>
   <script src="shared.js"></script>
   <style>
-    .image-input-group { margin-bottom:15px; background:#f8f9fa; padding:12px; border-radius:12px; display:flex; align-items:center; gap:12px; position:relative; flex-wrap:wrap; }
+    .image-input-group { margin-bottom:15px; background: var(--bg-secondary); padding:12px; border-radius:12px; display:flex; align-items:center; gap:12px; position:relative; flex-wrap:wrap; border:1px solid var(--border-color); }
     .image-input-group .img-preview-thumb { width:80px; height:80px; object-fit:cover; border-radius:8px; background:#e9ecef; }
     .image-input-group .img-details { flex:1; min-width:200px; }
     .remove-img-btn { font-size:1.2rem; color:#dc3545; cursor:pointer; opacity:0.6; transition:0.2s; padding:5px; }
     .image-input-group:hover .remove-img-btn { opacity:1; }
-    .drop-zone { border:2px dashed #2fc7ff; border-radius:16px; padding:30px; text-align:center; color:#2fc7ff; margin-bottom:20px; cursor:pointer; transition:background 0.2s; }
+    .drop-zone { border:2px dashed #2fc7ff; border-radius:16px; padding:30px; text-align:center; color:#2fc7ff; margin-bottom:20px; cursor:pointer; transition:background 0.2s; background: var(--bg-secondary); }
     .drop-zone:hover, .drop-zone.dragover { background:#e6f7ff; }
     .drop-zone i { font-size:2rem; display:block; margin-bottom:8px; }
     .progress-bar-container { width:100%; height:6px; background:#e0e0e0; border-radius:3px; margin:10px 0; overflow:hidden; }
     .progress-bar-fill { width:0%; height:100%; background:#2fc7ff; transition:width 0.2s; }
     .batch-actions { margin-top:15px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
-    .image-counter { font-size:0.8rem; color:#666; margin-left:10px; }
+    .image-counter { font-size:0.8rem; color: var(--text-muted); margin-left:10px; }
     .user-badge { background:#2fc7ff; color:white; padding:4px 12px; border-radius:20px; font-size:0.9rem; }
     .cert-thumb-preview { max-width:80px; max-height:80px; margin-top:8px; border-radius:12px; }
     .view-portfolio-btn { background: #28a745; color: white; border-radius: 20px; padding: 6px 16px; margin-right: 10px; transition: 0.2s; display: inline-flex; align-items:center; }
@@ -39,11 +39,20 @@
     .logs-panel { text-align: center; padding: 20px; }
     .logs-icon i { font-size: 3rem; color: #2fc7ff; }
     .btn-log { margin: 5px; }
+    .project-type-selector { display: flex; gap: 15px; margin-bottom: 20px; }
+    .type-option { flex: 1; text-align: center; padding: 15px; border: 2px solid var(--border-color); border-radius: 12px; cursor: pointer; transition: all 0.2s; background: var(--bg-secondary); }
+    .type-option.active { border-color: #2fc7ff; background: rgba(47,199,255,0.1); }
+    .type-option i { font-size: 24px; margin-bottom: 8px; display: block; }
+    .type-option h4 { margin: 0; font-size: 16px; }
+    .type-option p { margin: 5px 0 0; font-size: 12px; color: var(--text-muted); }
+    .section-card { background: var(--bg-secondary); border-radius: 16px; padding: 20px; margin-bottom: 20px; border: 1px solid var(--border-color); }
+    .section-title { font-size: 18px; font-weight: 600; color: #2fc7ff; margin-bottom: 15px; padding-bottom: 8px; border-bottom: 2px solid #2fc7ff; display: inline-block; }
     @media (max-width: 768px) {
       .admin-container { padding: 20px 15px !important; margin: 15px !important; }
       .image-input-group { flex-direction: column; align-items: flex-start; }
-      .image-input-group .img-preview-thumb { width: 100%; height: auto; max-width: 200px; }
+      .image-input-group .img-preview-thumb { width: 100%; height: auto; max-width: 200px; margin-bottom: 10px; }
       .remove-img-btn { position: absolute; top: 10px; right: 10px; }
+      .project-type-selector { flex-direction: column; gap: 10px; }
     }
   </style>
 </head>
@@ -127,77 +136,198 @@
 
 <!-- Project Modal -->
 <div class="modal fade" id="projectModal" tabindex="-1">
-  <div class="modal-dialog modal-lg">
+  <div class="modal-dialog modal-xl">
     <div class="modal-content">
-      <div class="modal-header"><h5 id="projectModalTitle">Project</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div>
+      <div class="modal-header">
+        <h5 id="projectModalTitle">Project</h5>
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+      </div>
       <div class="modal-body">
         <form id="projectForm">
           <input type="hidden" id="projectId">
-          <div class="form-row">
-            <div class="col-md-6"><label>Title *</label><input type="text" id="projTitle" class="form-control" required></div>
-            <div class="col-md-6"><label>Controller Type</label>
-              <select id="projController" class="form-control">
-                <option value="PK">PK</option><option value="SQ">SQ</option><option value="MD">MD</option>
-                <option value="SD">SD</option><option value="IQ">IQ</option><option value="MQ">MQ</option>
-                <option value="SX">SX</option><option value="SZ">SZ</option>
-              </select>
+          
+          <!-- Project Type Selection -->
+          <div class="project-type-selector" id="projectTypeSelector">
+            <div class="type-option" data-type="deltaV">
+              <i class="fa fa-microchip"></i>
+              <h4>DeltaV Project</h4>
+              <p>DCS, SIS, Emerson DeltaV specific</p>
+            </div>
+            <div class="type-option" data-type="nonDeltaV">
+              <i class="fa fa-code"></i>
+              <h4>Non-DeltaV Project</h4>
+              <p>Software, Hardware, General Engineering</p>
             </div>
           </div>
-          <div class="form-row mt-2">
-            <div class="col-md-6"><label>Project Type</label>
-              <select id="projType" class="form-control">
-                <option value="">Select...</option>
-                <option value="DCS">DCS</option>
-                <option value="SIS">SIS</option>
-                <option value="SIS & DCS">SIS & DCS</option>
-                <option value="Other">Other</option>
-              </select>
+          
+          <div id="deltaVFields">
+            <!-- Basic Info -->
+            <div class="section-card">
+              <div class="section-title">Basic Information</div>
+              <div class="form-row">
+                <div class="col-md-6"><label>Project Title *</label><input type="text" id="projTitle" class="form-control" required></div>
+                <div class="col-md-6"><label>Short Description</label><textarea id="projShortDesc" rows="2" class="form-control" placeholder="Brief project summary"></textarea></div>
+              </div>
+              <div class="form-row mt-2">
+                <div class="col-md-6"><label>Industry/Category</label><input type="text" id="projIndustry" class="form-control" placeholder="e.g., Oil & Gas, Mining, Manufacturing"></div>
+                <div class="col-md-6"><label>Company/Client</label><input type="text" id="projClient" class="form-control" placeholder="Client name"></div>
+              </div>
+              <div class="form-row mt-2">
+                <div class="col-md-4"><label>Project Duration</label><input type="text" id="projDuration" class="form-control" placeholder="e.g., 6 months, Jan 2024 - Jun 2024"></div>
+                <div class="col-md-4"><label>Status</label>
+                  <select id="projStatus" class="form-control">
+                    <option value="Completed">Completed</option>
+                    <option value="Ongoing">Ongoing</option>
+                    <option value="Paused">Paused</option>
+                    <option value="Planned">Planned</option>
+                  </select>
+                </div>
+                <div class="col-md-4"><label>User Role</label><input type="text" id="projUserRole" class="form-control" placeholder="e.g., Lead Engineer, Project Manager"></div>
+              </div>
             </div>
-            <div class="col-md-6"><label>DeltaV Version</label><input type="text" id="projVersion" class="form-control" placeholder="v14.3"></div>
-          </div>
-          <div class="form-row mt-2">
-            <div class="col-md-6"><label># Cabinets</label><input type="number" id="projCabinet" class="form-control"></div>
-            <div class="col-md-6"><label>Site Location</label><input type="text" id="projLocation" class="form-control"></div>
-          </div>
-          <div class="form-row mt-2">
-            <div class="col-md-3"><label>AI</label><input type="number" id="projAI" class="form-control"></div>
-            <div class="col-md-3"><label>AO</label><input type="number" id="projAO" class="form-control"></div>
-            <div class="col-md-3"><label>DI</label><input type="number" id="projDI" class="form-control"></div>
-            <div class="col-md-3"><label>DO</label><input type="number" id="projDO" class="form-control"></div>
-          </div>
-          <div class="form-row mt-2">
-            <div class="col-md-3"><label>Start Date</label><input type="date" id="projStart" class="form-control"></div>
-            <div class="col-md-3"><label>Finish Date</label><input type="date" id="projFinish" class="form-control"></div>
-            <div class="col-md-3"><label>IFAT</label><input type="date" id="projIFAT" class="form-control"></div>
-            <div class="col-md-3"><label>CFAT</label><input type="date" id="projCFAT" class="form-control"></div>
-          </div>
-          <div class="form-row mt-2">
-            <div class="col-md-4"><label>Lead Engineer</label><input type="text" id="projLead" class="form-control"></div>
-            <div class="col-md-4"><label>Project Engineer</label><input type="text" id="projEngineer" class="form-control"></div>
-            <div class="col-md-4"><label>Technician</label><input type="text" id="projTech" class="form-control"></div>
-          </div>
-          <div class="form-group mt-2"><label>Description</label><textarea id="projDesc" rows="3" class="form-control"></textarea></div>
-          <div class="form-group"><label>Graph Type</label>
-            <select id="projGraphType" class="form-control">
-              <option value="bar">Bar Chart</option><option value="pie">Pie Chart</option><option value="line">Line Chart</option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label>Gallery Images (drag & drop or browse – uploaded to GitHub)</label>
-            <div class="drop-zone" id="imageDropZone">
-              <i class="fa fa-cloud-upload"></i>
-              <span>Drop images here or click to browse</span>
-              <input type="file" id="imageFileInput" multiple accept="image/*" style="display:none;">
+            
+            <!-- Team Section -->
+            <div class="section-card">
+              <div class="section-title">Team Members</div>
+              <div class="form-group">
+                <label>Team Members (comma separated)</label>
+                <input type="text" id="projTeamMembers" class="form-control" placeholder="John Doe, Jane Smith, Mike Johnson">
+              </div>
             </div>
-            <div class="progress-bar-container" id="uploadProgressBar" style="display:none;">
-              <div class="progress-bar-fill" id="uploadProgressFill"></div>
+            
+            <!-- DeltaV Specific Fields -->
+            <div class="section-card">
+              <div class="section-title">DeltaV Configuration</div>
+              <div class="form-row">
+                <div class="col-md-6"><label>Controller Type</label>
+                  <select id="projController" class="form-control">
+                    <option value="PK">PK</option><option value="SQ">SQ</option><option value="MD">MD</option>
+                    <option value="SD">SD</option><option value="IQ">IQ</option><option value="MQ">MQ</option>
+                    <option value="SX">SX</option><option value="SZ">SZ</option>
+                  </select>
+                </div>
+                <div class="col-md-6"><label>DeltaV Version</label><input type="text" id="projVersion" class="form-control" placeholder="v14.3"></div>
+              </div>
+              <div class="form-row mt-2">
+                <div class="col-md-6"><label>Project Type</label>
+                  <select id="projType" class="form-control">
+                    <option value="DCS">DCS</option>
+                    <option value="SIS">SIS</option>
+                    <option value="SIS & DCS">SIS & DCS</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+                <div class="col-md-6"><label># Cabinets</label><input type="number" id="projCabinet" class="form-control"></div>
+              </div>
+              <div class="form-row mt-2">
+                <div class="col-md-3"><label>AI</label><input type="number" id="projAI" class="form-control"></div>
+                <div class="col-md-3"><label>AO</label><input type="number" id="projAO" class="form-control"></div>
+                <div class="col-md-3"><label>DI</label><input type="number" id="projDI" class="form-control"></div>
+                <div class="col-md-3"><label>DO</label><input type="number" id="projDO" class="form-control"></div>
+              </div>
+              <div class="form-row mt-2">
+                <div class="col-md-3"><label>Start Date</label><input type="date" id="projStart" class="form-control"></div>
+                <div class="col-md-3"><label>Finish Date</label><input type="date" id="projFinish" class="form-control"></div>
+                <div class="col-md-3"><label>IFAT</label><input type="date" id="projIFAT" class="form-control"></div>
+                <div class="col-md-3"><label>CFAT</label><input type="date" id="projCFAT" class="form-control"></div>
+              </div>
+              <div class="form-row mt-2">
+                <div class="col-md-4"><label>Lead Engineer</label><input type="text" id="projLead" class="form-control"></div>
+                <div class="col-md-4"><label>Project Engineer</label><input type="text" id="projEngineer" class="form-control"></div>
+                <div class="col-md-4"><label>Technician</label><input type="text" id="projTech" class="form-control"></div>
+              </div>
+              <div class="form-group mt-2"><label>Full Description</label><textarea id="projDesc" rows="3" class="form-control"></textarea></div>
+              <div class="form-group"><label>Graph Type</label>
+                <select id="projGraphType" class="form-control">
+                  <option value="bar">Bar Chart</option><option value="pie">Pie Chart</option><option value="line">Line Chart</option>
+                </select>
+              </div>
             </div>
-            <div id="imagesContainer"></div>
-            <div class="batch-actions" id="batchActions" style="display:none;">
-              <button type="button" class="btn btn-sm btn-outline-danger" id="deleteSelectedImagesBtn"><i class="fa fa-trash"></i> Delete Selected</button>
-              <button type="button" class="btn btn-sm btn-outline-secondary" id="selectAllImagesBtn">Select All</button>
-              <span id="imageCountInfo" class="image-counter"></span>
+          </div>
+          
+          <div id="nonDeltaVFields" style="display:none;">
+            <!-- Basic Info -->
+            <div class="section-card">
+              <div class="section-title">Basic Information</div>
+              <div class="form-row">
+                <div class="col-md-6"><label>Project Title *</label><input type="text" id="nonProjTitle" class="form-control" required></div>
+                <div class="col-md-6"><label>Short Description</label><textarea id="nonProjShortDesc" rows="2" class="form-control" placeholder="Brief project summary"></textarea></div>
+              </div>
+              <div class="form-row mt-2">
+                <div class="col-md-6"><label>Industry/Category</label><input type="text" id="nonProjIndustry" class="form-control" placeholder="e.g., Software, Hardware, General Engineering"></div>
+                <div class="col-md-6"><label>Company/Client</label><input type="text" id="nonProjClient" class="form-control" placeholder="Client name"></div>
+              </div>
+              <div class="form-row mt-2">
+                <div class="col-md-4"><label>Project Duration</label><input type="text" id="nonProjDuration" class="form-control" placeholder="e.g., 6 months, Jan 2024 - Jun 2024"></div>
+                <div class="col-md-4"><label>Status</label>
+                  <select id="nonProjStatus" class="form-control">
+                    <option value="Completed">Completed</option>
+                    <option value="Ongoing">Ongoing</option>
+                    <option value="Paused">Paused</option>
+                    <option value="Planned">Planned</option>
+                  </select>
+                </div>
+                <div class="col-md-4"><label>User Role</label><input type="text" id="nonProjUserRole" class="form-control" placeholder="e.g., Lead Developer, Project Manager"></div>
+              </div>
+            </div>
+            
+            <!-- Team Section -->
+            <div class="section-card">
+              <div class="section-title">Team Members</div>
+              <div class="form-group">
+                <label>Team Members (comma separated)</label>
+                <input type="text" id="nonProjTeamMembers" class="form-control" placeholder="John Doe, Jane Smith, Mike Johnson">
+              </div>
+              <div class="form-group mt-2"><label>Full Description</label><textarea id="nonProjDesc" rows="3" class="form-control" placeholder="Detailed project description"></textarea></div>
+            </div>
+            
+            <!-- Technical Section -->
+            <div class="section-card">
+              <div class="section-title">Technical Details</div>
+              <div class="form-row">
+                <div class="col-md-6"><label>Technologies Used</label><input type="text" id="techTechnologies" class="form-control" placeholder="React, Python, AWS, etc."></div>
+                <div class="col-md-6"><label>Hardware Used</label><input type="text" id="techHardware" class="form-control" placeholder="Servers, PLCs, Sensors, etc."></div>
+              </div>
+              <div class="form-row mt-2">
+                <div class="col-md-6"><label>Software Used</label><input type="text" id="techSoftware" class="form-control" placeholder="VS Code, Docker, Kubernetes, etc."></div>
+                <div class="col-md-6"><label>Protocols</label><input type="text" id="techProtocols" class="form-control" placeholder="HTTP, MQTT, Modbus, etc."></div>
+              </div>
+              <div class="form-group mt-2"><label>Programming Languages</label><input type="text" id="techLanguages" class="form-control" placeholder="JavaScript, Python, C++, etc."></div>
+            </div>
+            
+            <!-- Work Breakdown Section -->
+            <div class="section-card">
+              <div class="section-title">Work Breakdown & Analysis</div>
+              <div class="form-group"><label>Work Breakdown Structure</label><textarea id="wbWorkBreakdown" rows="2" class="form-control" placeholder="Key tasks and milestones"></textarea></div>
+              <div class="form-group"><label>Problems Encountered</label><textarea id="wbProblems" rows="2" class="form-control" placeholder="Challenges faced during the project"></textarea></div>
+              <div class="form-group"><label>Root Causes</label><textarea id="wbRootCauses" rows="2" class="form-control" placeholder="What caused the problems"></textarea></div>
+              <div class="form-group"><label>Solutions Implemented</label><textarea id="wbSolutions" rows="2" class="form-control" placeholder="How problems were solved"></textarea></div>
+              <div class="form-group"><label>Improvements Made</label><textarea id="wbImprovements" rows="2" class="form-control" placeholder="Optimizations and enhancements"></textarea></div>
+              <div class="form-group"><label>Lessons Learned</label><textarea id="wbLessons" rows="2" class="form-control" placeholder="Key takeaways from the project"></textarea></div>
+              <div class="form-group"><label>Risks Identified</label><textarea id="wbRisks" rows="2" class="form-control" placeholder="Potential risks and mitigations"></textarea></div>
+              <div class="form-group"><label>Testing Procedure</label><textarea id="wbTesting" rows="2" class="form-control" placeholder="How the solution was tested"></textarea></div>
+            </div>
+          </div>
+          
+          <!-- Media Section (Common for both types) -->
+          <div class="section-card">
+            <div class="section-title">Media Gallery</div>
+            <div class="form-group">
+              <label>Project Images (drag & drop or browse – uploaded to GitHub)</label>
+              <div class="drop-zone" id="imageDropZone">
+                <i class="fa fa-cloud-upload"></i>
+                <span>Drop images here or click to browse</span>
+                <input type="file" id="imageFileInput" multiple accept="image/*" style="display:none;">
+              </div>
+              <div class="progress-bar-container" id="uploadProgressBar" style="display:none;">
+                <div class="progress-bar-fill" id="uploadProgressFill"></div>
+              </div>
+              <div id="imagesContainer"></div>
+              <div class="batch-actions" id="batchActions" style="display:none;">
+                <button type="button" class="btn btn-sm btn-outline-danger" id="deleteSelectedImagesBtn"><i class="fa fa-trash"></i> Delete Selected</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="selectAllImagesBtn">Select All</button>
+                <span id="imageCountInfo" class="image-counter"></span>
+              </div>
             </div>
           </div>
 
@@ -266,8 +396,26 @@
     toastEl.addEventListener('hidden.bs.toast', () => toastEl.remove());
   }
 
+  let currentProjectType = 'deltaV';
+  let currentEditProjectId = null;
+
+  // Project Type Selector
+  document.querySelectorAll('.type-option').forEach(opt => {
+    opt.addEventListener('click', function() {
+      document.querySelectorAll('.type-option').forEach(o => o.classList.remove('active'));
+      this.classList.add('active');
+      currentProjectType = this.dataset.type;
+      if (currentProjectType === 'deltaV') {
+        document.getElementById('deltaVFields').style.display = 'block';
+        document.getElementById('nonDeltaVFields').style.display = 'none';
+      } else {
+        document.getElementById('deltaVFields').style.display = 'none';
+        document.getElementById('nonDeltaVFields').style.display = 'block';
+      }
+    });
+  });
+
   async function initDashboard() {
-    // Image handling
     const imgContainer = document.getElementById('imagesContainer');
     const dropZone = document.getElementById('imageDropZone');
     const fileInput = document.getElementById('imageFileInput');
@@ -435,8 +583,6 @@
       checkboxes.forEach(cb => cb.checked = !allChecked);
     });
 
-    // ========== PROJECTS & CERTIFICATES RENDER FUNCTIONS WITH FIXED DELETE ==========
-    
     async function renderProjects() {
       try {
         const projects = await window.portfolioData.loadProjects();
@@ -448,24 +594,29 @@
           return;
         }
         for (const [id, proj] of Object.entries(projects)) {
+          const projectType = proj.projectType === 'deltaV' ? 'DeltaV' : (proj.projectCategory === 'deltaV' ? 'DeltaV' : 'Non-DeltaV');
+          const typeIcon = projectType === 'DeltaV' ? 'fa-microchip' : 'fa-code';
           const card = document.createElement('div');
           card.className = 'card mb-3';
           card.innerHTML = `
             <div class="card-body">
               <div class="d-flex justify-content-between align-items-start flex-wrap">
-                <h5>${window.escapeHtml(proj.title)}</h5>
+                <div>
+                  <h5>${window.escapeHtml(proj.title)}</h5>
+                  <span class="badge badge-info"><i class="${typeIcon}"></i> ${projectType}</span>
+                  <span class="badge ${proj.status === 'Completed' ? 'badge-success' : (proj.status === 'Ongoing' ? 'badge-primary' : 'badge-warning')} ml-2">${proj.status || 'N/A'}</span>
+                </div>
                 <div>
                   <button class="btn btn-sm btn-outline-primary edit-project" data-id="${id}">Edit</button>
                   <button class="btn btn-sm btn-outline-danger delete-project" data-id="${id}">Delete</button>
                 </div>
               </div>
-              <p class="mt-2 mb-1"><strong>Controller:</strong> ${proj.controllerType} | <strong>Cabinets:</strong> ${proj.cabinetCount} | <strong>Location:</strong> ${proj.siteLocation || ''}</p>
-              <small>${window.escapeHtml(proj.description?.substring(0, 120) || '')}...</small>
+              <p class="mt-2 mb-1"><strong>Client:</strong> ${proj.client || 'N/A'} | <strong>Duration:</strong> ${proj.duration || 'N/A'}</p>
+              <small>${window.escapeHtml(proj.shortDesc?.substring(0, 120) || proj.description?.substring(0, 120) || '')}...</small>
             </div>`;
           container.appendChild(card);
         }
         
-        // Attach event listeners
         document.querySelectorAll('.edit-project').forEach(btn => {
           btn.addEventListener('click', () => openProjectModal(btn.dataset.id));
         });
@@ -473,7 +624,7 @@
           btn.addEventListener('click', async (e) => {
             e.preventDefault();
             const projectId = btn.dataset.id;
-            if (confirm('⚠️ Delete this project permanently? This action cannot be undone.')) {
+            if (confirm('Delete this project permanently? This action cannot be undone.')) {
               await safeDeleteProject(projectId);
             }
           });
@@ -522,7 +673,6 @@
       }
     }
 
-    // FIXED: safeDeleteProject - properly deletes project and images
     async function safeDeleteProject(id) {
       window.showLoading('Deleting project...');
       try {
@@ -536,25 +686,16 @@
         const projectTitle = current[id].title;
         const images = current[id].selectedImages || [];
         
-        // Delete images from GitHub
         for (const img of images) {
           if (img.url && img.url.startsWith('https://raw.githubusercontent.com')) {
             try {
               await window.deleteImageFromGitHub(img.url, user);
-              console.log('Deleted image:', img.url);
-            } catch(e) { 
-              console.warn('Could not delete image:', e); 
-            }
+            } catch(e) { console.warn('Could not delete image:', e); }
           }
         }
         
-        // Remove project from object
         delete current[id];
-        
-        // Save updated projects
         await window.portfolioData.saveProjects(current, true);
-        
-        // Re-render projects list
         await renderProjects();
         
         window.Logger.log('delete_project', `Deleted project: ${projectTitle} (${id})`);
@@ -592,11 +733,101 @@
       }
     }
 
-    async function safeSaveProject(project) {
+    function buildProjectObject(isEdit = false) {
+      const projectId = document.getElementById('projectId').value;
+      const newId = projectId || ('proj_' + Date.now());
+      const imgGroups = document.querySelectorAll('#imagesContainer .image-input-group');
+      const selectedImages = [];
+      for (const group of imgGroups) {
+        const urlInput = group.querySelector('.img-url-input');
+        const capInput = group.querySelector('.img-caption-input');
+        if (urlInput && urlInput.value) {
+          selectedImages.push({ url: urlInput.value, caption: capInput.value });
+        }
+      }
+      
+      if (currentProjectType === 'deltaV') {
+        return {
+          id: newId,
+          projectCategory: 'deltaV',
+          title: document.getElementById('projTitle').value,
+          shortDesc: document.getElementById('projShortDesc').value,
+          industry: document.getElementById('projIndustry').value,
+          client: document.getElementById('projClient').value,
+          duration: document.getElementById('projDuration').value,
+          status: document.getElementById('projStatus').value,
+          userRole: document.getElementById('projUserRole').value,
+          teamMembers: document.getElementById('projTeamMembers').value,
+          controllerType: document.getElementById('projController').value,
+          deltaVVersion: document.getElementById('projVersion').value,
+          projectType: document.getElementById('projType').value,
+          cabinetCount: parseInt(document.getElementById('projCabinet').value) || 0,
+          io: {
+            AI: parseInt(document.getElementById('projAI').value) || 0,
+            AO: parseInt(document.getElementById('projAO').value) || 0,
+            DI: parseInt(document.getElementById('projDI').value) || 0,
+            DO: parseInt(document.getElementById('projDO').value) || 0
+          },
+          dates: {
+            start: document.getElementById('projStart').value,
+            finish: document.getElementById('projFinish').value,
+            ifat: document.getElementById('projIFAT').value,
+            cfat: document.getElementById('projCFAT').value
+          },
+          team: {
+            lead: document.getElementById('projLead').value,
+            engineer: document.getElementById('projEngineer').value,
+            technician: document.getElementById('projTech').value
+          },
+          description: document.getElementById('projDesc').value,
+          graphType: document.getElementById('projGraphType').value,
+          selectedImages: selectedImages,
+          updatedAt: Date.now()
+        };
+      } else {
+        return {
+          id: newId,
+          projectCategory: 'nonDeltaV',
+          title: document.getElementById('nonProjTitle').value,
+          shortDesc: document.getElementById('nonProjShortDesc').value,
+          industry: document.getElementById('nonProjIndustry').value,
+          client: document.getElementById('nonProjClient').value,
+          duration: document.getElementById('nonProjDuration').value,
+          status: document.getElementById('nonProjStatus').value,
+          userRole: document.getElementById('nonProjUserRole').value,
+          teamMembers: document.getElementById('nonProjTeamMembers').value,
+          description: document.getElementById('nonProjDesc').value,
+          technical: {
+            technologies: document.getElementById('techTechnologies').value,
+            hardware: document.getElementById('techHardware').value,
+            software: document.getElementById('techSoftware').value,
+            protocols: document.getElementById('techProtocols').value,
+            languages: document.getElementById('techLanguages').value
+          },
+          workBreakdown: {
+            workBreakdown: document.getElementById('wbWorkBreakdown').value,
+            problems: document.getElementById('wbProblems').value,
+            rootCauses: document.getElementById('wbRootCauses').value,
+            solutions: document.getElementById('wbSolutions').value,
+            improvements: document.getElementById('wbImprovements').value,
+            lessons: document.getElementById('wbLessons').value,
+            risks: document.getElementById('wbRisks').value,
+            testing: document.getElementById('wbTesting').value
+          },
+          selectedImages: selectedImages,
+          updatedAt: Date.now()
+        };
+      }
+    }
+
+    async function safeSaveProject() {
+      const projectId = document.getElementById('projectId').value;
+      const isNew = !projectId;
+      const project = buildProjectObject(!isNew);
+      
       window.showLoading('Saving project...');
       try {
         const allProjects = await window.portfolioData.loadProjects();
-        const isNew = !allProjects[project.id];
         allProjects[project.id] = project;
         await window.portfolioData.saveProjects(allProjects);
         await renderProjects();
@@ -628,104 +859,102 @@
     async function openProjectModal(projectId = null) {
       const isEdit = projectId !== null;
       document.getElementById('projectModalTitle').innerText = isEdit ? 'Edit Project' : 'New Project';
+      
+      // Reset form
+      document.getElementById('projectId').value = projectId || '';
+      imgContainer.innerHTML = '';
+      updateImageCounter();
+      
       if (isEdit) {
         const projects = await window.portfolioData.loadProjects();
         const proj = projects[projectId];
         if (proj) {
-          document.getElementById('projectId').value = projectId;
-          document.getElementById('projTitle').value = proj.title;
-          document.getElementById('projController').value = proj.controllerType;
-          document.getElementById('projType').value = proj.projectType || '';
-          document.getElementById('projVersion').value = proj.deltaVVersion || '';
-          document.getElementById('projCabinet').value = proj.cabinetCount;
-          document.getElementById('projLocation').value = proj.siteLocation || '';
-          document.getElementById('projAI').value = proj.io.AI;
-          document.getElementById('projAO').value = proj.io.AO;
-          document.getElementById('projDI').value = proj.io.DI;
-          document.getElementById('projDO').value = proj.io.DO;
-          document.getElementById('projStart').value = proj.dates.start;
-          document.getElementById('projFinish').value = proj.dates.finish;
-          document.getElementById('projIFAT').value = proj.dates.ifat;
-          document.getElementById('projCFAT').value = proj.dates.cfat;
-          document.getElementById('projLead').value = proj.team.lead;
-          document.getElementById('projEngineer').value = proj.team.engineer;
-          document.getElementById('projTech').value = proj.team.technician;
-          document.getElementById('projDesc').value = proj.description;
-          document.getElementById('projGraphType').value = proj.graphType;
-          imgContainer.innerHTML = '';
+          // Set project type
+          if (proj.projectCategory === 'deltaV' || proj.controllerType) {
+            currentProjectType = 'deltaV';
+            document.querySelector('.type-option[data-type="deltaV"]').click();
+          } else {
+            currentProjectType = 'nonDeltaV';
+            document.querySelector('.type-option[data-type="nonDeltaV"]').click();
+          }
+          
+          if (currentProjectType === 'deltaV') {
+            document.getElementById('projTitle').value = proj.title || '';
+            document.getElementById('projShortDesc').value = proj.shortDesc || '';
+            document.getElementById('projIndustry').value = proj.industry || '';
+            document.getElementById('projClient').value = proj.client || '';
+            document.getElementById('projDuration').value = proj.duration || '';
+            document.getElementById('projStatus').value = proj.status || 'Completed';
+            document.getElementById('projUserRole').value = proj.userRole || '';
+            document.getElementById('projTeamMembers').value = proj.teamMembers || '';
+            document.getElementById('projController').value = proj.controllerType || 'MD';
+            document.getElementById('projVersion').value = proj.deltaVVersion || '';
+            document.getElementById('projType').value = proj.projectType || 'DCS';
+            document.getElementById('projCabinet').value = proj.cabinetCount || 0;
+            document.getElementById('projAI').value = proj.io?.AI || 0;
+            document.getElementById('projAO').value = proj.io?.AO || 0;
+            document.getElementById('projDI').value = proj.io?.DI || 0;
+            document.getElementById('projDO').value = proj.io?.DO || 0;
+            document.getElementById('projStart').value = proj.dates?.start || '';
+            document.getElementById('projFinish').value = proj.dates?.finish || '';
+            document.getElementById('projIFAT').value = proj.dates?.ifat || '';
+            document.getElementById('projCFAT').value = proj.dates?.cfat || '';
+            document.getElementById('projLead').value = proj.team?.lead || '';
+            document.getElementById('projEngineer').value = proj.team?.engineer || '';
+            document.getElementById('projTech').value = proj.team?.technician || '';
+            document.getElementById('projDesc').value = proj.description || '';
+            document.getElementById('projGraphType').value = proj.graphType || 'bar';
+          } else {
+            document.getElementById('nonProjTitle').value = proj.title || '';
+            document.getElementById('nonProjShortDesc').value = proj.shortDesc || '';
+            document.getElementById('nonProjIndustry').value = proj.industry || '';
+            document.getElementById('nonProjClient').value = proj.client || '';
+            document.getElementById('nonProjDuration').value = proj.duration || '';
+            document.getElementById('nonProjStatus').value = proj.status || 'Completed';
+            document.getElementById('nonProjUserRole').value = proj.userRole || '';
+            document.getElementById('nonProjTeamMembers').value = proj.teamMembers || '';
+            document.getElementById('nonProjDesc').value = proj.description || '';
+            document.getElementById('techTechnologies').value = proj.technical?.technologies || '';
+            document.getElementById('techHardware').value = proj.technical?.hardware || '';
+            document.getElementById('techSoftware').value = proj.technical?.software || '';
+            document.getElementById('techProtocols').value = proj.technical?.protocols || '';
+            document.getElementById('techLanguages').value = proj.technical?.languages || '';
+            document.getElementById('wbWorkBreakdown').value = proj.workBreakdown?.workBreakdown || '';
+            document.getElementById('wbProblems').value = proj.workBreakdown?.problems || '';
+            document.getElementById('wbRootCauses').value = proj.workBreakdown?.rootCauses || '';
+            document.getElementById('wbSolutions').value = proj.workBreakdown?.solutions || '';
+            document.getElementById('wbImprovements').value = proj.workBreakdown?.improvements || '';
+            document.getElementById('wbLessons').value = proj.workBreakdown?.lessons || '';
+            document.getElementById('wbRisks').value = proj.workBreakdown?.risks || '';
+            document.getElementById('wbTesting').value = proj.workBreakdown?.testing || '';
+          }
+          
           if (proj.selectedImages && proj.selectedImages.length) {
             proj.selectedImages.forEach(img => addImageRow(img.url, img.caption));
           }
           updateImageCounter();
         }
       } else {
-        document.getElementById('projectId').value = '';
-        ['projTitle','projLocation','projLead','projEngineer','projTech','projDesc','projVersion'].forEach(id => {
-          const el = document.getElementById(id);
-          if (el) el.value = '';
+        // Reset all fields
+        document.querySelector('.type-option[data-type="deltaV"]').click();
+        const allInputs = document.querySelectorAll('#projectForm input, #projectForm textarea, #projectForm select');
+        allInputs.forEach(input => {
+          if (input.id && !input.id.includes('projectId') && input.type !== 'hidden') {
+            if (input.type === 'checkbox') input.checked = false;
+            else if (input.tagName === 'SELECT') input.selectedIndex = 0;
+            else input.value = '';
+          }
         });
         document.getElementById('projController').value = 'MD';
-        document.getElementById('projType').value = '';
-        document.getElementById('projCabinet').value = 1;
-        document.getElementById('projAI').value = 0;
-        document.getElementById('projAO').value = 0;
-        document.getElementById('projDI').value = 0;
-        document.getElementById('projDO').value = 0;
         document.getElementById('projGraphType').value = 'bar';
-        ['projStart','projFinish','projIFAT','projCFAT'].forEach(id => {
-          const el = document.getElementById(id);
-          if (el) el.value = '';
-        });
-        imgContainer.innerHTML = '';
-        updateImageCounter();
+        document.getElementById('projCabinet').value = 1;
       }
       $('#projectModal').modal('show');
     }
 
-    document.getElementById('projectForm')?.addEventListener('submit', async (e) => {
+    document.getElementById('projectForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const projectId = document.getElementById('projectId').value;
-      const newId = projectId || ('proj_' + Date.now());
-      const imgGroups = document.querySelectorAll('#imagesContainer .image-input-group');
-      const selectedImages = [];
-      for (const group of imgGroups) {
-        const urlInput = group.querySelector('.img-url-input');
-        const capInput = group.querySelector('.img-caption-input');
-        if (urlInput && urlInput.value) {
-          selectedImages.push({ url: urlInput.value, caption: capInput.value });
-        }
-      }
-      const project = {
-        id: newId,
-        title: document.getElementById('projTitle').value,
-        controllerType: document.getElementById('projController').value,
-        projectType: document.getElementById('projType').value || 'Other',
-        deltaVVersion: document.getElementById('projVersion').value,
-        cabinetCount: parseInt(document.getElementById('projCabinet').value) || 0,
-        io: {
-          AI: parseInt(document.getElementById('projAI').value) || 0,
-          AO: parseInt(document.getElementById('projAO').value) || 0,
-          DI: parseInt(document.getElementById('projDI').value) || 0,
-          DO: parseInt(document.getElementById('projDO').value) || 0
-        },
-        dates: {
-          start: document.getElementById('projStart').value,
-          finish: document.getElementById('projFinish').value,
-          ifat: document.getElementById('projIFAT').value,
-          cfat: document.getElementById('projCFAT').value
-        },
-        siteLocation: document.getElementById('projLocation').value,
-        team: {
-          lead: document.getElementById('projLead').value,
-          engineer: document.getElementById('projEngineer').value,
-          technician: document.getElementById('projTech').value
-        },
-        description: document.getElementById('projDesc').value,
-        graphType: document.getElementById('projGraphType').value,
-        selectedImages,
-        updatedAt: Date.now()
-      };
-      await safeSaveProject(project);
+      await safeSaveProject();
     });
 
     async function openCertModal(index = null) {
@@ -758,7 +987,7 @@
       $('#certModal').modal('show');
     }
 
-    document.getElementById('certForm')?.addEventListener('submit', async (e) => {
+    document.getElementById('certForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const certs = await window.portfolioData.loadCertificates();
       const idx = document.getElementById('certIndex').value;
@@ -776,7 +1005,6 @@
       await safeSaveCertificate(certs);
     });
 
-    // Admin and users
     const isAdmin = window.APP_CONFIG.adminUsers && window.APP_CONFIG.adminUsers.includes(user.username);
     if (isAdmin) {
       const usersTabNav = document.getElementById('usersTabNav');
@@ -869,11 +1097,7 @@
     }
 
     const downloadMyLogBtn = document.getElementById('downloadMyLogBtn');
-    if (downloadMyLogBtn) {
-      downloadMyLogBtn.addEventListener('click', async () => {
-        await downloadLogsForUser(user.username, false);
-      });
-    }
+    if (downloadMyLogBtn) downloadMyLogBtn.addEventListener('click', async () => await downloadLogsForUser(user.username, false));
     
     const logUserSelect = document.getElementById('logUserSelect');
     if (logUserSelect) {
@@ -887,9 +1111,7 @@
     }
     
     const downloadAllLogsBtn = document.getElementById('downloadAllLogsBtn');
-    if (downloadAllLogsBtn) {
-      downloadAllLogsBtn.addEventListener('click', downloadAllLogs);
-    }
+    if (downloadAllLogsBtn) downloadAllLogsBtn.addEventListener('click', downloadAllLogs);
     await populateUserSelect();
 
     async function loadUsers() {
@@ -960,7 +1182,6 @@
       }
     }
 
-    // Buttons
     const addProjectBtn = document.getElementById('addProjectBtn');
     if (addProjectBtn) addProjectBtn.addEventListener('click', () => openProjectModal());
     
@@ -973,7 +1194,7 @@
     const deleteAllProjectsBtn = document.getElementById('deleteAllProjectsBtn');
     if (deleteAllProjectsBtn) {
       deleteAllProjectsBtn.addEventListener('click', async () => {
-        if (confirm('⚠️ PERMANENTLY delete ALL your projects? This action cannot be undone.')) {
+        if (confirm('PERMANENTLY delete ALL your projects? This action cannot be undone.')) {
           window.showLoading('Deleting all projects...');
           try {
             const projects = await window.portfolioData.loadProjects();
@@ -997,7 +1218,7 @@
     const deleteAllCertsBtn = document.getElementById('deleteAllCertsBtn');
     if (deleteAllCertsBtn) {
       deleteAllCertsBtn.addEventListener('click', async () => {
-        if (confirm('⚠️ PERMANENTLY delete ALL certificates? This action cannot be undone.')) {
+        if (confirm('PERMANENTLY delete ALL certificates? This action cannot be undone.')) {
           window.showLoading('Deleting all certificates...');
           try {
             const certs = await window.portfolioData.loadCertificates();
@@ -1037,7 +1258,6 @@
       });
     }
 
-    // Auto refresh every 60 seconds
     let autoRefreshInterval = setInterval(async () => {
       if (!document.hidden) {
         await renderProjects();
