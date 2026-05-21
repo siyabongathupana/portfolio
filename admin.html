@@ -34,14 +34,10 @@
     .cert-thumb-preview { max-width:80px; max-height:80px; margin-top:8px; border-radius:12px; }
     .view-portfolio-btn { background: #28a745; color: white; border-radius: 20px; padding: 6px 16px; margin-right: 10px; transition: 0.2s; display: inline-flex; align-items:center; }
     .view-portfolio-btn:hover { background: #218838; color: white; text-decoration: none; }
-
-    /* Toast container */
     .toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 1050; }
     .toast { min-width: 250px; }
-
     @media (max-width: 768px) {
       .admin-container { padding: 20px 15px !important; margin: 15px !important; }
-      h1 { font-size: 1.6rem; }
       .image-input-group { flex-direction: column; align-items: flex-start; }
       .image-input-group .img-preview-thumb { width: 100%; height: auto; max-width: 200px; }
       .remove-img-btn { position: absolute; top: 10px; right: 10px; }
@@ -93,9 +89,7 @@
       <!-- Logs Tab -->
       <div class="tab-pane fade" id="logsTab">
         <div class="logs-panel text-center">
-          <div class="logs-icon">
-            <i class="fa fa-file-text-o"></i>
-          </div>
+          <div class="logs-icon"><i class="fa fa-file-text-o"></i></div>
           <h4>Activity Logs</h4>
           <p class="lead-text">Download your complete activity log as a text file.</p>
           <div class="log-user-select" id="logUserSelectGroup" style="display:none;">
@@ -126,7 +120,6 @@
   </div>
 </div>
 
-<!-- Toast Container -->
 <div class="toast-container" id="toastContainer"></div>
 
 <!-- Project Modal -->
@@ -258,7 +251,6 @@
     initDashboard();
   }
 
-  // Helper toast
   function showToast(message, type = 'success') {
     const container = document.getElementById('toastContainer');
     if (!container) return;
@@ -272,7 +264,7 @@
   }
 
   async function initDashboard() {
-    // Image handling variables (same as before, keep as is)
+    // Image handling
     const imgContainer = document.getElementById('imagesContainer');
     const dropZone = document.getElementById('imageDropZone');
     const fileInput = document.getElementById('imageFileInput');
@@ -430,6 +422,7 @@
       checkboxes.forEach(cb => cb.checked = !allChecked);
     });
 
+    // Render functions
     async function renderProjects() {
       const projects = await window.portfolioData.loadProjects();
       const container = document.getElementById('projectsList');
@@ -441,16 +434,11 @@
       for (const [id, proj] of Object.entries(projects)) {
         const card = document.createElement('div');
         card.className = 'card mb-3';
-        const isBlocked = proj.blocked === true;
-        const blockBtnText = isBlocked ? 'Unblock' : 'Block';
-        const blockBtnClass = isBlocked ? 'btn-success' : 'btn-warning';
-        const blockedBadge = isBlocked ? '<span class="badge badge-danger ml-2">BLOCKED</span>' : '';
         card.innerHTML = `
           <div class="card-body">
-            <div class="d-flex justify-content-between align-items-start flex-wrap">
-              <h5>${window.escapeHtml(proj.title)} ${blockedBadge}</h5>
+            <div class="d-flex justify-content-between">
+              <h5>${window.escapeHtml(proj.title)}</h5>
               <div>
-                <button class="btn btn-sm ${blockBtnClass} block-project" data-id="${id}">${blockBtnText}</button>
                 <button class="btn btn-sm btn-outline-primary edit-project" data-id="${id}">Edit</button>
                 <button class="btn btn-sm btn-outline-danger delete-project" data-id="${id}">Delete</button>
               </div>
@@ -464,25 +452,8 @@
       document.querySelectorAll('.delete-project').forEach(btn => btn.addEventListener('click', async () => {
         if (confirm('Delete this project?')) await safeDeleteProject(btn.dataset.id);
       }));
-      document.querySelectorAll('.block-project').forEach(btn => btn.addEventListener('click', async () => {
-        const id = btn.dataset.id;
-        const projectsData = await window.portfolioData.loadProjects();
-        const newBlockState = !projectsData[id].blocked;
-        if (confirm(`${newBlockState ? 'Block' : 'Unblock'} project "${projectsData[id].title}"?`)) {
-          window.showLoading(`${newBlockState ? 'Blocking' : 'Unblocking'}...`);
-          try {
-            await window.portfolioData.blockProject(id, newBlockState);
-            await renderProjects();
-            showToast(`Project ${newBlockState ? 'blocked' : 'unblocked'}`, 'success');
-          } catch (err) {
-            showToast('Failed: ' + err.message, 'error');
-          } finally {
-            window.hideLoading();
-          }
-        }
-      }));
     }
-        
+
     async function renderCertificates() {
       const certs = await window.portfolioData.loadCertificates();
       const container = document.getElementById('certificatesList');
@@ -738,7 +709,6 @@
       loadUsers();
     }
 
-    // Log functions (same as before)
     async function downloadLogsForUser(username, isAdminView = false) {
       window.showLoading(`Fetching logs for ${username}...`);
       try {
@@ -752,7 +722,7 @@
         const a = document.createElement('a');
         const url = URL.createObjectURL(blob);
         a.href = url;
-        a.download = `logs_${username}_${new Date().toISOString().slice(0,19)}.log`;
+        a.download = `logs_${username}_${new Date().toISOString().slice(0,19)}.txt`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -776,7 +746,7 @@
         for (const u of users) {
           const logs = await window.Logger.getLogsForUser(u, user.pat);
           if (logs && logs !== 'No logs found for this user.' && logs !== 'Unable to retrieve logs.') {
-            zip.file(`${u}_activity.log`, logs);
+            zip.file(`${u}_activity.txt`, logs);
             fileCount++;
           }
         }
