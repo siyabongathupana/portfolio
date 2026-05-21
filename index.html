@@ -268,6 +268,55 @@
     
     updateThemeButton();
   }
-</script>  
+</script>
+  <script>
+// Simple Dark/Light Theme Toggle
+(function() {
+  // Check for saved theme
+  const savedTheme = localStorage.getItem('portfolio-theme');
+  if (savedTheme === 'dark') {
+    document.body.classList.add('dark-theme');
+  }
+  
+  // Find or create theme toggle button
+  let themeBtn = document.getElementById('themeToggleBtn');
+  if (themeBtn) {
+    // Update button icon based on current theme
+    function updateButtonIcon() {
+      const isDark = document.body.classList.contains('dark-theme');
+      const icon = themeBtn.querySelector('i');
+      const textSpan = themeBtn.querySelector('#themeToggleText');
+      if (isDark) {
+        if (icon) icon.className = 'fa fa-sun-o';
+        if (textSpan) textSpan.textContent = 'Light';
+      } else {
+        if (icon) icon.className = 'fa fa-moon-o';
+        if (textSpan) textSpan.textContent = 'Dark';
+      }
+    }
+    
+    // Toggle theme function
+    window.toggleTheme = function() {
+      if (document.body.classList.contains('dark-theme')) {
+        document.body.classList.remove('dark-theme');
+        localStorage.setItem('portfolio-theme', 'light');
+      } else {
+        document.body.classList.add('dark-theme');
+        localStorage.setItem('portfolio-theme', 'dark');
+      }
+      updateButtonIcon();
+    };
+    
+    // Add click event
+    themeBtn.onclick = function(e) {
+      e.preventDefault();
+      window.toggleTheme();
+    };
+    
+    // Initial icon update
+    updateButtonIcon();
+  }
+})();
+</script>
 </body>
 </html>
