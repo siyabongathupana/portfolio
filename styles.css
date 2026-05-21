@@ -89,3 +89,183 @@ footer { background:#051f29; color:#bdd3e0; text-align:center; padding:24px; }
   .btn-delta,.btn-outline-delta { padding:6px 16px; font-size:0.9rem; }
   .admin-container,.certificates-container { margin:20px; padding:20px; }
 }
+
+/* ========== DARK/LIGHT THEME TOGGLE ========== */
+:root {
+  /* Light theme (default) */
+  --bg-primary: #eef3fc;
+  --bg-secondary: #ffffff;
+  --bg-card: #ffffff;
+  --bg-nav: #0b2b3b;
+  --text-primary: #1e2a3e;
+  --text-secondary: #5a7d9a;
+  --text-muted: #6c757d;
+  --border-color: #e2e8f0;
+  --card-shadow: 0 10px 25px rgba(0,0,0,0.04);
+  --input-bg: #ffffff;
+  --input-border: #ced4da;
+  --footer-bg: #051f29;
+  --footer-text: #bdd3e0;
+  --hero-bg: #0b2b3b;
+}
+
+body.dark-theme {
+  --bg-primary: #1a1a2e;
+  --bg-secondary: #16213e;
+  --bg-card: #0f3460;
+  --bg-nav: #0a0a1a;
+  --text-primary: #e0e0e0;
+  --text-secondary: #a0a0a0;
+  --text-muted: #888888;
+  --border-color: #2a2a4a;
+  --card-shadow: 0 10px 25px rgba(0,0,0,0.2);
+  --input-bg: #1a1a2e;
+  --input-border: #2a2a4a;
+  --footer-bg: #0a0a1a;
+  --footer-text: #888888;
+  --hero-bg: #0a0a1a;
+}
+
+body {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Navbar dark mode */
+.custom_nav-container {
+  background: var(--bg-nav) !important;
+  transition: background-color 0.3s ease;
+}
+
+/* Cards dark mode */
+.project-card, .cert-card, .card, .admin-container, .certificates-container,
+.timesheet-container, .quick-log-card, .summary-card, .chart-card,
+.filter-bar, .logs-panel, .verification-container {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
+  border-color: var(--border-color);
+}
+
+/* Modal dark mode */
+.modal-content {
+  background: var(--bg-card);
+  color: var(--text-primary);
+}
+
+.modal-header {
+  border-bottom-color: var(--border-color);
+}
+
+.modal-footer {
+  border-top-color: var(--border-color);
+}
+
+/* Form inputs dark mode */
+.form-control, .input-group-text {
+  background: var(--input-bg);
+  color: var(--text-primary);
+  border-color: var(--input-border);
+}
+
+.form-control:focus {
+  background: var(--input-bg);
+  color: var(--text-primary);
+}
+
+/* Dropdowns and selects */
+.dropdown-menu, .custom-select {
+  background: var(--bg-card);
+  color: var(--text-primary);
+}
+
+/* Table dark mode */
+.table {
+  color: var(--text-primary);
+}
+
+.table-bordered, .table-bordered th, .table-bordered td {
+  border-color: var(--border-color);
+}
+
+.table-striped tbody tr:nth-of-type(odd) {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Footer dark mode */
+footer {
+  background: var(--footer-bg);
+  color: var(--footer-text);
+}
+
+footer a {
+  color: var(--footer-text);
+}
+
+/* Hero area dark mode */
+.hero_area {
+  background: var(--hero-bg);
+}
+
+/* Text colors */
+.text-muted {
+  color: var(--text-muted) !important;
+}
+
+/* Empty state */
+.empty-state {
+  color: var(--text-secondary);
+}
+
+.empty-state i {
+  color: var(--text-muted);
+}
+
+/* Toast dark mode */
+.toast {
+  background: var(--bg-card);
+  color: var(--text-primary);
+}
+
+/* ========== THEME TOGGLE BUTTON ========== */
+.theme-toggle {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  font-size: 1.2rem;
+  padding: 8px 16px;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: white;
+}
+
+.theme-toggle:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.05);
+}
+
+.theme-toggle i {
+  font-size: 1.1rem;
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .theme-toggle {
+    padding: 6px 12px;
+    font-size: 0.9rem;
+  }
+}
+
+/* Login page dark mode */
+.login-page .card {
+  background: var(--bg-card);
+}
+
+.login-page .form-control {
+  background: var(--input-bg);
+  color: var(--text-primary);
+}
