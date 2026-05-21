@@ -1,4 +1,4 @@
-// shared.js – Full version with conflict resolution, plain‑text logs, no blocking
+// shared.js – Full version with working delete, conflict resolution, plain‑text logs
 
 window.showLoading = function (msg = 'Processing...') {
   let loader = document.getElementById('globalLoader');
@@ -190,25 +190,29 @@ window.uploadImageToGitHub = async function(file, user, folder = 'images') {
 };
 
 window.deleteImageFromGitHub = async function(imageUrl, user) {
-  const parts = imageUrl.split('/');
-  const path = parts.slice(parts.indexOf('data')).join('/');
-  const url = `https://api.github.com/repos/${window.REPO_CONFIG.owner}/${window.REPO_CONFIG.repo}/contents/${path}`;
-  const getResp = await fetch(url, {
-    headers: { Authorization: `token ${user.pat}` }
-  });
-  if (!getResp.ok) return;
-  const fileData = await getResp.json();
-  const deleteResp = await fetch(url, {
-    method: 'DELETE',
-    headers: { Authorization: `token ${user.pat}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      message: 'Delete image',
-      sha: fileData.sha,
-      branch: window.REPO_CONFIG.branch
-    })
-  });
-  if (!deleteResp.ok) throw new Error('Failed to delete image');
-  await window.Logger.log('image_delete', `Deleted ${path}`);
+  try {
+    const parts = imageUrl.split('/');
+    const path = parts.slice(parts.indexOf('data')).join('/');
+    const url = `https://api.github.com/repos/${window.REPO_CONFIG.owner}/${window.REPO_CONFIG.repo}/contents/${path}`;
+    const getResp = await fetch(url, {
+      headers: { Authorization: `token ${user.pat}` }
+    });
+    if (!getResp.ok) return;
+    const fileData = await getResp.json();
+    const deleteResp = await fetch(url, {
+      method: 'DELETE',
+      headers: { Authorization: `token ${user.pat}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: 'Delete image',
+        sha: fileData.sha,
+        branch: window.REPO_CONFIG.branch
+      })
+    });
+    if (!deleteResp.ok) throw new Error('Failed to delete image');
+    await window.Logger.log('image_delete', `Deleted ${path}`);
+  } catch (e) {
+    console.warn('Could not delete image:', e);
+  }
 };
 
 window.compressImage = function(file, maxW = 1600, maxH = 1600, quality = 0.85) {
@@ -549,18 +553,23 @@ window.portfolioData = (() => {
     return JSON.parse(localStorage.getItem(CERTS_KEY) || '[]');
   }
 
+  // FIXED: saveProjects - allows deletion (forceEmpty bypasses the protection)
   async function saveProjects(data, forceEmpty = false) {
     const prev = localStorage.getItem(PROJECTS_KEY);
-    if (prev && !forceEmpty) {
+    
+    // Only check for empty data if not forceEmpty
+    if (!forceEmpty && prev) {
       const previous = JSON.parse(prev);
       if (Object.keys(previous).length > 0 && Object.keys(data).length === 0) {
         throw new Error('Cannot delete all projects this way. Use "Delete All" button.');
       }
     }
-    // Ensure updatedAt exists
+    
+    // Ensure updatedAt exists for existing projects
     for (const id in data) {
       if (!data[id].updatedAt) data[id].updatedAt = Date.now();
     }
+    
     localStorage.setItem(PROJECTS_KEY, JSON.stringify(data));
     const user = window.SessionManager.getCurrentUser();
     if (!user || !user.pat) return;
@@ -581,14 +590,23 @@ window.portfolioData = (() => {
             if (remoteFile.content) remoteData = JSON.parse(remoteFile.content);
           }
         } catch(e) {}
+        
+        // Merge: newer updatedAt wins
         const merged = { ...remoteData };
         for (const [id, proj] of Object.entries(data)) {
           if (!merged[id] || proj.updatedAt > (merged[id].updatedAt || 0)) {
             merged[id] = proj;
           }
         }
-        await GitHubAPI.updateFile(owner, repo, path, merged, 'Update projects', branch, user.pat, sha);
-        await window.Logger.log('save_projects', `Saved ${Object.keys(merged).length} projects`);
+        
+        // If forceEmpty is true and data is empty, we want to delete everything
+        let finalData = merged;
+        if (forceEmpty && Object.keys(data).length === 0) {
+          finalData = {};
+        }
+        
+        await GitHubAPI.updateFile(owner, repo, path, finalData, 'Update projects', branch, user.pat, sha);
+        await window.Logger.log('save_projects', `Saved ${Object.keys(finalData).length} projects`);
         return;
       } catch (err) {
         retries--;
@@ -604,16 +622,19 @@ window.portfolioData = (() => {
 
   async function saveCertificates(data, forceEmpty = false) {
     const prev = localStorage.getItem(CERTS_KEY);
-    if (prev && !forceEmpty) {
+    
+    if (!forceEmpty && prev) {
       const previous = JSON.parse(prev);
       if (previous.length > 0 && data.length === 0) {
         throw new Error('Cannot delete all certificates this way. Use "Delete All" button.');
       }
     }
+    
     data = data.map(cert => {
       if (!cert.updatedAt) cert.updatedAt = Date.now();
       return cert;
     });
+    
     localStorage.setItem(CERTS_KEY, JSON.stringify(data));
     const user = window.SessionManager.getCurrentUser();
     if (!user || !user.pat) return;
@@ -634,6 +655,7 @@ window.portfolioData = (() => {
             if (remoteFile.content) remoteData = JSON.parse(remoteFile.content);
           }
         } catch(e) {}
+        
         const mergedMap = new Map();
         for (const cert of remoteData) mergedMap.set(cert.id, cert);
         for (const cert of data) {
@@ -643,8 +665,14 @@ window.portfolioData = (() => {
           }
         }
         const merged = Array.from(mergedMap.values());
-        await GitHubAPI.updateFile(owner, repo, path, merged, 'Update certificates', branch, user.pat, sha);
-        await window.Logger.log('save_certificates', `Saved ${merged.length} certificates`);
+        
+        let finalData = merged;
+        if (forceEmpty && data.length === 0) {
+          finalData = [];
+        }
+        
+        await GitHubAPI.updateFile(owner, repo, path, finalData, 'Update certificates', branch, user.pat, sha);
+        await window.Logger.log('save_certificates', `Saved ${finalData.length} certificates`);
         return;
       } catch (err) {
         retries--;
