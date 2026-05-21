@@ -1,4 +1,4 @@
-// shared.js – Complete with working project blocking, plain-text logs, conflict resolution
+// shared.js – Full version with conflict resolution, plain‑text logs, no blocking
 
 window.showLoading = function (msg = 'Processing...') {
   let loader = document.getElementById('globalLoader');
@@ -52,10 +52,6 @@ window.SessionManager = (() => {
     logout: () => {
       current = null;
       sessionStorage.removeItem('portfolioUser');
-    },
-    isAdmin: () => {
-      const user = window.SessionManager.getCurrentUser();
-      return user && window.APP_CONFIG.adminUsers && window.APP_CONFIG.adminUsers.includes(user.username);
     }
   };
 })();
@@ -446,12 +442,10 @@ window.portfolioData = (() => {
         const path = `${dataPath}/users/${encUser}/projects.json`;
         const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
         if (file && file.content) {
-          const data = JSON.parse(file.content);
-          return data;
+          return JSON.parse(file.content);
         } else {
           if (user.username === window.APP_CONFIG.publicProfileEmail) {
-            const publicData = await fetchPublicData(user.username, 'projects');
-            return publicData;
+            return await fetchPublicData(user.username, 'projects');
           }
           return {};
         }
@@ -472,12 +466,10 @@ window.portfolioData = (() => {
         const path = `${dataPath}/users/${encUser}/certificates.json`;
         const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
         if (file && file.content) {
-          const data = JSON.parse(file.content);
-          return data;
+          return JSON.parse(file.content);
         } else {
           if (user.username === window.APP_CONFIG.publicProfileEmail) {
-            const publicData = await fetchPublicData(user.username, 'certificates');
-            if (publicData.length > 0) return publicData;
+            return await fetchPublicData(user.username, 'certificates');
           }
           return [];
         }
@@ -565,10 +557,9 @@ window.portfolioData = (() => {
         throw new Error('Cannot delete all projects this way. Use "Delete All" button.');
       }
     }
-    // Ensure every project has updatedAt and blocked property
+    // Ensure updatedAt exists
     for (const id in data) {
       if (!data[id].updatedAt) data[id].updatedAt = Date.now();
-      if (data[id].blocked === undefined) data[id].blocked = false;
     }
     localStorage.setItem(PROJECTS_KEY, JSON.stringify(data));
     const user = window.SessionManager.getCurrentUser();
@@ -682,20 +673,9 @@ window.portfolioData = (() => {
     });
   }
 
-  async function blockProject(projectId, block = true) {
-    const projects = await loadProjects();
-    if (!projects[projectId]) throw new Error('Project not found');
-    projects[projectId].blocked = block;
-    projects[projectId].updatedAt = Date.now();
-    await saveProjects(projects);
-    await window.Logger.log('block_project', `${block ? 'Blocked' : 'Unblocked'} project: ${projects[projectId].title}`);
-    return true;
-  }
-
   return {
     loadProjects, saveProjects, loadCertificates, saveCertificates, exportData,
-    loadProjectsForView, loadCertificatesForView,
-    blockProject
+    loadProjectsForView, loadCertificatesForView
   };
 })();
 
@@ -735,11 +715,6 @@ window.generateProjectReport = async function(projectId) {
   const data = await window.portfolioData.loadProjectsForView();
   const proj = data[projectId];
   if (!proj) { alert("Project not found!"); return; }
-  
-  if (proj.blocked === true && !window.SessionManager.isAdmin()) {
-    alert("Access denied: This project is blocked.");
-    return;
-  }
 
   let projectType = proj.projectType || 'Other';
   let primaryColor, bgColor;
