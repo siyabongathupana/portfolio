@@ -18,18 +18,18 @@
   <script src="api.js"></script>
   <script src="shared.js"></script>
   <style>
-    .image-input-group { margin-bottom:15px; background: var(--bg-secondary); padding:12px; border-radius:12px; display:flex; align-items:center; gap:12px; position:relative; flex-wrap:wrap; border:1px solid var(--border-color); }
+    .image-input-group { margin-bottom:15px; background: #f8f9fa; padding:12px; border-radius:12px; display:flex; align-items:center; gap:12px; position:relative; flex-wrap:wrap; border:1px solid #e2e8f0; }
     .image-input-group .img-preview-thumb { width:80px; height:80px; object-fit:cover; border-radius:8px; background:#e9ecef; }
     .image-input-group .img-details { flex:1; min-width:200px; }
     .remove-img-btn { font-size:1.2rem; color:#dc3545; cursor:pointer; opacity:0.6; transition:0.2s; padding:5px; }
     .image-input-group:hover .remove-img-btn { opacity:1; }
-    .drop-zone { border:2px dashed #2fc7ff; border-radius:16px; padding:30px; text-align:center; color:#2fc7ff; margin-bottom:20px; cursor:pointer; transition:background 0.2s; background: var(--bg-secondary); }
+    .drop-zone { border:2px dashed #2fc7ff; border-radius:16px; padding:30px; text-align:center; color:#2fc7ff; margin-bottom:20px; cursor:pointer; transition:background 0.2s; background: #fff; }
     .drop-zone:hover, .drop-zone.dragover { background:#e6f7ff; }
     .drop-zone i { font-size:2rem; display:block; margin-bottom:8px; }
     .progress-bar-container { width:100%; height:6px; background:#e0e0e0; border-radius:3px; margin:10px 0; overflow:hidden; }
     .progress-bar-fill { width:0%; height:100%; background:#2fc7ff; transition:width 0.2s; }
     .batch-actions { margin-top:15px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
-    .image-counter { font-size:0.8rem; color: var(--text-muted); margin-left:10px; }
+    .image-counter { font-size:0.8rem; color:#666; margin-left:10px; }
     .user-badge { background:#2fc7ff; color:white; padding:4px 12px; border-radius:20px; font-size:0.9rem; }
     .cert-thumb-preview { max-width:80px; max-height:80px; margin-top:8px; border-radius:12px; }
     .view-portfolio-btn { background: #28a745; color: white; border-radius: 20px; padding: 6px 16px; margin-right: 10px; transition: 0.2s; display: inline-flex; align-items:center; }
@@ -40,12 +40,12 @@
     .logs-icon i { font-size: 3rem; color: #2fc7ff; }
     .btn-log { margin: 5px; }
     .project-type-selector { display: flex; gap: 15px; margin-bottom: 20px; }
-    .type-option { flex: 1; text-align: center; padding: 15px; border: 2px solid var(--border-color); border-radius: 12px; cursor: pointer; transition: all 0.2s; background: var(--bg-secondary); }
+    .type-option { flex: 1; text-align: center; padding: 15px; border: 2px solid #e2e8f0; border-radius: 12px; cursor: pointer; transition: all 0.2s; background: #fff; }
     .type-option.active { border-color: #2fc7ff; background: rgba(47,199,255,0.1); }
     .type-option i { font-size: 24px; margin-bottom: 8px; display: block; }
     .type-option h4 { margin: 0; font-size: 16px; }
-    .type-option p { margin: 5px 0 0; font-size: 12px; color: var(--text-muted); }
-    .section-card { background: var(--bg-secondary); border-radius: 16px; padding: 20px; margin-bottom: 20px; border: 1px solid var(--border-color); }
+    .type-option p { margin: 5px 0 0; font-size: 12px; color: #666; }
+    .section-card { background: #fff; border-radius: 16px; padding: 20px; margin-bottom: 20px; border: 1px solid #e2e8f0; }
     .section-title { font-size: 18px; font-weight: 600; color: #2fc7ff; margin-bottom: 15px; padding-bottom: 8px; border-bottom: 2px solid #2fc7ff; display: inline-block; }
     @media (max-width: 768px) {
       .admin-container { padding: 20px 15px !important; margin: 15px !important; }
@@ -331,7 +331,7 @@
             </div>
           </div>
 
-          <button type="submit" class="btn btn-delta mt-3">Save Project</button>
+          <button type="submit" class="btn btn-delta mt-3" id="saveProjectBtn">Save Project</button>
         </form>
       </div>
     </div>
@@ -594,7 +594,7 @@
           return;
         }
         for (const [id, proj] of Object.entries(projects)) {
-          const projectType = proj.projectType === 'deltaV' ? 'DeltaV' : (proj.projectCategory === 'deltaV' ? 'DeltaV' : 'Non-DeltaV');
+          const projectType = proj.projectCategory === 'deltaV' || proj.controllerType ? 'DeltaV' : 'Non-DeltaV';
           const typeIcon = projectType === 'DeltaV' ? 'fa-microchip' : 'fa-code';
           const card = document.createElement('div');
           card.className = 'card mb-3';
@@ -612,7 +612,7 @@
                 </div>
               </div>
               <p class="mt-2 mb-1"><strong>Client:</strong> ${proj.client || 'N/A'} | <strong>Duration:</strong> ${proj.duration || 'N/A'}</p>
-              <small>${window.escapeHtml(proj.shortDesc?.substring(0, 120) || proj.description?.substring(0, 120) || '')}...</small>
+              <small>${window.escapeHtml((proj.shortDesc || proj.description || '').substring(0, 120))}...</small>
             </div>`;
           container.appendChild(card);
         }
@@ -733,7 +733,7 @@
       }
     }
 
-    function buildProjectObject(isEdit = false) {
+    function buildProjectObject() {
       const projectId = document.getElementById('projectId').value;
       const newId = projectId || ('proj_' + Date.now());
       const imgGroups = document.querySelectorAll('#imagesContainer .image-input-group');
@@ -823,7 +823,21 @@
     async function safeSaveProject() {
       const projectId = document.getElementById('projectId').value;
       const isNew = !projectId;
-      const project = buildProjectObject(!isNew);
+      
+      // Validate required fields
+      if (currentProjectType === 'deltaV') {
+        if (!document.getElementById('projTitle').value) {
+          showToast('Project Title is required', 'error');
+          return;
+        }
+      } else {
+        if (!document.getElementById('nonProjTitle').value) {
+          showToast('Project Title is required', 'error');
+          return;
+        }
+      }
+      
+      const project = buildProjectObject();
       
       window.showLoading('Saving project...');
       try {
@@ -835,6 +849,7 @@
         window.Logger.log(isNew ? 'create_project' : 'edit_project', `${isNew ? 'Created' : 'Edited'} project: ${project.title}`);
         showToast(`Project ${isNew ? 'created' : 'updated'} successfully`, 'success');
       } catch (err) {
+        console.error('Save error:', err);
         showToast('Save failed: ' + err.message, 'error');
       } finally {
         window.hideLoading();
@@ -857,6 +872,7 @@
     }
 
     async function openProjectModal(projectId = null) {
+      currentEditProjectId = projectId;
       const isEdit = projectId !== null;
       document.getElementById('projectModalTitle').innerText = isEdit ? 'Edit Project' : 'New Project';
       
