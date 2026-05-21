@@ -3,53 +3,119 @@ const path = require('path');
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
 
+// Configuration
 const USERS_DIR = 'data/users';
 const PENDING_FILE = 'data/pending_verification.json';
 const VERIFIED_FILE = 'data/verified_users.json';
 
-// Load pending verification data
-function loadPendingVerification() {
+// GitHub configuration from environment
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+const GITHUB_REPOSITORY = process.env.GITHUB_REPOSITORY;
+const [OWNER, REPO] = GITHUB_REPOSITORY ? GITHUB_REPOSITORY.split('/') : ['siyabongathupana', 'portfolio'];
+const BRANCH = 'main';
+
+// Helper: Update a JSON file on GitHub via API
+async function updateGitHubFile(filePath, content, message) {
+  const url = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${filePath}`;
+  
+  // Get current file SHA if it exists
+  let sha = null;
   try {
-    if (fs.existsSync(PENDING_FILE)) {
-      return JSON.parse(fs.readFileSync(PENDING_FILE, 'utf8'));
+    const getResp = await fetch(url, {
+      headers: { 
+        'Authorization': `Bearer ${GITHUB_TOKEN}`,
+        'Accept': 'application/vnd.github.v3+json'
+      }
+    });
+    if (getResp.ok) {
+      const data = await getResp.json();
+      sha = data.sha;
     }
-  } catch (e) {}
-  return { pending: [] };
+  } catch (e) {
+    console.log(`File ${filePath} does not exist yet, will create new file`);
+  }
+  
+  // Prepare the update
+  const body = {
+    message: message,
+    content: Buffer.from(JSON.stringify(content, null, 2)).toString('base64'),
+    branch: BRANCH
+  };
+  if (sha) body.sha = sha;
+  
+  const resp = await fetch(url, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `Bearer ${GITHUB_TOKEN}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(body)
+  });
+  
+  if (!resp.ok) {
+    const error = await resp.json();
+    throw new Error(`GitHub API error updating ${filePath}: ${error.message}`);
+  }
+  
+  console.log(`✅ Updated ${filePath}`);
+  return resp.json();
 }
 
-// Save pending verification
-function savePendingVerification(data) {
-  fs.writeFileSync(PENDING_FILE, JSON.stringify(data, null, 2));
+// Helper: Read a JSON file from GitHub
+async function readGitHubFile(filePath) {
+  const url = `https://raw.githubusercontent.com/${OWNER}/${REPO}/${BRANCH}/${filePath}`;
+  try {
+    const resp = await fetch(url);
+    if (resp.ok) {
+      return await resp.json();
+    }
+  } catch (e) {}
+  return null;
+}
+
+// Load pending verification data
+async function loadPendingVerification() {
+  const data = await readGitHubFile(PENDING_FILE);
+  return data || { pending: [] };
 }
 
 // Load verified users
-function loadVerifiedUsers() {
-  try {
-    if (fs.existsSync(VERIFIED_FILE)) {
-      return JSON.parse(fs.readFileSync(VERIFIED_FILE, 'utf8'));
-    }
-  } catch (e) {}
-  return { verified: [] };
+async function loadVerifiedUsers() {
+  const data = await readGitHubFile(VERIFIED_FILE);
+  return data || { verified: [] };
 }
 
-// Save verified users
-function saveVerifiedUsers(data) {
-  fs.writeFileSync(VERIFIED_FILE, JSON.stringify(data, null, 2));
-}
-
-// Get all user emails from account.json files
-function getAllUserEmails() {
+// Get all user emails from account.json files in the users directory
+async function getAllUserEmails() {
+  const url = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${USERS_DIR}?ref=${BRANCH}`;
   const emails = [];
-  if (!fs.existsSync(USERS_DIR)) return emails;
   
-  const userDirs = fs.readdirSync(USERS_DIR);
-  for (const userDir of userDirs) {
-    const accountFile = path.join(USERS_DIR, userDir, 'account.json');
-    if (fs.existsSync(accountFile)) {
-      const email = decodeURIComponent(userDir);
-      emails.push(email);
+  try {
+    const resp = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${GITHUB_TOKEN}`,
+        'Accept': 'application/vnd.github.v3+json'
+      }
+    });
+    
+    if (resp.ok) {
+      const items = await resp.json();
+      for (const item of items) {
+        if (item.type === 'dir') {
+          const email = decodeURIComponent(item.name);
+          // Verify there's an account.json file
+          const accountUrl = `https://raw.githubusercontent.com/${OWNER}/${REPO}/${BRANCH}/${USERS_DIR}/${item.name}/account.json`;
+          const accountResp = await fetch(accountUrl);
+          if (accountResp.ok) {
+            emails.push(email);
+          }
+        }
+      }
     }
+  } catch (e) {
+    console.error('Error fetching users:', e);
   }
+  
   return emails;
 }
 
@@ -132,19 +198,62 @@ async function sendVerificationEmail(email, token, siteUrl) {
   }
 }
 
-// Main function
+// Mark a user as verified (called from verify.html)
+async function markUserVerified(email, token) {
+  const pendingData = await loadPendingVerification();
+  const verifiedData = await loadVerifiedUsers();
+  
+  // Check if already verified
+  if (verifiedData.verified.includes(email)) {
+    return { success: true, message: 'Already verified' };
+  }
+  
+  // Find pending entry
+  const pendingEntry = pendingData.pending.find(p => p.email === email && p.token === token);
+  
+  if (!pendingEntry) {
+    return { success: false, message: 'Invalid or expired token' };
+  }
+  
+  // Check expiration
+  if (pendingEntry.expiresAt < Date.now()) {
+    return { success: false, message: 'Token expired' };
+  }
+  
+  // Remove from pending, add to verified
+  const newPending = pendingData.pending.filter(p => p.email !== email);
+  const newVerified = { verified: [...verifiedData.verified, email] };
+  
+  // Update GitHub files
+  await updateGitHubFile(PENDING_FILE, newPending, `Remove ${email} from pending`);
+  await updateGitHubFile(VERIFIED_FILE, newVerified, `Verify ${email}`);
+  
+  // Also update the user's verified.json file
+  const encUser = encodeURIComponent(email);
+  const userVerifiedPath = `${USERS_DIR}/${encUser}/verified.json`;
+  const userVerifiedContent = { verified: true, verifiedAt: Date.now() };
+  
+  await updateGitHubFile(userVerifiedPath, userVerifiedContent, `Mark ${email} as verified`);
+  
+  return { success: true, message: 'Email verified successfully' };
+}
+
+// Main function to process new users and send verification emails
 async function main() {
   console.log('Email verification process started...');
+  console.log(`Repository: ${OWNER}/${REPO}`);
+  console.log(`Branch: ${BRANCH}`);
   
   // Check SMTP configuration
   if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
     console.error('❌ SMTP configuration missing. Cannot send verification emails.');
+    console.error('Please set SMTP_HOST, SMTP_USER, SMTP_PASS secrets.');
     process.exit(0);
   }
-
-  const pendingData = loadPendingVerification();
-  const verifiedData = loadVerifiedUsers();
-  const allUsers = getAllUserEmails();
+  
+  const pendingData = await loadPendingVerification();
+  const verifiedData = await loadVerifiedUsers();
+  const allUsers = await getAllUserEmails();
   const siteUrl = process.env.SITE_URL || 'https://siyabongathupana.github.io/portfolio';
   
   console.log(`Found ${allUsers.length} total users`);
@@ -152,10 +261,10 @@ async function main() {
   console.log(`Pending verification: ${pendingData.pending.length}`);
   
   // Find new users who haven't been verified or pending
-  const existingPending = pendingData.pending.map(p => p.email);
+  const existingPendingEmails = pendingData.pending.map(p => p.email);
   const newUsers = allUsers.filter(email => 
     !verifiedData.verified.includes(email) && 
-    !existingPending.includes(email)
+    !existingPendingEmails.includes(email)
   );
   
   if (newUsers.length === 0) {
@@ -165,12 +274,16 @@ async function main() {
   
   console.log(`Found ${newUsers.length} new users to verify:`, newUsers);
   
-  // Send verification emails
+  // Track changes
+  let updatedPending = [...pendingData.pending];
+  let emailsSent = 0;
+  
+  // Send verification emails to new users
   for (const email of newUsers) {
     const token = generateToken(email);
     const expiresAt = Date.now() + (24 * 60 * 60 * 1000); // 24 hours
     
-    pendingData.pending.push({
+    updatedPending.push({
       email: email,
       token: token,
       expiresAt: expiresAt,
@@ -178,11 +291,13 @@ async function main() {
     });
     
     const success = await sendVerificationEmail(email, token, siteUrl);
-    if (!success) {
-      console.error(`Failed to send verification to ${email}, removing from pending`);
-      pendingData.pending = pendingData.pending.filter(p => p.email !== email);
-    } else {
+    if (success) {
+      emailsSent++;
       console.log(`📧 Verification sent to ${email}`);
+    } else {
+      // Remove from pending if email failed
+      updatedPending = updatedPending.filter(p => p.email !== email);
+      console.error(`❌ Failed to send to ${email}, removed from pending`);
     }
     
     // Delay to avoid rate limiting
@@ -191,14 +306,31 @@ async function main() {
   
   // Clean up expired tokens
   const now = Date.now();
-  const originalCount = pendingData.pending.length;
-  pendingData.pending = pendingData.pending.filter(p => p.expiresAt > now);
-  if (originalCount !== pendingData.pending.length) {
-    console.log(`Cleaned up ${originalCount - pendingData.pending.length} expired tokens`);
+  const beforeCleanup = updatedPending.length;
+  updatedPending = updatedPending.filter(p => p.expiresAt > now);
+  const expiredCount = beforeCleanup - updatedPending.length;
+  if (expiredCount > 0) {
+    console.log(`Cleaned up ${expiredCount} expired tokens`);
   }
   
-  savePendingVerification(pendingData);
-  console.log(`✅ Verification emails processed. Pending: ${pendingData.pending.length}`);
+  // Update pending_verification.json on GitHub if there are changes
+  if (JSON.stringify(pendingData.pending) !== JSON.stringify(updatedPending)) {
+    const newPendingData = { pending: updatedPending };
+    await updateGitHubFile(PENDING_FILE, newPendingData, 'Update pending verification list');
+    console.log(`✅ Updated pending verification file`);
+  }
+  
+  console.log(`✅ Process completed. Sent ${emailsSent} verification emails.`);
+  console.log(`Currently pending: ${updatedPending.length} users`);
 }
 
-main().catch(console.error);
+// Export functions for use in verify.html (if needed)
+module.exports = { markUserVerified };
+
+// Run main function if called directly
+if (require.main === module) {
+  main().catch(error => {
+    console.error('Fatal error:', error);
+    process.exit(1);
+  });
+}
