@@ -1,0 +1,37 @@
+name: Send Welcome Email
+
+on:
+  push:
+    paths:
+      - 'data/verified_users.json'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  send-welcome:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install nodemailer
+
+      - name: Send welcome emails to newly verified users
+        env:
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          FROM_EMAIL: ${{ secrets.FROM_EMAIL }}
+        run: node .github/scripts/sendWelcomeEmail.js
