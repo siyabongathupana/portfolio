@@ -1,4 +1,4 @@
-// login.js – Improved with rate limiting, password strength, UX
+// login.js – Improved with rate limiting, password strength, UX, and email verification
 document.addEventListener('DOMContentLoaded', () => {
   // Rate limiting: store failed attempts in memory (resets on page refresh)
   let failedAttempts = 0;
@@ -92,6 +92,9 @@ document.addEventListener('DOMContentLoaded', () => {
   if (params.get('blocked') === '1') {
     showError('Your account has been blocked. Contact the administrator.');
   }
+  if (params.get('unverified') === '1') {
+    showError('Please verify your email address before logging in. Check your inbox for the verification link.');
+  }
 
   document.getElementById('showRegister').addEventListener('click', (e) => {
     e.preventDefault();
@@ -137,6 +140,14 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       await enforceRateLimit();
       setButtonLoading(loginBtn, true);
+      
+      // Check if email is verified before attempting login
+      const isVerified = await window.AccountManager.isEmailVerified(username);
+      if (!isVerified) {
+        window.location.href = 'login.html?unverified=1';
+        return;
+      }
+      
       const pat = await window.AccountManager.login(username, passphrase);
       resetRateLimit();
       window.SessionManager.setCurrentUser(username, pat);
@@ -191,7 +202,7 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       setButtonLoading(registerBtn, true);
       await window.AccountManager.register(username, passphrase, token);
-      showSuccess('Account created! A confirmation email has been sent. You can now log in.');
+      showSuccess('Account created! A verification email has been sent to your inbox. Please verify your email before logging in.');
       document.getElementById('registerForm').style.display = 'none';
       document.getElementById('loginForm').style.display = 'block';
       document.getElementById('formSubtext').innerText = 'Sign in to manage your portfolio';
