@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Project Details | Your Portfolio</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="config.js"></script>
+  <script src="crypto.js"></script>
+  <script src="api.js"></script>
+  <script src="shared.js"></script>
+  <style>
+    .project-header {
+      background: linear-gradient(135deg, #0b2b3b 0%, #1a4d5f 100%);
+      color: white;
+      padding: 40px 0;
+      margin-bottom: 30px;
+    }
+    .section-card {
+      background: var(--bg-card);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 24px;
+      border: 1px solid var(--border-color);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    .section-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: #2fc7ff;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #2fc7ff;
+      display: inline-block;
+    }
+    .badge-status {
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .badge-completed { background: #28a745; color: white; }
+    .badge-ongoing { background: #2fc7ff; color: white; }
+    .badge-paused { background: #ffc107; color: #333; }
+    .badge-planned { background: #6c757d; color: white; }
+    .info-row { display: flex; padding: 8px 0; border-bottom: 1px solid var(--border-color); }
+    .info-label { width: 140px; font-weight: 600; color: var(--text-secondary); }
+    .info-value { flex: 1; color: var(--text-primary); }
+    .gallery-img { width: 100%; height: 200px; object-fit: cover; border-radius: 12px; margin-bottom: 15px; cursor: pointer; transition: transform 0.2s; }
+    .gallery-img:hover { transform: scale(1.02); }
+    @media (max-width: 768px) {
+      .info-label { width: 100px; font-size: 13px; }
+      .section-card { padding: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg custom_nav-container pt-3" style="background:#0b2b3b; padding:15px 0;">
+  <div class="container">
+    <a class="navbar-brand" href="index.html"><span>Your</span> Portfolio</a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navDetails">
+      <span class="fa fa-bars text-white"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navDetails">
+      <ul class="navbar-nav ml-auto">
+        <li class="nav-item"><a class="nav-link" href="index.html">Home</a></li>
+        <li class="nav-item"><a class="nav-link" href="projects.html">Projects</a></li>
+        <li class="nav-item"><a class="nav-link" href="certificates.html">Certificates</a></li>
+        <li class="nav-item"><a class="nav-link" href="admin.html">Manage</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div id="projectContent"></div>
+
+<footer class="mt-5">
+  <p>© 2026 Your Portfolio</p>
+  <p class="footer-status"><span id="userFooterStatus"></span></p>
+</footer>
+
+<script>
+  const urlParams = new URLSearchParams(window.location.search);
+  const projectId = urlParams.get('id');
+
+  async function loadProject() {
+    if (!projectId) {
+      document.getElementById('projectContent').innerHTML = '<div class="container text-center py-5"><h3>No project selected</h3><a href="projects.html" class="btn btn-delta">Back to Projects</a></div>';
+      return;
+    }
+
+    window.showLoading('Loading project details...');
+    try {
+      const projects = await window.portfolioData.loadProjectsForView();
+      const project = projects[projectId];
+      
+      if (!project) {
+        document.getElementById('projectContent').innerHTML = '<div class="container text-center py-5"><h3>Project not found</h3><a href="projects.html" class="btn btn-delta">Back to Projects</a></div>';
+        window.hideLoading();
+        return;
+      }
+
+      const isDeltaV = project.projectCategory === 'deltaV' || project.controllerType;
+      const statusClass = project.status === 'Completed' ? 'badge-completed' : (project.status === 'Ongoing' ? 'badge-ongoing' : (project.status === 'Paused' ? 'badge-paused' : 'badge-planned'));
+      
+      let html = `
+        <div class="project-header">
+          <div class="container">
+            <h1>${window.escapeHtml(project.title)}</h1>
+            <div class="mt-2">
+              <span class="badge-status ${statusClass}">${project.status || 'N/A'}</span>
+              <span class="badge-status badge-secondary ml-2">${isDeltaV ? 'DeltaV Project' : 'General Project'}</span>
+            </div>
+            <p class="mt-3">${window.escapeHtml(project.shortDesc || project.description || '')}</p>
+          </div>
+        </div>
+        
+        <div class="container">
+          <!-- Basic Information -->
+          <div class="section-card">
+            <div class="section-title">Project Information</div>
+            <div class="info-row"><div class="info-label">Industry/Category:</div><div class="info-value">${window.escapeHtml(project.industry || 'N/A')}</div></div>
+            <div class="info-row"><div class="info-label">Company/Client:</div><div class="info-value">${window.escapeHtml(project.client || 'N/A')}</div></div>
+            <div class="info-row"><div class="info-label">Project Duration:</div><div class="info-value">${window.escapeHtml(project.duration || 'N/A')}</div></div>
+            <div class="info-row"><div class="info-label">User Role:</div><div class="info-value">${window.escapeHtml(project.userRole || 'N/A')}</div></div>
+            <div class="info-row"><div class="info-label">Team Members:</div><div class="info-value">${window.escapeHtml(project.teamMembers || 'N/A')}</div></div>
+          </div>
+      `;
+      
+      if (isDeltaV) {
+        html += `
+          <!-- DeltaV Configuration -->
+          <div class="section-card">
+            <div class="section-title">DeltaV Configuration</div>
+            <div class="info-row"><div class="info-label">Controller Type:</div><div class="info-value">${window.escapeHtml(project.controllerType || 'N/A')}</div></div>
+            <div class="info-row"><div class="info-label">DeltaV Version:</div><div class="info-value">${window.escapeHtml(project.deltaVVersion || 'N/A')}</div></div>
+            <div class="info-row"><div class="info-label">Project Type:</div><div class="info-value">${window.escapeHtml(project.projectType || 'N/A')}</div></div>
+            <div class="info-row"><div class="info-label">Cabinets:</div><div class="info-value">${project.cabinetCount || 0}</div></div>
+            <div class="info-row"><div class="info-label">I/O Count:</div><div class="info-value">AI: ${project.io?.AI || 0} | AO: ${project.io?.AO || 0} | DI: ${project.io?.DI || 0} | DO: ${project.io?.DO || 0}</div></div>
+            ${project.dates?.start ? `<div class="info-row"><div class="info-label">Project Dates:</div><div class="info-value">${project.dates.start} - ${project.dates.finish || 'Present'}</div></div>` : ''}
+            <div class="info-row"><div class="info-label">Team:</div><div class="info-value">Lead: ${project.team?.lead || 'N/A'} | Engineer: ${project.team?.engineer || 'N/A'} | Tech: ${project.team?.technician || 'N/A'}</div></div>
+          </div>
+        `;
+      } else {
+        html += `
+          <!-- Technical Section -->
+          ${project.technical ? `
+          <div class="section-card">
+            <div class="section-title">Technical Details</div>
+            <div class="info-row"><div class="info-label">Technologies Used:</div><div class="info-value">${window.escapeHtml(project.technical.technologies || 'N/A')}</div></div>
+            <div class="info-row"><div class="info-label">Hardware Used:</div><div class="info-value">${window.escapeHtml(project.technical.hardware || 'N/A')}</div></div>
+            <div class="info-row"><div class="info-label">Software Used:</div><div class="info-value">${window.escapeHtml(project.technical.software || 'N/A')}</div></div>
+            <div class="info-row"><div class="info-label">Protocols:</div><div class="info-value">${window.escapeHtml(project.technical.protocols || 'N/A')}</div></div>
+            <div class="info-row"><div class="info-label">Languages:</div><div class="info-value">${window.escapeHtml(project.technical.languages || 'N/A')}</div></div>
+          </div>
+          ` : ''}
+          
+          <!-- Work Breakdown -->
+          ${project.workBreakdown ? `
+          <div class="section-card">
+            <div class="section-title">Work Breakdown & Analysis</div>
+            ${project.workBreakdown.workBreakdown ? `<div class="info-row"><div class="info-label">Work Breakdown:</div><div class="info-value">${window.escapeHtml(project.workBreakdown.workBreakdown)}</div></div>` : ''}
+            ${project.workBreakdown.problems ? `<div class="info-row"><div class="info-label">Problems Encountered:</div><div class="info-value">${window.escapeHtml(project.workBreakdown.problems)}</div></div>` : ''}
+            ${project.workBreakdown.rootCauses ? `<div class="info-row"><div class="info-label">Root Causes:</div><div class="info-value">${window.escapeHtml(project.workBreakdown.rootCauses)}</div></div>` : ''}
+            ${project.workBreakdown.solutions ? `<div class="info-row"><div class="info-label">Solutions:</div><div class="info-value">${window.escapeHtml(project.workBreakdown.solutions)}</div></div>` : ''}
+            ${project.workBreakdown.improvements ? `<div class="info-row"><div class="info-label">Improvements:</div><div class="info-value">${window.escapeHtml(project.workBreakdown.improvements)}</div></div>` : ''}
+            ${project.workBreakdown.lessons ? `<div class="info-row"><div class="info-label">Lessons Learned:</div><div class="info-value">${window.escapeHtml(project.workBreakdown.lessons)}</div></div>` : ''}
+            ${project.workBreakdown.risks ? `<div class="info-row"><div class="info-label">Risks Identified:</div><div class="info-value">${window.escapeHtml(project.workBreakdown.risks)}</div></div>` : ''}
+            ${project.workBreakdown.testing ? `<div class="info-row"><div class="info-label">Testing Procedure:</div><div class="info-value">${window.escapeHtml(project.workBreakdown.testing)}</div></div>` : ''}
+          </div>
+          ` : ''}
+        `;
+      }
+      
+      // Full Description
+      if (project.description) {
+        html += `
+          <div class="section-card">
+            <div class="section-title">Full Description</div>
+            <p>${window.escapeHtml(project.description)}</p>
+          </div>
+        `;
+      }
+      
+      // Gallery
+      if (project.selectedImages && project.selectedImages.length > 0) {
+        html += `
+          <div class="section-card">
+            <div class="section-title">Project Gallery</div>
+            <div class="row">
+        `;
+        project.selectedImages.forEach(img => {
+          html += `
+            <div class="col-md-4 col-sm-6 mb-3">
+              <img src="${img.url}" class="gallery-img" onclick="window.open('${img.url}', '_blank')" alt="${window.escapeHtml(img.caption || 'Project image')}">
+              ${img.caption ? `<p class="text-center small text-muted">${window.escapeHtml(img.caption)}</p>` : ''}
+            </div>
+          `;
+        });
+        html += `</div></div>`;
+      }
+      
+      html += `
+        <div class="text-center mb-5">
+          <a href="projects.html" class="btn btn-outline-delta"><i class="fa fa-arrow-left"></i> Back to Projects</a>
+          <button class="btn btn-delta ml-2" onclick="generateProjectPDF('${projectId}')"><i class="fa fa-file-pdf-o"></i> Download PDF Report</button>
+        </div>
+      </div>`;
+      
+      document.getElementById('projectContent').innerHTML = html;
+      window.updateUserFooter();
+      window.protectImages();
+    } catch (err) {
+      console.error(err);
+      document.getElementById('projectContent').innerHTML = '<div class="container text-center py-5"><h3>Error loading project</h3><a href="projects.html" class="btn btn-delta">Back to Projects</a></div>';
+    } finally {
+      window.hideLoading();
+    }
+  }
+  
+  async function generateProjectPDF(projectId) {
+    await window.generateProjectReport(projectId);
+  }
+  
+  window.onload = function() {
+    loadProject();
+  };
+</script>
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>
