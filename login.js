@@ -141,11 +141,15 @@ document.addEventListener('DOMContentLoaded', () => {
       await enforceRateLimit();
       setButtonLoading(loginBtn, true);
       
-      // Check if email is verified before attempting login
-      const isVerified = await window.AccountManager.isEmailVerified(username);
-      if (!isVerified) {
-        window.location.href = 'login.html?unverified=1';
-        return;
+      // Skip verification for admin email (optional - remove if you want all users to verify)
+      const isAdminEmail = username === 'siyabongatshem@gmail.com';
+      
+      if (!isAdminEmail) {
+        const isVerified = await window.AccountManager.isEmailVerified(username);
+        if (!isVerified) {
+          window.location.href = 'login.html?unverified=1';
+          return;
+        }
       }
       
       const pat = await window.AccountManager.login(username, passphrase);
