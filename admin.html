@@ -18,10 +18,10 @@
   <script src="api.js"></script>
   <script src="shared.js"></script>
   <style>
-    .image-input-group { margin-bottom:15px; background:#f8f9fa; padding:12px; border-radius:12px; display:flex; align-items:center; gap:12px; position:relative; }
+    .image-input-group { margin-bottom:15px; background:#f8f9fa; padding:12px; border-radius:12px; display:flex; align-items:center; gap:12px; position:relative; flex-wrap:wrap; }
     .image-input-group .img-preview-thumb { width:80px; height:80px; object-fit:cover; border-radius:8px; background:#e9ecef; }
-    .image-input-group .img-details { flex:1; }
-    .remove-img-btn { font-size:1.2rem; color:#dc3545; cursor:pointer; opacity:0.6; transition:0.2s; }
+    .image-input-group .img-details { flex:1; min-width:200px; }
+    .remove-img-btn { font-size:1.2rem; color:#dc3545; cursor:pointer; opacity:0.6; transition:0.2s; padding:5px; }
     .image-input-group:hover .remove-img-btn { opacity:1; }
     .drop-zone { border:2px dashed #2fc7ff; border-radius:16px; padding:30px; text-align:center; color:#2fc7ff; margin-bottom:20px; cursor:pointer; transition:background 0.2s; }
     .drop-zone:hover, .drop-zone.dragover { background:#e6f7ff; }
@@ -36,6 +36,9 @@
     .view-portfolio-btn:hover { background: #218838; color: white; text-decoration: none; }
     .toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 1050; }
     .toast { min-width: 250px; }
+    .logs-panel { text-align: center; padding: 20px; }
+    .logs-icon i { font-size: 3rem; color: #2fc7ff; }
+    .btn-log { margin: 5px; }
     @media (max-width: 768px) {
       .admin-container { padding: 20px 15px !important; margin: 15px !important; }
       .image-input-group { flex-direction: column; align-items: flex-start; }
@@ -88,18 +91,18 @@
 
       <!-- Logs Tab -->
       <div class="tab-pane fade" id="logsTab">
-        <div class="logs-panel text-center">
+        <div class="logs-panel">
           <div class="logs-icon"><i class="fa fa-file-text-o"></i></div>
           <h4>Activity Logs</h4>
           <p class="lead-text">Download your complete activity log as a text file.</p>
           <div class="log-user-select" id="logUserSelectGroup" style="display:none;">
-            <select id="logUserSelect" class="form-control form-control-sm">
+            <select id="logUserSelect" class="form-control form-control-sm" style="width:auto; display:inline-block;">
               <option value="">-- Select user to download logs --</option>
             </select>
           </div>
           <div class="d-flex flex-wrap justify-content-center mt-2">
-            <button id="downloadMyLogBtn" class="btn btn-log btn-log-primary"><i class="fa fa-download"></i> Download My Logs</button>
-            <button id="downloadAllLogsBtn" class="btn btn-log btn-log-secondary" style="display:none;"><i class="fa fa-archive"></i> Download All Logs (ZIP)</button>
+            <button id="downloadMyLogBtn" class="btn btn-primary btn-log"><i class="fa fa-download"></i> Download My Logs</button>
+            <button id="downloadAllLogsBtn" class="btn btn-secondary btn-log" style="display:none;"><i class="fa fa-archive"></i> Download All Logs (ZIP)</button>
           </div>
         </div>
       </div>
@@ -276,8 +279,10 @@
 
     function updateImageCounter() {
       const count = imgContainer.querySelectorAll('.image-input-group').length;
-      document.getElementById('imageCountInfo').textContent = `${count} image${count !== 1 ? 's' : ''}`;
-      document.getElementById('batchActions').style.display = count > 0 ? 'flex' : 'none';
+      const counterSpan = document.getElementById('imageCountInfo');
+      if (counterSpan) counterSpan.textContent = `${count} image${count !== 1 ? 's' : ''}`;
+      const batchActions = document.getElementById('batchActions');
+      if (batchActions) batchActions.style.display = count > 0 ? 'flex' : 'none';
     }
     window.updateImageCounter = updateImageCounter;
 
@@ -289,12 +294,13 @@
         throw err;
       }
     }
+    
     async function processUploadQueue() {
       if (pendingUploads.length === 0 && activeUploads === 0) {
-        progressBar.style.display = 'none';
+        if (progressBar) progressBar.style.display = 'none';
         return;
       }
-      progressBar.style.display = 'block';
+      if (progressBar) progressBar.style.display = 'block';
       const concurrent = 3;
       while (pendingUploads.length > 0 && activeUploads < concurrent) {
         const file = pendingUploads.shift();
@@ -304,7 +310,7 @@
           uploadedCount++;
           const total = uploadedCount + pendingUploads.length + activeUploads;
           const percent = total ? (uploadedCount / total) * 100 : 0;
-          progressFill.style.width = percent + '%';
+          if (progressFill) progressFill.style.width = percent + '%';
         }).catch(err => {
           showToast(`Failed to upload ${file.name}: ${err.message}`, 'error');
           window.Logger.log('error', `Image upload failed: ${err.message}`, 'ERROR');
@@ -314,17 +320,19 @@
         });
       }
       if (pendingUploads.length === 0 && activeUploads === 0) {
-        progressBar.style.display = 'none';
-        progressFill.style.width = '0%';
+        if (progressBar) progressBar.style.display = 'none';
+        if (progressFill) progressFill.style.width = '0%';
         uploadedCount = 0;
       }
     }
+    
     function addFilesToQueue(files) {
       for (const file of files) {
         if (file.type.startsWith('image/')) pendingUploads.push(file);
       }
       processUploadQueue();
     }
+    
     function addImageRow(url = '', caption = '') {
       const placeholder = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><rect width="80" height="80" fill="#ddd"/><text x="50%" y="50%" font-size="14" fill="#999" text-anchor="middle" dy=".3em">No Img</text></svg>');
       const row = document.createElement('div');
@@ -346,6 +354,7 @@
       updateImageCounter();
       return row;
     }
+    
     window.replaceImage = async function(input, oldUrl) {
       const file = input.files[0];
       if (!file) return;
@@ -381,24 +390,28 @@
       }
     });
 
-    dropZone.addEventListener('click', () => fileInput.click());
-    ['dragenter','dragover','dragleave','drop'].forEach(ev => {
-      dropZone.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); });
-    });
-    dropZone.addEventListener('dragover', () => dropZone.classList.add('dragover'));
-    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
-    dropZone.addEventListener('drop', e => {
-      dropZone.classList.remove('dragover');
-      const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
-      if (files.length) addFilesToQueue(files);
-    });
-    fileInput.addEventListener('change', () => {
-      const files = Array.from(fileInput.files).filter(f => f.type.startsWith('image/'));
-      if (files.length) {
-        addFilesToQueue(files);
-        fileInput.value = '';
-      }
-    });
+    if (dropZone) {
+      dropZone.addEventListener('click', () => fileInput.click());
+      ['dragenter','dragover','dragleave','drop'].forEach(ev => {
+        dropZone.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); });
+      });
+      dropZone.addEventListener('dragover', () => dropZone.classList.add('dragover'));
+      dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+      dropZone.addEventListener('drop', e => {
+        dropZone.classList.remove('dragover');
+        const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+        if (files.length) addFilesToQueue(files);
+      });
+    }
+    if (fileInput) {
+      fileInput.addEventListener('change', () => {
+        const files = Array.from(fileInput.files).filter(f => f.type.startsWith('image/'));
+        if (files.length) {
+          addFilesToQueue(files);
+          fileInput.value = '';
+        }
+      });
+    }
 
     document.getElementById('deleteSelectedImagesBtn')?.addEventListener('click', async () => {
       const checkboxes = imgContainer.querySelectorAll('.image-select-checkbox:checked');
@@ -422,82 +435,132 @@
       checkboxes.forEach(cb => cb.checked = !allChecked);
     });
 
-    // Render functions
+    // ========== PROJECTS & CERTIFICATES RENDER FUNCTIONS WITH FIXED DELETE ==========
+    
     async function renderProjects() {
-      const projects = await window.portfolioData.loadProjects();
-      const container = document.getElementById('projectsList');
-      container.innerHTML = '';
-      if (Object.keys(projects).length === 0) {
-        container.innerHTML = '<div class="empty-state"><i class="fa fa-folder-open-o"></i><h5>No projects yet</h5></div>';
-        return;
-      }
-      for (const [id, proj] of Object.entries(projects)) {
-        const card = document.createElement('div');
-        card.className = 'card mb-3';
-        card.innerHTML = `
-          <div class="card-body">
-            <div class="d-flex justify-content-between">
-              <h5>${window.escapeHtml(proj.title)}</h5>
-              <div>
-                <button class="btn btn-sm btn-outline-primary edit-project" data-id="${id}">Edit</button>
-                <button class="btn btn-sm btn-outline-danger delete-project" data-id="${id}">Delete</button>
+      try {
+        const projects = await window.portfolioData.loadProjects();
+        const container = document.getElementById('projectsList');
+        if (!container) return;
+        container.innerHTML = '';
+        if (Object.keys(projects).length === 0) {
+          container.innerHTML = '<div class="empty-state"><i class="fa fa-folder-open-o"></i><h5>No projects yet</h5></div>';
+          return;
+        }
+        for (const [id, proj] of Object.entries(projects)) {
+          const card = document.createElement('div');
+          card.className = 'card mb-3';
+          card.innerHTML = `
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-start flex-wrap">
+                <h5>${window.escapeHtml(proj.title)}</h5>
+                <div>
+                  <button class="btn btn-sm btn-outline-primary edit-project" data-id="${id}">Edit</button>
+                  <button class="btn btn-sm btn-outline-danger delete-project" data-id="${id}">Delete</button>
+                </div>
               </div>
-            </div>
-            <p><strong>Controller:</strong> ${proj.controllerType} | <strong>Cabinets:</strong> ${proj.cabinetCount} | <strong>Location:</strong> ${proj.siteLocation || ''}</p>
-            <small>${window.escapeHtml(proj.description?.substring(0, 120) || '')}...</small>
-          </div>`;
-        container.appendChild(card);
+              <p class="mt-2 mb-1"><strong>Controller:</strong> ${proj.controllerType} | <strong>Cabinets:</strong> ${proj.cabinetCount} | <strong>Location:</strong> ${proj.siteLocation || ''}</p>
+              <small>${window.escapeHtml(proj.description?.substring(0, 120) || '')}...</small>
+            </div>`;
+          container.appendChild(card);
+        }
+        
+        // Attach event listeners
+        document.querySelectorAll('.edit-project').forEach(btn => {
+          btn.addEventListener('click', () => openProjectModal(btn.dataset.id));
+        });
+        document.querySelectorAll('.delete-project').forEach(btn => {
+          btn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const projectId = btn.dataset.id;
+            if (confirm('⚠️ Delete this project permanently? This action cannot be undone.')) {
+              await safeDeleteProject(projectId);
+            }
+          });
+        });
+      } catch (err) {
+        console.error('Error rendering projects:', err);
+        showToast('Error loading projects: ' + err.message, 'error');
       }
-      document.querySelectorAll('.edit-project').forEach(btn => btn.addEventListener('click', () => openProjectModal(btn.dataset.id)));
-      document.querySelectorAll('.delete-project').forEach(btn => btn.addEventListener('click', async () => {
-        if (confirm('Delete this project?')) await safeDeleteProject(btn.dataset.id);
-      }));
     }
 
     async function renderCertificates() {
-      const certs = await window.portfolioData.loadCertificates();
-      const container = document.getElementById('certificatesList');
-      container.innerHTML = '';
-      if (certs.length === 0) {
-        container.innerHTML = '<div class="empty-state"><i class="fa fa-certificate"></i><h5>No certificates added</h5><p>Click "Add Certificate" to create one.</p></div>';
-        return;
+      try {
+        const certs = await window.portfolioData.loadCertificates();
+        const container = document.getElementById('certificatesList');
+        if (!container) return;
+        container.innerHTML = '';
+        if (certs.length === 0) {
+          container.innerHTML = '<div class="empty-state"><i class="fa fa-certificate"></i><h5>No certificates added</h5><p>Click "Add Certificate" to create one.</p></div>';
+          return;
+        }
+        certs.forEach((cert, idx) => {
+          const card = document.createElement('div');
+          card.className = 'card mb-2';
+          card.innerHTML = `
+            <div class="card-body d-flex justify-content-between align-items-center flex-wrap">
+              <div><strong>${window.escapeHtml(cert.title)}</strong> - ${window.escapeHtml(cert.issuer)} (${cert.date})</div>
+              <div>
+                <button class="btn btn-sm btn-outline-primary edit-cert" data-index="${idx}">Edit</button>
+                <button class="btn btn-sm btn-outline-danger delete-cert" data-index="${idx}">Delete</button>
+              </div>
+            </div>`;
+          container.appendChild(card);
+        });
+        
+        document.querySelectorAll('.edit-cert').forEach(btn => {
+          btn.addEventListener('click', () => openCertModal(parseInt(btn.dataset.index)));
+        });
+        document.querySelectorAll('.delete-cert').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            if (confirm('Delete this certificate?')) await safeDeleteCertificate(parseInt(btn.dataset.index));
+          });
+        });
+      } catch (err) {
+        console.error('Error rendering certificates:', err);
+        showToast('Error loading certificates: ' + err.message, 'error');
       }
-      certs.forEach((cert, idx) => {
-        const card = document.createElement('div');
-        card.className = 'card mb-2';
-        card.innerHTML = `
-          <div class="card-body d-flex justify-content-between align-items-center">
-            <div><strong>${window.escapeHtml(cert.title)}</strong> - ${window.escapeHtml(cert.issuer)} (${cert.date})</div>
-            <div>
-              <button class="btn btn-sm btn-outline-primary edit-cert" data-index="${idx}">Edit</button>
-              <button class="btn btn-sm btn-outline-danger delete-cert" data-index="${idx}">Delete</button>
-            </div>
-          </div>`;
-        container.appendChild(card);
-      });
-      document.querySelectorAll('.edit-cert').forEach(btn => btn.addEventListener('click', () => openCertModal(parseInt(btn.dataset.index))));
-      document.querySelectorAll('.delete-cert').forEach(btn => btn.addEventListener('click', async () => {
-        if (confirm('Delete this certificate?')) await safeDeleteCertificate(parseInt(btn.dataset.index));
-      }));
     }
 
+    // FIXED: safeDeleteProject - properly deletes project and images
     async function safeDeleteProject(id) {
       window.showLoading('Deleting project...');
       try {
         const current = await window.portfolioData.loadProjects();
-        if (!current[id]) { window.hideLoading(); return; }
+        if (!current[id]) {
+          showToast('Project not found', 'error');
+          window.hideLoading();
+          return;
+        }
+        
+        const projectTitle = current[id].title;
         const images = current[id].selectedImages || [];
+        
+        // Delete images from GitHub
         for (const img of images) {
           if (img.url && img.url.startsWith('https://raw.githubusercontent.com')) {
-            try { await window.deleteImageFromGitHub(img.url, user); } catch(e) { console.warn(e); }
+            try {
+              await window.deleteImageFromGitHub(img.url, user);
+              console.log('Deleted image:', img.url);
+            } catch(e) { 
+              console.warn('Could not delete image:', e); 
+            }
           }
         }
+        
+        // Remove project from object
         delete current[id];
+        
+        // Save updated projects
         await window.portfolioData.saveProjects(current, true);
+        
+        // Re-render projects list
         await renderProjects();
-        window.Logger.log('delete_project', `Deleted project: ${id}`);
-        showToast('Project deleted successfully', 'success');
+        
+        window.Logger.log('delete_project', `Deleted project: ${projectTitle} (${id})`);
+        showToast(`Project "${projectTitle}" deleted successfully`, 'success');
       } catch (err) {
+        console.error('Delete error:', err);
         showToast('Delete failed: ' + err.message, 'error');
       } finally {
         window.hideLoading();
@@ -508,16 +571,20 @@
       window.showLoading('Deleting certificate...');
       try {
         const certs = await window.portfolioData.loadCertificates();
-        if (!certs[idx]) { window.hideLoading(); return; }
+        if (!certs[idx]) {
+          window.hideLoading();
+          return;
+        }
         const thumb = certs[idx].thumbnail;
         if (thumb && thumb.startsWith('https://raw.githubusercontent.com')) {
           try { await window.deleteImageFromGitHub(thumb, user); } catch(e) { console.warn(e); }
         }
+        const certTitle = certs[idx].title;
         certs.splice(idx, 1);
         await window.portfolioData.saveCertificates(certs, true);
         await renderCertificates();
-        window.Logger.log('delete_certificate', `Deleted certificate`);
-        showToast('Certificate deleted', 'success');
+        window.Logger.log('delete_certificate', `Deleted certificate: ${certTitle}`);
+        showToast(`Certificate "${certTitle}" deleted`, 'success');
       } catch (err) {
         showToast('Delete failed: ' + err.message, 'error');
       } finally {
@@ -593,7 +660,10 @@
         }
       } else {
         document.getElementById('projectId').value = '';
-        ['projTitle','projLocation','projLead','projEngineer','projTech','projDesc','projVersion'].forEach(id => document.getElementById(id).value = '');
+        ['projTitle','projLocation','projLead','projEngineer','projTech','projDesc','projVersion'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.value = '';
+        });
         document.getElementById('projController').value = 'MD';
         document.getElementById('projType').value = '';
         document.getElementById('projCabinet').value = 1;
@@ -602,14 +672,17 @@
         document.getElementById('projDI').value = 0;
         document.getElementById('projDO').value = 0;
         document.getElementById('projGraphType').value = 'bar';
-        ['projStart','projFinish','projIFAT','projCFAT'].forEach(id => document.getElementById(id).value = '');
+        ['projStart','projFinish','projIFAT','projCFAT'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.value = '';
+        });
         imgContainer.innerHTML = '';
         updateImageCounter();
       }
       $('#projectModal').modal('show');
     }
 
-    document.getElementById('projectForm').addEventListener('submit', async (e) => {
+    document.getElementById('projectForm')?.addEventListener('submit', async (e) => {
       e.preventDefault();
       const projectId = document.getElementById('projectId').value;
       const newId = projectId || ('proj_' + Date.now());
@@ -667,8 +740,11 @@
         document.getElementById('certDate').value = cert.date;
         document.getElementById('certLink').value = cert.link || '';
         document.getElementById('certThumb').value = cert.thumbnail || '';
-        document.getElementById('thumbPreview').src = cert.thumbnail || '';
-        document.getElementById('thumbPreview').style.display = cert.thumbnail ? 'inline-block' : 'none';
+        const preview = document.getElementById('thumbPreview');
+        if (preview) {
+          preview.src = cert.thumbnail || '';
+          preview.style.display = cert.thumbnail ? 'inline-block' : 'none';
+        }
       } else {
         document.getElementById('certIndex').value = '';
         document.getElementById('certTitle').value = '';
@@ -676,12 +752,13 @@
         document.getElementById('certDate').value = '';
         document.getElementById('certLink').value = '';
         document.getElementById('certThumb').value = '';
-        document.getElementById('thumbPreview').style.display = 'none';
+        const preview = document.getElementById('thumbPreview');
+        if (preview) preview.style.display = 'none';
       }
       $('#certModal').modal('show');
     }
 
-    document.getElementById('certForm').addEventListener('submit', async (e) => {
+    document.getElementById('certForm')?.addEventListener('submit', async (e) => {
       e.preventDefault();
       const certs = await window.portfolioData.loadCertificates();
       const idx = document.getElementById('certIndex').value;
@@ -702,10 +779,14 @@
     // Admin and users
     const isAdmin = window.APP_CONFIG.adminUsers && window.APP_CONFIG.adminUsers.includes(user.username);
     if (isAdmin) {
-      document.getElementById('usersTabNav').style.display = 'block';
-      document.getElementById('refreshUsersBtn').addEventListener('click', loadUsers);
-      document.getElementById('downloadAllLogsBtn').style.display = 'inline-block';
-      document.getElementById('logUserSelectGroup').style.display = 'block';
+      const usersTabNav = document.getElementById('usersTabNav');
+      if (usersTabNav) usersTabNav.style.display = 'block';
+      const refreshUsersBtn = document.getElementById('refreshUsersBtn');
+      if (refreshUsersBtn) refreshUsersBtn.addEventListener('click', loadUsers);
+      const downloadAllLogsBtn = document.getElementById('downloadAllLogsBtn');
+      if (downloadAllLogsBtn) downloadAllLogsBtn.style.display = 'inline-block';
+      const logUserSelectGroup = document.getElementById('logUserSelectGroup');
+      if (logUserSelectGroup) logUserSelectGroup.style.display = 'block';
       loadUsers();
     }
 
@@ -777,6 +858,7 @@
       try {
         const users = await window.AccountManager.listUsers(user.pat);
         const select = document.getElementById('logUserSelect');
+        if (!select) return;
         select.innerHTML = '<option value="">-- Select user to download logs --</option>';
         for (const u of users) {
           select.innerHTML += `<option value="${u}">${u}</option>`;
@@ -786,22 +868,34 @@
       }
     }
 
-    document.getElementById('downloadMyLogBtn').addEventListener('click', async () => {
-      await downloadLogsForUser(user.username, false);
-    });
-    document.getElementById('logUserSelect').addEventListener('change', async (e) => {
-      const selected = e.target.value;
-      if (selected && isAdmin) {
-        await downloadLogsForUser(selected, true);
-        e.target.value = '';
-      }
-    });
-    document.getElementById('downloadAllLogsBtn').addEventListener('click', downloadAllLogs);
+    const downloadMyLogBtn = document.getElementById('downloadMyLogBtn');
+    if (downloadMyLogBtn) {
+      downloadMyLogBtn.addEventListener('click', async () => {
+        await downloadLogsForUser(user.username, false);
+      });
+    }
+    
+    const logUserSelect = document.getElementById('logUserSelect');
+    if (logUserSelect) {
+      logUserSelect.addEventListener('change', async (e) => {
+        const selected = e.target.value;
+        if (selected && isAdmin) {
+          await downloadLogsForUser(selected, true);
+          e.target.value = '';
+        }
+      });
+    }
+    
+    const downloadAllLogsBtn = document.getElementById('downloadAllLogsBtn');
+    if (downloadAllLogsBtn) {
+      downloadAllLogsBtn.addEventListener('click', downloadAllLogs);
+    }
     await populateUserSelect();
 
     async function loadUsers() {
       window.showLoading('Loading users...');
       const container = document.getElementById('usersList');
+      if (!container) return;
       try {
         const usernames = await window.AccountManager.listUsers(user.pat);
         const blocked = await window.AccountManager.getBlockedUsers();
@@ -817,13 +911,13 @@
             card.className = 'card mb-2';
             card.innerHTML = `
               <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex justify-content-between align-items-center flex-wrap">
                   <div>
                     <strong>${window.escapeHtml(username)}</strong>
                     ${isBlocked ? '<span class="badge badge-danger ml-2">Blocked</span>' : '<span class="badge badge-success ml-2">Active</span>'}
                     <div class="small text-muted">Projects: ${stats.projects} | Certificates: ${stats.certificates}</div>
                   </div>
-                  <div>
+                  <div class="mt-2 mt-sm-0">
                     <button class="btn btn-sm ${isBlocked ? 'btn-success' : 'btn-warning'} toggle-block-btn" data-username="${username}">${isBlocked ? 'Unblock' : 'Block'}</button>
                     <button class="btn btn-sm btn-danger delete-user-btn" data-username="${username}">Delete</button>
                   </div>
@@ -867,60 +961,81 @@
     }
 
     // Buttons
-    document.getElementById('addProjectBtn').addEventListener('click', () => openProjectModal());
-    document.getElementById('addCertBtn').addEventListener('click', () => openCertModal());
-    document.getElementById('downloadDataBtn').addEventListener('click', () => window.portfolioData.exportData());
-    document.getElementById('deleteAllProjectsBtn').addEventListener('click', async () => {
-      if (confirm('⚠️ PERMANENTLY delete ALL your projects? This action cannot be undone.')) {
-        window.showLoading('Deleting all projects...');
-        try {
-          const projects = await window.portfolioData.loadProjects();
-          for (const proj of Object.values(projects)) {
-            for (const img of (proj.selectedImages || [])) {
-              if (img.url && img.url.startsWith('https://raw.githubusercontent.com')) {
-                try { await window.deleteImageFromGitHub(img.url, user); } catch(e) { console.warn(e); }
+    const addProjectBtn = document.getElementById('addProjectBtn');
+    if (addProjectBtn) addProjectBtn.addEventListener('click', () => openProjectModal());
+    
+    const addCertBtn = document.getElementById('addCertBtn');
+    if (addCertBtn) addCertBtn.addEventListener('click', () => openCertModal());
+    
+    const downloadDataBtn = document.getElementById('downloadDataBtn');
+    if (downloadDataBtn) downloadDataBtn.addEventListener('click', () => window.portfolioData.exportData());
+    
+    const deleteAllProjectsBtn = document.getElementById('deleteAllProjectsBtn');
+    if (deleteAllProjectsBtn) {
+      deleteAllProjectsBtn.addEventListener('click', async () => {
+        if (confirm('⚠️ PERMANENTLY delete ALL your projects? This action cannot be undone.')) {
+          window.showLoading('Deleting all projects...');
+          try {
+            const projects = await window.portfolioData.loadProjects();
+            for (const proj of Object.values(projects)) {
+              for (const img of (proj.selectedImages || [])) {
+                if (img.url && img.url.startsWith('https://raw.githubusercontent.com')) {
+                  try { await window.deleteImageFromGitHub(img.url, user); } catch(e) { console.warn(e); }
+                }
               }
             }
-          }
-          await window.portfolioData.saveProjects({}, true);
-          await renderProjects();
-          window.Logger.log('delete_all_projects', 'Deleted all projects');
-          showToast('All projects deleted', 'success');
-        } catch (err) { showToast('Failed: ' + err.message, 'error'); }
-        window.hideLoading();
-      }
-    });
-    document.getElementById('deleteAllCertsBtn').addEventListener('click', async () => {
-      if (confirm('⚠️ PERMANENTLY delete ALL certificates? This action cannot be undone.')) {
-        window.showLoading('Deleting all certificates...');
-        try {
-          const certs = await window.portfolioData.loadCertificates();
-          for (const cert of certs) {
-            if (cert.thumbnail && cert.thumbnail.startsWith('https://raw.githubusercontent.com')) {
-              try { await window.deleteImageFromGitHub(cert.thumbnail, user); } catch(e) { console.warn(e); }
+            await window.portfolioData.saveProjects({}, true);
+            await renderProjects();
+            window.Logger.log('delete_all_projects', 'Deleted all projects');
+            showToast('All projects deleted', 'success');
+          } catch (err) { showToast('Failed: ' + err.message, 'error'); }
+          window.hideLoading();
+        }
+      });
+    }
+    
+    const deleteAllCertsBtn = document.getElementById('deleteAllCertsBtn');
+    if (deleteAllCertsBtn) {
+      deleteAllCertsBtn.addEventListener('click', async () => {
+        if (confirm('⚠️ PERMANENTLY delete ALL certificates? This action cannot be undone.')) {
+          window.showLoading('Deleting all certificates...');
+          try {
+            const certs = await window.portfolioData.loadCertificates();
+            for (const cert of certs) {
+              if (cert.thumbnail && cert.thumbnail.startsWith('https://raw.githubusercontent.com')) {
+                try { await window.deleteImageFromGitHub(cert.thumbnail, user); } catch(e) { console.warn(e); }
+              }
             }
-          }
-          await window.portfolioData.saveCertificates([], true);
-          await renderCertificates();
-          window.Logger.log('delete_all_certificates', 'Deleted all certificates');
-          showToast('All certificates deleted', 'success');
-        } catch (err) { showToast('Failed: ' + err.message, 'error'); }
+            await window.portfolioData.saveCertificates([], true);
+            await renderCertificates();
+            window.Logger.log('delete_all_certificates', 'Deleted all certificates');
+            showToast('All certificates deleted', 'success');
+          } catch (err) { showToast('Failed: ' + err.message, 'error'); }
+          window.hideLoading();
+        }
+      });
+    }
+    
+    const syncProjectsBtn = document.getElementById('syncProjectsBtn');
+    if (syncProjectsBtn) {
+      syncProjectsBtn.addEventListener('click', async () => {
+        window.showLoading('Refreshing from GitHub...');
+        await renderProjects();
+        await renderCertificates();
         window.hideLoading();
-      }
-    });
-    document.getElementById('syncProjectsBtn').addEventListener('click', async () => {
-      window.showLoading('Refreshing from GitHub...');
-      await renderProjects();
-      await renderCertificates();
-      window.hideLoading();
-      showToast('Data refreshed', 'success');
-      window.Logger.log('sync', 'Manually synced from GitHub');
-    });
-    document.getElementById('logoutBtn').addEventListener('click', () => {
-      window.Logger.log('logout', 'User logged out');
-      window.SessionManager.logout();
-      window.location.href = 'login.html';
-    });
+        showToast('Data refreshed', 'success');
+        window.Logger.log('sync', 'Manually synced from GitHub');
+      });
+    }
+    
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', () => {
+        window.Logger.log('logout', 'User logged out');
+        window.SessionManager.logout();
+        window.location.href = 'login.html';
+      });
+    }
 
     // Auto refresh every 60 seconds
     let autoRefreshInterval = setInterval(async () => {
