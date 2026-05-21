@@ -47,6 +47,64 @@
 </footer>
 
 <script>
+  // Helper function to update a JSON file on GitHub
+  async function updateGitHubFile(path, content, message, token) {
+    const { owner, repo, branch } = window.REPO_CONFIG;
+    const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
+    
+    // Get current file SHA if it exists
+    let sha = null;
+    try {
+      const getResp = await fetch(url, {
+        headers: { 
+          'Authorization': `token ${token}`,
+          'Accept': 'application/vnd.github.v3+json'
+        }
+      });
+      if (getResp.ok) {
+        const data = await getResp.json();
+        sha = data.sha;
+      }
+    } catch (e) {}
+    
+    // Prepare update
+    const body = {
+      message: message,
+      content: btoa(unescape(encodeURIComponent(JSON.stringify(content, null, 2)))),
+      branch: branch
+    };
+    if (sha) body.sha = sha;
+    
+    const resp = await fetch(url, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `token ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+    
+    if (!resp.ok) {
+      const error = await resp.json();
+      throw new Error(`Failed to update ${path}: ${error.message}`);
+    }
+    
+    return resp.json();
+  }
+
+  // Helper function to read a JSON file from GitHub
+  async function readGitHubFile(path) {
+    const { owner, repo, branch } = window.REPO_CONFIG;
+    const url = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${path}`;
+    try {
+      const resp = await fetch(url);
+      if (resp.ok) {
+        return await resp.json();
+      }
+    } catch (e) {}
+    return null;
+  }
+
   async function verifyEmail() {
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get('token');
@@ -68,25 +126,16 @@
     }
     
     try {
-      // Call GitHub API to verify the email
-      const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-      const pendingUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/data/pending_verification.json`;
-      const verifiedUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/data/verified_users.json`;
+      // Read pending and verified data
+      const pendingData = await readGitHubFile('data/pending_verification.json');
+      const verifiedData = await readGitHubFile('data/verified_users.json');
       
-      // Fetch current pending and verified data
-      const [pendingResp, verifiedResp] = await Promise.all([
-        fetch(pendingUrl).catch(() => ({ ok: false })),
-        fetch(verifiedUrl).catch(() => ({ ok: false }))
-      ]);
-      
-      let pendingData = { pending: [] };
-      let verifiedData = { verified: [] };
-      
-      if (pendingResp.ok) pendingData = await pendingResp.json();
-      if (verifiedResp.ok) verifiedData = await verifiedResp.json();
+      if (!pendingData) {
+        throw new Error('Unable to load verification data');
+      }
       
       // Check if already verified
-      if (verifiedData.verified.includes(email)) {
+      if (verifiedData && verifiedData.verified && verifiedData.verified.includes(email)) {
         spinner.style.display = 'none';
         container.innerHTML = `
           <i class="fa fa-check-circle success-icon"></i>
@@ -97,7 +146,7 @@
         return;
       }
       
-      // Find pending verification
+      // Find pending entry
       const pendingEntry = pendingData.pending.find(p => p.email === email && p.token === token);
       
       if (!pendingEntry) {
@@ -125,80 +174,35 @@
         return;
       }
       
-      // Verify the email - we need to update the GitHub files
-      // Remove from pending, add to verified
-      const newPending = pendingData.pending.filter(p => p.email !== email);
-      const newVerified = { verified: [...verifiedData.verified, email] };
+      // Update verified_users.json - add this email
+      const currentVerified = verifiedData?.verified || [];
+      const newVerified = { verified: [...currentVerified, email] };
       
-      // Update pending_verification.json
-      const updatePendingUrl = `https://api.github.com/repos/${owner}/${repo}/contents/data/pending_verification.json`;
-      const updateVerifiedUrl = `https://api.github.com/repos/${owner}/${repo}/contents/data/verified_users.json`;
+      // Update pending_verification.json - remove this email
+      const newPending = { pending: pendingData.pending.filter(p => p.email !== email) };
       
-      // Get current SHAs
-      let pendingSha = null, verifiedSha = null;
+      // We need a token with write access. Use the pending entry's token (from the user who registered)
+      // Note: This token needs write access to the repo
+      const userToken = pendingEntry.token || '';
       
-      const getPending = await fetch(updatePendingUrl, {
-        headers: { 'Authorization': `token ${pendingEntry.token}` }
-      });
-      if (getPending.ok) {
-        const data = await getPending.json();
-        pendingSha = data.sha;
+      if (!userToken) {
+        throw new Error('No valid token found for verification');
       }
       
-      const getVerified = await fetch(updateVerifiedUrl, {
-        headers: { 'Authorization': `token ${pendingEntry.token}` }
-      });
-      if (getVerified.ok) {
-        const data = await getVerified.json();
-        verifiedSha = data.sha;
-      }
+      // Update both files
+      await updateGitHubFile('data/verified_users.json', newVerified, `Verify email: ${email}`, userToken);
+      await updateGitHubFile('data/pending_verification.json', newPending, `Remove pending verification for ${email}`, userToken);
       
-      // Update pending file (remove entry)
-      await fetch(updatePendingUrl, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `token ${pendingEntry.token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          message: `Verify email for ${email}`,
-          content: btoa(unescape(encodeURIComponent(JSON.stringify(newPending, null, 2)))),
-          sha: pendingSha,
-          branch: branch
-        })
-      });
+      // Also create/update user's individual verified.json file
+      const encUser = encodeURIComponent(email);
+      const userVerifiedPath = `data/users/${encUser}/verified.json`;
+      const userVerifiedContent = { 
+        verified: true, 
+        verifiedAt: Date.now(),
+        email: email
+      };
       
-      // Update verified file (add email)
-      await fetch(updateVerifiedUrl, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `token ${pendingEntry.token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          message: `Add verified email ${email}`,
-          content: btoa(unescape(encodeURIComponent(JSON.stringify(newVerified, null, 2)))),
-          sha: verifiedSha,
-          branch: branch
-        })
-      });
-      
-      // Also create/update a verification file for this user
-      const userVerificationPath = `${dataPath}/users/${encodeURIComponent(email)}/verified.json`;
-      const userVerifiedUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${userVerificationPath}`;
-      
-      await fetch(userVerifiedUrl, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `token ${pendingEntry.token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          message: `Mark user ${email} as verified`,
-          content: btoa(unescape(encodeURIComponent(JSON.stringify({ verified: true, verifiedAt: Date.now() })))),
-          branch: branch
-        })
-      });
+      await updateGitHubFile(userVerifiedPath, userVerifiedContent, `Mark user ${email} as verified`, userToken);
       
       spinner.style.display = 'none';
       container.innerHTML = `
@@ -221,7 +225,7 @@
     }
   }
   
-  // Run verification
+  // Run verification when page loads
   verifyEmail();
 </script>
 
