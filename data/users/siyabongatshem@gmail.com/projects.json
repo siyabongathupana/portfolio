@@ -3,7 +3,7 @@
     "id": "proj_1779389129398",
     "title": "Test",
     "controllerType": "MD",
-    "projectType": "Other",
+    "projectType": "SIS & DCS",
     "deltaVVersion": "",
     "cabinetCount": 1,
     "io": {
@@ -24,9 +24,9 @@
       "engineer": "",
       "technician": ""
     },
-    "description": "",
+    "description": "fgfdt fgdfgc fdgdhdfgd dfggd",
     "graphType": "bar",
     "selectedImages": [],
-    "updatedAt": 1779389129398
+    "updatedAt": 1779389187374
   }
 }
