@@ -6,7 +6,6 @@ const { execSync } = require('child_process');
 const VERIFIED_FILE = 'data/verified_users.json';
 const SENT_WELCOME_FILE = 'data/welcome_sent.json';
 
-// Load sent welcome emails
 function loadSentWelcome() {
   try {
     if (fs.existsSync(SENT_WELCOME_FILE)) {
@@ -16,13 +15,11 @@ function loadSentWelcome() {
   return { sent: [] };
 }
 
-// Save sent welcome emails
 function saveSentWelcome(data) {
   fs.writeFileSync(SENT_WELCOME_FILE, JSON.stringify(data, null, 2));
   console.log(`Saved sent welcome list: ${data.sent.length} users`);
 }
 
-// Get new verified users from git diff
 function getNewVerifiedUsers() {
   try {
     const prevContent = execSync('git show HEAD~1:data/verified_users.json 2>/dev/null || echo "{}"', { encoding: 'utf8' });
@@ -39,14 +36,12 @@ function getNewVerifiedUsers() {
   }
 }
 
-// Get the site URL from environment or construct it
 function getSiteUrl() {
   const repoName = process.env.GITHUB_REPOSITORY_NAME || 'portfolio';
   const repoOwner = process.env.GITHUB_REPOSITORY_OWNER || 'siyabongathupana';
   return process.env.SITE_URL || `https://${repoOwner}.github.io/${repoName}`;
 }
 
-// Send beautiful welcome email
 async function sendWelcomeEmail(email) {
   const siteUrl = getSiteUrl();
   const dashboardUrl = `${siteUrl}/admin.html`;
@@ -54,7 +49,6 @@ async function sendWelcomeEmail(email) {
   const projectsUrl = `${siteUrl}/projects.html`;
   const timesheetUrl = `${siteUrl}/timesheet.html`;
   
-  // Logo URL - using raw GitHub URL for the logo
   const repoOwner = process.env.GITHUB_REPOSITORY_OWNER || 'siyabongathupana';
   const repoName = process.env.GITHUB_REPOSITORY_NAME || 'portfolio';
   const logoUrl = `https://raw.githubusercontent.com/${repoOwner}/${repoName}/main/logo.png`;
@@ -75,7 +69,11 @@ async function sendWelcomeEmail(email) {
   const mailOptions = {
     from: `"Your Portfolio" <${process.env.FROM_EMAIL}>`,
     to: email,
-    subject: '🎉 Welcome to Your Portfolio! Your Engineering Journey Starts Here',
+    subject: 'Welcome to Your Portfolio - Account Activated',
+    headers: {
+      'X-Mailer': 'Your Portfolio System',
+      'X-Account-Type': 'Professional'
+    },
     html: `
       <!DOCTYPE html>
       <html lang="en">
@@ -84,447 +82,314 @@ async function sendWelcomeEmail(email) {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Welcome to Your Portfolio</title>
         <style>
-          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-          
-          * {
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333333;
+            background-color: #f5f7fa;
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
           }
-          
-          body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            line-height: 1.6;
-            background: linear-gradient(135deg, #eef3fc 0%, #dce8f0 100%);
-            margin: 0;
-            padding: 20px;
-          }
-          
-          .email-container {
+          .container {
             max-width: 600px;
             margin: 0 auto;
-            background: #ffffff;
-            border-radius: 24px;
+            background-color: #ffffff;
+            border-radius: 8px;
             overflow: hidden;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
           }
-          
-          /* Header Section */
-          .email-header {
-            background: linear-gradient(135deg, #0b2b3b 0%, #1a4d5f 100%);
-            padding: 40px 30px;
+          .header {
+            background-color: #0b2b3b;
+            padding: 32px 24px;
             text-align: center;
-            position: relative;
           }
-          
-          .logo-container {
-            margin-bottom: 20px;
-          }
-          
           .logo {
-            max-width: 80px;
+            max-width: 60px;
             height: auto;
-            border-radius: 16px;
+            margin-bottom: 16px;
+            border-radius: 12px;
           }
-          
-          .email-header h1 {
+          .header h1 {
             color: #ffffff;
-            font-size: 32px;
-            font-weight: 700;
-            margin: 0 0 10px;
-            letter-spacing: -0.5px;
+            font-size: 24px;
+            font-weight: 600;
+            margin: 0 0 4px;
           }
-          
-          .email-header .tagline {
-            color: rgba(255, 255, 255, 0.9);
+          .header p {
+            color: #a0c4d4;
+            font-size: 14px;
+            margin: 0;
+          }
+          .content {
+            padding: 32px 28px;
+            background-color: #ffffff;
+          }
+          .greeting {
             font-size: 16px;
+            color: #1e2a3e;
+            margin-bottom: 20px;
             font-weight: 500;
           }
-          
-          .welcome-badge {
-            display: inline-block;
-            background: rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(10px);
-            padding: 8px 20px;
-            border-radius: 50px;
-            margin-top: 20px;
-            font-size: 14px;
-            color: #ffffff;
+          .message {
+            color: #4a5568;
+            font-size: 15px;
+            line-height: 1.7;
+            margin-bottom: 24px;
           }
-          
-          /* Content Section */
-          .email-content {
-            padding: 40px 30px;
-            background: #ffffff;
+          .divider {
+            height: 1px;
+            background-color: #e2e8f0;
+            margin: 24px 0;
           }
-          
-          .greeting {
-            font-size: 18px;
+          .section-title {
+            font-size: 16px;
+            font-weight: 600;
             color: #1e2a3e;
-            margin-bottom: 25px;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #2fc7ff;
+            display: inline-block;
           }
-          
-          .greeting strong {
+          .feature-grid {
+            display: table;
+            width: 100%;
+            margin: 20px 0;
+            border-collapse: collapse;
+          }
+          .feature-row {
+            display: table-row;
+          }
+          .feature-cell {
+            display: table-cell;
+            padding: 12px 8px 12px 0;
+            border-bottom: 1px solid #f0f2f5;
+            vertical-align: top;
+          }
+          .feature-icon {
+            width: 40px;
+            font-size: 20px;
             color: #2fc7ff;
           }
-          
-          .intro-text {
-            color: #4a627a;
-            margin-bottom: 30px;
-            font-size: 16px;
-            line-height: 1.7;
+          .feature-title {
+            font-weight: 600;
+            color: #1e2a3e;
+            margin-bottom: 4px;
           }
-          
-          /* Features Grid */
-          .features-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 20px;
-            margin: 30px 0;
+          .feature-desc {
+            font-size: 13px;
+            color: #718096;
           }
-          
-          .feature-card {
-            background: #f8fafc;
-            border-radius: 16px;
+          .cta-section {
+            background-color: #f8fafc;
+            border-radius: 8px;
             padding: 20px;
             text-align: center;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            margin: 24px 0;
             border: 1px solid #e2e8f0;
           }
-          
-          .feature-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
-          }
-          
-          .feature-icon {
-            font-size: 32px;
-            margin-bottom: 12px;
-            display: inline-block;
-          }
-          
-          .feature-card h3 {
-            font-size: 16px;
-            font-weight: 600;
-            color: #1e2a3e;
-            margin-bottom: 8px;
-          }
-          
-          .feature-card p {
-            font-size: 13px;
-            color: #5a7d9a;
-            line-height: 1.5;
-          }
-          
-          /* Quick Stats */
-          .stats-section {
-            background: linear-gradient(135deg, #0b2b3b 0%, #1a4d5f 100%);
-            border-radius: 20px;
-            padding: 25px;
-            margin: 30px 0;
-            text-align: center;
-          }
-          
-          .stats-section h3 {
-            color: #ffffff;
-            font-size: 18px;
-            margin-bottom: 20px;
-          }
-          
-          .stats-grid {
-            display: flex;
-            justify-content: space-around;
-            flex-wrap: wrap;
-            gap: 15px;
-          }
-          
-          .stat-item {
-            text-align: center;
-          }
-          
-          .stat-number {
-            font-size: 28px;
-            font-weight: 700;
-            color: #2fc7ff;
-            display: block;
-          }
-          
-          .stat-label {
-            font-size: 12px;
-            color: rgba(255, 255, 255, 0.8);
-          }
-          
-          /* CTA Buttons */
-          .cta-section {
-            text-align: center;
-            margin: 30px 0;
-          }
-          
           .btn-primary {
             display: inline-block;
-            background: #2fc7ff;
+            background-color: #2fc7ff;
             color: #0a2b33;
-            padding: 14px 32px;
-            border-radius: 50px;
-            text-decoration: none;
-            font-weight: 600;
-            font-size: 16px;
-            transition: all 0.3s ease;
-            margin: 5px;
-            box-shadow: 0 4px 15px rgba(47, 199, 255, 0.3);
-          }
-          
-          .btn-primary:hover {
-            background: #1d9fcf;
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(47, 199, 255, 0.4);
-            color: #ffffff;
-          }
-          
-          .btn-secondary {
-            display: inline-block;
-            background: transparent;
-            color: #2fc7ff;
             padding: 12px 28px;
-            border-radius: 50px;
+            border-radius: 6px;
             text-decoration: none;
             font-weight: 600;
             font-size: 14px;
-            transition: all 0.3s ease;
-            margin: 5px;
-            border: 2px solid #2fc7ff;
+            margin: 0 8px 8px 0;
+            border: none;
           }
-          
+          .btn-primary:hover {
+            background-color: #1d9fcf;
+            color: #ffffff;
+          }
+          .btn-secondary {
+            display: inline-block;
+            background-color: transparent;
+            color: #2fc7ff;
+            padding: 11px 27px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 14px;
+            border: 1px solid #2fc7ff;
+            margin: 0 8px 8px 0;
+          }
           .btn-secondary:hover {
-            background: #2fc7ff;
+            background-color: #2fc7ff;
             color: #0a2b33;
-            transform: translateY(-2px);
           }
-          
-          /* Guide Preview */
-          .guide-preview {
-            background: #f8fafc;
-            border-radius: 20px;
-            padding: 25px;
-            margin: 30px 0;
-            border: 1px solid #e2e8f0;
+          .guide-box {
+            background-color: #f8fafc;
+            border-left: 3px solid #2fc7ff;
+            padding: 16px 20px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
           }
-          
-          .guide-preview h3 {
-            color: #1e2a3e;
-            font-size: 18px;
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
+          .guide-box p {
+            margin: 0 0 8px;
+            font-size: 14px;
+            color: #4a5568;
           }
-          
-          .guide-preview ul {
-            margin: 15px 0;
+          .guide-box ul {
+            margin: 8px 0 0;
             padding-left: 20px;
-            color: #4a627a;
           }
-          
-          .guide-preview li {
-            margin: 8px 0;
+          .guide-box li {
+            font-size: 13px;
+            color: #718096;
+            margin: 4px 0;
           }
-          
-          /* Footer */
-          .email-footer {
-            background: #f8fafc;
-            padding: 30px;
+          .footer {
+            background-color: #f8fafc;
+            padding: 24px;
             text-align: center;
             border-top: 1px solid #e2e8f0;
           }
-          
-          .social-links {
-            margin-bottom: 20px;
+          .footer-links {
+            margin-bottom: 16px;
           }
-          
-          .social-link {
-            display: inline-block;
-            margin: 0 10px;
-            color: #5a7d9a;
-            text-decoration: none;
-            font-size: 14px;
-          }
-          
-          .social-link:hover {
+          .footer-links a {
             color: #2fc7ff;
-          }
-          
-          .footer-text {
+            text-decoration: none;
             font-size: 12px;
-            color: #5a7d9a;
-            line-height: 1.5;
+            margin: 0 12px;
           }
-          
-          .footer-text a {
-            color: #2fc7ff;
-            text-decoration: none;
-          }
-          
-          .footer-text a:hover {
+          .footer-links a:hover {
             text-decoration: underline;
           }
-          
-          /* Responsive */
+          .footer-text {
+            font-size: 11px;
+            color: #a0aec0;
+            line-height: 1.5;
+          }
           @media (max-width: 500px) {
-            .email-container {
-              border-radius: 16px;
+            .content {
+              padding: 24px 20px;
             }
-            
-            .email-header {
-              padding: 30px 20px;
+            .feature-cell {
+              display: block;
+              width: 100%;
             }
-            
-            .email-header h1 {
-              font-size: 24px;
+            .feature-row {
+              display: block;
+              margin-bottom: 16px;
             }
-            
-            .email-content {
-              padding: 25px 20px;
+            .feature-icon {
+              width: auto;
+              margin-bottom: 4px;
             }
-            
-            .features-grid {
-              grid-template-columns: 1fr;
-              gap: 15px;
-            }
-            
             .btn-primary, .btn-secondary {
               display: block;
-              margin: 10px 0;
-            }
-            
-            .stats-grid {
-              flex-direction: column;
-              gap: 10px;
+              margin: 8px 0;
+              text-align: center;
             }
           }
         </style>
       </head>
       <body>
-        <div class="email-container">
-          <!-- Header with Logo -->
-          <div class="email-header">
-            <div class="logo-container">
-              <img src="${logoUrl}" alt="Your Portfolio Logo" class="logo" onerror="this.style.display='none'">
-            </div>
-            <h1>Welcome to Your Portfolio</h1>
-            <div class="tagline">Your Professional Engineering Portfolio Platform</div>
-            <div class="welcome-badge">
-              ✨ Account Successfully Verified ✨
-            </div>
+        <div class="container">
+          <div class="header">
+            <img src="${logoUrl}" alt="Logo" class="logo" onerror="this.style.display='none'">
+            <h1>Your Portfolio</h1>
+            <p>Professional Engineering Portfolio Platform</p>
           </div>
           
-          <!-- Main Content -->
-          <div class="email-content">
+          <div class="content">
             <div class="greeting">
-              Hello <strong>${userName}</strong>! 👋
+              Dear ${userName},
             </div>
             
-            <div class="intro-text">
-              Thank you for joining <strong>Your Portfolio</strong> – the complete platform for engineering professionals 
-              to showcase projects, track time, and manage certifications. Your account is now fully activated and ready to use!
+            <div class="message">
+              Thank you for verifying your email address. Your account has been successfully activated and you now have full access to all features of Your Portfolio.
             </div>
             
-            <!-- Features Grid -->
-            <div class="features-grid">
-              <div class="feature-card">
-                <div class="feature-icon">📁</div>
-                <h3>Project Management</h3>
-                <p>Add, edit, and organize your engineering projects with images and detailed specs</p>
-              </div>
-              <div class="feature-card">
-                <div class="feature-icon">📜</div>
-                <h3>Certificates</h3>
-                <p>Upload and showcase your professional certifications and credentials</p>
-              </div>
-              <div class="feature-card">
-                <div class="feature-icon">⏱️</div>
-                <h3>Timesheet</h3>
-                <p>Track your time efficiently with our integrated timesheet system</p>
-              </div>
-              <div class="feature-card">
-                <div class="feature-icon">📊</div>
-                <h3>PDF Reports</h3>
-                <p>Generate professional PDF reports of your projects and time entries</p>
-              </div>
-              <div class="feature-card">
-                <div class="feature-icon">🖼️</div>
-                <h3>Image Gallery</h3>
-                <p>Upload project photos with automatic compression and GitHub storage</p>
-              </div>
-              <div class="feature-card">
-                <div class="feature-icon">🔒</div>
-                <h3>Secure Storage</h3>
-                <p>All your data is encrypted and stored securely on GitHub</p>
-              </div>
+            <div class="message">
+              Your Portfolio is a comprehensive platform designed for engineering professionals to manage projects, track time, and showcase certifications.
             </div>
             
-            <!-- Quick Stats -->
-            <div class="stats-section">
-              <h3>🌟 What's Inside Your Portfolio</h3>
-              <div class="stats-grid">
-                <div class="stat-item">
-                  <span class="stat-number">∞</span>
-                  <span class="stat-label">Unlimited Projects</span>
-                </div>
-                <div class="stat-item">
-                  <span class="stat-number">📊</span>
-                  <span class="stat-label">Analytics & Charts</span>
-                </div>
-                <div class="stat-item">
-                  <span class="stat-number">🔐</span>
-                  <span class="stat-label">End-to-End Encryption</span>
+            <div class="divider"></div>
+            
+            <div class="section-title">Available Features</div>
+            
+            <div class="feature-grid">
+              <div class="feature-row">
+                <div class="feature-cell feature-icon">📁</div>
+                <div class="feature-cell">
+                  <div class="feature-title">Project Management</div>
+                  <div class="feature-desc">Create and manage engineering projects with detailed specifications and images</div>
                 </div>
               </div>
+              <div class="feature-row">
+                <div class="feature-cell feature-icon">📜</div>
+                <div class="feature-cell">
+                  <div class="feature-title">Certificates</div>
+                  <div class="feature-desc">Upload and organize professional certifications and credentials</div>
+                </div>
+              </div>
+              <div class="feature-row">
+                <div class="feature-cell feature-icon">⏱️</div>
+                <div class="feature-cell">
+                  <div class="feature-title">Timesheet</div>
+                  <div class="feature-desc">Track working hours with integrated timesheet system</div>
+                </div>
+              </div>
+              <div class="feature-row">
+                <div class="feature-cell feature-icon">📊</div>
+                <div class="feature-cell">
+                  <div class="feature-title">PDF Reports</div>
+                  <div class="feature-desc">Generate professional PDF reports for projects and time entries</div>
+                </div>
+              </div>
+              <div class="feature-row">
+                <div class="feature-cell feature-icon">🖼️</div>
+                <div class="feature-cell">
+                  <div class="feature-title">Image Gallery</div>
+                  <div class="feature-desc">Upload project images with automatic compression</div>
+                </div>
+              </div>
+              <div class="feature-row">
+                <div class="feature-cell feature-icon">🔒</div>
+                <div class="feature-cell">
+                  <div class="feature-title">Secure Storage</div>
+                  <div class="feature-desc">End-to-end encrypted data storage on GitHub</div>
+                </div>
+              </div>
             </div>
             
-            <!-- CTA Buttons -->
             <div class="cta-section">
-              <a href="${dashboardUrl}" class="btn-primary">🚀 Go to Dashboard</a>
-              <a href="${guideUrl}" class="btn-secondary">📖 Read User Guide</a>
+              <a href="${dashboardUrl}" class="btn-primary">Access Dashboard</a>
+              <a href="${guideUrl}" class="btn-secondary">Read User Guide</a>
             </div>
             
-            <!-- Guide Preview -->
-            <div class="guide-preview">
-              <h3>
-                <span>📚</span> New to the Platform?
-              </h3>
-              <p>Check out our comprehensive <strong>User Guide</strong> to learn everything you need to know:</p>
+            <div class="guide-box">
+              <p><strong>New to the platform?</strong></p>
+              <p>The User Guide provides comprehensive information about:</p>
               <ul>
-                <li>🎯 Step-by-step project setup guide</li>
-                <li>⏱️ Timesheet best practices</li>
-                <li>📜 How to add and manage certificates</li>
-                <li>🖼️ Image upload and gallery management</li>
-                <li>🔒 Security and privacy information</li>
+                <li>Setting up your first project</li>
+                <li>Managing timesheet entries</li>
+                <li>Uploading certificates and images</li>
+                <li>Generating PDF reports</li>
+                <li>Account security best practices</li>
               </ul>
-              <div style="text-align: center; margin-top: 15px;">
-                <a href="${guideUrl}" style="color: #2fc7ff; text-decoration: none; font-weight: 600;">Read the Full Guide →</a>
-              </div>
             </div>
             
-            <div class="intro-text" style="margin-top: 20px; font-style: italic;">
-              💡 <strong>Pro Tip:</strong> Start by adding your first project. The dashboard guides you through every step of the way!
+            <div class="message" style="font-size: 13px; color: #718096; font-style: italic; margin-top: 20px;">
+              Tip: Start by adding your first project from the dashboard. The interface will guide you through the process.
             </div>
           </div>
           
-          <!-- Footer -->
-          <div class="email-footer">
-            <div class="social-links">
-              <a href="https://github.com/siyabongathupana" class="social-link">🐙 GitHub</a>
-              <a href="#" class="social-link">💼 LinkedIn</a>
-              <a href="${guideUrl}" class="social-link">📖 Help Center</a>
+          <div class="footer">
+            <div class="footer-links">
+              <a href="${dashboardUrl}">Dashboard</a>
+              <a href="${guideUrl}">User Guide</a>
+              <a href="${projectsUrl}">Projects</a>
+              <a href="${timesheetUrl}">Timesheet</a>
             </div>
             <div class="footer-text">
               <p>© ${currentYear} Your Portfolio. All rights reserved.</p>
-              <p>This email was sent to <strong>${email}</strong> because your account was successfully verified.</p>
-              <p>Built with ❤️ for engineering professionals</p>
-              <p style="margin-top: 15px; font-size: 11px;">
-                If you didn't create this account, please ignore this email or 
-                <a href="mailto:${process.env.FROM_EMAIL}">contact support</a>.
-              </p>
+              <p>This email was sent to ${email} following account verification.</p>
+              <p>If you did not create this account, please contact support at ${process.env.FROM_EMAIL}</p>
             </div>
           </div>
         </div>
@@ -535,36 +400,34 @@ async function sendWelcomeEmail(email) {
 
   try {
     const info = await transporter.sendMail(mailOptions);
-    console.log(`✅ Welcome email sent to ${email}`);
-    console.log(`   Message ID: ${info.messageId}`);
+    console.log(`Welcome email sent to ${email}`);
+    console.log(`Message ID: ${info.messageId}`);
     return true;
   } catch (error) {
-    console.error(`❌ Failed to send welcome email to ${email}:`, error.message);
+    console.error(`Failed to send welcome email to ${email}:`, error.message);
     return false;
   }
 }
 
-// Main function
 async function main() {
-  console.log('='.repeat(60));
-  console.log('🎉 WELCOME EMAIL SERVICE STARTED');
-  console.log('='.repeat(60));
+  console.log('='.repeat(50));
+  console.log('WELCOME EMAIL SERVICE STARTED');
+  console.log('='.repeat(50));
   
   if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
-    console.error('❌ SMTP configuration missing. Cannot send emails.');
-    console.error('Please set SMTP_HOST, SMTP_USER, SMTP_PASS secrets.');
+    console.error('SMTP configuration missing. Cannot send emails.');
     process.exit(0);
   }
   
   if (!process.env.FROM_EMAIL) {
-    console.error('❌ FROM_EMAIL not set. Please add FROM_EMAIL secret.');
+    console.error('FROM_EMAIL not set.');
     process.exit(0);
   }
   
   const sentWelcome = loadSentWelcome();
   const newUsers = getNewVerifiedUsers();
   
-  console.log(`📧 Newly verified users: ${newUsers.length}`);
+  console.log(`Newly verified users: ${newUsers.length}`);
   
   if (newUsers.length === 0) {
     console.log('No new verified users to send welcome emails');
@@ -576,26 +439,25 @@ async function main() {
   let successCount = 0;
   for (const email of newUsers) {
     if (!sentWelcome.sent.includes(email)) {
-      console.log(`📨 Sending welcome email to ${email}...`);
+      console.log(`Sending welcome email to ${email}...`);
       const success = await sendWelcomeEmail(email);
       if (success) {
         sentWelcome.sent.push(email);
         successCount++;
       }
-      // Delay to respect rate limits
       await new Promise(resolve => setTimeout(resolve, 2000));
     }
   }
   
   saveSentWelcome(sentWelcome);
   
-  console.log('='.repeat(60));
-  console.log(`✅ COMPLETED: Sent ${successCount} welcome emails`);
-  console.log(`📊 Total users notified: ${sentWelcome.sent.length}`);
-  console.log('='.repeat(60));
+  console.log('='.repeat(50));
+  console.log(`Completed: Sent ${successCount} welcome emails`);
+  console.log(`Total users notified: ${sentWelcome.sent.length}`);
+  console.log('='.repeat(50));
 }
 
 main().catch(error => {
-  console.error('❌ Fatal error:', error);
+  console.error('Fatal error:', error);
   process.exit(1);
 });
