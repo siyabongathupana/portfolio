@@ -78,7 +78,6 @@
         const modalId = `galleryModal-${proj.id}`;
         const isBlocked = proj.blocked === true;
         
-        // Always create modal (even if blocked, but buttons will be disabled)
         if (!document.getElementById(modalId)) {
           const carouselItems = (proj.selectedImages || []).map((img, idx) => `
             <div class="carousel-item ${idx === 0 ? 'active' : ''}">
@@ -107,7 +106,6 @@
         const firstImg = (proj.selectedImages && proj.selectedImages[0])?.url || 'https://picsum.photos/id/40/400/200';
         const badgeText = `${proj.projectType || 'DCS'} · DeltaV ${proj.deltaVVersion || 'N/A'}`;
         
-        // If project is blocked and user is not admin, show Access Denied card with disabled buttons
         if (isBlocked && !isAdmin) {
           const deniedCard = `
             <div class="col-lg-4 col-md-6 mb-4">
@@ -128,7 +126,6 @@
           return;
         }
         
-        // Normal project card
         const card = `
           <div class="col-lg-4 col-md-6 mb-4">
             <div class="project-card">
