@@ -430,58 +430,59 @@
       checkboxes.forEach(cb => cb.checked = !allChecked);
     });
 
-  async function renderProjects() {
-  const projects = await window.portfolioData.loadProjects();
-  const container = document.getElementById('projectsList');
-  container.innerHTML = '';
-  if (Object.keys(projects).length === 0) {
-    container.innerHTML = '<div class="empty-state"><i class="fa fa-folder-open-o"></i><h5>No projects yet</h5></div>';
-    return;
-  }
-  for (const [id, proj] of Object.entries(projects)) {
-    const card = document.createElement('div');
-    card.className = 'card mb-3';
-    const isBlocked = proj.blocked === true;
-    const blockBtnText = isBlocked ? 'Unblock' : 'Block';
-    const blockBtnClass = isBlocked ? 'btn-success' : 'btn-warning';
-    const blockedBadge = isBlocked ? '<span class="badge badge-danger ml-2">BLOCKED</span>' : '';
-    card.innerHTML = `
-      <div class="card-body">
-        <div class="d-flex justify-content-between align-items-start flex-wrap">
-          <h5>${window.escapeHtml(proj.title)} ${blockedBadge}</h5>
-          <div>
-            <button class="btn btn-sm ${blockBtnClass} block-project" data-id="${id}">${blockBtnText}</button>
-            <button class="btn btn-sm btn-outline-primary edit-project" data-id="${id}">Edit</button>
-            <button class="btn btn-sm btn-outline-danger delete-project" data-id="${id}">Delete</button>
-          </div>
-        </div>
-        <p><strong>Controller:</strong> ${proj.controllerType} | <strong>Cabinets:</strong> ${proj.cabinetCount} | <strong>Location:</strong> ${proj.siteLocation || ''}</p>
-        <small>${window.escapeHtml(proj.description?.substring(0, 120) || '')}...</small>
-      </div>`;
-    container.appendChild(card);
-  }
-  document.querySelectorAll('.edit-project').forEach(btn => btn.addEventListener('click', () => openProjectModal(btn.dataset.id)));
-  document.querySelectorAll('.delete-project').forEach(btn => btn.addEventListener('click', async () => {
-    if (confirm('Delete this project?')) await safeDeleteProject(btn.dataset.id);
-  }));
-  document.querySelectorAll('.block-project').forEach(btn => btn.addEventListener('click', async () => {
-    const id = btn.dataset.id;
-    const proj = await window.portfolioData.loadProjects();
-    const newBlockState = !proj[id].blocked;
-    if (confirm(`${newBlockState ? 'Block' : 'Unblock'} project "${proj[id].title}"?`)) {
-      window.showLoading(`${newBlockState ? 'Blocking' : 'Unblocking'}...`);
-      try {
-        await window.portfolioData.blockProject(id, newBlockState);
-        await renderProjects();
-        showToast(`Project ${newBlockState ? 'blocked' : 'unblocked'}`, 'success');
-      } catch (err) {
-        showToast('Failed: ' + err.message, 'error');
-      } finally {
-        window.hideLoading();
+    async function renderProjects() {
+      const projects = await window.portfolioData.loadProjects();
+      const container = document.getElementById('projectsList');
+      container.innerHTML = '';
+      if (Object.keys(projects).length === 0) {
+        container.innerHTML = '<div class="empty-state"><i class="fa fa-folder-open-o"></i><h5>No projects yet</h5></div>';
+        return;
       }
+      for (const [id, proj] of Object.entries(projects)) {
+        const card = document.createElement('div');
+        card.className = 'card mb-3';
+        const isBlocked = proj.blocked === true;
+        const blockBtnText = isBlocked ? 'Unblock' : 'Block';
+        const blockBtnClass = isBlocked ? 'btn-success' : 'btn-warning';
+        const blockedBadge = isBlocked ? '<span class="badge badge-danger ml-2">BLOCKED</span>' : '';
+        card.innerHTML = `
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start flex-wrap">
+              <h5>${window.escapeHtml(proj.title)} ${blockedBadge}</h5>
+              <div>
+                <button class="btn btn-sm ${blockBtnClass} block-project" data-id="${id}">${blockBtnText}</button>
+                <button class="btn btn-sm btn-outline-primary edit-project" data-id="${id}">Edit</button>
+                <button class="btn btn-sm btn-outline-danger delete-project" data-id="${id}">Delete</button>
+              </div>
+            </div>
+            <p><strong>Controller:</strong> ${proj.controllerType} | <strong>Cabinets:</strong> ${proj.cabinetCount} | <strong>Location:</strong> ${proj.siteLocation || ''}</p>
+            <small>${window.escapeHtml(proj.description?.substring(0, 120) || '')}...</small>
+          </div>`;
+        container.appendChild(card);
+      }
+      document.querySelectorAll('.edit-project').forEach(btn => btn.addEventListener('click', () => openProjectModal(btn.dataset.id)));
+      document.querySelectorAll('.delete-project').forEach(btn => btn.addEventListener('click', async () => {
+        if (confirm('Delete this project?')) await safeDeleteProject(btn.dataset.id);
+      }));
+      document.querySelectorAll('.block-project').forEach(btn => btn.addEventListener('click', async () => {
+        const id = btn.dataset.id;
+        const projectsData = await window.portfolioData.loadProjects();
+        const newBlockState = !projectsData[id].blocked;
+        if (confirm(`${newBlockState ? 'Block' : 'Unblock'} project "${projectsData[id].title}"?`)) {
+          window.showLoading(`${newBlockState ? 'Blocking' : 'Unblocking'}...`);
+          try {
+            await window.portfolioData.blockProject(id, newBlockState);
+            await renderProjects();
+            showToast(`Project ${newBlockState ? 'blocked' : 'unblocked'}`, 'success');
+          } catch (err) {
+            showToast('Failed: ' + err.message, 'error');
+          } finally {
+            window.hideLoading();
+          }
+        }
+      }));
     }
-  }));
-}
+        
     async function renderCertificates() {
       const certs = await window.portfolioData.loadCertificates();
       const container = document.getElementById('certificatesList');
