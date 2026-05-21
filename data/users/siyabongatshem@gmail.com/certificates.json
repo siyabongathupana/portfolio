@@ -124,14 +124,5 @@
     "link": "",
     "thumbnail": "",
     "updatedAt": 1779286313451
-  },
-  {
-    "id": "cert_1779286313449",
-    "title": "Test 2",
-    "issuer": "",
-    "date": "",
-    "link": "",
-    "thumbnail": "https://raw.githubusercontent.com/siyabongathupana/portfolio/main/data/users/siyabongatshem%40gmail.com/cert_thumbnails/1779285585661_Screenshot_2026-02-02_131719.png",
-    "updatedAt": 1779286313449
   }
 ]
