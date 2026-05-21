@@ -1,32 +1,39 @@
 {
   "proj_1779405050146": {
     "id": "proj_1779405050146",
-    "title": "Test ",
-    "controllerType": "MD",
-    "projectType": "Other",
-    "deltaVVersion": "",
-    "cabinetCount": 1,
-    "io": {
-      "AI": 0,
-      "AO": 0,
-      "DI": 0,
-      "DO": 0
-    },
-    "dates": {
-      "start": "",
-      "finish": "",
-      "ifat": "",
-      "cfat": ""
-    },
-    "siteLocation": "",
-    "team": {
-      "lead": "",
-      "engineer": "",
-      "technician": ""
-    },
+    "projectCategory": "nonDeltaV",
+    "title": "test",
+    "shortDesc": "dfwreRFERW",
+    "industry": "WSSQ",
+    "client": "OMI",
+    "duration": "6 MONTHS",
+    "status": "Completed",
+    "userRole": "LEAD",
+    "teamMembers": "",
     "description": "",
-    "graphType": "bar",
-    "selectedImages": [],
-    "updatedAt": 1779405050147
+    "technical": {
+      "technologies": "",
+      "hardware": "",
+      "software": "",
+      "protocols": "",
+      "languages": ""
+    },
+    "workBreakdown": {
+      "workBreakdown": "",
+      "problems": "",
+      "rootCauses": "",
+      "solutions": "",
+      "improvements": "",
+      "lessons": "",
+      "risks": "",
+      "testing": ""
+    },
+    "selectedImages": [
+      {
+        "url": "https://raw.githubusercontent.com/siyabongathupana/portfolio/main/data/users/Siyabonga.Thupana%40acs-autocon.com/project_images/1779407690270_shared_image__1_.jpg",
+        "caption": ""
+      }
+    ],
+    "updatedAt": 1779407704735
   }
 }
