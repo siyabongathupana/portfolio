@@ -1,4 +1,4 @@
-// shared.js – Complete with plain‑text logs (no JSON escaping), conflict resolution, fixed SHA handling
+// shared.js – Full version with project blocking, plain-text logs, conflict resolution
 
 // ======================== LOADING OVERLAY ========================
 window.showLoading = function (msg = 'Processing...') {
@@ -23,7 +23,6 @@ window.hideLoading = function () {
   if (loader) loader.style.display = 'none';
 };
 
-// ======================== UTILITIES ========================
 window.escapeHtml = function (str) {
   if (!str) return '';
   return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m] || m);
@@ -55,13 +54,16 @@ window.SessionManager = (() => {
     logout: () => {
       current = null;
       sessionStorage.removeItem('portfolioUser');
+    },
+    isAdmin: () => {
+      const user = window.SessionManager.getCurrentUser();
+      return user && window.APP_CONFIG.adminUsers && window.APP_CONFIG.adminUsers.includes(user.username);
     }
   };
 })();
 
-// ======================== PLAIN‑TEXT LOGGING (fixed – no JSON escaping) ========================
+// ======================== PLAIN-TEXT LOGGING ========================
 window.Logger = {
-  // Direct GitHub write for plain text (bypasses API helper that would JSON.stringify)
   async _writeTextFile(path, content, commitMsg, branch, token, sha = null) {
     const { owner, repo } = window.REPO_CONFIG;
     const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
@@ -95,22 +97,19 @@ window.Logger = {
     
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(user.username);
-    const logPath = `${dataPath}/users/${encUser}/logs/activity.txt`;   // .txt extension
+    const logPath = `${dataPath}/users/${encUser}/logs/activity.txt`;
     
     let existingContent = '';
     let sha = null;
     try {
-      // Use raw fetch to get current file content (plain text)
       const url = `https://api.github.com/repos/${owner}/${repo}/contents/${logPath}?ref=${branch}`;
-      const resp = await fetch(url, {
-        headers: { Authorization: `token ${user.pat}` }
-      });
+      const resp = await fetch(url, { headers: { Authorization: `token ${user.pat}` } });
       if (resp.ok) {
         const data = await resp.json();
         sha = data.sha;
         existingContent = atob(data.content.replace(/\n/g, ''));
       }
-    } catch (e) { /* file doesn't exist yet */ }
+    } catch (e) {}
     
     const newContent = logEntry + existingContent;
     try {
@@ -126,9 +125,7 @@ window.Logger = {
     const logPath = `${dataPath}/users/${encUser}/logs/activity.txt`;
     try {
       const url = `https://api.github.com/repos/${owner}/${repo}/contents/${logPath}?ref=${branch}`;
-      const resp = await fetch(url, {
-        headers: { Authorization: `token ${adminToken}` }
-      });
+      const resp = await fetch(url, { headers: { Authorization: `token ${adminToken}` } });
       if (resp.ok) {
         const data = await resp.json();
         return atob(data.content.replace(/\n/g, ''));
@@ -415,7 +412,7 @@ window.AccountManager = {
   }
 };
 
-// ======================== PORTFOLIO DATA (conflict‑free, fixed SHA) ========================
+// ======================== PORTFOLIO DATA (with project blocking) ========================
 window.portfolioData = (() => {
   const PROJECTS_KEY = 'portfolioProjects';
   const CERTS_KEY = 'portfolioCertificates';
@@ -457,11 +454,11 @@ window.portfolioData = (() => {
         const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
         if (file && file.content) {
           const data = JSON.parse(file.content);
-          return data;
+          return data; // return all projects (blocked ones included)
         } else {
           if (user.username === window.APP_CONFIG.publicProfileEmail) {
             const publicData = await fetchPublicData(user.username, 'projects');
-            if (Object.keys(publicData).length > 0) return publicData;
+            return publicData;
           }
           return {};
         }
@@ -651,8 +648,6 @@ window.portfolioData = (() => {
             if (remoteFile.content) remoteData = JSON.parse(remoteFile.content);
           }
         } catch(e) {}
-        const remoteMap = new Map();
-        for (const cert of remoteData) remoteMap.set(cert.id, cert);
         const mergedMap = new Map();
         for (const cert of remoteData) mergedMap.set(cert.id, cert);
         for (const cert of data) {
@@ -692,9 +687,21 @@ window.portfolioData = (() => {
     });
   }
 
+  // Block/unblock project (admin only)
+  async function blockProject(projectId, block = true) {
+    const projects = await loadProjects();
+    if (!projects[projectId]) throw new Error('Project not found');
+    projects[projectId].blocked = block;
+    projects[projectId].updatedAt = Date.now();
+    await saveProjects(projects);
+    await window.Logger.log('block_project', `${block ? 'Blocked' : 'Unblocked'} project: ${projects[projectId].title}`);
+    return true;
+  }
+
   return {
     loadProjects, saveProjects, loadCertificates, saveCertificates, exportData,
-    loadProjectsForView, loadCertificatesForView
+    loadProjectsForView, loadCertificatesForView,
+    blockProject
   };
 })();
 
@@ -731,11 +738,17 @@ window.protectImages = function () {
   });
 };
 
-// ======================== PDF PROJECT REPORT ========================
+// ======================== PDF PROJECT REPORT (with block check) ========================
 window.generateProjectReport = async function(projectId) {
   const data = await window.portfolioData.loadProjectsForView();
   const proj = data[projectId];
   if (!proj) { alert("Project not found!"); return; }
+  
+  // Check if blocked and user is not admin
+  if (proj.blocked === true && !window.SessionManager.isAdmin()) {
+    alert("Access denied: This project is blocked.");
+    return;
+  }
 
   let projectType = proj.projectType || 'Other';
   let primaryColor, bgColor;
