@@ -18,7 +18,7 @@
       "ifat": "",
       "cfat": ""
     },
-    "siteLocation": "",
+    "siteLocation": "Cape Town",
     "team": {
       "lead": "",
       "engineer": "",
@@ -26,7 +26,12 @@
     },
     "description": "fgfdt fgdfgc fdgdhdfgd dfggd",
     "graphType": "bar",
-    "selectedImages": [],
-    "updatedAt": 1779389187374
+    "selectedImages": [
+      {
+        "url": "https://raw.githubusercontent.com/siyabongathupana/portfolio/main/data/users/siyabongatshem%40gmail.com/project_images/1779389219963_Untitled_design.png",
+        "caption": ""
+      }
+    ],
+    "updatedAt": 1779389334205
   }
 }
