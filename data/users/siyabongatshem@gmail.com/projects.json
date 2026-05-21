@@ -5,7 +5,7 @@
     "controllerType": "MD",
     "projectType": "SIS & DCS",
     "deltaVVersion": "",
-    "cabinetCount": 1,
+    "cabinetCount": 12,
     "io": {
       "AI": 0,
       "AO": 0,
@@ -32,6 +32,6 @@
         "caption": ""
       }
     ],
-    "updatedAt": 1779389334205
+    "updatedAt": 1779389841761
   }
 }
