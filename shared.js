@@ -1,6 +1,5 @@
-// shared.js – Full version with project blocking, plain-text logs, conflict resolution
+// shared.js – Complete with working project blocking, plain-text logs, conflict resolution
 
-// ======================== LOADING OVERLAY ========================
 window.showLoading = function (msg = 'Processing...') {
   let loader = document.getElementById('globalLoader');
   if (!loader) {
@@ -28,7 +27,6 @@ window.escapeHtml = function (str) {
   return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m] || m);
 };
 
-// ======================== SESSION MANAGER ========================
 window.SessionManager = (() => {
   let current = null;
   return {
@@ -62,7 +60,6 @@ window.SessionManager = (() => {
   };
 })();
 
-// ======================== PLAIN-TEXT LOGGING ========================
 window.Logger = {
   async _writeTextFile(path, content, commitMsg, branch, token, sha = null) {
     const { owner, repo } = window.REPO_CONFIG;
@@ -146,7 +143,6 @@ window.Logger = {
   }
 };
 
-// ======================== FOOTER ========================
 window.updateUserFooter = function () {
   const user = window.SessionManager.getCurrentUser();
   const el = document.getElementById('userFooterStatus');
@@ -167,7 +163,6 @@ window.updateUserFooter = function () {
   }
 };
 
-// ======================== GITHUB IMAGE HELPERS ========================
 window.uploadImageToGitHub = async function(file, user, folder = 'images') {
   const compressedDataUrl = await window.compressImage(file, 1600, 1600, 0.85);
   const blob = await (await fetch(compressedDataUrl)).blob();
@@ -247,7 +242,6 @@ window.compressImage = function(file, maxW = 1600, maxH = 1600, quality = 0.85) 
   });
 };
 
-// ======================== ACCOUNT MANAGER ========================
 window.AccountManager = {
   async _ensureEmailJS() {
     if (typeof emailjs === 'undefined') {
@@ -412,7 +406,6 @@ window.AccountManager = {
   }
 };
 
-// ======================== PORTFOLIO DATA (with project blocking) ========================
 window.portfolioData = (() => {
   const PROJECTS_KEY = 'portfolioProjects';
   const CERTS_KEY = 'portfolioCertificates';
@@ -454,7 +447,7 @@ window.portfolioData = (() => {
         const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
         if (file && file.content) {
           const data = JSON.parse(file.content);
-          return data; // return all projects (blocked ones included)
+          return data;
         } else {
           if (user.username === window.APP_CONFIG.publicProfileEmail) {
             const publicData = await fetchPublicData(user.username, 'projects');
@@ -572,8 +565,10 @@ window.portfolioData = (() => {
         throw new Error('Cannot delete all projects this way. Use "Delete All" button.');
       }
     }
+    // Ensure every project has updatedAt and blocked property
     for (const id in data) {
       if (!data[id].updatedAt) data[id].updatedAt = Date.now();
+      if (data[id].blocked === undefined) data[id].blocked = false;
     }
     localStorage.setItem(PROJECTS_KEY, JSON.stringify(data));
     const user = window.SessionManager.getCurrentUser();
@@ -687,7 +682,6 @@ window.portfolioData = (() => {
     });
   }
 
-  // Block/unblock project (admin only)
   async function blockProject(projectId, block = true) {
     const projects = await loadProjects();
     if (!projects[projectId]) throw new Error('Project not found');
@@ -705,7 +699,6 @@ window.portfolioData = (() => {
   };
 })();
 
-// ======================== LAZY LOAD & PROTECT IMAGES ========================
 window.lazyLoadImages = function() {
   if ('IntersectionObserver' in window) {
     const imgObserver = new IntersectionObserver((entries, observer) => {
@@ -738,13 +731,11 @@ window.protectImages = function () {
   });
 };
 
-// ======================== PDF PROJECT REPORT (with block check) ========================
 window.generateProjectReport = async function(projectId) {
   const data = await window.portfolioData.loadProjectsForView();
   const proj = data[projectId];
   if (!proj) { alert("Project not found!"); return; }
   
-  // Check if blocked and user is not admin
   if (proj.blocked === true && !window.SessionManager.isAdmin()) {
     alert("Access denied: This project is blocked.");
     return;
