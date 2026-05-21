@@ -16,9 +16,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
           token: ${{ secrets.GITHUB_TOKEN }}
-          persist-credentials: true
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -28,7 +27,7 @@ jobs:
       - name: Install dependencies
         run: npm install nodemailer
 
-      - name: Process email verification
+      - name: Run email verification script
         env:
           SMTP_HOST: ${{ secrets.SMTP_HOST }}
           SMTP_PORT: ${{ secrets.SMTP_PORT }}
@@ -40,13 +39,13 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: node .github/scripts/emailVerification.js
 
-      - name: Commit and push changes
+      - name: Commit and push changes (if any)
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           
-          # Pull latest changes first
-          git pull origin main --no-rebase || true
+          # Pull latest changes
+          git pull origin main --rebase || true
           
           # Check for changes
           if git diff --quiet data/pending_verification.json data/verified_users.json; then
