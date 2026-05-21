@@ -38,20 +38,3 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: node .github/scripts/emailVerification.js
-
-      - name: Commit and push changes (if any)
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          
-          # Pull latest changes
-          git pull origin main --rebase || true
-          
-          # Check for changes
-          if git diff --quiet data/pending_verification.json data/verified_users.json; then
-            echo "No changes to commit"
-          else
-            git add data/pending_verification.json data/verified_users.json
-            git commit -m "Update verification status [skip ci]"
-            git push origin main
-          fi
