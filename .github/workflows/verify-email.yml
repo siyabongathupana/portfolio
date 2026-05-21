@@ -18,6 +18,7 @@ jobs:
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
+          ref: main
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -37,10 +38,11 @@ jobs:
           SITE_URL: ${{ vars.SITE_URL || 'https://siyabongathupana.github.io/portfolio' }}
         run: node .github/scripts/emailVerification.js
 
-      - name: Commit updated verification status
+      - name: Commit and push updated verification status
         run: |
           git config user.name "GitHub Actions Bot"
           git config user.email "actions@github.com"
+          git pull origin main --rebase
           git add data/pending_verification.json data/verified_users.json
           git commit -m "Update email verification status" || echo "No changes to commit"
-          git push origin HEAD:${GITHUB_REF_NAME:-main}
+          git push origin HEAD:main
