@@ -48,6 +48,7 @@ async function sendWelcomeEmail(email) {
   const guideUrl = `${siteUrl}/guide.html`;
   const projectsUrl = `${siteUrl}/projects.html`;
   const timesheetUrl = `${siteUrl}/timesheet.html`;
+  const certificatesUrl = `${siteUrl}/certificates.html`;
   
   const repoOwner = process.env.GITHUB_REPOSITORY_OWNER || 'siyabongathupana';
   const repoName = process.env.GITHUB_REPOSITORY_NAME || 'portfolio';
@@ -64,12 +65,12 @@ async function sendWelcomeEmail(email) {
   });
 
   const currentYear = new Date().getFullYear();
-  const userName = email.split('@')[0];
+  const userName = email.split('@')[0].charAt(0).toUpperCase() + email.split('@')[0].slice(1);
 
   const mailOptions = {
     from: `"Your Portfolio" <${process.env.FROM_EMAIL}>`,
     to: email,
-    subject: 'Welcome to Your Portfolio - Account Activated',
+    subject: 'Welcome to Your Portfolio – Account Verified',
     headers: {
       'X-Mailer': 'Your Portfolio System',
       'X-Account-Type': 'Professional'
@@ -85,130 +86,131 @@ async function sendWelcomeEmail(email) {
           body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             line-height: 1.6;
-            color: #333333;
-            background-color: #f5f7fa;
+            color: #1a2a3a;
+            background-color: #f0f4f8;
             margin: 0;
-            padding: 0;
+            padding: 20px;
           }
           .container {
-            max-width: 600px;
+            max-width: 580px;
             margin: 0 auto;
             background-color: #ffffff;
-            border-radius: 8px;
+            border-radius: 16px;
             overflow: hidden;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
           }
           .header {
-            background-color: #0b2b3b;
-            padding: 32px 24px;
+            background: linear-gradient(135deg, #e8f4f8 0%, #d4eaf2 100%);
+            padding: 40px 32px 32px;
             text-align: center;
+            border-bottom: 1px solid #c5dfea;
           }
           .logo {
-            max-width: 60px;
+            max-width: 70px;
             height: auto;
-            margin-bottom: 16px;
-            border-radius: 12px;
+            margin-bottom: 20px;
+            border-radius: 50%;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
           }
           .header h1 {
-            color: #ffffff;
-            font-size: 24px;
+            color: #1a5c6e;
+            font-size: 28px;
             font-weight: 600;
-            margin: 0 0 4px;
+            margin: 0 0 8px;
+            letter-spacing: -0.3px;
           }
-          .header p {
-            color: #a0c4d4;
-            font-size: 14px;
+          .header .tagline {
+            color: #4a7c8c;
+            font-size: 15px;
             margin: 0;
           }
+          .verification-badge {
+            display: inline-block;
+            background-color: #2fc7ff;
+            color: #ffffff;
+            padding: 6px 16px;
+            border-radius: 30px;
+            font-size: 12px;
+            font-weight: 500;
+            margin-top: 20px;
+          }
           .content {
-            padding: 32px 28px;
+            padding: 36px 32px;
             background-color: #ffffff;
           }
           .greeting {
-            font-size: 16px;
-            color: #1e2a3e;
+            font-size: 18px;
+            color: #1a5c6e;
             margin-bottom: 20px;
             font-weight: 500;
           }
           .message {
-            color: #4a5568;
+            color: #3a5a6e;
             font-size: 15px;
             line-height: 1.7;
-            margin-bottom: 24px;
-          }
-          .divider {
-            height: 1px;
-            background-color: #e2e8f0;
-            margin: 24px 0;
-          }
-          .section-title {
-            font-size: 16px;
-            font-weight: 600;
-            color: #1e2a3e;
             margin-bottom: 16px;
-            padding-bottom: 8px;
-            border-bottom: 2px solid #2fc7ff;
-            display: inline-block;
+          }
+          .highlight {
+            color: #2fc7ff;
+            font-weight: 500;
           }
           .feature-grid {
-            display: table;
-            width: 100%;
-            margin: 20px 0;
-            border-collapse: collapse;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin: 32px 0;
           }
-          .feature-row {
-            display: table-row;
-          }
-          .feature-cell {
-            display: table-cell;
-            padding: 12px 8px 12px 0;
-            border-bottom: 1px solid #f0f2f5;
-            vertical-align: top;
+          .feature-card {
+            background: #f8fcff;
+            padding: 20px 16px;
+            border-radius: 12px;
+            text-align: center;
+            border: 1px solid #e0f0f8;
+            transition: all 0.2s ease;
           }
           .feature-icon {
-            width: 40px;
-            font-size: 20px;
-            color: #2fc7ff;
+            font-size: 28px;
+            margin-bottom: 12px;
           }
           .feature-title {
             font-weight: 600;
-            color: #1e2a3e;
-            margin-bottom: 4px;
+            color: #1a5c6e;
+            font-size: 14px;
+            margin-bottom: 6px;
           }
           .feature-desc {
-            font-size: 13px;
-            color: #718096;
+            font-size: 12px;
+            color: #6a8ea0;
+            line-height: 1.5;
           }
-          .cta-section {
-            background-color: #f8fafc;
-            border-radius: 8px;
-            padding: 20px;
+          .cta-wrapper {
+            background: #f0f8fc;
+            border-radius: 12px;
+            padding: 24px;
             text-align: center;
-            margin: 24px 0;
-            border: 1px solid #e2e8f0;
+            margin: 28px 0 20px;
           }
           .btn-primary {
             display: inline-block;
-            background-color: #2fc7ff;
-            color: #0a2b33;
+            background: #2fc7ff;
+            color: #ffffff;
             padding: 12px 28px;
-            border-radius: 6px;
+            border-radius: 40px;
             text-decoration: none;
             font-weight: 600;
             font-size: 14px;
             margin: 0 8px 8px 0;
-            border: none;
+            box-shadow: 0 2px 8px rgba(47, 199, 255, 0.25);
           }
           .btn-primary:hover {
-            background-color: #1d9fcf;
-            color: #ffffff;
+            background: #1a9fcf;
           }
           .btn-secondary {
             display: inline-block;
-            background-color: transparent;
+            background: transparent;
             color: #2fc7ff;
             padding: 11px 27px;
-            border-radius: 6px;
+            border-radius: 40px;
             text-decoration: none;
             font-weight: 500;
             font-size: 14px;
@@ -216,73 +218,100 @@ async function sendWelcomeEmail(email) {
             margin: 0 8px 8px 0;
           }
           .btn-secondary:hover {
-            background-color: #2fc7ff;
-            color: #0a2b33;
+            background: #e8f4fc;
           }
-          .guide-box {
-            background-color: #f8fafc;
-            border-left: 3px solid #2fc7ff;
-            padding: 16px 20px;
-            margin: 20px 0;
-            border-radius: 0 8px 8px 0;
+          .guide-section {
+            background: #f8fcff;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 24px 0;
+            border: 1px solid #e0f0f8;
           }
-          .guide-box p {
-            margin: 0 0 8px;
-            font-size: 14px;
-            color: #4a5568;
+          .guide-section h4 {
+            color: #1a5c6e;
+            font-size: 15px;
+            font-weight: 600;
+            margin: 0 0 12px;
           }
-          .guide-box ul {
-            margin: 8px 0 0;
-            padding-left: 20px;
+          .guide-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 12px;
           }
-          .guide-box li {
+          .guide-link {
+            color: #2fc7ff;
+            text-decoration: none;
             font-size: 13px;
-            color: #718096;
-            margin: 4px 0;
+            font-weight: 500;
+          }
+          .guide-link:hover {
+            text-decoration: underline;
+          }
+          .quick-links {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            margin: 24px 0 16px;
+          }
+          .quick-link {
+            color: #5a8ea0;
+            text-decoration: none;
+            font-size: 13px;
+          }
+          .quick-link:hover {
+            color: #2fc7ff;
           }
           .footer {
-            background-color: #f8fafc;
-            padding: 24px;
+            background-color: #f8fcff;
+            padding: 28px 32px;
             text-align: center;
-            border-top: 1px solid #e2e8f0;
+            border-top: 1px solid #e0f0f8;
           }
           .footer-links {
             margin-bottom: 16px;
           }
           .footer-links a {
-            color: #2fc7ff;
+            color: #5a8ea0;
             text-decoration: none;
             font-size: 12px;
             margin: 0 12px;
           }
           .footer-links a:hover {
-            text-decoration: underline;
+            color: #2fc7ff;
           }
           .footer-text {
             font-size: 11px;
-            color: #a0aec0;
+            color: #8aacbc;
             line-height: 1.5;
           }
+          hr {
+            border: none;
+            border-top: 1px solid #e0f0f8;
+            margin: 24px 0 16px;
+          }
           @media (max-width: 500px) {
+            body {
+              padding: 10px;
+            }
             .content {
               padding: 24px 20px;
             }
-            .feature-cell {
-              display: block;
-              width: 100%;
+            .header {
+              padding: 32px 24px;
             }
-            .feature-row {
-              display: block;
-              margin-bottom: 16px;
-            }
-            .feature-icon {
-              width: auto;
-              margin-bottom: 4px;
+            .feature-grid {
+              grid-template-columns: 1fr;
+              gap: 12px;
             }
             .btn-primary, .btn-secondary {
               display: block;
               margin: 8px 0;
               text-align: center;
+            }
+            .quick-links {
+              gap: 12px;
             }
           }
         </style>
@@ -290,106 +319,80 @@ async function sendWelcomeEmail(email) {
       <body>
         <div class="container">
           <div class="header">
-            <img src="${logoUrl}" alt="Logo" class="logo" onerror="this.style.display='none'">
+            <img src="${logoUrl}" alt="Your Portfolio Logo" class="logo" onerror="this.style.display='none'">
             <h1>Your Portfolio</h1>
-            <p>Professional Engineering Portfolio Platform</p>
+            <div class="tagline">Professional Engineering Portfolio Platform</div>
+            <div class="verification-badge">✓ Account Verified</div>
           </div>
           
           <div class="content">
             <div class="greeting">
-              Dear ${userName},
+              Welcome, ${userName}!
             </div>
             
             <div class="message">
-              Thank you for verifying your email address. Your account has been successfully activated and you now have full access to all features of Your Portfolio.
+              Thank you for verifying your email address. Your account is now <span class="highlight">fully activated</span> and you're ready to start building your professional portfolio.
             </div>
             
             <div class="message">
-              Your Portfolio is a comprehensive platform designed for engineering professionals to manage projects, track time, and showcase certifications.
+              Your Portfolio provides everything you need to showcase your engineering work, track your time, and manage your professional credentials.
             </div>
-            
-            <div class="divider"></div>
-            
-            <div class="section-title">Available Features</div>
             
             <div class="feature-grid">
-              <div class="feature-row">
-                <div class="feature-cell feature-icon">📁</div>
-                <div class="feature-cell">
-                  <div class="feature-title">Project Management</div>
-                  <div class="feature-desc">Create and manage engineering projects with detailed specifications and images</div>
-                </div>
+              <div class="feature-card">
+                <div class="feature-icon">📁</div>
+                <div class="feature-title">Projects</div>
+                <div class="feature-desc">Create and manage engineering projects with images and specs</div>
               </div>
-              <div class="feature-row">
-                <div class="feature-cell feature-icon">📜</div>
-                <div class="feature-cell">
-                  <div class="feature-title">Certificates</div>
-                  <div class="feature-desc">Upload and organize professional certifications and credentials</div>
-                </div>
+              <div class="feature-card">
+                <div class="feature-icon">📜</div>
+                <div class="feature-title">Certificates</div>
+                <div class="feature-desc">Upload and showcase your professional certifications</div>
               </div>
-              <div class="feature-row">
-                <div class="feature-cell feature-icon">⏱️</div>
-                <div class="feature-cell">
-                  <div class="feature-title">Timesheet</div>
-                  <div class="feature-desc">Track working hours with integrated timesheet system</div>
-                </div>
+              <div class="feature-card">
+                <div class="feature-icon">⏱️</div>
+                <div class="feature-title">Timesheet</div>
+                <div class="feature-desc">Track working hours with detailed reporting</div>
               </div>
-              <div class="feature-row">
-                <div class="feature-cell feature-icon">📊</div>
-                <div class="feature-cell">
-                  <div class="feature-title">PDF Reports</div>
-                  <div class="feature-desc">Generate professional PDF reports for projects and time entries</div>
-                </div>
-              </div>
-              <div class="feature-row">
-                <div class="feature-cell feature-icon">🖼️</div>
-                <div class="feature-cell">
-                  <div class="feature-title">Image Gallery</div>
-                  <div class="feature-desc">Upload project images with automatic compression</div>
-                </div>
-              </div>
-              <div class="feature-row">
-                <div class="feature-cell feature-icon">🔒</div>
-                <div class="feature-cell">
-                  <div class="feature-title">Secure Storage</div>
-                  <div class="feature-desc">End-to-end encrypted data storage on GitHub</div>
-                </div>
+              <div class="feature-card">
+                <div class="feature-icon">📊</div>
+                <div class="feature-title">Reports</div>
+                <div class="feature-desc">Generate professional PDF reports of your work</div>
               </div>
             </div>
             
-            <div class="cta-section">
-              <a href="${dashboardUrl}" class="btn-primary">Access Dashboard</a>
+            <div class="cta-wrapper">
+              <a href="${dashboardUrl}" class="btn-primary">Go to Dashboard</a>
               <a href="${guideUrl}" class="btn-secondary">Read User Guide</a>
             </div>
             
-            <div class="guide-box">
-              <p><strong>New to the platform?</strong></p>
-              <p>The User Guide provides comprehensive information about:</p>
-              <ul>
-                <li>Setting up your first project</li>
-                <li>Managing timesheet entries</li>
-                <li>Uploading certificates and images</li>
-                <li>Generating PDF reports</li>
-                <li>Account security best practices</li>
-              </ul>
-            </div>
-            
-            <div class="message" style="font-size: 13px; color: #718096; font-style: italic; margin-top: 20px;">
-              Tip: Start by adding your first project from the dashboard. The interface will guide you through the process.
+            <div class="guide-section">
+              <h4>Getting Started</h4>
+              <p style="font-size: 13px; color: #5a7c8e; margin: 0 0 12px;">Here are a few things you can do right away:</p>
+              <div class="quick-links">
+                <a href="${projectsUrl}" class="quick-link">Add your first project</a>
+                <a href="${certificatesUrl}" class="quick-link">Upload a certificate</a>
+                <a href="${timesheetUrl}" class="quick-link">Log your first time entry</a>
+              </div>
+              <hr>
+              <div class="guide-links">
+                <a href="${guideUrl}" class="guide-link">Full User Guide</a>
+                <a href="${dashboardUrl}" class="guide-link">Dashboard Overview</a>
+              </div>
             </div>
           </div>
           
           <div class="footer">
             <div class="footer-links">
               <a href="${dashboardUrl}">Dashboard</a>
-              <a href="${guideUrl}">User Guide</a>
+              <a href="${guideUrl}">Help Guide</a>
               <a href="${projectsUrl}">Projects</a>
               <a href="${timesheetUrl}">Timesheet</a>
             </div>
             <div class="footer-text">
               <p>© ${currentYear} Your Portfolio. All rights reserved.</p>
-              <p>This email was sent to ${email} following account verification.</p>
-              <p>If you did not create this account, please contact support at ${process.env.FROM_EMAIL}</p>
+              <p>This email was sent to ${email} after account verification.</p>
+              <p>If you received this in error, please contact support at ${process.env.FROM_EMAIL}</p>
             </div>
           </div>
         </div>
