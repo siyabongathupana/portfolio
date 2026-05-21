@@ -146,5 +146,30 @@
   </div>
 
   <script src="login.js"></script>
+  <script>
+// Theme toggle button functionality
+  const themeToggleBtn = document.getElementById('themeToggleBtn');
+  if (themeToggleBtn) {
+    const updateThemeButton = () => {
+      const isDark = window.ThemeManager.isDark();
+      const icon = themeToggleBtn.querySelector('i');
+      const text = themeToggleBtn.querySelector('#themeToggleText');
+      if (isDark) {
+        if (icon) icon.className = 'fa fa-sun-o';
+        if (text) text.textContent = 'Light';
+      } else {
+        if (icon) icon.className = 'fa fa-moon-o';
+        if (text) text.textContent = 'Dark';
+      }
+    };
+    
+    themeToggleBtn.addEventListener('click', function() {
+      window.ThemeManager.toggle();
+      updateThemeButton();
+    });
+    
+    updateThemeButton();
+  }
+</script>
 </body>
 </html>
