@@ -1,3 +1,4 @@
+[2026-05-22 08:40:10] [INFO] [save_certificates] Saved 2 certificates
 [2026-05-22 08:38:34] [INFO] [image_upload] Uploaded 1779439113682_Screenshot_2026-02-02_153619.png to project_images
 [2026-05-22 08:26:54] [INFO] [login] User logged in as Siyabonga.Thupana@acs-autocon.com
 [2026-05-22 00:08:48] [INFO] [save_projects] Saved 2 projects
