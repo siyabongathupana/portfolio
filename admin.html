@@ -331,7 +331,7 @@
             </div>
           </div>
 
-          <button type="submit" class="btn btn-delta mt-3" id="saveProjectBtn">Save Project</button>
+          <button type="submit" class="btn btn-delta mt-3">Save Project</button>
         </form>
       </div>
     </div>
@@ -746,11 +746,19 @@
         }
       }
       
+      // ALWAYS use currentProjectType to determine which fields to read
       if (currentProjectType === 'deltaV') {
+        // Get DeltaV field values
+        const title = document.getElementById('projTitle').value;
+        if (!title) {
+          showToast('Project Title is required', 'error');
+          return null;
+        }
+        
         return {
           id: newId,
           projectCategory: 'deltaV',
-          title: document.getElementById('projTitle').value,
+          title: title,
           shortDesc: document.getElementById('projShortDesc').value,
           industry: document.getElementById('projIndustry').value,
           client: document.getElementById('projClient').value,
@@ -785,10 +793,17 @@
           updatedAt: Date.now()
         };
       } else {
+        // Get Non-DeltaV field values
+        const title = document.getElementById('nonProjTitle').value;
+        if (!title) {
+          showToast('Project Title is required', 'error');
+          return null;
+        }
+        
         return {
           id: newId,
           projectCategory: 'nonDeltaV',
-          title: document.getElementById('nonProjTitle').value,
+          title: title,
           shortDesc: document.getElementById('nonProjShortDesc').value,
           industry: document.getElementById('nonProjIndustry').value,
           client: document.getElementById('nonProjClient').value,
@@ -824,20 +839,11 @@
       const projectId = document.getElementById('projectId').value;
       const isNew = !projectId;
       
-      // Validate required fields
-      if (currentProjectType === 'deltaV') {
-        if (!document.getElementById('projTitle').value) {
-          showToast('Project Title is required', 'error');
-          return;
-        }
-      } else {
-        if (!document.getElementById('nonProjTitle').value) {
-          showToast('Project Title is required', 'error');
-          return;
-        }
-      }
-      
       const project = buildProjectObject();
+      if (!project) {
+        window.hideLoading();
+        return;
+      }
       
       window.showLoading('Saving project...');
       try {
@@ -847,7 +853,7 @@
         await renderProjects();
         $('#projectModal').modal('hide');
         window.Logger.log(isNew ? 'create_project' : 'edit_project', `${isNew ? 'Created' : 'Edited'} project: ${project.title}`);
-        showToast(`Project ${isNew ? 'created' : 'updated'} successfully`, 'success');
+        showToast(`Project "${project.title}" ${isNew ? 'created' : 'updated'} successfully`, 'success');
       } catch (err) {
         console.error('Save error:', err);
         showToast('Save failed: ' + err.message, 'error');
@@ -885,7 +891,7 @@
         const projects = await window.portfolioData.loadProjects();
         const proj = projects[projectId];
         if (proj) {
-          // Set project type
+          // Set project type based on existing project data
           if (proj.projectCategory === 'deltaV' || proj.controllerType) {
             currentProjectType = 'deltaV';
             document.querySelector('.type-option[data-type="deltaV"]').click();
@@ -951,7 +957,7 @@
           updateImageCounter();
         }
       } else {
-        // Reset all fields
+        // Reset all fields for new project
         document.querySelector('.type-option[data-type="deltaV"]').click();
         const allInputs = document.querySelectorAll('#projectForm input, #projectForm textarea, #projectForm select');
         allInputs.forEach(input => {
