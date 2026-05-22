@@ -161,5 +161,42 @@
       }
     ],
     "updatedAt": 1779440703233
+  },
+  "proj_1779441190962": {
+    "id": "proj_1779441190962",
+    "projectCategory": "nonDeltaV",
+    "title": "vdsfgw",
+    "shortDesc": "fwfewrteqtfewrq",
+    "industry": "WSSQ",
+    "client": "OMI",
+    "duration": "2 months",
+    "status": "Paused",
+    "userRole": "LEAD",
+    "teamMembers": "sdfdsg, rgwrger, trwhytr",
+    "description": "sfedag geyrthdhrty grtgg4",
+    "technical": {
+      "technologies": "",
+      "hardware": "",
+      "software": "",
+      "protocols": "",
+      "languages": ""
+    },
+    "workBreakdown": {
+      "workBreakdown": "",
+      "problems": "",
+      "rootCauses": "",
+      "solutions": "",
+      "improvements": "",
+      "lessons": "",
+      "risks": "",
+      "testing": ""
+    },
+    "selectedImages": [
+      {
+        "url": "https://raw.githubusercontent.com/siyabongathupana/portfolio/main/data/users/Siyabonga.Thupana%40acs-autocon.com/project_images/1779441139232_Screenshot_2026-04-13_105820.png",
+        "caption": ""
+      }
+    ],
+    "updatedAt": 1779441190963
   }
 }
