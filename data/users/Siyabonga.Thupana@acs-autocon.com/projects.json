@@ -38,39 +38,44 @@
   },
   "proj_1779408417834": {
     "id": "proj_1779408417834",
-    "projectCategory": "nonDeltaV",
-    "title": "WDAD",
+    "projectCategory": "deltaV",
+    "title": "Test ",
     "shortDesc": "",
-    "industry": "",
-    "client": "",
+    "industry": "Oil and GAS",
+    "client": "omnia",
     "duration": "",
     "status": "Completed",
-    "userRole": "",
-    "teamMembers": "",
+    "userRole": "Technician",
+    "teamMembers": "ANdrew, Jon, Siya",
+    "controllerType": "PK",
+    "deltaVVersion": "v16.7",
+    "projectType": "DCS",
+    "cabinetCount": 1,
+    "io": {
+      "AI": 0,
+      "AO": 0,
+      "DI": 0,
+      "DO": 0
+    },
+    "dates": {
+      "start": "",
+      "finish": "",
+      "ifat": "",
+      "cfat": ""
+    },
+    "team": {
+      "lead": "Llwellyn Remy",
+      "engineer": "Shimane Setwaba",
+      "technician": "Andrew"
+    },
     "description": "",
-    "technical": {
-      "technologies": "",
-      "hardware": "",
-      "software": "",
-      "protocols": "",
-      "languages": ""
-    },
-    "workBreakdown": {
-      "workBreakdown": "",
-      "problems": "",
-      "rootCauses": "",
-      "solutions": "",
-      "improvements": "",
-      "lessons": "",
-      "risks": "",
-      "testing": ""
-    },
+    "graphType": "bar",
     "selectedImages": [
       {
         "url": "https://raw.githubusercontent.com/siyabongathupana/portfolio/main/data/users/Siyabonga.Thupana%40acs-autocon.com/project_images/1779408326702_shared_image.jpg",
         "caption": ""
       }
     ],
-    "updatedAt": 1779408417835
+    "updatedAt": 1779408514810
   }
 }
