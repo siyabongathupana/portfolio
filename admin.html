@@ -145,10 +145,11 @@
       <div class="modal-body">
         <form id="projectForm">
           <input type="hidden" id="projectId">
+          <input type="hidden" id="selectedProjectType" value="deltaV">
           
           <!-- Project Type Selection -->
           <div class="project-type-selector" id="projectTypeSelector">
-            <div class="type-option" data-type="deltaV">
+            <div class="type-option active" data-type="deltaV">
               <i class="fa fa-microchip"></i>
               <h4>DeltaV Project</h4>
               <p>DCS, SIS, Emerson DeltaV specific</p>
@@ -331,7 +332,7 @@
             </div>
           </div>
 
-          <button type="submit" class="btn btn-delta mt-3">Save Project</button>
+          <button type="submit" class="btn btn-delta mt-3" id="saveProjectBtn">Save Project</button>
         </form>
       </div>
     </div>
@@ -397,7 +398,6 @@
   }
 
   let currentProjectType = 'deltaV';
-  let currentEditProjectId = null;
 
   // Project Type Selector
   document.querySelectorAll('.type-option').forEach(opt => {
@@ -405,6 +405,7 @@
       document.querySelectorAll('.type-option').forEach(o => o.classList.remove('active'));
       this.classList.add('active');
       currentProjectType = this.dataset.type;
+      document.getElementById('selectedProjectType').value = currentProjectType;
       if (currentProjectType === 'deltaV') {
         document.getElementById('deltaVFields').style.display = 'block';
         document.getElementById('nonDeltaVFields').style.display = 'none';
@@ -733,6 +734,7 @@
       }
     }
 
+    // SIMPLIFIED BUILD FUNCTION - checks currentProjectType directly
     function buildProjectObject() {
       const projectId = document.getElementById('projectId').value;
       const newId = projectId || ('proj_' + Date.now());
@@ -746,14 +748,16 @@
         }
       }
       
-      // ALWAYS use currentProjectType to determine which fields to read
+      console.log('Current project type:', currentProjectType);
+      
       if (currentProjectType === 'deltaV') {
-        // Get DeltaV field values
         const title = document.getElementById('projTitle').value;
         if (!title) {
           showToast('Project Title is required', 'error');
           return null;
         }
+        
+        console.log('Building DeltaV project:', title);
         
         return {
           id: newId,
@@ -793,12 +797,13 @@
           updatedAt: Date.now()
         };
       } else {
-        // Get Non-DeltaV field values
         const title = document.getElementById('nonProjTitle').value;
         if (!title) {
           showToast('Project Title is required', 'error');
           return null;
         }
+        
+        console.log('Building Non-DeltaV project:', title);
         
         return {
           id: newId,
@@ -839,11 +844,16 @@
       const projectId = document.getElementById('projectId').value;
       const isNew = !projectId;
       
+      console.log('Saving project. Type:', currentProjectType);
+      
       const project = buildProjectObject();
       if (!project) {
+        console.log('Project object is null, aborting save');
         window.hideLoading();
         return;
       }
+      
+      console.log('Project object:', project);
       
       window.showLoading('Saving project...');
       try {
@@ -878,7 +888,6 @@
     }
 
     async function openProjectModal(projectId = null) {
-      currentEditProjectId = projectId;
       const isEdit = projectId !== null;
       document.getElementById('projectModalTitle').innerText = isEdit ? 'Edit Project' : 'New Project';
       
@@ -958,6 +967,7 @@
         }
       } else {
         // Reset all fields for new project
+        currentProjectType = 'deltaV';
         document.querySelector('.type-option[data-type="deltaV"]').click();
         const allInputs = document.querySelectorAll('#projectForm input, #projectForm textarea, #projectForm select');
         allInputs.forEach(input => {
@@ -974,8 +984,11 @@
       $('#projectModal').modal('show');
     }
 
+    // Direct form submit handler
     document.getElementById('projectForm').addEventListener('submit', async (e) => {
       e.preventDefault();
+      e.stopPropagation();
+      console.log('Form submitted, current type:', currentProjectType);
       await safeSaveProject();
     });
 
