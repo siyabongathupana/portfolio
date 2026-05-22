@@ -79,7 +79,6 @@
     </ul>
 
     <div class="tab-content mt-4">
-      <!-- Projects Tab -->
       <div class="tab-pane fade show active" id="projectsTab">
         <div class="mb-3 d-flex flex-wrap">
           <button class="btn btn-delta mr-2" id="addProjectBtn"><i class="fa fa-plus"></i> Add New Project</button>
@@ -89,7 +88,6 @@
         <div id="projectsList"></div>
       </div>
 
-      <!-- Certificates Tab -->
       <div class="tab-pane fade" id="certificatesTab">
         <div class="mb-3 d-flex flex-wrap">
           <button class="btn btn-delta mr-2" id="addCertBtn"><i class="fa fa-plus"></i> Add Certificate</button>
@@ -98,7 +96,6 @@
         <div id="certificatesList"></div>
       </div>
 
-      <!-- Logs Tab -->
       <div class="tab-pane fade" id="logsTab">
         <div class="logs-panel">
           <div class="logs-icon"><i class="fa fa-file-text-o"></i></div>
@@ -116,7 +113,6 @@
         </div>
       </div>
 
-      <!-- Users Tab (Admin only) -->
       <div class="tab-pane fade" id="usersTab">
         <div class="mb-3 d-flex align-items-center flex-wrap">
           <button class="btn btn-delta mr-2" id="refreshUsersBtn"><i class="fa fa-refresh"></i> Refresh List</button>
@@ -145,9 +141,8 @@
       <div class="modal-body">
         <form id="projectForm">
           <input type="hidden" id="projectId">
-          <input type="hidden" id="selectedProjectType" value="deltaV">
+          <input type="hidden" id="projectTypeHidden" value="deltaV">
           
-          <!-- Project Type Selection -->
           <div class="project-type-selector" id="projectTypeSelector">
             <div class="type-option active" data-type="deltaV">
               <i class="fa fa-microchip"></i>
@@ -161,20 +156,20 @@
             </div>
           </div>
           
+          <!-- DeltaV Fields -->
           <div id="deltaVFields">
-            <!-- Basic Info -->
             <div class="section-card">
               <div class="section-title">Basic Information</div>
               <div class="form-row">
-                <div class="col-md-6"><label>Project Title *</label><input type="text" id="projTitle" class="form-control" required></div>
-                <div class="col-md-6"><label>Short Description</label><textarea id="projShortDesc" rows="2" class="form-control" placeholder="Brief project summary"></textarea></div>
+                <div class="col-md-6"><label>Project Title *</label><input type="text" id="projTitle" class="form-control"></div>
+                <div class="col-md-6"><label>Short Description</label><textarea id="projShortDesc" rows="2" class="form-control"></textarea></div>
               </div>
               <div class="form-row mt-2">
-                <div class="col-md-6"><label>Industry/Category</label><input type="text" id="projIndustry" class="form-control" placeholder="e.g., Oil & Gas, Mining, Manufacturing"></div>
-                <div class="col-md-6"><label>Company/Client</label><input type="text" id="projClient" class="form-control" placeholder="Client name"></div>
+                <div class="col-md-6"><label>Industry/Category</label><input type="text" id="projIndustry" class="form-control"></div>
+                <div class="col-md-6"><label>Company/Client</label><input type="text" id="projClient" class="form-control"></div>
               </div>
               <div class="form-row mt-2">
-                <div class="col-md-4"><label>Project Duration</label><input type="text" id="projDuration" class="form-control" placeholder="e.g., 6 months, Jan 2024 - Jun 2024"></div>
+                <div class="col-md-4"><label>Project Duration</label><input type="text" id="projDuration" class="form-control"></div>
                 <div class="col-md-4"><label>Status</label>
                   <select id="projStatus" class="form-control">
                     <option value="Completed">Completed</option>
@@ -183,20 +178,18 @@
                     <option value="Planned">Planned</option>
                   </select>
                 </div>
-                <div class="col-md-4"><label>User Role</label><input type="text" id="projUserRole" class="form-control" placeholder="e.g., Lead Engineer, Project Manager"></div>
+                <div class="col-md-4"><label>User Role</label><input type="text" id="projUserRole" class="form-control"></div>
               </div>
             </div>
             
-            <!-- Team Section -->
             <div class="section-card">
               <div class="section-title">Team Members</div>
               <div class="form-group">
                 <label>Team Members (comma separated)</label>
-                <input type="text" id="projTeamMembers" class="form-control" placeholder="John Doe, Jane Smith, Mike Johnson">
+                <input type="text" id="projTeamMembers" class="form-control">
               </div>
             </div>
             
-            <!-- DeltaV Specific Fields -->
             <div class="section-card">
               <div class="section-title">DeltaV Configuration</div>
               <div class="form-row">
@@ -207,7 +200,7 @@
                     <option value="SX">SX</option><option value="SZ">SZ</option>
                   </select>
                 </div>
-                <div class="col-md-6"><label>DeltaV Version</label><input type="text" id="projVersion" class="form-control" placeholder="v14.3"></div>
+                <div class="col-md-6"><label>DeltaV Version</label><input type="text" id="projVersion" class="form-control"></div>
               </div>
               <div class="form-row mt-2">
                 <div class="col-md-6"><label>Project Type</label>
@@ -246,20 +239,20 @@
             </div>
           </div>
           
+          <!-- Non-DeltaV Fields -->
           <div id="nonDeltaVFields" style="display:none;">
-            <!-- Basic Info -->
             <div class="section-card">
               <div class="section-title">Basic Information</div>
               <div class="form-row">
-                <div class="col-md-6"><label>Project Title *</label><input type="text" id="nonProjTitle" class="form-control" required></div>
-                <div class="col-md-6"><label>Short Description</label><textarea id="nonProjShortDesc" rows="2" class="form-control" placeholder="Brief project summary"></textarea></div>
+                <div class="col-md-6"><label>Project Title *</label><input type="text" id="nonProjTitle" class="form-control"></div>
+                <div class="col-md-6"><label>Short Description</label><textarea id="nonProjShortDesc" rows="2" class="form-control"></textarea></div>
               </div>
               <div class="form-row mt-2">
-                <div class="col-md-6"><label>Industry/Category</label><input type="text" id="nonProjIndustry" class="form-control" placeholder="e.g., Software, Hardware, General Engineering"></div>
-                <div class="col-md-6"><label>Company/Client</label><input type="text" id="nonProjClient" class="form-control" placeholder="Client name"></div>
+                <div class="col-md-6"><label>Industry/Category</label><input type="text" id="nonProjIndustry" class="form-control"></div>
+                <div class="col-md-6"><label>Company/Client</label><input type="text" id="nonProjClient" class="form-control"></div>
               </div>
               <div class="form-row mt-2">
-                <div class="col-md-4"><label>Project Duration</label><input type="text" id="nonProjDuration" class="form-control" placeholder="e.g., 6 months, Jan 2024 - Jun 2024"></div>
+                <div class="col-md-4"><label>Project Duration</label><input type="text" id="nonProjDuration" class="form-control"></div>
                 <div class="col-md-4"><label>Status</label>
                   <select id="nonProjStatus" class="form-control">
                     <option value="Completed">Completed</option>
@@ -268,49 +261,46 @@
                     <option value="Planned">Planned</option>
                   </select>
                 </div>
-                <div class="col-md-4"><label>User Role</label><input type="text" id="nonProjUserRole" class="form-control" placeholder="e.g., Lead Developer, Project Manager"></div>
+                <div class="col-md-4"><label>User Role</label><input type="text" id="nonProjUserRole" class="form-control"></div>
               </div>
             </div>
             
-            <!-- Team Section -->
             <div class="section-card">
               <div class="section-title">Team Members</div>
               <div class="form-group">
                 <label>Team Members (comma separated)</label>
-                <input type="text" id="nonProjTeamMembers" class="form-control" placeholder="John Doe, Jane Smith, Mike Johnson">
+                <input type="text" id="nonProjTeamMembers" class="form-control">
               </div>
-              <div class="form-group mt-2"><label>Full Description</label><textarea id="nonProjDesc" rows="3" class="form-control" placeholder="Detailed project description"></textarea></div>
+              <div class="form-group mt-2"><label>Full Description</label><textarea id="nonProjDesc" rows="3" class="form-control"></textarea></div>
             </div>
             
-            <!-- Technical Section -->
             <div class="section-card">
               <div class="section-title">Technical Details</div>
               <div class="form-row">
-                <div class="col-md-6"><label>Technologies Used</label><input type="text" id="techTechnologies" class="form-control" placeholder="React, Python, AWS, etc."></div>
-                <div class="col-md-6"><label>Hardware Used</label><input type="text" id="techHardware" class="form-control" placeholder="Servers, PLCs, Sensors, etc."></div>
+                <div class="col-md-6"><label>Technologies Used</label><input type="text" id="techTechnologies" class="form-control"></div>
+                <div class="col-md-6"><label>Hardware Used</label><input type="text" id="techHardware" class="form-control"></div>
               </div>
               <div class="form-row mt-2">
-                <div class="col-md-6"><label>Software Used</label><input type="text" id="techSoftware" class="form-control" placeholder="VS Code, Docker, Kubernetes, etc."></div>
-                <div class="col-md-6"><label>Protocols</label><input type="text" id="techProtocols" class="form-control" placeholder="HTTP, MQTT, Modbus, etc."></div>
+                <div class="col-md-6"><label>Software Used</label><input type="text" id="techSoftware" class="form-control"></div>
+                <div class="col-md-6"><label>Protocols</label><input type="text" id="techProtocols" class="form-control"></div>
               </div>
-              <div class="form-group mt-2"><label>Programming Languages</label><input type="text" id="techLanguages" class="form-control" placeholder="JavaScript, Python, C++, etc."></div>
+              <div class="form-group mt-2"><label>Programming Languages</label><input type="text" id="techLanguages" class="form-control"></div>
             </div>
             
-            <!-- Work Breakdown Section -->
             <div class="section-card">
               <div class="section-title">Work Breakdown & Analysis</div>
-              <div class="form-group"><label>Work Breakdown Structure</label><textarea id="wbWorkBreakdown" rows="2" class="form-control" placeholder="Key tasks and milestones"></textarea></div>
-              <div class="form-group"><label>Problems Encountered</label><textarea id="wbProblems" rows="2" class="form-control" placeholder="Challenges faced during the project"></textarea></div>
-              <div class="form-group"><label>Root Causes</label><textarea id="wbRootCauses" rows="2" class="form-control" placeholder="What caused the problems"></textarea></div>
-              <div class="form-group"><label>Solutions Implemented</label><textarea id="wbSolutions" rows="2" class="form-control" placeholder="How problems were solved"></textarea></div>
-              <div class="form-group"><label>Improvements Made</label><textarea id="wbImprovements" rows="2" class="form-control" placeholder="Optimizations and enhancements"></textarea></div>
-              <div class="form-group"><label>Lessons Learned</label><textarea id="wbLessons" rows="2" class="form-control" placeholder="Key takeaways from the project"></textarea></div>
-              <div class="form-group"><label>Risks Identified</label><textarea id="wbRisks" rows="2" class="form-control" placeholder="Potential risks and mitigations"></textarea></div>
-              <div class="form-group"><label>Testing Procedure</label><textarea id="wbTesting" rows="2" class="form-control" placeholder="How the solution was tested"></textarea></div>
+              <div class="form-group"><label>Work Breakdown Structure</label><textarea id="wbWorkBreakdown" rows="2" class="form-control"></textarea></div>
+              <div class="form-group"><label>Problems Encountered</label><textarea id="wbProblems" rows="2" class="form-control"></textarea></div>
+              <div class="form-group"><label>Root Causes</label><textarea id="wbRootCauses" rows="2" class="form-control"></textarea></div>
+              <div class="form-group"><label>Solutions Implemented</label><textarea id="wbSolutions" rows="2" class="form-control"></textarea></div>
+              <div class="form-group"><label>Improvements Made</label><textarea id="wbImprovements" rows="2" class="form-control"></textarea></div>
+              <div class="form-group"><label>Lessons Learned</label><textarea id="wbLessons" rows="2" class="form-control"></textarea></div>
+              <div class="form-group"><label>Risks Identified</label><textarea id="wbRisks" rows="2" class="form-control"></textarea></div>
+              <div class="form-group"><label>Testing Procedure</label><textarea id="wbTesting" rows="2" class="form-control"></textarea></div>
             </div>
           </div>
           
-          <!-- Media Section (Common for both types) -->
+          <!-- Media Section -->
           <div class="section-card">
             <div class="section-title">Media Gallery</div>
             <div class="form-group">
@@ -332,7 +322,7 @@
             </div>
           </div>
 
-          <button type="submit" class="btn btn-delta mt-3" id="saveProjectBtn">Save Project</button>
+          <button type="button" class="btn btn-delta mt-3" id="saveProjectBtn">Save Project</button>
         </form>
       </div>
     </div>
@@ -405,7 +395,7 @@
       document.querySelectorAll('.type-option').forEach(o => o.classList.remove('active'));
       this.classList.add('active');
       currentProjectType = this.dataset.type;
-      document.getElementById('selectedProjectType').value = currentProjectType;
+      document.getElementById('projectTypeHidden').value = currentProjectType;
       if (currentProjectType === 'deltaV') {
         document.getElementById('deltaVFields').style.display = 'block';
         document.getElementById('nonDeltaVFields').style.display = 'none';
@@ -734,10 +724,13 @@
       }
     }
 
-    // SIMPLIFIED BUILD FUNCTION - checks currentProjectType directly
-    function buildProjectObject() {
+    // SIMPLE SAVE FUNCTION - directly creates project object based on current type
+    async function saveProject() {
       const projectId = document.getElementById('projectId').value;
+      const isNew = !projectId;
       const newId = projectId || ('proj_' + Date.now());
+      
+      // Get selected images
       const imgGroups = document.querySelectorAll('#imagesContainer .image-input-group');
       const selectedImages = [];
       for (const group of imgGroups) {
@@ -748,18 +741,17 @@
         }
       }
       
-      console.log('Current project type:', currentProjectType);
+      let project = null;
+      const projectType = document.getElementById('projectTypeHidden').value;
       
-      if (currentProjectType === 'deltaV') {
-        const title = document.getElementById('projTitle').value;
+      if (projectType === 'deltaV') {
+        const title = document.getElementById('projTitle').value.trim();
         if (!title) {
           showToast('Project Title is required', 'error');
-          return null;
+          return;
         }
         
-        console.log('Building DeltaV project:', title);
-        
-        return {
+        project = {
           id: newId,
           projectCategory: 'deltaV',
           title: title,
@@ -797,15 +789,13 @@
           updatedAt: Date.now()
         };
       } else {
-        const title = document.getElementById('nonProjTitle').value;
+        const title = document.getElementById('nonProjTitle').value.trim();
         if (!title) {
           showToast('Project Title is required', 'error');
-          return null;
+          return;
         }
         
-        console.log('Building Non-DeltaV project:', title);
-        
-        return {
+        project = {
           id: newId,
           projectCategory: 'nonDeltaV',
           title: title,
@@ -838,22 +828,6 @@
           updatedAt: Date.now()
         };
       }
-    }
-
-    async function safeSaveProject() {
-      const projectId = document.getElementById('projectId').value;
-      const isNew = !projectId;
-      
-      console.log('Saving project. Type:', currentProjectType);
-      
-      const project = buildProjectObject();
-      if (!project) {
-        console.log('Project object is null, aborting save');
-        window.hideLoading();
-        return;
-      }
-      
-      console.log('Project object:', project);
       
       window.showLoading('Saving project...');
       try {
@@ -893,23 +867,21 @@
       
       // Reset form
       document.getElementById('projectId').value = projectId || '';
-      imgContainer.innerHTML = '';
+      document.getElementById('imagesContainer').innerHTML = '';
       updateImageCounter();
       
       if (isEdit) {
         const projects = await window.portfolioData.loadProjects();
         const proj = projects[projectId];
         if (proj) {
-          // Set project type based on existing project data
           if (proj.projectCategory === 'deltaV' || proj.controllerType) {
             currentProjectType = 'deltaV';
-            document.querySelector('.type-option[data-type="deltaV"]').click();
-          } else {
-            currentProjectType = 'nonDeltaV';
-            document.querySelector('.type-option[data-type="nonDeltaV"]').click();
-          }
-          
-          if (currentProjectType === 'deltaV') {
+            document.getElementById('projectTypeHidden').value = 'deltaV';
+            document.querySelector('.type-option[data-type="deltaV"]').classList.add('active');
+            document.querySelector('.type-option[data-type="nonDeltaV"]').classList.remove('active');
+            document.getElementById('deltaVFields').style.display = 'block';
+            document.getElementById('nonDeltaVFields').style.display = 'none';
+            
             document.getElementById('projTitle').value = proj.title || '';
             document.getElementById('projShortDesc').value = proj.shortDesc || '';
             document.getElementById('projIndustry').value = proj.industry || '';
@@ -936,6 +908,13 @@
             document.getElementById('projDesc').value = proj.description || '';
             document.getElementById('projGraphType').value = proj.graphType || 'bar';
           } else {
+            currentProjectType = 'nonDeltaV';
+            document.getElementById('projectTypeHidden').value = 'nonDeltaV';
+            document.querySelector('.type-option[data-type="nonDeltaV"]').classList.add('active');
+            document.querySelector('.type-option[data-type="deltaV"]').classList.remove('active');
+            document.getElementById('deltaVFields').style.display = 'none';
+            document.getElementById('nonDeltaVFields').style.display = 'block';
+            
             document.getElementById('nonProjTitle').value = proj.title || '';
             document.getElementById('nonProjShortDesc').value = proj.shortDesc || '';
             document.getElementById('nonProjIndustry').value = proj.industry || '';
@@ -966,9 +945,15 @@
           updateImageCounter();
         }
       } else {
-        // Reset all fields for new project
+        // Reset for new project - default to DeltaV
         currentProjectType = 'deltaV';
-        document.querySelector('.type-option[data-type="deltaV"]').click();
+        document.getElementById('projectTypeHidden').value = 'deltaV';
+        document.querySelector('.type-option[data-type="deltaV"]').classList.add('active');
+        document.querySelector('.type-option[data-type="nonDeltaV"]').classList.remove('active');
+        document.getElementById('deltaVFields').style.display = 'block';
+        document.getElementById('nonDeltaVFields').style.display = 'none';
+        
+        // Clear all inputs
         const allInputs = document.querySelectorAll('#projectForm input, #projectForm textarea, #projectForm select');
         allInputs.forEach(input => {
           if (input.id && !input.id.includes('projectId') && input.type !== 'hidden') {
@@ -984,12 +969,11 @@
       $('#projectModal').modal('show');
     }
 
-    // Direct form submit handler
-    document.getElementById('projectForm').addEventListener('submit', async (e) => {
+    // Save button click handler - using button click instead of form submit
+    document.getElementById('saveProjectBtn').addEventListener('click', async function(e) {
       e.preventDefault();
       e.stopPropagation();
-      console.log('Form submitted, current type:', currentProjectType);
-      await safeSaveProject();
+      await saveProject();
     });
 
     async function openCertModal(index = null) {
