@@ -96,3 +96,14 @@ footer { background:#051f29; color:#bdd3e0; text-align:center; padding:24px; }
   90% { opacity: 1; transform: translateX(0); }
   100% { opacity: 0; transform: translateX(20px); }
 }
+
+/* Responsive modal styles */
+@media (max-width: 768px) {
+  .image-select-option {
+    flex-wrap: wrap !important;
+  }
+  .image-select-option img {
+    margin-bottom: 10px;
+  }
+}
+
