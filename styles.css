@@ -89,3 +89,10 @@ footer { background:#051f29; color:#bdd3e0; text-align:center; padding:24px; }
   .btn-delta,.btn-outline-delta { padding:6px 16px; font-size:0.9rem; }
   .admin-container,.certificates-container { margin:20px; padding:20px; }
 }
+
+@keyframes fadeInOut {
+  0% { opacity: 0; transform: translateX(20px); }
+  10% { opacity: 1; transform: translateX(0); }
+  90% { opacity: 1; transform: translateX(0); }
+  100% { opacity: 0; transform: translateX(20px); }
+}
