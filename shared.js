@@ -1,4 +1,4 @@
-// shared.js – Complete version with logo, QR code, beautiful PDF, and all features
+// shared.js – Complete version with QR code, responsive modals, and all features
 
 window.showLoading = function (msg = 'Processing...') {
   let loader = document.getElementById('globalLoader');
@@ -766,7 +766,7 @@ function showToast(message, type = 'success') {
   const toastId = 'toast-' + Date.now();
   const bgColor = type === 'success' ? '#28a745' : (type === 'error' ? '#dc3545' : '#17a2b8');
   const html = `
-    <div id="${toastId}" style="background: ${bgColor}; color: white; padding: 12px 20px; border-radius: 8px; margin-top: 10px; min-width: 250px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); animation: fadeInOut 3s ease;">
+    <div id="${toastId}" style="background: ${bgColor}; color: white; padding: 12px 20px; border-radius: 8px; margin-top: 10px; min-width: 200px; max-width: 90%; box-shadow: 0 2px 10px rgba(0,0,0,0.1); animation: fadeInOut 3s ease; font-size: 14px; word-break: break-word;">
       ${message}
     </div>
   `;
@@ -778,7 +778,42 @@ function showToast(message, type = 'success') {
   }, 3000);
 }
 
-// ========== BEAUTIFUL PDF GENERATION WITH LOGO AND QR CODE ==========
+// Generate QR Code function (safe wrapper)
+async function generateQRCodeDataURL(text, size = 50) {
+  return new Promise((resolve) => {
+    // Check if QRCode library is available
+    if (typeof QRCode === 'undefined') {
+      console.warn('QRCode library not loaded');
+      resolve(null);
+      return;
+    }
+    
+    const container = document.createElement('div');
+    try {
+      new QRCode(container, {
+        text: text,
+        width: size,
+        height: size,
+        colorDark: "#000000",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.L
+      });
+      setTimeout(() => {
+        const canvas = container.querySelector('canvas');
+        if (canvas) {
+          resolve(canvas.toDataURL('image/png'));
+        } else {
+          resolve(null);
+        }
+      }, 100);
+    } catch (err) {
+      console.error('QRCode generation error:', err);
+      resolve(null);
+    }
+  });
+}
+
+// ========== BEAUTIFUL PDF GENERATION WITH QR CODE ==========
 window.generateProjectReport = async function(projectId) {
   const data = await window.portfolioData.loadProjectsForView();
   const proj = data[projectId];
@@ -795,25 +830,25 @@ window.generateProjectReport = async function(projectId) {
   
   if (selectedImages.length > 0) {
     const imageOptions = selectedImages.map((img, idx) => `
-      <div class="image-select-option" style="display: flex; align-items: center; margin-bottom: 15px; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; background: white;">
+      <div class="image-select-option" style="display: flex; align-items: center; margin-bottom: 15px; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; background: white; flex-wrap: wrap;">
         <input type="checkbox" class="pdf-image-checkbox" data-idx="${idx}" checked style="margin-right: 15px; width: 20px; height: 20px;">
-        <img src="${img.url}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 6px; margin-right: 15px;">
-        <div style="flex: 1;">
+        <img src="${img.url}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 6px; margin-right: 15px;">
+        <div style="flex: 1; min-width: 150px;">
           <div style="font-weight: 500; margin-bottom: 4px; color: #1e2a3e;">Image ${idx + 1}</div>
-          <div style="font-size: 12px; color: #666;">${img.caption || 'No caption'}</div>
+          <div style="font-size: 12px; color: #666; word-break: break-word;">${img.caption || 'No caption'}</div>
         </div>
       </div>
     `).join('');
     
     const modalHtml = `
-      <div id="pdfImageModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 10000; display: flex; align-items: center; justify-content: center;">
-        <div style="background: white; border-radius: 20px; max-width: 550px; width: 90%; max-height: 80vh; overflow: auto; padding: 28px; box-shadow: 0 20px 40px rgba(0,0,0,0.2);">
-          <h3 style="margin-bottom: 20px; color: #0b2b3b; font-weight: 600;">Select Images for PDF Report</h3>
-          <p style="margin-bottom: 20px; color: #666; font-size: 14px;">Choose which images to include in your professional report:</p>
-          <div id="pdfImageList" style="margin-bottom: 20px; max-height: 400px; overflow-y: auto;">
+      <div id="pdfImageModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 15px;">
+        <div style="background: white; border-radius: 20px; max-width: 550px; width: 100%; max-height: 85vh; overflow: auto; padding: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.2);">
+          <h3 style="margin-bottom: 15px; color: #0b2b3b; font-weight: 600; font-size: 1.3rem;">Select Images for PDF Report</h3>
+          <p style="margin-bottom: 15px; color: #666; font-size: 14px;">Choose which images to include in your professional report:</p>
+          <div id="pdfImageList" style="margin-bottom: 20px; max-height: 50vh; overflow-y: auto;">
             ${imageOptions}
           </div>
-          <div style="display: flex; gap: 10px; justify-content: flex-end; border-top: 1px solid #e2e8f0; padding-top: 20px;">
+          <div style="display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; border-top: 1px solid #e2e8f0; padding-top: 20px;">
             <button id="selectAllImagesBtn" style="padding: 8px 16px; background: #f0f0f0; border: none; border-radius: 8px; cursor: pointer; font-weight: 500;">Select All</button>
             <button id="deselectAllImagesBtn" style="padding: 8px 16px; background: #f0f0f0; border: none; border-radius: 8px; cursor: pointer; font-weight: 500;">Deselect All</button>
             <button id="confirmPdfImagesBtn" style="padding: 8px 24px; background: #2fc7ff; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">Generate PDF</button>
@@ -869,6 +904,7 @@ window.generateProjectReport = async function(projectId) {
     
     const repoOwner = window.REPO_CONFIG.owner;
     const repoName = window.REPO_CONFIG.repo;
+    const repoUrl = `https://github.com/${repoOwner}/${repoName}`;
     const logoUrl = `https://raw.githubusercontent.com/${repoOwner}/${repoName}/main/logo.png`;
     
     let logoImage = null;
@@ -953,20 +989,9 @@ window.generateProjectReport = async function(projectId) {
     doc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth / 2, pageHeight - 25, { align: 'center' });
     doc.text('Your Portfolio System', pageWidth / 2, pageHeight - 18, { align: 'center' });
     
-    const repoUrl = `https://github.com/${window.REPO_CONFIG.owner}/${window.REPO_CONFIG.repo}`;
-    const qrContainer = document.createElement('div');
-    new QRCode(qrContainer, {
-      text: repoUrl,
-      width: 50,
-      height: 50,
-      colorDark: "#000000",
-      colorLight: "#ffffff",
-      correctLevel: QRCode.CorrectLevel.L
-    });
-    await new Promise(r => setTimeout(r, 200));
-    const qrCanvas = qrContainer.querySelector('canvas');
-    if (qrCanvas) {
-      const qrDataURL = qrCanvas.toDataURL('image/png');
+    // QR Code on cover
+    const qrDataURL = await generateQRCodeDataURL(repoUrl, 50);
+    if (qrDataURL) {
       doc.addImage(qrDataURL, 'PNG', pageWidth - 25, pageHeight - 28, 15, 15);
     }
     
@@ -1336,19 +1361,9 @@ window.generateProjectReport = async function(projectId) {
       
       doc.text(`Page ${i} of ${pageCount}`, pageWidth / 2, pageHeight - 8, { align: 'center' });
       
-      const pageQrContainer = document.createElement('div');
-      new QRCode(pageQrContainer, {
-        text: repoUrl,
-        width: 25,
-        height: 25,
-        colorDark: "#000000",
-        colorLight: "#ffffff",
-        correctLevel: QRCode.CorrectLevel.L
-      });
-      await new Promise(r => setTimeout(r, 100));
-      const pageQrCanvas = pageQrContainer.querySelector('canvas');
-      if (pageQrCanvas) {
-        const pageQrDataURL = pageQrCanvas.toDataURL('image/png');
+      // QR Code on every page
+      const pageQrDataURL = await generateQRCodeDataURL(repoUrl, 25);
+      if (pageQrDataURL) {
         doc.addImage(pageQrDataURL, 'PNG', pageWidth - 22, pageHeight - 20, 12, 12);
       }
       
