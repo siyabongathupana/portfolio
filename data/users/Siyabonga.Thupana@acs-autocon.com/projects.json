@@ -119,5 +119,47 @@
       }
     ],
     "updatedAt": 1779439230665
+  },
+  "proj_1779440703233": {
+    "id": "proj_1779440703233",
+    "projectCategory": "deltaV",
+    "title": "Omnia Phase 3",
+    "shortDesc": "dfet 3ter re rtewf34 ttg t5tet5 5te tewqrre tttttttttttertt rette",
+    "industry": "Oil and GAS",
+    "client": "omnia",
+    "duration": "fdv",
+    "status": "Ongoing",
+    "userRole": "Technician",
+    "teamMembers": "ANdrew, Jon, Siya",
+    "controllerType": "MD",
+    "deltaVVersion": "",
+    "projectType": "DCS",
+    "cabinetCount": 1,
+    "io": {
+      "AI": 0,
+      "AO": 0,
+      "DI": 0,
+      "DO": 0
+    },
+    "dates": {
+      "start": "",
+      "finish": "",
+      "ifat": "",
+      "cfat": ""
+    },
+    "team": {
+      "lead": "",
+      "engineer": "",
+      "technician": ""
+    },
+    "description": "",
+    "graphType": "bar",
+    "selectedImages": [
+      {
+        "url": "https://raw.githubusercontent.com/siyabongathupana/portfolio/main/data/users/Siyabonga.Thupana%40acs-autocon.com/project_images/1779440693882_Screenshot_2026-02-02_131719.png",
+        "caption": ""
+      }
+    ],
+    "updatedAt": 1779440703233
   }
 }
