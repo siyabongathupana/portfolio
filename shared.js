@@ -1,4 +1,4 @@
-// shared.js – Complete version with QR code, responsive modals, and all features
+// shared.js – Complete version with isEmailVerified function and all features
 
 window.showLoading = function (msg = 'Processing...') {
   let loader = document.getElementById('globalLoader');
@@ -295,6 +295,44 @@ window.AccountManager = {
       return await resp.json();
     } catch { return null; }
   },
+  
+  // ========== ADDED: Email Verification Function ==========
+  async isEmailVerified(email) {
+    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+    const encUser = encodeURIComponent(email);
+    
+    // Check global verified_users.json first
+    const globalUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/data/verified_users.json`;
+    try {
+      const resp = await fetch(globalUrl);
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data.verified && data.verified.includes(email)) {
+          return true;
+        }
+      }
+    } catch (err) {
+      console.log('Global check failed:', err);
+    }
+    
+    // Fallback: check user's individual verified.json
+    const userUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${dataPath}/users/${encUser}/verified.json`;
+    try {
+      const resp = await fetch(userUrl);
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data.verified === true) {
+          return true;
+        }
+      }
+    } catch (err) {
+      console.log('User file check failed:', err);
+    }
+    
+    return false;
+  },
+  // ========== END ADDED FUNCTION ==========
+  
   async register(username, passphrase, pat) {
     const payload = JSON.stringify({ test: 'VALID', token: pat });
     const encrypted = await window.CryptoUtil.encrypt(payload, passphrase);
@@ -304,6 +342,16 @@ window.AccountManager = {
     const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, pat).catch(() => null);
     if (existing && existing.sha) throw new Error('An account with this email already exists on GitHub.');
     await GitHubAPI.updateFile(owner, repo, path, encrypted, `Register ${username}`, branch, pat, existing?.sha);
+    
+    // Create verification status file (unverified)
+    const verificationStatus = { verified: false, createdAt: Date.now() };
+    const verificationPath = `${dataPath}/users/${encUser}/verified.json`;
+    try {
+      await GitHubAPI.updateFile(owner, repo, verificationPath, verificationStatus, `Create verification status for ${username}`, branch, pat);
+    } catch (err) {
+      console.warn('Could not create verification file:', err);
+    }
+    
     this._notifyAdminNewUser(username);
     this._notifyUserConfirmation(username);
     await window.Logger.log('register', `New user registered: ${username}`, 'INFO');
@@ -781,7 +829,6 @@ function showToast(message, type = 'success') {
 // Generate QR Code function (safe wrapper)
 async function generateQRCodeDataURL(text, size = 50) {
   return new Promise((resolve) => {
-    // Check if QRCode library is available
     if (typeof QRCode === 'undefined') {
       console.warn('QRCode library not loaded');
       resolve(null);
@@ -813,7 +860,7 @@ async function generateQRCodeDataURL(text, size = 50) {
   });
 }
 
-// ========== BEAUTIFUL PDF GENERATION WITH QR CODE ==========
+// ========== PDF GENERATION FUNCTION ==========
 window.generateProjectReport = async function(projectId) {
   const data = await window.portfolioData.loadProjectsForView();
   const proj = data[projectId];
