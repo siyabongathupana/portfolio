@@ -35,5 +35,42 @@
       }
     ],
     "updatedAt": 1779407704735
+  },
+  "proj_1779408417834": {
+    "id": "proj_1779408417834",
+    "projectCategory": "nonDeltaV",
+    "title": "WDAD",
+    "shortDesc": "",
+    "industry": "",
+    "client": "",
+    "duration": "",
+    "status": "Completed",
+    "userRole": "",
+    "teamMembers": "",
+    "description": "",
+    "technical": {
+      "technologies": "",
+      "hardware": "",
+      "software": "",
+      "protocols": "",
+      "languages": ""
+    },
+    "workBreakdown": {
+      "workBreakdown": "",
+      "problems": "",
+      "rootCauses": "",
+      "solutions": "",
+      "improvements": "",
+      "lessons": "",
+      "risks": "",
+      "testing": ""
+    },
+    "selectedImages": [
+      {
+        "url": "https://raw.githubusercontent.com/siyabongathupana/portfolio/main/data/users/Siyabonga.Thupana%40acs-autocon.com/project_images/1779408326702_shared_image.jpg",
+        "caption": ""
+      }
+    ],
+    "updatedAt": 1779408417835
   }
 }
