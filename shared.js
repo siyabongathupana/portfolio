@@ -1,4 +1,4 @@
-// shared.js – Full version with working delete, conflict resolution, plain‑text logs, and email verification
+// shared.js – Complete version with logo, QR code, beautiful PDF, and all features
 
 window.showLoading = function (msg = 'Processing...') {
   let loader = document.getElementById('globalLoader');
@@ -52,6 +52,10 @@ window.SessionManager = (() => {
     logout: () => {
       current = null;
       sessionStorage.removeItem('portfolioUser');
+    },
+    isAdmin: () => {
+      const user = window.SessionManager.getCurrentUser();
+      return user && window.APP_CONFIG.adminUsers && window.APP_CONFIG.adminUsers.includes(user.username);
     }
   };
 })();
@@ -243,6 +247,44 @@ window.compressImage = function(file, maxW = 1600, maxH = 1600, quality = 0.85) 
 };
 
 window.AccountManager = {
+  async _ensureEmailJS() {
+    if (typeof emailjs === 'undefined') {
+      await new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js';
+        script.onload = resolve;
+        script.onerror = reject;
+        document.head.appendChild(script);
+      });
+      emailjs.init(window.APP_CONFIG.emailjs.publicKey);
+    }
+  },
+  async _sendEmail(templateID, params) {
+    await this._ensureEmailJS();
+    return emailjs.send(window.APP_CONFIG.emailjs.serviceID, templateID, params);
+  },
+  async _notifyAdminNewUser(userEmail) {
+    const cfg = window.APP_CONFIG.emailjs;
+    if (!cfg || !cfg.publicKey || !cfg.adminTemplateID) return;
+    try {
+      await this._sendEmail(cfg.adminTemplateID, {
+        to_email: cfg.adminEmail,
+        subject: `New user: ${userEmail}`,
+        message: `New account created: ${userEmail}`
+      });
+    } catch (e) { console.warn('Admin email failed', e); }
+  },
+  async _notifyUserConfirmation(userEmail) {
+    const cfg = window.APP_CONFIG.emailjs;
+    if (!cfg || !cfg.publicKey || !cfg.userTemplateID) return;
+    try {
+      await this._sendEmail(cfg.userTemplateID, {
+        to_email: userEmail,
+        subject: 'Welcome to Your Portfolio',
+        message: `Your account (${userEmail}) has been created. You can now log in and manage your portfolio.`
+      });
+    } catch (e) { console.warn('User email failed', e); }
+  },
   async fetchAccount(username) {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(username);
@@ -253,79 +295,20 @@ window.AccountManager = {
       return await resp.json();
     } catch { return null; }
   },
-  
-  // Check if email is verified (using global verified_users.json)
-  async isEmailVerified(email) {
-    const { owner, repo, branch } = window.REPO_CONFIG;
-    
-    // First check the global verified_users.json
-    const globalUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/data/verified_users.json`;
-    try {
-      const resp = await fetch(globalUrl);
-      if (resp.ok) {
-        const data = await resp.json();
-        if (data.verified && data.verified.includes(email)) {
-          console.log('Email found in global verified list');
-          return true;
-        }
-      }
-    } catch (err) {
-      console.log('Global check failed:', err);
-    }
-    
-    // Fallback: check user's individual verified.json
-    const encUser = encodeURIComponent(email);
-    const userUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/data/users/${encUser}/verified.json`;
-    try {
-      const resp = await fetch(userUrl);
-      if (resp.ok) {
-        const data = await resp.json();
-        if (data.verified === true) {
-          return true;
-        }
-      }
-    } catch (err) {
-      console.log('User file check failed:', err);
-    }
-    
-    return false;
-  },
-  
   async register(username, passphrase, pat) {
-    const payload = JSON.stringify({ 
-      test: 'VALID', 
-      token: pat,
-      registeredAt: Date.now()
-    });
+    const payload = JSON.stringify({ test: 'VALID', token: pat });
     const encrypted = await window.CryptoUtil.encrypt(payload, passphrase);
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(username);
     const path = `${dataPath}/users/${encUser}/account.json`;
-    
-    // Check if account already exists using public read
-    const publicUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${path}`;
-    const checkResp = await fetch(publicUrl);
-    if (checkResp.ok) {
-      throw new Error('An account with this email already exists.');
-    }
-    
-    // Create the account file
-    await GitHubAPI.updateFile(owner, repo, path, encrypted, `Register ${username}`, branch, pat);
-    
-    // Create verification status file (unverified)
-    const verificationStatus = { verified: false, createdAt: Date.now() };
-    const verificationPath = `${dataPath}/users/${encUser}/verified.json`;
-    
-    try {
-      await GitHubAPI.updateFile(owner, repo, verificationPath, verificationStatus, `Create verification status for ${username}`, branch, pat);
-    } catch (err) {
-      console.warn('Could not create verification file:', err);
-    }
-    
-    await window.Logger.log('register', `New user registered: ${username} (unverified)`, 'INFO');
+    const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, pat).catch(() => null);
+    if (existing && existing.sha) throw new Error('An account with this email already exists on GitHub.');
+    await GitHubAPI.updateFile(owner, repo, path, encrypted, `Register ${username}`, branch, pat, existing?.sha);
+    this._notifyAdminNewUser(username);
+    this._notifyUserConfirmation(username);
+    await window.Logger.log('register', `New user registered: ${username}`, 'INFO');
     return true;
   },
-  
   async login(username, passphrase) {
     const blocked = await this.getBlockedUsers();
     if (blocked.includes(username)) throw new Error('Your account has been blocked. Contact the administrator.');
@@ -336,7 +319,6 @@ window.AccountManager = {
     if (data.test !== 'VALID') throw new Error('Corrupted account');
     return data.token;
   },
-  
   async getBlockedUsers() {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const url = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${dataPath}/blocked_users.json`;
@@ -346,7 +328,6 @@ window.AccountManager = {
       return await resp.json();
     } catch { return []; }
   },
-  
   async toggleBlock(username, block, adminToken) {
     const blocked = await this.getBlockedUsers();
     if (block) {
@@ -364,7 +345,6 @@ window.AccountManager = {
     await window.Logger.log('toggle_block', `${block ? 'Blocked' : 'Unblocked'} user ${username}`, 'INFO');
     return true;
   },
-  
   async listUsers(adminToken) {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const url = `https://api.github.com/repos/${owner}/${repo}/contents/${dataPath}/users?ref=${branch}`;
@@ -375,7 +355,6 @@ window.AccountManager = {
     const items = await resp.json();
     return items.filter(i => i.type === 'dir').map(i => i.name);
   },
-  
   async deleteUser(username, adminToken) {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(username);
@@ -392,7 +371,6 @@ window.AccountManager = {
     await window.Logger.log('delete_user', `Deleted user ${username}`, 'INFO');
     return true;
   },
-  
   async getUserStats(username, adminToken) {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(username);
@@ -591,6 +569,7 @@ window.portfolioData = (() => {
     
     for (const id in data) {
       if (!data[id].updatedAt) data[id].updatedAt = Date.now();
+      if (data[id].blocked === undefined) data[id].blocked = false;
     }
     
     localStorage.setItem(PROJECTS_KEY, JSON.stringify(data));
@@ -722,9 +701,20 @@ window.portfolioData = (() => {
     });
   }
 
+  async function blockProject(projectId, block = true) {
+    const projects = await loadProjects();
+    if (!projects[projectId]) throw new Error('Project not found');
+    projects[projectId].blocked = block;
+    projects[projectId].updatedAt = Date.now();
+    await saveProjects(projects);
+    await window.Logger.log('block_project', `${block ? 'Blocked' : 'Unblocked'} project: ${projects[projectId].title}`);
+    return true;
+  }
+
   return {
     loadProjects, saveProjects, loadCertificates, saveCertificates, exportData,
-    loadProjectsForView, loadCertificatesForView
+    loadProjectsForView, loadCertificatesForView,
+    blockProject
   };
 })();
 
@@ -760,134 +750,623 @@ window.protectImages = function () {
   });
 };
 
+// Helper function for toasts
+function showToast(message, type = 'success') {
+  let container = document.getElementById('toastContainer');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'toastContainer';
+    container.style.position = 'fixed';
+    container.style.bottom = '20px';
+    container.style.right = '20px';
+    container.style.zIndex = '1050';
+    document.body.appendChild(container);
+  }
+  
+  const toastId = 'toast-' + Date.now();
+  const bgColor = type === 'success' ? '#28a745' : (type === 'error' ? '#dc3545' : '#17a2b8');
+  const html = `
+    <div id="${toastId}" style="background: ${bgColor}; color: white; padding: 12px 20px; border-radius: 8px; margin-top: 10px; min-width: 250px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); animation: fadeInOut 3s ease;">
+      ${message}
+    </div>
+  `;
+  container.insertAdjacentHTML('beforeend', html);
+  
+  setTimeout(() => {
+    const toast = document.getElementById(toastId);
+    if (toast) toast.remove();
+  }, 3000);
+}
+
+// ========== BEAUTIFUL PDF GENERATION WITH LOGO AND QR CODE ==========
 window.generateProjectReport = async function(projectId) {
   const data = await window.portfolioData.loadProjectsForView();
   const proj = data[projectId];
   if (!proj) { alert("Project not found!"); return; }
-
-  let projectType = proj.projectType || 'Other';
-  let primaryColor, bgColor;
-  if (projectType === 'DCS') { primaryColor = '#2fc7ff'; bgColor = '#f9fbfd'; }
-  else if (projectType === 'SIS') { primaryColor = '#ffc107'; bgColor = '#fffdf0'; }
-  else if (projectType === 'SIS & DCS') { primaryColor = '#8bc34a'; bgColor = '#f1f8e9'; }
-  else { primaryColor = '#6c757d'; bgColor = '#f8f9fa'; }
-
-  const io = proj.io || { AI: 0, AO: 0, DI: 0, DO: 0 };
   
-  const chartCanvas = document.createElement('canvas');
-  chartCanvas.width = 500; chartCanvas.height = 250;
-  const ctx = chartCanvas.getContext('2d');
-  let chart;
-  const chartColors = (projectType === 'DCS') ? ['#2fc7ff','#1d9fcf','#0f5c6b','#0a4b59'] :
-                      (projectType === 'SIS') ? ['#ffc107','#ffb300','#ff8f00','#ff6f00'] :
-                      (projectType === 'SIS & DCS') ? ['#8bc34a','#689f38','#558b2f','#33691e'] :
-                      ['#adb5bd','#6c757d','#495057','#212529'];
-  if (proj.graphType === 'pie') {
-    chart = new Chart(ctx, {
-      type: 'pie',
-      data: { labels: ['AI','AO','DI','DO'], datasets: [{ data: [io.AI, io.AO, io.DI, io.DO], backgroundColor: chartColors }] },
-      options: { responsive: false }
-    });
-  } else if (proj.graphType === 'line') {
-    chart = new Chart(ctx, {
-      type: 'line',
-      data: { labels: ['AI','AO','DI','DO'], datasets: [{ label: 'I/O Count', data: [io.AI, io.AO, io.DI, io.DO], borderColor: primaryColor, fill: true }] },
-      options: { responsive: false }
-    });
-  } else {
-    chart = new Chart(ctx, {
-      type: 'bar',
-      data: { labels: ['AI','AO','DI','DO'], datasets: [{ label: 'I/O Count', data: [io.AI, io.AO, io.DI, io.DO], backgroundColor: primaryColor }] },
-      options: { responsive: false }
-    });
+  if (proj.blocked === true && !window.SessionManager.isAdmin()) {
+    alert("Access denied: This project is blocked.");
+    return;
   }
-  await new Promise(r => setTimeout(r, 200));
-  const chartBase64 = chartCanvas.toDataURL('image/png');
-  chart.destroy();
-
-  let imagesHtml = '';
-  if (proj.selectedImages && proj.selectedImages.length) {
-    imagesHtml = `<div style="display: flex; flex-wrap: wrap; gap:10px; margin-top:10px;">`;
-    proj.selectedImages.forEach(img => {
-      imagesHtml += `
-        <div style="flex:0 0 calc(50% - 5px); text-align:center; background:#f8f9fa; border-radius:8px; padding:5px;">
-          <img src="${img.url}" style="width:100%; max-height:150px; object-fit:cover; border-radius:8px;" loading="lazy" />
-          <div style="font-size:10px; color:#555; margin-top:4px;">${img.caption || ''}</div>
-        </div>`;
-    });
-    imagesHtml += `</div>`;
-  } else { imagesHtml = '<p>No images selected.</p>'; }
-
-  const controllerDisplay = proj.controllerTypes ? proj.controllerTypes.join(', ') : (proj.controllerType || 'N/A');
-  const ifatText = proj.dates?.ifatStart ? `${proj.dates.ifatStart} to ${proj.dates.ifatEnd || ''}` : (proj.dates?.ifat || 'N/A');
-  const cfatText = proj.dates?.cfatStart ? `${proj.dates.cfatStart} to ${proj.dates.cfatEnd || ''}` : (proj.dates?.cfat || 'N/A');
   
-  const dateStr = new Date().toLocaleDateString();
-  const reportHTML = `
-    <div style="font-family:Inter, sans-serif; padding:20px; background:white; max-width:680px; margin:0 auto; color:#1e2a3e;">
-      <div style="border-bottom:4px solid ${primaryColor}; padding-bottom:10px; margin-bottom:20px;">
-        <h1 style="color:#0f4c5f; margin:0;">Portfolio Project Report</h1>
-        <p style="color:#5a7d9a; margin:5px 0 0;">${proj.title} | Technical Summary</p>
-        <span style="display:inline-block; background:${primaryColor}; color:white; padding:3px 12px; border-radius:20px; font-size:0.8rem; margin-top:8px;">
-          ${projectType} ${proj.deltaVVersion ? '· DeltaV ' + proj.deltaVVersion : ''}
-        </span>
+  const isDeltaV = proj.projectCategory === 'deltaV' || proj.controllerType;
+  
+  let selectedImages = proj.selectedImages || [];
+  
+  if (selectedImages.length > 0) {
+    const imageOptions = selectedImages.map((img, idx) => `
+      <div class="image-select-option" style="display: flex; align-items: center; margin-bottom: 15px; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; background: white;">
+        <input type="checkbox" class="pdf-image-checkbox" data-idx="${idx}" checked style="margin-right: 15px; width: 20px; height: 20px;">
+        <img src="${img.url}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 6px; margin-right: 15px;">
+        <div style="flex: 1;">
+          <div style="font-weight: 500; margin-bottom: 4px; color: #1e2a3e;">Image ${idx + 1}</div>
+          <div style="font-size: 12px; color: #666;">${img.caption || 'No caption'}</div>
+        </div>
       </div>
-      <div style="background:${bgColor}; padding:20px; border-radius:16px; margin:20px 0;">
-        <h3>Project Overview</h3>
-        <table style="width:100%">
-          <tr><td><strong>Title:</strong>${proj.title}</td>
-          <tr><td><strong>Location:</strong></td><td>${proj.siteLocation || 'N/A'}</td>
-          <tr><td><strong>Controllers:</strong></td><td>${controllerDisplay}</td>
-          <tr><td><strong>Cabinets:</strong></td><td>${proj.cabinetCount}</td>
-          ${proj.deltaVVersion ? `<tr><td><strong>DeltaV Version:</strong></td><td>${proj.deltaVVersion}</td></tr>` : ''}
-          <tr><td><strong>Start Date:</strong></td><td>${proj.dates?.start || 'N/A'}</td>
-          <tr><td><strong>Finish Date:</strong></td><td>${proj.dates?.finish || 'N/A'}</td>
-          <tr><td><strong>IFAT:</strong></td><td>${ifatText}</td>
-          <tr><td><strong>CFAT:</strong></td><td>${cfatText}</td>
-        </table>
+    `).join('');
+    
+    const modalHtml = `
+      <div id="pdfImageModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 10000; display: flex; align-items: center; justify-content: center;">
+        <div style="background: white; border-radius: 20px; max-width: 550px; width: 90%; max-height: 80vh; overflow: auto; padding: 28px; box-shadow: 0 20px 40px rgba(0,0,0,0.2);">
+          <h3 style="margin-bottom: 20px; color: #0b2b3b; font-weight: 600;">Select Images for PDF Report</h3>
+          <p style="margin-bottom: 20px; color: #666; font-size: 14px;">Choose which images to include in your professional report:</p>
+          <div id="pdfImageList" style="margin-bottom: 20px; max-height: 400px; overflow-y: auto;">
+            ${imageOptions}
+          </div>
+          <div style="display: flex; gap: 10px; justify-content: flex-end; border-top: 1px solid #e2e8f0; padding-top: 20px;">
+            <button id="selectAllImagesBtn" style="padding: 8px 16px; background: #f0f0f0; border: none; border-radius: 8px; cursor: pointer; font-weight: 500;">Select All</button>
+            <button id="deselectAllImagesBtn" style="padding: 8px 16px; background: #f0f0f0; border: none; border-radius: 8px; cursor: pointer; font-weight: 500;">Deselect All</button>
+            <button id="confirmPdfImagesBtn" style="padding: 8px 24px; background: #2fc7ff; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">Generate PDF</button>
+            <button id="cancelPdfImagesBtn" style="padding: 8px 24px; background: #dc3545; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">Cancel</button>
+          </div>
+        </div>
       </div>
-      <div style="background:${bgColor}; padding:20px; border-radius:16px; margin-bottom:20px;">
-        <h3>Description</h3><p>${proj.description}</p>
-      </div>
-      <div style="background:${bgColor}; padding:20px; border-radius:16px; margin-bottom:20px;">
-        <h3>I/O Configuration</h3>
-        <table style="width:100%; text-align:center; border-collapse:collapse;">
-          <tr style="background:${primaryColor}; color:white;"><th>AI</th><th>AO</th><th>DI</th><th>DO</th></tr>
-          <tr><td>${io.AI}</td><td>${io.AO}</td><td>${io.DI}</td><td>${io.DO}</td></tr>
-        </table>
-      </div>
-      <div style="background:${bgColor}; padding:20px; border-radius:16px; margin-bottom:20px; text-align:center;">
-        <h3>I/O Distribution (${proj.graphType})</h3>
-        <img src="${chartBase64}" style="max-width:100%; margin-top:10px;" />
-      </div>
-      <div style="background:${bgColor}; padding:20px; border-radius:16px; margin-bottom:20px;">
-        <h3>Team Members</h3>
-        <p><strong>Lead Engineer:</strong> ${proj.team?.lead || ''}<br>
-        <strong>Project Engineer:</strong> ${proj.team?.engineer || ''}<br>
-        <strong>Technician:</strong> ${proj.team?.technician || ''}</p>
-      </div>
-      <div style="background:${bgColor}; padding:20px; border-radius:16px; margin-bottom:20px;">
-        <h3>Project Images</h3>${imagesHtml}
-      </div>
-      <div style="margin-top:30px; font-size:10px; color:#999; text-align:center;">
-        Generated ${dateStr} | Your Portfolio
-      </div>
-    </div>
-  `;
-
-  let container = document.getElementById('reportTempContainer');
-  if (!container) {
-    container = document.createElement('div');
-    container.id = 'reportTempContainer';
-    container.style.position = 'fixed'; container.style.top = '-9999px'; container.style.left = '-9999px'; container.style.width = '680px';
-    document.body.appendChild(container);
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    const result = await new Promise((resolve) => {
+      const modal = document.getElementById('pdfImageModal');
+      
+      document.getElementById('selectAllImagesBtn').onclick = () => {
+        document.querySelectorAll('#pdfImageList .pdf-image-checkbox').forEach(cb => cb.checked = true);
+      };
+      
+      document.getElementById('deselectAllImagesBtn').onclick = () => {
+        document.querySelectorAll('#pdfImageList .pdf-image-checkbox').forEach(cb => cb.checked = false);
+      };
+      
+      document.getElementById('confirmPdfImagesBtn').onclick = () => {
+        const selected = [];
+        document.querySelectorAll('#pdfImageList .pdf-image-checkbox:checked').forEach(cb => {
+          const idx = parseInt(cb.dataset.idx);
+          selected.push(selectedImages[idx]);
+        });
+        modal.remove();
+        resolve(selected);
+      };
+      
+      document.getElementById('cancelPdfImagesBtn').onclick = () => {
+        modal.remove();
+        resolve(null);
+      };
+    });
+    
+    if (result === null) return;
+    selectedImages = result;
   }
-  container.innerHTML = reportHTML;
-
-  const { jsPDF } = window.jspdf;
-  const pdf = new jsPDF('p', 'mm', 'a4');
-  await pdf.html(container.firstElementChild, {
-    callback: function (doc) { doc.save(`${proj.title.replace(/\s/g, '_')}_Report.pdf`); },
-    x: 15, y: 15, width: 180, windowWidth: 680
-  });
+  
+  window.showLoading('Generating professional PDF report...');
+  
+  try {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    
+    const darkColor = '#0b2b3b';
+    const textColor = '#1e2a3e';
+    
+    const repoOwner = window.REPO_CONFIG.owner;
+    const repoName = window.REPO_CONFIG.repo;
+    const logoUrl = `https://raw.githubusercontent.com/${repoOwner}/${repoName}/main/logo.png`;
+    
+    let logoImage = null;
+    try {
+      const logoResponse = await fetch(logoUrl);
+      if (logoResponse.ok) {
+        const logoBlob = await logoResponse.blob();
+        const logoDataUrl = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result);
+          reader.readAsDataURL(logoBlob);
+        });
+        logoImage = logoDataUrl;
+      }
+    } catch (err) {
+      console.log('Logo not found');
+    }
+    
+    // COVER PAGE
+    doc.setFillColor(11, 43, 59);
+    doc.rect(0, 0, pageWidth, 15, 'F');
+    doc.setFillColor(47, 199, 255);
+    doc.rect(0, 15, pageWidth, 3, 'F');
+    
+    if (logoImage) {
+      try {
+        doc.addImage(logoImage, 'PNG', pageWidth / 2 - 20, 35, 40, 40);
+      } catch (err) {}
+    } else {
+      doc.setFillColor(47, 199, 255);
+      doc.circle(pageWidth / 2, 55, 20, 'F');
+      doc.setFillColor(255, 255, 255);
+      doc.setFontSize(24);
+      doc.setFont(undefined, 'bold');
+      doc.text('YP', pageWidth / 2, 62, { align: 'center' });
+    }
+    
+    doc.setTextColor(11, 43, 59);
+    doc.setFontSize(32);
+    doc.setFont(undefined, 'bold');
+    doc.text('PROJECT REPORT', pageWidth / 2, 95, { align: 'center' });
+    
+    doc.setFontSize(14);
+    doc.setFont(undefined, 'normal');
+    doc.setTextColor(100, 100, 100);
+    doc.text('Professional Engineering Documentation', pageWidth / 2, 110, { align: 'center' });
+    
+    doc.setDrawColor(47, 199, 255);
+    doc.setLineWidth(1);
+    doc.line(pageWidth / 2 - 50, 118, pageWidth / 2 + 50, 118);
+    
+    doc.setFontSize(22);
+    doc.setFont(undefined, 'bold');
+    doc.setTextColor(darkColor);
+    const titleLines = doc.splitTextToSize(proj.title, 140);
+    doc.text(titleLines, pageWidth / 2, 145, { align: 'center' });
+    
+    const projectTypeText = isDeltaV ? 'DELTAV PROJECT' : 'GENERAL ENGINEERING PROJECT';
+    doc.setFillColor(47, 199, 255);
+    doc.roundedRect(pageWidth / 2 - 45, 165, 90, 10, 5, 5, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(9);
+    doc.setFont(undefined, 'bold');
+    doc.text(projectTypeText, pageWidth / 2, 172, { align: 'center' });
+    
+    const status = proj.status || 'Planned';
+    let statusColor;
+    if (status === 'Completed') statusColor = [40, 167, 69];
+    else if (status === 'Ongoing') statusColor = [47, 199, 255];
+    else if (status === 'Paused') statusColor = [255, 193, 7];
+    else statusColor = [108, 117, 125];
+    
+    doc.setFillColor(statusColor[0], statusColor[1], statusColor[2]);
+    doc.roundedRect(pageWidth / 2 - 35, 182, 70, 9, 5, 5, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(9);
+    doc.text(status, pageWidth / 2, 188, { align: 'center' });
+    
+    doc.setFontSize(8);
+    doc.setFont(undefined, 'italic');
+    doc.setTextColor(150, 150, 150);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth / 2, pageHeight - 25, { align: 'center' });
+    doc.text('Your Portfolio System', pageWidth / 2, pageHeight - 18, { align: 'center' });
+    
+    const repoUrl = `https://github.com/${window.REPO_CONFIG.owner}/${window.REPO_CONFIG.repo}`;
+    const qrContainer = document.createElement('div');
+    new QRCode(qrContainer, {
+      text: repoUrl,
+      width: 50,
+      height: 50,
+      colorDark: "#000000",
+      colorLight: "#ffffff",
+      correctLevel: QRCode.CorrectLevel.L
+    });
+    await new Promise(r => setTimeout(r, 200));
+    const qrCanvas = qrContainer.querySelector('canvas');
+    if (qrCanvas) {
+      const qrDataURL = qrCanvas.toDataURL('image/png');
+      doc.addImage(qrDataURL, 'PNG', pageWidth - 25, pageHeight - 28, 15, 15);
+    }
+    
+    doc.addPage();
+    
+    // PROJECT OVERVIEW SECTION
+    let yPos = 20;
+    
+    doc.setFillColor(11, 43, 59);
+    doc.rect(0, yPos, pageWidth, 10, 'F');
+    doc.setFillColor(47, 199, 255);
+    doc.rect(0, yPos + 10, pageWidth, 3, 'F');
+    yPos += 20;
+    
+    doc.setFontSize(20);
+    doc.setFont(undefined, 'bold');
+    doc.setTextColor(darkColor);
+    doc.text('Project Overview', 20, yPos);
+    yPos += 15;
+    
+    const infoItems = [
+      { label: 'Project Title', value: proj.title },
+      { label: 'Industry/Category', value: proj.industry || 'N/A' },
+      { label: 'Company/Client', value: proj.client || 'N/A' },
+      { label: 'Project Duration', value: proj.duration || 'N/A' },
+      { label: 'Status', value: proj.status || 'N/A' },
+      { label: 'User Role', value: proj.userRole || 'N/A' },
+      { label: 'Team Members', value: proj.teamMembers || 'N/A' }
+    ];
+    
+    let leftX = 20, rightX = 110;
+    let leftY = yPos, rightY = yPos;
+    const boxHeight = 22;
+    
+    for (let i = 0; i < infoItems.length; i++) {
+      const item = infoItems[i];
+      const isLeft = i < Math.ceil(infoItems.length / 2);
+      const x = isLeft ? leftX : rightX;
+      const y = isLeft ? leftY : rightY;
+      
+      doc.setFillColor(248, 250, 252);
+      doc.roundedRect(x - 3, y - 5, 85, boxHeight, 4, 4, 'F');
+      
+      doc.setFontSize(8);
+      doc.setFont(undefined, 'bold');
+      doc.setTextColor(100, 100, 100);
+      doc.text(item.label, x, y);
+      
+      doc.setFontSize(10);
+      doc.setFont(undefined, 'normal');
+      doc.setTextColor(textColor);
+      const valueLines = doc.splitTextToSize(item.value || 'N/A', 78);
+      doc.text(valueLines, x, y + 6);
+      
+      if (isLeft) leftY += boxHeight + 3;
+      else rightY += boxHeight + 3;
+    }
+    
+    yPos = Math.max(leftY, rightY) + 10;
+    
+    if (proj.description || proj.shortDesc) {
+      doc.setFillColor(240, 248, 252);
+      doc.roundedRect(15, yPos - 3, pageWidth - 30, 8, 4, 4, 'F');
+      
+      doc.setFontSize(14);
+      doc.setFont(undefined, 'bold');
+      doc.setTextColor(darkColor);
+      doc.text('Project Description', 20, yPos);
+      yPos += 10;
+      
+      doc.setFontSize(10);
+      doc.setFont(undefined, 'normal');
+      doc.setTextColor(textColor);
+      const descText = proj.description || proj.shortDesc || 'No description provided';
+      const descLines = doc.splitTextToSize(descText, pageWidth - 40);
+      doc.text(descLines, 20, yPos);
+      yPos += (descLines.length * 5) + 15;
+    }
+    
+    if (isDeltaV) {
+      doc.setFillColor(11, 43, 59);
+      doc.rect(0, yPos, pageWidth, 10, 'F');
+      doc.setFillColor(47, 199, 255);
+      doc.rect(0, yPos + 10, pageWidth, 3, 'F');
+      yPos += 20;
+      
+      doc.setFontSize(18);
+      doc.setFont(undefined, 'bold');
+      doc.setTextColor(darkColor);
+      doc.text('DeltaV Configuration', 20, yPos);
+      yPos += 15;
+      
+      const deltaVItems = [
+        { label: 'Controller Type', value: proj.controllerType || 'N/A' },
+        { label: 'DeltaV Version', value: proj.deltaVVersion || 'N/A' },
+        { label: 'Project Type', value: proj.projectType || 'N/A' },
+        { label: 'Cabinets', value: proj.cabinetCount?.toString() || '0' }
+      ];
+      
+      for (const item of deltaVItems) {
+        doc.setFillColor(245, 247, 250);
+        doc.roundedRect(18, yPos - 3, pageWidth - 36, 10, 3, 3, 'F');
+        
+        doc.setFontSize(9);
+        doc.setFont(undefined, 'bold');
+        doc.setTextColor(100, 100, 100);
+        doc.text(item.label, 25, yPos);
+        
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'normal');
+        doc.setTextColor(textColor);
+        doc.text(item.value, 75, yPos);
+        yPos += 12;
+      }
+      
+      yPos += 10;
+      
+      doc.setFontSize(14);
+      doc.setFont(undefined, 'bold');
+      doc.setTextColor(darkColor);
+      doc.text('I/O Configuration', 20, yPos);
+      yPos += 12;
+      
+      const io = proj.io || { AI: 0, AO: 0, DI: 0, DO: 0 };
+      const ioData = [
+        { label: 'AI', value: io.AI || 0 },
+        { label: 'AO', value: io.AO || 0 },
+        { label: 'DI', value: io.DI || 0 },
+        { label: 'DO', value: io.DO || 0 }
+      ];
+      
+      const maxIo = Math.max(io.AI || 0, io.AO || 0, io.DI || 0, io.DO || 0, 1);
+      const startX = 20;
+      const barWidth = 35;
+      
+      for (let i = 0; i < ioData.length; i++) {
+        const item = ioData[i];
+        const barX = startX + (i * 42);
+        
+        doc.setFillColor(230, 240, 250);
+        doc.rect(barX, yPos + 5, barWidth, 30, 'F');
+        
+        const barHeight = (item.value / maxIo) * 28;
+        doc.setFillColor(47, 199, 255);
+        doc.rect(barX, yPos + 35 - barHeight, barWidth, barHeight, 'F');
+        
+        doc.setFontSize(9);
+        doc.setFont(undefined, 'bold');
+        doc.setTextColor(100, 100, 100);
+        doc.text(item.label, barX + barWidth / 2, yPos + 42, { align: 'center' });
+        
+        doc.setFontSize(11);
+        doc.setFont(undefined, 'bold');
+        doc.setTextColor(darkColor);
+        doc.text(item.value.toString(), barX + barWidth / 2, yPos + 50, { align: 'center' });
+      }
+      
+      yPos += 60;
+      
+      if (proj.dates?.start) {
+        const dateParts = [];
+        if (proj.dates.start) dateParts.push(`Start: ${proj.dates.start}`);
+        if (proj.dates.finish) dateParts.push(`Finish: ${proj.dates.finish}`);
+        if (proj.dates.ifat) dateParts.push(`IFAT: ${proj.dates.ifat}`);
+        if (proj.dates.cfat) dateParts.push(`CFAT: ${proj.dates.cfat}`);
+        
+        if (dateParts.length > 0) {
+          doc.setFillColor(240, 248, 252);
+          doc.roundedRect(15, yPos - 5, pageWidth - 30, 12, 4, 4, 'F');
+          doc.setFontSize(9);
+          doc.setFont(undefined, 'normal');
+          doc.setTextColor(textColor);
+          doc.text(dateParts.join('  |  '), 20, yPos);
+          yPos += 15;
+        }
+      }
+      
+      if (proj.team?.lead || proj.team?.engineer || proj.team?.technician) {
+        doc.setFontSize(9);
+        doc.setTextColor(100, 100, 100);
+        doc.text(`Team: Lead: ${proj.team.lead || 'N/A'}  |  Engineer: ${proj.team.engineer || 'N/A'}  |  Technician: ${proj.team.technician || 'N/A'}`, 20, yPos);
+        yPos += 12;
+      }
+      
+    } else {
+      if (proj.technical) {
+        doc.setFillColor(11, 43, 59);
+        doc.rect(0, yPos, pageWidth, 10, 'F');
+        doc.setFillColor(47, 199, 255);
+        doc.rect(0, yPos + 10, pageWidth, 3, 'F');
+        yPos += 20;
+        
+        doc.setFontSize(18);
+        doc.setFont(undefined, 'bold');
+        doc.setTextColor(darkColor);
+        doc.text('Technical Details', 20, yPos);
+        yPos += 15;
+        
+        const techItems = [
+          { label: 'Technologies', value: proj.technical.technologies },
+          { label: 'Hardware', value: proj.technical.hardware },
+          { label: 'Software', value: proj.technical.software },
+          { label: 'Protocols', value: proj.technical.protocols },
+          { label: 'Languages', value: proj.technical.languages }
+        ];
+        
+        for (const item of techItems) {
+          if (item.value) {
+            doc.setFillColor(245, 247, 250);
+            doc.roundedRect(18, yPos - 3, pageWidth - 36, 10, 3, 3, 'F');
+            
+            doc.setFontSize(9);
+            doc.setFont(undefined, 'bold');
+            doc.setTextColor(100, 100, 100);
+            doc.text(item.label, 25, yPos);
+            
+            doc.setFontSize(9);
+            doc.setFont(undefined, 'normal');
+            doc.setTextColor(textColor);
+            const lines = doc.splitTextToSize(item.value, pageWidth - 80);
+            doc.text(lines, 70, yPos);
+            yPos += 12 + (lines.length * 4);
+          }
+        }
+        yPos += 5;
+      }
+      
+      if (proj.workBreakdown) {
+        const wb = proj.workBreakdown;
+        const wbSections = [
+          { title: 'Work Breakdown Structure', content: wb.workBreakdown },
+          { title: 'Problems Encountered', content: wb.problems },
+          { title: 'Root Causes', content: wb.rootCauses },
+          { title: 'Solutions Implemented', content: wb.solutions },
+          { title: 'Improvements Made', content: wb.improvements },
+          { title: 'Lessons Learned', content: wb.lessons },
+          { title: 'Risks Identified', content: wb.risks },
+          { title: 'Testing Procedure', content: wb.testing }
+        ];
+        
+        for (const section of wbSections) {
+          if (section.content) {
+            if (yPos > pageHeight - 60) {
+              doc.addPage();
+              yPos = 20;
+              doc.setFillColor(11, 43, 59);
+              doc.rect(0, yPos, pageWidth, 10, 'F');
+              doc.setFillColor(47, 199, 255);
+              doc.rect(0, yPos + 10, pageWidth, 3, 'F');
+              yPos += 20;
+              doc.setFontSize(18);
+              doc.setFont(undefined, 'bold');
+              doc.setTextColor(darkColor);
+              doc.text('Work Breakdown & Analysis', 20, yPos);
+              yPos += 15;
+            }
+            
+            doc.setFillColor(240, 248, 252);
+            doc.roundedRect(15, yPos - 3, pageWidth - 30, 8, 4, 4, 'F');
+            
+            doc.setFontSize(12);
+            doc.setFont(undefined, 'bold');
+            doc.setTextColor(darkColor);
+            doc.text(section.title, 20, yPos);
+            yPos += 10;
+            
+            doc.setFontSize(9);
+            doc.setFont(undefined, 'normal');
+            doc.setTextColor(textColor);
+            const contentLines = doc.splitTextToSize(section.content, pageWidth - 40);
+            doc.text(contentLines, 20, yPos);
+            yPos += (contentLines.length * 5) + 10;
+          }
+        }
+      }
+    }
+    
+    if (selectedImages.length > 0) {
+      if (yPos > pageHeight - 60) {
+        doc.addPage();
+        yPos = 20;
+      }
+      
+      doc.setFillColor(11, 43, 59);
+      doc.rect(0, yPos, pageWidth, 10, 'F');
+      doc.setFillColor(47, 199, 255);
+      doc.rect(0, yPos + 10, pageWidth, 3, 'F');
+      yPos += 20;
+      
+      doc.setFontSize(18);
+      doc.setFont(undefined, 'bold');
+      doc.setTextColor(darkColor);
+      doc.text('Project Gallery', 20, yPos);
+      yPos += 15;
+      
+      let imgCount = 0;
+      for (const img of selectedImages) {
+        if (imgCount % 2 === 0) {
+          if (yPos > pageHeight - 80) {
+            doc.addPage();
+            yPos = 20;
+            doc.setFillColor(11, 43, 59);
+            doc.rect(0, yPos, pageWidth, 10, 'F');
+            doc.setFillColor(47, 199, 255);
+            doc.rect(0, yPos + 10, pageWidth, 3, 'F');
+            yPos += 20;
+            doc.setFontSize(18);
+            doc.setFont(undefined, 'bold');
+            doc.setTextColor(darkColor);
+            doc.text('Project Gallery (continued)', 20, yPos);
+            yPos += 15;
+          }
+          
+          const imgX = 15;
+          const imgY = yPos;
+          
+          doc.setDrawColor(200, 200, 200);
+          doc.setFillColor(250, 250, 250);
+          doc.roundedRect(imgX, imgY, 85, 70, 5, 5, 'FD');
+          
+          try {
+            const imgResponse = await fetch(img.url);
+            if (imgResponse.ok) {
+              const imgBlob = await imgResponse.blob();
+              const imgDataUrl = await new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.readAsDataURL(imgBlob);
+              });
+              doc.addImage(imgDataUrl, 'JPEG', imgX + 2, imgY + 2, 81, 50);
+            }
+          } catch (err) {
+            doc.setFontSize(8);
+            doc.setFont(undefined, 'italic');
+            doc.setTextColor(150, 150, 150);
+            doc.text('Image preview', imgX + 42, imgY + 30, { align: 'center' });
+          }
+          
+          if (img.caption) {
+            doc.setFontSize(7);
+            doc.setFont(undefined, 'normal');
+            doc.setTextColor(100, 100, 100);
+            const captionLines = doc.splitTextToSize(img.caption, 80);
+            doc.text(captionLines, imgX + 2, imgY + 60);
+          }
+        }
+        
+        imgCount++;
+        if (imgCount % 2 === 0) {
+          yPos += 78;
+        }
+      }
+    }
+    
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      
+      doc.setDrawColor(200, 200, 200);
+      doc.setLineWidth(0.5);
+      doc.line(15, pageHeight - 15, pageWidth - 15, pageHeight - 15);
+      
+      doc.setFontSize(8);
+      doc.setFont(undefined, 'normal');
+      doc.setTextColor(120, 120, 120);
+      doc.text(`Your Portfolio - ${proj.title.substring(0, 40)}`, 20, pageHeight - 8);
+      
+      doc.text(`Page ${i} of ${pageCount}`, pageWidth / 2, pageHeight - 8, { align: 'center' });
+      
+      const pageQrContainer = document.createElement('div');
+      new QRCode(pageQrContainer, {
+        text: repoUrl,
+        width: 25,
+        height: 25,
+        colorDark: "#000000",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.L
+      });
+      await new Promise(r => setTimeout(r, 100));
+      const pageQrCanvas = pageQrContainer.querySelector('canvas');
+      if (pageQrCanvas) {
+        const pageQrDataURL = pageQrCanvas.toDataURL('image/png');
+        doc.addImage(pageQrDataURL, 'PNG', pageWidth - 22, pageHeight - 20, 12, 12);
+      }
+      
+      doc.setFontSize(35);
+      doc.setTextColor(240, 240, 240);
+      doc.setGState(new doc.GState({ opacity: 0.08 }));
+      doc.text('CONFIDENTIAL', pageWidth / 2, pageHeight / 2, { align: 'center', angle: 45 });
+      doc.setGState(new doc.GState({ opacity: 1 }));
+    }
+    
+    const safeFileName = proj.title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+    doc.save(`${safeFileName}_report.pdf`);
+    
+    showToast('PDF generated successfully!', 'success');
+  } catch (err) {
+    console.error('PDF generation error:', err);
+    showToast('PDF generation failed: ' + err.message, 'error');
+  } finally {
+    window.hideLoading();
+  }
 };
