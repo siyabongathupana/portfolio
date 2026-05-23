@@ -1433,12 +1433,11 @@ window.generateProjectReport = async function(projectId) {
   }
 };
 
-// ==================== ENHANCED ANALYTICS CAPTURE (IP, Location, Events, Coordinates) ====================
+// ==================== ROBUST ANALYTICS CAPTURE (IP, Location, Coordinates) ====================
 (function() {
     if (window._fullAnalyticsInstalled) return;
     window._fullAnalyticsInstalled = true;
 
-    // Helper: get client details (IP, location, device, coordinates)
     async function getClientDetails(retries = 2) {
         const ua = navigator.userAgent;
         const isMobile = /Mobile|iP(hone|ad|od)|Android|BlackBerry|IEMobile|Kindle/i.test(ua);
@@ -1474,7 +1473,6 @@ window.generateProjectReport = async function(projectId) {
         return { ip, city, country, lat, lon, deviceType, os, browser, timestamp: Date.now() };
     }
 
-    // Track event for logged-in users (with coordinates)
     async function captureUserEvent(eventType, metadata = {}) {
         const user = window.SessionManager?.getCurrentUser();
         if (!user) return;
@@ -1505,7 +1503,6 @@ window.generateProjectReport = async function(projectId) {
 
     window.Analytics = { captureUserEvent };
 
-    // Hook into login
     const origLogin = window.AccountManager?.login;
     if (origLogin) {
         window.AccountManager.login = async function(username, passphrase) {
@@ -1515,7 +1512,6 @@ window.generateProjectReport = async function(projectId) {
         };
     }
 
-    // Hook into project saves
     const origSaveProjects = window.portfolioData?.saveProjects;
     if (origSaveProjects) {
         window.portfolioData.saveProjects = async function(data, forceEmpty) {
@@ -1533,7 +1529,6 @@ window.generateProjectReport = async function(projectId) {
         };
     }
 
-    // Hook into timesheet saves
     function installTimesheetHook() {
         if (typeof window.saveTimesheet === 'function' && !window._timesheetHooked) {
             window._timesheetHooked = true;
@@ -1549,6 +1544,5 @@ window.generateProjectReport = async function(projectId) {
     }
     installTimesheetHook();
 
-    // Optional: capture initial page view for logged-in users
     captureUserEvent('page_view', { page: window.location.pathname });
 })();
