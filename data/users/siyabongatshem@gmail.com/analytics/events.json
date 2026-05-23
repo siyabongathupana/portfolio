@@ -314,5 +314,25 @@
     "details": {
       "page": "/portfolio/index.html"
     }
+  },
+  {
+    "type": "project_edit",
+    "timestamp": 1779566326843,
+    "client": {
+      "ip": "unknown",
+      "city": "Unknown",
+      "country": "Unknown",
+      "lat": null,
+      "lon": null,
+      "deviceType": "Mobile",
+      "os": "Linux",
+      "browser": "Edge",
+      "timestamp": 1779566326843
+    },
+    "details": {
+      "projectId": "proj_1779566323734",
+      "title": "WDAD",
+      "action": "create"
+    }
   }
 ]
