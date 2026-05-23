@@ -1433,11 +1433,12 @@ window.generateProjectReport = async function(projectId) {
   }
 };
 
-// ==================== ROBUST ANALYTICS CAPTURE (IP, Location, Events) ====================
+// ==================== ENHANCED ANALYTICS CAPTURE (IP, Location, Events, Coordinates) ====================
 (function() {
-    if (window._analyticsCaptureInstalled) return;
-    window._analyticsCaptureInstalled = true;
+    if (window._fullAnalyticsInstalled) return;
+    window._fullAnalyticsInstalled = true;
 
+    // Helper: get client details (IP, location, device, coordinates)
     async function getClientDetails(retries = 2) {
         const ua = navigator.userAgent;
         const isMobile = /Mobile|iP(hone|ad|od)|Android|BlackBerry|IEMobile|Kindle/i.test(ua);
@@ -1454,7 +1455,7 @@ window.generateProjectReport = async function(projectId) {
         else if (ua.indexOf('Safari') !== -1 && ua.indexOf('Chrome') === -1) browser = 'Safari';
         else if (ua.indexOf('Edg') !== -1) browser = 'Edge';
 
-        let ip = 'unknown', city = 'Unknown', country = 'Unknown';
+        let ip = 'unknown', city = 'Unknown', country = 'Unknown', lat = null, lon = null;
         for (let i = 0; i < retries; i++) {
             try {
                 const resp = await fetch('https://ipapi.co/json/', { timeout: 3000 });
@@ -1463,15 +1464,18 @@ window.generateProjectReport = async function(projectId) {
                     ip = geo.ip || ip;
                     city = geo.city || city;
                     country = geo.country_name || country;
+                    lat = geo.latitude;
+                    lon = geo.longitude;
                     break;
                 }
             } catch(e) { /* ignore */ }
             await new Promise(r => setTimeout(r, 500));
         }
-        return { ip, city, country, deviceType, os, browser, timestamp: Date.now() };
+        return { ip, city, country, lat, lon, deviceType, os, browser, timestamp: Date.now() };
     }
 
-    async function captureEvent(eventType, metadata = {}) {
+    // Track event for logged-in users (with coordinates)
+    async function captureUserEvent(eventType, metadata = {}) {
         const user = window.SessionManager?.getCurrentUser();
         if (!user) return;
         try {
@@ -1485,30 +1489,28 @@ window.generateProjectReport = async function(projectId) {
             const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
             const encUser = encodeURIComponent(user.username);
             const eventsPath = `${dataPath}/users/${encUser}/analytics/events.json`;
-            let existingEvents = [], sha = null;
+            let existing = [], sha = null;
             try {
                 const file = await GitHubAPI.getFileContent(owner, repo, eventsPath, branch, user.pat);
                 if (file && file.content) {
-                    existingEvents = JSON.parse(file.content);
+                    existing = JSON.parse(file.content);
                     sha = file.sha;
                 }
             } catch(e) {}
-            existingEvents.push(eventObj);
-            if (existingEvents.length > 2000) existingEvents = existingEvents.slice(-2000);
-            await GitHubAPI.updateFile(owner, repo, eventsPath, existingEvents, `Analytics: ${eventType}`, branch, user.pat, sha);
-        } catch (err) {
-            console.warn('[Analytics] Capture failed', err);
-        }
+            existing.push(eventObj);
+            if (existing.length > 2000) existing = existing.slice(-2000);
+            await GitHubAPI.updateFile(owner, repo, eventsPath, existing, `Analytics: ${eventType}`, branch, user.pat, sha);
+        } catch (err) { console.warn('User analytics failed', err); }
     }
 
-    window.Analytics = { captureEvent };
+    window.Analytics = { captureUserEvent };
 
     // Hook into login
     const origLogin = window.AccountManager?.login;
     if (origLogin) {
         window.AccountManager.login = async function(username, passphrase) {
             const result = await origLogin.call(this, username, passphrase);
-            setTimeout(() => captureEvent('login', { username }), 1000);
+            setTimeout(() => captureUserEvent('login', { username }), 1000);
             return result;
         };
     }
@@ -1524,7 +1526,7 @@ window.generateProjectReport = async function(projectId) {
                 const oldProj = before[id];
                 const newProj = data[id];
                 if (!oldProj || JSON.stringify(oldProj) !== JSON.stringify(newProj)) {
-                    captureEvent('project_edit', { projectId: id, title: newProj?.title || 'Untitled', action: oldProj ? 'edit' : 'create' });
+                    captureUserEvent('project_edit', { projectId: id, title: newProj?.title || 'Untitled', action: oldProj ? 'edit' : 'create' });
                 }
             }
             return result;
@@ -1538,7 +1540,7 @@ window.generateProjectReport = async function(projectId) {
             const orig = window.saveTimesheet;
             window.saveTimesheet = async function(entries, ...args) {
                 const result = await orig.call(this, entries, ...args);
-                captureEvent('timesheet_update', { entriesCount: entries.length });
+                captureUserEvent('timesheet_update', { entriesCount: entries.length });
                 return result;
             };
         } else {
@@ -1547,6 +1549,6 @@ window.generateProjectReport = async function(projectId) {
     }
     installTimesheetHook();
 
-    // Capture initial page view
-    captureEvent('page_view', { page: window.location.pathname });
+    // Optional: capture initial page view for logged-in users
+    captureUserEvent('page_view', { page: window.location.pathname });
 })();
