@@ -1,4 +1,4 @@
-// login.js – Improved with rate limiting, password strength, UX, and email verification
+// login.js – Improved with rate limiting, password strength, UX, email verification, and session tracking
 document.addEventListener('DOMContentLoaded', () => {
   // Rate limiting: store failed attempts in memory (resets on page refresh)
   let failedAttempts = 0;
@@ -141,20 +141,20 @@ document.addEventListener('DOMContentLoaded', () => {
       await enforceRateLimit();
       setButtonLoading(loginBtn, true);
       
-      // Skip verification for admin email (optional - remove if you want all users to verify)
-      const isAdminEmail = username === 'siyabongatshem@gmail.com';
-      
-      if (!isAdminEmail) {
-        const isVerified = await window.AccountManager.isEmailVerified(username);
-        if (!isVerified) {
-          window.location.href = 'login.html?unverified=1';
-          return;
-        }
+      // Check if email is verified before attempting login
+      const isVerified = await window.AccountManager.isEmailVerified(username);
+      if (!isVerified) {
+        window.location.href = 'login.html?unverified=1';
+        return;
       }
       
       const pat = await window.AccountManager.login(username, passphrase);
       resetRateLimit();
       window.SessionManager.setCurrentUser(username, pat);
+      
+      // Track user session (don't await to avoid blocking login)
+      trackUserSession(username).catch(e => console.error('Session tracking error:', e));
+      
       showSuccess('Login successful! Redirecting...');
       setTimeout(() => { window.location.href = 'admin.html'; }, 1000);
     } catch (err) {
@@ -242,4 +242,95 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Auto-focus on email field
   document.getElementById('loginUsername').focus();
+
+  // ========== SESSION TRACKING FUNCTIONS ==========
+  
+  async function trackUserSession(username) {
+    try {
+      let ipData = { ip: 'Unknown' };
+      let locationData = { city: 'Unknown', region: 'Unknown', country_name: 'Unknown', country_code: 'Unknown' };
+      
+      // Get IP address
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        const ipResponse = await fetch('https://api.ipify.org?format=json', { signal: controller.signal });
+        clearTimeout(timeoutId);
+        if (ipResponse.ok) ipData = await ipResponse.json();
+      } catch (e) {
+        console.log('Could not fetch IP, using fallback');
+      }
+      
+      const userIP = ipData.ip || 'Unknown';
+      
+      // Get location data from IP
+      if (userIP !== 'Unknown') {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 5000);
+          const locationResponse = await fetch(`https://ipapi.co/${userIP}/json/`, { signal: controller.signal });
+          clearTimeout(timeoutId);
+          if (locationResponse.ok) locationData = await locationResponse.json();
+        } catch (e) {
+          console.log('Could not fetch location, using fallback');
+        }
+      }
+      
+      // Get device information
+      const deviceInfo = {
+        userAgent: navigator.userAgent || 'Unknown',
+        platform: navigator.platform || 'Unknown',
+        language: navigator.language || 'Unknown',
+        screenSize: `${screen.width || 0}x${screen.height || 0}`,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'Unknown',
+        deviceType: /Mobile|Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ? 'Mobile' : 
+                     /Tablet|iPad/i.test(navigator.userAgent) ? 'Tablet' : 'Desktop',
+        browser: getBrowserName(navigator.userAgent || ''),
+        os: getOSName(navigator.userAgent || '')
+      };
+      
+      const sessionData = {
+        timestamp: Date.now(),
+        date: new Date().toISOString(),
+        ip: userIP,
+        location: {
+          city: locationData.city || 'Unknown',
+          region: locationData.region || 'Unknown',
+          country: locationData.country_name || 'Unknown',
+          countryCode: locationData.country_code || 'Unknown',
+          latitude: locationData.latitude || null,
+          longitude: locationData.longitude || null,
+          postal: locationData.postal || null,
+          timezone: locationData.timezone || null
+        },
+        device: deviceInfo,
+        loginSuccess: true
+      };
+      
+      const currentUser = window.SessionManager.getCurrentUser();
+      await window.AccountManager.saveUserSession(username, sessionData, currentUser?.pat);
+    } catch (error) {
+      console.error('Failed to track user session:', error);
+    }
+  }
+
+  function getBrowserName(userAgent) {
+    if (!userAgent) return 'Unknown';
+    if (userAgent.includes('Chrome') && !userAgent.includes('Edg')) return 'Chrome';
+    if (userAgent.includes('Firefox')) return 'Firefox';
+    if (userAgent.includes('Safari') && !userAgent.includes('Chrome')) return 'Safari';
+    if (userAgent.includes('Edg')) return 'Edge';
+    if (userAgent.includes('Opera') || userAgent.includes('OPR')) return 'Opera';
+    return 'Unknown';
+  }
+
+  function getOSName(userAgent) {
+    if (!userAgent) return 'Unknown';
+    if (userAgent.includes('Windows')) return 'Windows';
+    if (userAgent.includes('Mac')) return 'macOS';
+    if (userAgent.includes('Linux') && !userAgent.includes('Android')) return 'Linux';
+    if (userAgent.includes('Android')) return 'Android';
+    if (userAgent.includes('iOS') || userAgent.includes('iPhone') || userAgent.includes('iPad')) return 'iOS';
+    return 'Unknown';
+  }
 });
