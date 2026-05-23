@@ -1,12 +1,11 @@
-// login.js – Improved with rate limiting, password strength, UX, email verification, and session tracking
+// login.js – Complete with session tracking (IP, location, device)
+
 document.addEventListener('DOMContentLoaded', () => {
-  // Rate limiting: store failed attempts in memory (resets on page refresh)
   let failedAttempts = 0;
   let lastAttemptTime = 0;
-  const BASE_DELAY = 1000; // 1 second
+  const BASE_DELAY = 1000;
   const MAX_ATTEMPTS = 5;
 
-  // Helper to enforce delay
   async function enforceRateLimit() {
     const now = Date.now();
     if (failedAttempts >= MAX_ATTEMPTS) {
@@ -16,7 +15,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const remaining = Math.ceil((waitTime - elapsed) / 1000);
         throw new Error(`Too many failed attempts. Please wait ${remaining} seconds.`);
       } else {
-        // Reset after cooldown
         failedAttempts = 0;
       }
     }
@@ -31,7 +29,6 @@ document.addEventListener('DOMContentLoaded', () => {
     failedAttempts = 0;
   }
 
-  // Show/hide password toggle
   document.querySelectorAll('.toggle-password').forEach(toggle => {
     toggle.addEventListener('click', function() {
       const targetId = this.dataset.target;
@@ -48,7 +45,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Password strength meter
   const regPassword = document.getElementById('regPassword');
   const strengthDiv = document.getElementById('passwordStrength');
   if (regPassword) {
@@ -69,7 +65,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Loading button state
   function setButtonLoading(btn, isLoading) {
     if (isLoading) {
       btn.classList.add('btn-loading');
@@ -82,7 +77,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Store original button texts
   const loginBtn = document.getElementById('loginBtn');
   const registerBtn = document.getElementById('registerBtn');
   if (loginBtn) loginBtn.originalText = loginBtn.innerHTML;
@@ -141,7 +135,6 @@ document.addEventListener('DOMContentLoaded', () => {
       await enforceRateLimit();
       setButtonLoading(loginBtn, true);
       
-      // Check if email is verified before attempting login
       const isVerified = await window.AccountManager.isEmailVerified(username);
       if (!isVerified) {
         window.location.href = 'login.html?unverified=1';
@@ -152,7 +145,7 @@ document.addEventListener('DOMContentLoaded', () => {
       resetRateLimit();
       window.SessionManager.setCurrentUser(username, pat);
       
-      // Track user session (don't await to avoid blocking login)
+      // Track session after successful login (don't await)
       trackUserSession(username).catch(e => console.error('Session tracking error:', e));
       
       showSuccess('Login successful! Redirecting...');
@@ -187,7 +180,6 @@ document.addEventListener('DOMContentLoaded', () => {
       showError('Passphrase must be at least 8 characters.');
       return;
     }
-    // Check strength (optional warning)
     let strength = 0;
     if (passphrase.length >= 8) strength++;
     if (passphrase.match(/[a-z]/) && passphrase.match(/[A-Z]/)) strength++;
@@ -223,7 +215,6 @@ document.addEventListener('DOMContentLoaded', () => {
     el.textContent = msg;
     el.style.display = 'block';
     document.getElementById('successMsg').style.display = 'none';
-    // Auto-hide after 5 seconds
     setTimeout(() => { if (el.style.display === 'block') el.style.display = 'none'; }, 5000);
   }
 
@@ -240,7 +231,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('successMsg').style.display = 'none';
   }
 
-  // Auto-focus on email field
   document.getElementById('loginUsername').focus();
 
   // ========== SESSION TRACKING FUNCTIONS ==========
@@ -250,7 +240,6 @@ document.addEventListener('DOMContentLoaded', () => {
       let ipData = { ip: 'Unknown' };
       let locationData = { city: 'Unknown', region: 'Unknown', country_name: 'Unknown', country_code: 'Unknown' };
       
-      // Get IP address
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 5000);
@@ -258,12 +247,11 @@ document.addEventListener('DOMContentLoaded', () => {
         clearTimeout(timeoutId);
         if (ipResponse.ok) ipData = await ipResponse.json();
       } catch (e) {
-        console.log('Could not fetch IP, using fallback');
+        console.log('Could not fetch IP');
       }
       
       const userIP = ipData.ip || 'Unknown';
       
-      // Get location data from IP
       if (userIP !== 'Unknown') {
         try {
           const controller = new AbortController();
@@ -272,11 +260,10 @@ document.addEventListener('DOMContentLoaded', () => {
           clearTimeout(timeoutId);
           if (locationResponse.ok) locationData = await locationResponse.json();
         } catch (e) {
-          console.log('Could not fetch location, using fallback');
+          console.log('Could not fetch location');
         }
       }
       
-      // Get device information
       const deviceInfo = {
         userAgent: navigator.userAgent || 'Unknown',
         platform: navigator.platform || 'Unknown',
@@ -309,6 +296,7 @@ document.addEventListener('DOMContentLoaded', () => {
       
       const currentUser = window.SessionManager.getCurrentUser();
       await window.AccountManager.saveUserSession(username, sessionData, currentUser?.pat);
+      console.log('Session tracked for:', username);
     } catch (error) {
       console.error('Failed to track user session:', error);
     }
