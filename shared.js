@@ -1431,15 +1431,16 @@ window.generateProjectReport = async function(projectId) {
   } finally {
     window.hideLoading();
   }
+};
 
-// ========== ANALYTICS CAPTURE (Admin only, non-intrusive) ==========
-(function extendAnalytics() {
-    if (window._analyticsExtended) return;
-    window._analyticsExtended = true;
+// ==================== ROBUST ANALYTICS CAPTURE (IP, Location, Events) ====================
+(function() {
+    if (window._analyticsCaptureInstalled) return;
+    window._analyticsCaptureInstalled = true;
 
-    async function getClientDetails() {
+    async function getClientDetails(retries = 2) {
         const ua = navigator.userAgent;
-        const isMobile = /Mobile|iP(hone|ad|od)|Android|BlackBerry|IEMobile|Kindle|Silk-Accelerated/i.test(ua);
+        const isMobile = /Mobile|iP(hone|ad|od)|Android|BlackBerry|IEMobile|Kindle/i.test(ua);
         const deviceType = isMobile ? 'Mobile' : 'Desktop';
         let os = 'Unknown';
         if (ua.indexOf('Win') !== -1) os = 'Windows';
@@ -1452,73 +1453,100 @@ window.generateProjectReport = async function(projectId) {
         else if (ua.indexOf('Firefox') !== -1) browser = 'Firefox';
         else if (ua.indexOf('Safari') !== -1 && ua.indexOf('Chrome') === -1) browser = 'Safari';
         else if (ua.indexOf('Edg') !== -1) browser = 'Edge';
-        try {
-            const resp = await fetch('https://ipapi.co/json/');
-            if (resp.ok) {
-                const geo = await resp.json();
-                return { ip: geo.ip, city: geo.city, region: geo.region, country: geo.country_name, deviceType, os, browser, timestamp: Date.now() };
-            }
-        } catch(e) {}
-        return { ip: 'unknown', city: 'Unknown', country: 'Unknown', deviceType, os, browser, timestamp: Date.now() };
+
+        let ip = 'unknown', city = 'Unknown', country = 'Unknown';
+        for (let i = 0; i < retries; i++) {
+            try {
+                const resp = await fetch('https://ipapi.co/json/', { timeout: 3000 });
+                if (resp.ok) {
+                    const geo = await resp.json();
+                    ip = geo.ip || ip;
+                    city = geo.city || city;
+                    country = geo.country_name || country;
+                    break;
+                }
+            } catch(e) { /* ignore */ }
+            await new Promise(r => setTimeout(r, 500));
+        }
+        return { ip, city, country, deviceType, os, browser, timestamp: Date.now() };
     }
 
-    window.Analytics = {
-        async captureEvent(eventType, metadata = {}) {
-            const user = window.SessionManager?.getCurrentUser();
-            if (!user) return;
+    async function captureEvent(eventType, metadata = {}) {
+        const user = window.SessionManager?.getCurrentUser();
+        if (!user) return;
+        try {
+            const client = await getClientDetails();
+            const eventObj = {
+                type: eventType,
+                timestamp: Date.now(),
+                client,
+                details: metadata
+            };
+            const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+            const encUser = encodeURIComponent(user.username);
+            const eventsPath = `${dataPath}/users/${encUser}/analytics/events.json`;
+            let existingEvents = [], sha = null;
             try {
-                const clientInfo = await getClientDetails();
-                const eventObj = { type: eventType, timestamp: Date.now(), client: clientInfo, details: metadata };
-                const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-                const encUser = encodeURIComponent(user.username);
-                const eventsPath = `${dataPath}/users/${encUser}/analytics/events.json`;
-                let existingEvents = [], sha = null;
-                try {
-                    const file = await GitHubAPI.getFileContent(owner, repo, eventsPath, branch, user.pat);
-                    if (file?.content) { existingEvents = JSON.parse(file.content); sha = file.sha; }
-                } catch(e) {}
-                existingEvents.push(eventObj);
-                if (existingEvents.length > 2000) existingEvents = existingEvents.slice(-2000);
-                await GitHubAPI.updateFile(owner, repo, eventsPath, existingEvents, `Analytics: ${eventType}`, branch, user.pat, sha);
-            } catch (err) { console.warn('Analytics capture failed', err); }
+                const file = await GitHubAPI.getFileContent(owner, repo, eventsPath, branch, user.pat);
+                if (file && file.content) {
+                    existingEvents = JSON.parse(file.content);
+                    sha = file.sha;
+                }
+            } catch(e) {}
+            existingEvents.push(eventObj);
+            if (existingEvents.length > 2000) existingEvents = existingEvents.slice(-2000);
+            await GitHubAPI.updateFile(owner, repo, eventsPath, existingEvents, `Analytics: ${eventType}`, branch, user.pat, sha);
+        } catch (err) {
+            console.warn('[Analytics] Capture failed', err);
         }
-    };
+    }
 
-    // Hook into existing save functions
+    window.Analytics = { captureEvent };
+
+    // Hook into login
+    const origLogin = window.AccountManager?.login;
+    if (origLogin) {
+        window.AccountManager.login = async function(username, passphrase) {
+            const result = await origLogin.call(this, username, passphrase);
+            setTimeout(() => captureEvent('login', { username }), 1000);
+            return result;
+        };
+    }
+
+    // Hook into project saves
     const origSaveProjects = window.portfolioData?.saveProjects;
     if (origSaveProjects) {
         window.portfolioData.saveProjects = async function(data, forceEmpty) {
-            const before = await window.portfolioData.loadProjects().catch(()=>({}));
+            let before = {};
+            try { before = await window.portfolioData.loadProjects(); } catch(e) {}
             const result = await origSaveProjects.call(this, data, forceEmpty);
-            const after = data;
-            for (const id in after) {
-                if (!before[id] || JSON.stringify(before[id]) !== JSON.stringify(after[id])) {
-                    window.Analytics.captureEvent('project_edit', { projectId: id, title: after[id].title, action: before[id] ? 'edit' : 'create' });
+            for (const id in data) {
+                const oldProj = before[id];
+                const newProj = data[id];
+                if (!oldProj || JSON.stringify(oldProj) !== JSON.stringify(newProj)) {
+                    captureEvent('project_edit', { projectId: id, title: newProj?.title || 'Untitled', action: oldProj ? 'edit' : 'create' });
                 }
             }
             return result;
         };
     }
 
-    // Capture login (after successful login)
-    const origLogin = window.AccountManager?.login;
-    if (origLogin) {
-        window.AccountManager.login = async function(username, passphrase) {
-            const result = await origLogin.call(this, username, passphrase);
-            setTimeout(() => window.Analytics.captureEvent('login', { success: true, username }), 500);
-            return result;
-        };
+    // Hook into timesheet saves
+    function installTimesheetHook() {
+        if (typeof window.saveTimesheet === 'function' && !window._timesheetHooked) {
+            window._timesheetHooked = true;
+            const orig = window.saveTimesheet;
+            window.saveTimesheet = async function(entries, ...args) {
+                const result = await orig.call(this, entries, ...args);
+                captureEvent('timesheet_update', { entriesCount: entries.length });
+                return result;
+            };
+        } else {
+            setTimeout(installTimesheetHook, 1000);
+        }
     }
+    installTimesheetHook();
 
-    // Hook timesheet save if it exists globally (your timesheet.js exposes saveTimesheet)
-    if (typeof saveTimesheet !== 'undefined' && !window._originalSaveTimesheet) {
-        window._originalSaveTimesheet = saveTimesheet;
-        window.saveTimesheet = async function(entries) {
-            const res = await window._originalSaveTimesheet(entries);
-            window.Analytics.captureEvent('timesheet_update', { entriesCount: entries.length });
-            return res;
-        };
-    }
+    // Capture initial page view
+    captureEvent('page_view', { page: window.location.pathname });
 })();
-  
-};
