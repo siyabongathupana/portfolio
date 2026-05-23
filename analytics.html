@@ -123,6 +123,22 @@
     .location-item:last-child {
       border-bottom: none;
     }
+    .access-denied {
+      text-align: center;
+      padding: 60px 20px;
+    }
+    .access-denied i {
+      font-size: 4rem;
+      color: #dc3545;
+      margin-bottom: 20px;
+    }
+    .access-denied h3 {
+      color: var(--text-primary);
+      margin-bottom: 10px;
+    }
+    .access-denied p {
+      color: var(--text-muted);
+    }
     @keyframes fadeInOut {
       0% { opacity: 0; transform: translateX(20px); }
       10% { opacity: 1; transform: translateX(0); }
@@ -169,193 +185,7 @@
   </div>
 </nav>
 
-<div class="container analytics-container">
-  <div class="d-flex justify-content-between align-items-center flex-wrap mb-4">
-    <h2><i class="fa fa-line-chart"></i> Analytics Dashboard</h2>
-    <div>
-      <button id="exportReportBtn" class="btn-export"><i class="fa fa-file-pdf-o"></i> Export Report</button>
-    </div>
-  </div>
-
-  <!-- Filter Bar -->
-  <div class="filter-bar">
-    <div class="date-range-picker">
-      <label>Date Range:</label>
-      <select id="dateRangeSelect" class="form-control form-control-sm" style="width: auto;">
-        <option value="7">Last 7 days</option>
-        <option value="30" selected>Last 30 days</option>
-        <option value="90">Last 90 days</option>
-        <option value="365">Last year</option>
-        <option value="all">All time</option>
-      </select>
-    </div>
-    <div>
-      <button id="refreshAnalyticsBtn" class="btn btn-sm btn-outline-info"><i class="fa fa-refresh"></i> Refresh</button>
-    </div>
-  </div>
-
-  <!-- Stats Row -->
-  <div class="row">
-    <div class="col-md-3 col-sm-6">
-      <div class="stat-card">
-        <div class="stat-icon"><i class="fa fa-folder-open"></i></div>
-        <div class="stat-number" id="totalProjects">0</div>
-        <div class="stat-label">Total Projects</div>
-      </div>
-    </div>
-    <div class="col-md-3 col-sm-6">
-      <div class="stat-card">
-        <div class="stat-icon"><i class="fa fa-certificate"></i></div>
-        <div class="stat-number" id="totalCertificates">0</div>
-        <div class="stat-label">Certificates</div>
-      </div>
-    </div>
-    <div class="col-md-3 col-sm-6">
-      <div class="stat-card">
-        <div class="stat-icon"><i class="fa fa-clock-o"></i></div>
-        <div class="stat-number" id="totalHours">0</div>
-        <div class="stat-label">Hours Logged</div>
-      </div>
-    </div>
-    <div class="col-md-3 col-sm-6">
-      <div class="stat-card">
-        <div class="stat-icon"><i class="fa fa-users"></i></div>
-        <div class="stat-number" id="totalUsers">0</div>
-        <div class="stat-label">Active Users</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Charts Row -->
-  <div class="row">
-    <div class="col-md-6">
-      <div class="chart-card">
-        <h5><i class="fa fa-pie-chart"></i> Projects by Type</h5>
-        <canvas id="projectsByTypeChart" width="400" height="300"></canvas>
-      </div>
-    </div>
-    <div class="col-md-6">
-      <div class="chart-card">
-        <h5><i class="fa fa-pie-chart"></i> Projects by Status</h5>
-        <canvas id="projectsByStatusChart" width="400" height="300"></canvas>
-      </div>
-    </div>
-  </div>
-
-  <div class="row">
-    <div class="col-md-6">
-      <div class="chart-card">
-        <h5><i class="fa fa-bar-chart"></i> Projects Created Over Time</h5>
-        <canvas id="projectsTimelineChart" width="400" height="300"></canvas>
-      </div>
-    </div>
-    <div class="col-md-6">
-      <div class="chart-card">
-        <h5><i class="fa fa-bar-chart"></i> Hours Logged by Category</h5>
-        <canvas id="hoursByCategoryChart" width="400" height="300"></canvas>
-      </div>
-    </div>
-  </div>
-
-  <!-- Insights Row -->
-  <div class="row">
-    <div class="col-md-12">
-      <div class="insight-box">
-        <h6><i class="fa fa-lightbulb-o"></i> Key Insights</h6>
-        <p id="insightsText">Loading analytics data...</p>
-      </div>
-    </div>
-  </div>
-
-  <!-- Top Projects Table -->
-  <div class="chart-card">
-    <h5><i class="fa fa-trophy"></i> Top Projects by Hours</h5>
-    <div class="table-responsive">
-      <table class="table table-hover">
-        <thead>
-          <tr><th>Project Name</th><th>Type</th><th>Status</th><th>Hours Logged</th><th>Images</th></tr>
-        </thead>
-        <tbody id="topProjectsTable"></tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- User Analytics Section (Admin Only) -->
-  <div id="userAnalyticsSection" class="mt-4">
-    <div class="chart-card">
-      <h5><i class="fa fa-users"></i> User Analytics</h5>
-      <div class="row">
-        <div class="col-md-3 col-sm-6">
-          <div class="stat-card" style="padding: 15px;">
-            <div class="stat-number" id="totalSessions">0</div>
-            <div class="stat-label">Total Sessions</div>
-          </div>
-        </div>
-        <div class="col-md-3 col-sm-6">
-          <div class="stat-card" style="padding: 15px;">
-            <div class="stat-number" id="uniqueUsers">0</div>
-            <div class="stat-label">Unique Users</div>
-          </div>
-        </div>
-        <div class="col-md-3 col-sm-6">
-          <div class="stat-card" style="padding: 15px;">
-            <div class="stat-number" id="uniqueLocations">0</div>
-            <div class="stat-label">Locations</div>
-          </div>
-        </div>
-        <div class="col-md-3 col-sm-6">
-          <div class="stat-card" style="padding: 15px;">
-            <div class="stat-number" id="topCountry">0</div>
-            <div class="stat-label">Top Country</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="chart-card">
-      <h5><i class="fa fa-map-marker"></i> User Locations</h5>
-      <div id="locationList" style="max-height: 300px; overflow-y: auto;">
-        <div class="text-center text-muted py-4">Loading location data...</div>
-      </div>
-    </div>
-
-    <div class="row">
-      <div class="col-md-4">
-        <div class="chart-card">
-          <h5><i class="fa fa-laptop"></i> Devices</h5>
-          <canvas id="userDevicesChart" width="300" height="250"></canvas>
-        </div>
-      </div>
-      <div class="col-md-4">
-        <div class="chart-card">
-          <h5><i class="fa fa-globe"></i> Browsers</h5>
-          <canvas id="userBrowsersChart" width="300" height="250"></canvas>
-        </div>
-      </div>
-      <div class="col-md-4">
-        <div class="chart-card">
-          <h5><i class="fa fa-windows"></i> Operating Systems</h5>
-          <canvas id="userOSChart" width="300" height="250"></canvas>
-        </div>
-      </div>
-    </div>
-
-    <div class="chart-card">
-      <h5><i class="fa fa-line-chart"></i> Login Trends (Last 30 Days)</h5>
-      <canvas id="loginTrendsChart" width="800" height="300"></canvas>
-    </div>
-
-    <div class="chart-card">
-      <h5><i class="fa fa-history"></i> Recent Logins</h5>
-      <div class="table-responsive">
-        <table class="table table-hover">
-          <thead><tr><th>User</th><th>Date & Time</th><th>IP Address</th><th>Location</th><th>Device/Browser</th><th>OS</th></tr></thead>
-          <tbody id="recentLoginsTable"></tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-</div>
+<div id="analyticsContent"></div>
 
 <footer>
   <p>© 2026 Your Portfolio</p>
