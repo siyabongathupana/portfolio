@@ -1,3 +1,4 @@
+[2026-05-23 14:40:03] [INFO] [delete_user] Deleted user thupanasiyabonga@gmail.com
 [2026-05-23 14:35:27] [INFO] [login] User logged in as siyabongatshem@gmail.com
 [2026-05-23 14:25:19] [INFO] [logout] User logged out
 [2026-05-23 14:07:54] [INFO] [login] User logged in as siyabongatshem@gmail.com
