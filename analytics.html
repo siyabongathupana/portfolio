@@ -16,59 +16,23 @@
     <script src="shared.js"></script>
     <style>
         body { background: #eef3fc; font-family: 'Inter', sans-serif; }
-        .analytics-container {
-            background: #ffffff;
-            border-radius: 32px;
-            padding: 20px 25px;
-            margin: 20px auto;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.05);
-        }
-        .stat-card {
-            background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
-            border-radius: 20px;
-            padding: 18px 12px;
-            border: 1px solid #e2e8f0;
-            transition: all 0.2s;
-            height: 100%;
-            text-align: center;
-        }
+        .analytics-container { background: #fff; border-radius: 32px; padding: 20px 25px; margin: 20px auto; box-shadow: 0 8px 20px rgba(0,0,0,0.05); }
+        .stat-card { background: linear-gradient(135deg, #f8fafc, #fff); border-radius: 20px; padding: 18px 12px; border: 1px solid #e2e8f0; height: 100%; text-align: center; }
         .stat-number { font-size: 2rem; font-weight: 800; color: #0b2b3b; }
         .stat-label { color: #5a7d9a; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; }
-        .chart-card {
-            background: white;
-            border-radius: 20px;
-            padding: 15px;
-            margin-bottom: 25px;
-            border: 1px solid #e2e8f0;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.02);
-        }
-        .filter-bar {
-            background: #f1f5f9;
-            padding: 12px;
-            border-radius: 20px;
-            margin-bottom: 25px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
-            align-items: flex-end;
-        }
-        .event-table {
-            font-size: 0.75rem;
-            max-height: 500px;
-            overflow-y: auto;
-        }
+        .chart-card { background: white; border-radius: 20px; padding: 15px; margin-bottom: 25px; border: 1px solid #e2e8f0; }
+        .filter-bar { background: #f1f5f9; padding: 12px; border-radius: 20px; margin-bottom: 25px; display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+        .event-table { font-size: 0.75rem; max-height: 500px; overflow-y: auto; }
         .event-table th { position: sticky; top: 0; background: #0b2b3b; color: white; z-index: 10; }
         .badge-device { padding: 3px 8px; border-radius: 20px; font-size: 0.7rem; }
         .badge-mobile { background: #ffc107; color: #1e2a3e; }
         .badge-desktop { background: #2fc7ff; color: white; }
         .refresh-analytics { background: #2fc7ff; border: none; color: white; border-radius: 40px; padding: 8px 20px; }
         .insight-text { font-size: 0.85rem; border-left: 3px solid #2fc7ff; padding-left: 12px; margin: 10px 0; }
+        .map-link { cursor: pointer; color: #2fc7ff; text-decoration: underline; }
         @media (max-width: 768px) {
-            .analytics-container { padding: 12px; margin: 10px; border-radius: 20px; }
+            .analytics-container { padding: 12px; margin: 10px; }
             .stat-number { font-size: 1.5rem; }
-            .stat-card { padding: 12px 8px; }
-            .chart-card { padding: 10px; }
-            .filter-bar { flex-direction: column; align-items: stretch; }
             .event-table { font-size: 0.65rem; }
         }
         footer { background: #0b2b3b; color: #bdd3e0; text-align: center; padding: 20px; margin-top: 30px; }
@@ -95,10 +59,8 @@
         <button class="btn refresh-analytics" id="refreshAnalyticsBtn"><i class="fa fa-refresh"></i> Refresh Data</button>
     </div>
 
-    <!-- KPI Cards -->
     <div class="row mb-4" id="kpiCards"></div>
 
-    <!-- Filter Bar -->
     <div class="filter-bar">
         <div><label class="mb-0">From Date</label><input type="date" id="filterStartDate" class="form-control form-control-sm" style="width:150px"></div>
         <div><label class="mb-0">To Date</label><input type="date" id="filterEndDate" class="form-control form-control-sm" style="width:150px"></div>
@@ -113,7 +75,6 @@
         <div><button id="applyDateFilterBtn" class="btn btn-sm btn-primary">Apply Filters</button></div>
     </div>
 
-    <!-- Row 1: Charts -->
     <div class="row">
         <div class="col-lg-6"><div class="chart-card"><h6><i class="fa fa-line-chart"></i> User Activity Timeline</h6><canvas id="activityTimelineChart" height="200"></canvas></div></div>
         <div class="col-lg-6"><div class="chart-card"><h6><i class="fa fa-pie-chart"></i> Project Type Distribution</h6><canvas id="projectTypeChart" height="200"></canvas></div></div>
@@ -123,9 +84,8 @@
         <div class="col-md-6"><div class="chart-card"><h6><i class="fa fa-database"></i> Storage & Media Usage</h6><canvas id="storageChart" height="180"></canvas><div class="mt-2 text-muted small" id="storageDetail"></div></div></div>
     </div>
 
-    <!-- Events Table with IP/Location -->
     <div class="chart-card">
-        <h6><i class="fa fa-list-alt"></i> Detailed User Sessions & Locations</h6>
+        <h6><i class="fa fa-list-alt"></i> Detailed User Sessions & Locations <small>(click IP/location to open map)</small></h6>
         <div class="table-responsive event-table">
             <table class="table table-bordered table-hover">
                 <thead><tr><th>User</th><th>Timestamp</th><th>IP Address</th><th>Location</th><th>Device / OS</th><th>Event Type</th></tr></thead>
@@ -135,7 +95,6 @@
         <div class="insight-text" id="geoInsight"></div>
     </div>
 
-    <!-- Popular Projects Bar Chart (distinct colors) -->
     <div class="chart-card">
         <h6><i class="fa fa-trophy"></i> Popular Projects (by timesheet hours)</h6>
         <canvas id="popularProjectsChart" height="250"></canvas>
@@ -145,7 +104,6 @@
 <footer><p>© 2026 Your Portfolio — <a href="admin.html" class="text-white">Admin</a></p></footer>
 
 <script>
-    // Admin only check
     (async function() {
         const user = window.SessionManager?.getCurrentUser();
         const isAdmin = user && window.APP_CONFIG.adminUsers && window.APP_CONFIG.adminUsers.includes(user.username);
@@ -167,7 +125,7 @@
         try {
             const file = await GitHubAPI.getFileContent(owner, repo, path, branch, window.currentAdminUser.pat);
             if (file && file.content) return JSON.parse(file.content);
-        } catch(e) {}
+        } catch(e) { console.warn(`Failed to fetch ${fileName} for ${username}`, e); }
         return null;
     }
 
@@ -177,10 +135,7 @@
             const users = await window.AccountManager.listUsers(window.currentAdminUser.pat);
             const aggregated = {
                 projectsCount: 0, certsCount: 0, totalHours: 0, billableHours: 0,
-                deltaV: 0, nonDeltaV: 0,
-                totalImages: 0,   // from project images + cert thumbnails
-                projectHoursMap: new Map(),
-                events: []
+                deltaV: 0, nonDeltaV: 0, totalImages: 0, projectHoursMap: new Map(), events: []
             };
 
             for (const username of users) {
@@ -192,12 +147,11 @@
                     const isDelta = (proj.projectCategory === 'deltaV' || proj.controllerType);
                     if (isDelta) aggregated.deltaV++;
                     else aggregated.nonDeltaV++;
-                    // count images in project
                     const imgCount = (proj.selectedImages || []).length;
                     aggregated.totalImages += imgCount;
                 }
 
-                // Certificates
+                // Certificates - FIXED: ensure we count correctly
                 const certs = await fetchUserData(username, 'certificates.json') || [];
                 aggregated.certsCount += certs.length;
                 for (const cert of certs) {
@@ -222,6 +176,10 @@
                         timestamp: ev.timestamp,
                         type: ev.type,
                         ip: ev.client?.ip || 'N/A',
+                        city: ev.client?.city || '',
+                        country: ev.client?.country || '',
+                        lat: ev.client?.lat,
+                        lon: ev.client?.lon,
                         location: ev.client?.city ? `${ev.client.city}, ${ev.client.country}` : (ev.client?.country || 'Unknown'),
                         device: ev.client?.deviceType || ev.client?.os || 'Desktop',
                         details: ev.details || ''
@@ -245,8 +203,7 @@
     }
 
     function renderKPIs(data) {
-        const container = document.getElementById('kpiCards');
-        container.innerHTML = `
+        document.getElementById('kpiCards').innerHTML = `
             <div class="col-md-3 col-6 mb-3"><div class="stat-card"><div class="stat-number">${data.projectsCount}</div><div class="stat-label">Total Projects</div></div></div>
             <div class="col-md-3 col-6 mb-3"><div class="stat-card"><div class="stat-number">${data.certsCount}</div><div class="stat-label">Certificates</div></div></div>
             <div class="col-md-3 col-6 mb-3"><div class="stat-card"><div class="stat-number">${data.totalHours.toFixed(1)}</div><div class="stat-label">Hours Logged</div></div></div>
@@ -258,15 +215,13 @@
         const start = document.getElementById('filterStartDate').value ? new Date(document.getElementById('filterStartDate').value) : null;
         const end = document.getElementById('filterEndDate').value ? new Date(document.getElementById('filterEndDate').value) : null;
         const typeFilter = document.getElementById('filterEventType').value;
+        let filtered = [...data.events];
+        if (start) filtered = filtered.filter(e => new Date(e.timestamp) >= start);
+        if (end) { const endPlus = new Date(end); endPlus.setHours(23,59,59); filtered = filtered.filter(e => new Date(e.timestamp) <= endPlus); }
+        if (typeFilter !== 'all') filtered = filtered.filter(e => e.type === typeFilter);
 
-        let filteredEvents = [...data.events];
-        if (start) filteredEvents = filteredEvents.filter(e => new Date(e.timestamp) >= start);
-        if (end) { const endPlus = new Date(end); endPlus.setHours(23,59,59); filteredEvents = filteredEvents.filter(e => new Date(e.timestamp) <= endPlus); }
-        if (typeFilter !== 'all') filteredEvents = filteredEvents.filter(e => e.type === typeFilter);
-
-        // Timeline
         const dayMap = new Map();
-        filteredEvents.forEach(ev => {
+        filtered.forEach(ev => {
             const day = new Date(ev.timestamp).toISOString().slice(0,10);
             if (!dayMap.has(day)) dayMap.set(day, { login:0, edit:0, timesheet:0 });
             const rec = dayMap.get(day);
@@ -281,34 +236,38 @@
 
         if (charts.activity) charts.activity.destroy();
         charts.activity = new Chart(document.getElementById('activityTimelineChart'), {
-            type: 'line',
-            data: { labels, datasets: [
+            type: 'line', data: { labels, datasets: [
                 { label: 'Logins', data: loginData, borderColor: '#2fc7ff', backgroundColor: 'rgba(47,199,255,0.1)', tension: 0.3, fill: true },
                 { label: 'Project Edits', data: editData, borderColor: '#ffc107', backgroundColor: 'rgba(255,193,7,0.1)', tension: 0.3 },
                 { label: 'Timesheet Updates', data: tsData, borderColor: '#28a745', backgroundColor: 'rgba(40,167,69,0.1)', tension: 0.3 }
-            ] },
-            options: { responsive: true, maintainAspectRatio: true }
+            ] }, options: { responsive: true }
         });
 
         if (charts.projectType) charts.projectType.destroy();
         charts.projectType = new Chart(document.getElementById('projectTypeChart'), {
             type: 'pie', data: { labels: ['DeltaV', 'Non-DeltaV'], datasets: [{ data: [data.deltaV, data.nonDeltaV], backgroundColor: ['#0b2b3b', '#2fc7ff'] }] },
-            options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+            options: { responsive: true }
         });
 
         if (charts.timesheet) charts.timesheet.destroy();
         charts.timesheet = new Chart(document.getElementById('timesheetSummaryChart'), {
-            type: 'doughnut', data: { labels: ['Billable', 'Non-Billable'], datasets: [{ data: [data.billableHours, data.nonBillableHours], backgroundColor: ['#28a745', '#dc3545'] }] },
-            options: { responsive: true }
+            type: 'doughnut', data: { labels: ['Billable', 'Non-Billable'], datasets: [{ data: [data.billableHours, data.nonBillableHours], backgroundColor: ['#28a745', '#dc3545'] }] }
         });
         document.getElementById('timesheetTotalsText').innerHTML = `<strong>Total Hours:</strong> ${data.totalHours.toFixed(1)} | <strong>Billable:</strong> ${data.billableHours.toFixed(1)}`;
 
         if (charts.storage) charts.storage.destroy();
         charts.storage = new Chart(document.getElementById('storageChart'), {
-            type: 'bar', data: { labels: ['Images'], datasets: [{ label: 'Total Images', data: [data.totalImages], backgroundColor: '#2fc7ff' }] },
-            options: { responsive: true, scales: { y: { beginAtZero: true, title: { display: true, text: 'Count' } } } }
+            type: 'bar', data: { labels: ['Images'], datasets: [{ label: 'Total Images', data: [data.totalImages], backgroundColor: '#2fc7ff' }] }
         });
         document.getElementById('storageDetail').innerHTML = `🖼️ ${data.totalImages} images across all users | 💾 ~${data.estimatedStorageMB} MB (est.)`;
+    }
+
+    function openMap(lat, lon, label) {
+        if (lat && lon) {
+            window.open(`https://www.google.com/maps?q=${lat},${lon}`, '_blank');
+        } else {
+            alert('No precise coordinates available for this event.');
+        }
     }
 
     function renderEventsTable(data) {
@@ -338,8 +297,11 @@
             const deviceClass = (ev.device || '').toLowerCase().includes('mobile') ? 'badge-mobile' : 'badge-desktop';
             row.insertCell(0).innerText = ev.user;
             row.insertCell(1).innerText = new Date(ev.timestamp).toLocaleString();
-            row.insertCell(2).innerHTML = `<code>${ev.ip}</code>`;
-            row.insertCell(3).innerText = ev.location;
+            const ipCell = row.insertCell(2);
+            const locationCell = row.insertCell(3);
+            const hasCoords = ev.lat && ev.lon;
+            ipCell.innerHTML = `<span class="map-link" onclick="openMap(${ev.lat || 'null'}, ${ev.lon || 'null'}, '${ev.ip}')">${ev.ip}</span>`;
+            locationCell.innerHTML = hasCoords ? `<span class="map-link" onclick="openMap(${ev.lat}, ${ev.lon}, '${ev.location}')">${ev.location}</span>` : ev.location;
             row.insertCell(4).innerHTML = `<span class="badge-device ${deviceClass}">${ev.device}</span>`;
             row.insertCell(5).innerText = ev.type.replace('_', ' ');
         }
@@ -351,19 +313,19 @@
         const backgroundColors = sorted.map((_, i) => distinctColors[i % distinctColors.length]);
         if (charts.popular) charts.popular.destroy();
         charts.popular = new Chart(document.getElementById('popularProjectsChart'), {
-            type: 'bar',
-            data: { labels: sorted.map(p => p[0]), datasets: [{ label: 'Hours Logged', data: sorted.map(p => p[1]), backgroundColor: backgroundColors, borderRadius: 8 }] },
-            options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => `${ctx.raw.toFixed(1)} hours` } } } }
+            type: 'bar', data: { labels: sorted.map(p => p[0]), datasets: [{ label: 'Hours Logged', data: sorted.map(p => p[1]), backgroundColor: backgroundColors, borderRadius: 8 }] },
+            options: { responsive: true, plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => `${ctx.raw.toFixed(1)} hours` } } } }
         });
     }
 
-    document.getElementById('applyDateFilterBtn').addEventListener('click', () => { if (allData) renderCharts(allData); renderEventsTable(allData); });
+    document.getElementById('applyDateFilterBtn').addEventListener('click', () => { if (allData) { renderCharts(allData); renderEventsTable(allData); } });
     document.getElementById('refreshAnalyticsBtn').addEventListener('click', loadFullAnalytics);
 
     const today = new Date();
     const monthAgo = new Date(); monthAgo.setDate(today.getDate() - 30);
     document.getElementById('filterStartDate').value = monthAgo.toISOString().slice(0,10);
     document.getElementById('filterEndDate').value = today.toISOString().slice(0,10);
+    window.openMap = openMap;
 </script>
 <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script>
