@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Analytics Dashboard | Admin</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
@@ -15,61 +15,66 @@
     <script src="api.js"></script>
     <script src="shared.js"></script>
     <style>
+        body { background: #eef3fc; font-family: 'Inter', sans-serif; }
         .analytics-container {
             background: #ffffff;
             border-radius: 32px;
-            padding: 25px;
+            padding: 20px 25px;
             margin: 20px auto;
             box-shadow: 0 8px 20px rgba(0,0,0,0.05);
         }
         .stat-card {
             background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
             border-radius: 20px;
-            padding: 20px;
+            padding: 18px 12px;
             border: 1px solid #e2e8f0;
             transition: all 0.2s;
             height: 100%;
+            text-align: center;
         }
-        .stat-card:hover { transform: translateY(-3px); box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
-        .stat-number { font-size: 2.2rem; font-weight: 800; color: #0b2b3b; }
-        .stat-label { color: #5a7d9a; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; }
+        .stat-number { font-size: 2rem; font-weight: 800; color: #0b2b3b; }
+        .stat-label { color: #5a7d9a; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; }
         .chart-card {
             background: white;
             border-radius: 20px;
-            padding: 20px;
+            padding: 15px;
             margin-bottom: 25px;
             border: 1px solid #e2e8f0;
             box-shadow: 0 4px 12px rgba(0,0,0,0.02);
         }
         .filter-bar {
             background: #f1f5f9;
-            padding: 15px;
+            padding: 12px;
             border-radius: 20px;
             margin-bottom: 25px;
             display: flex;
             flex-wrap: wrap;
-            gap: 15px;
+            gap: 12px;
             align-items: flex-end;
         }
         .event-table {
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             max-height: 500px;
             overflow-y: auto;
         }
         .event-table th { position: sticky; top: 0; background: #0b2b3b; color: white; z-index: 10; }
-        .badge-device { padding: 4px 8px; border-radius: 20px; font-size: 0.7rem; }
+        .badge-device { padding: 3px 8px; border-radius: 20px; font-size: 0.7rem; }
         .badge-mobile { background: #ffc107; color: #1e2a3e; }
         .badge-desktop { background: #2fc7ff; color: white; }
-        .loader-overlay-custom { background: rgba(0,0,0,0.5); }
         .refresh-analytics { background: #2fc7ff; border: none; color: white; border-radius: 40px; padding: 8px 20px; }
-        .insight-text { font-size: 0.9rem; border-left: 3px solid #2fc7ff; padding-left: 12px; margin: 10px 0; }
+        .insight-text { font-size: 0.85rem; border-left: 3px solid #2fc7ff; padding-left: 12px; margin: 10px 0; }
         @media (max-width: 768px) {
-            .analytics-container { padding: 15px; }
+            .analytics-container { padding: 12px; margin: 10px; border-radius: 20px; }
             .stat-number { font-size: 1.5rem; }
+            .stat-card { padding: 12px 8px; }
+            .chart-card { padding: 10px; }
+            .filter-bar { flex-direction: column; align-items: stretch; }
+            .event-table { font-size: 0.65rem; }
         }
+        footer { background: #0b2b3b; color: #bdd3e0; text-align: center; padding: 20px; margin-top: 30px; }
     </style>
 </head>
-<body style="background:#eef3fc;">
+<body>
 
 <nav class="navbar navbar-expand-lg custom_nav-container pt-3" style="background:#0b2b3b; padding:15px 0;">
     <div class="container">
@@ -89,22 +94,15 @@
         <h2><i class="fa fa-bar-chart"></i> Advanced Analytics Dashboard</h2>
         <button class="btn refresh-analytics" id="refreshAnalyticsBtn"><i class="fa fa-refresh"></i> Refresh Data</button>
     </div>
-    
+
     <!-- KPI Cards -->
     <div class="row mb-4" id="kpiCards"></div>
 
-    <!-- Date Filter & Charts -->
+    <!-- Filter Bar -->
     <div class="filter-bar">
-        <div>
-            <label class="mb-0">From Date</label>
-            <input type="date" id="filterStartDate" class="form-control form-control-sm" style="width:150px">
-        </div>
-        <div>
-            <label class="mb-0">To Date</label>
-            <input type="date" id="filterEndDate" class="form-control form-control-sm" style="width:150px">
-        </div>
-        <div>
-            <label class="mb-0">Event Type</label>
+        <div><label class="mb-0">From Date</label><input type="date" id="filterStartDate" class="form-control form-control-sm" style="width:150px"></div>
+        <div><label class="mb-0">To Date</label><input type="date" id="filterEndDate" class="form-control form-control-sm" style="width:150px"></div>
+        <div><label class="mb-0">Event Type</label>
             <select id="filterEventType" class="form-control form-control-sm" style="width:160px">
                 <option value="all">All Events</option>
                 <option value="login">Logins</option>
@@ -112,75 +110,42 @@
                 <option value="timesheet_update">Timesheet Updates</option>
             </select>
         </div>
-        <div>
-            <button id="applyDateFilterBtn" class="btn btn-sm btn-primary">Apply Filters</button>
-        </div>
+        <div><button id="applyDateFilterBtn" class="btn btn-sm btn-primary">Apply Filters</button></div>
     </div>
 
-    <!-- Row for Charts -->
+    <!-- Row 1: Charts -->
     <div class="row">
-        <div class="col-lg-6">
-            <div class="chart-card">
-                <h6><i class="fa fa-line-chart"></i> User Activity Timeline (Logins & Edits)</h6>
-                <canvas id="activityTimelineChart" height="200"></canvas>
-            </div>
-        </div>
-        <div class="col-lg-6">
-            <div class="chart-card">
-                <h6><i class="fa fa-pie-chart"></i> Project Type Distribution (DeltaV vs Non-DeltaV)</h6>
-                <canvas id="projectTypeChart" height="200"></canvas>
-            </div>
-        </div>
+        <div class="col-lg-6"><div class="chart-card"><h6><i class="fa fa-line-chart"></i> User Activity Timeline</h6><canvas id="activityTimelineChart" height="200"></canvas></div></div>
+        <div class="col-lg-6"><div class="chart-card"><h6><i class="fa fa-pie-chart"></i> Project Type Distribution</h6><canvas id="projectTypeChart" height="200"></canvas></div></div>
     </div>
-
     <div class="row">
-        <div class="col-md-6">
-            <div class="chart-card">
-                <h6><i class="fa fa-clock-o"></i> Time Tracking Summary (All Users)</h6>
-                <canvas id="timesheetSummaryChart" height="180"></canvas>
-                <div class="mt-2 text-center" id="timesheetTotalsText"></div>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="chart-card">
-                <h6><i class="fa fa-database"></i> Storage & Media Usage</h6>
-                <canvas id="storageChart" height="180"></canvas>
-                <div class="mt-2 text-muted small" id="storageDetail"></div>
-            </div>
-        </div>
+        <div class="col-md-6"><div class="chart-card"><h6><i class="fa fa-clock-o"></i> Time Tracking Summary</h6><canvas id="timesheetSummaryChart" height="180"></canvas><div class="mt-2 text-center" id="timesheetTotalsText"></div></div></div>
+        <div class="col-md-6"><div class="chart-card"><h6><i class="fa fa-database"></i> Storage & Media Usage</h6><canvas id="storageChart" height="180"></canvas><div class="mt-2 text-muted small" id="storageDetail"></div></div></div>
     </div>
 
-    <!-- Login Events Table with IP, Location, Device -->
+    <!-- Events Table with IP/Location -->
     <div class="chart-card">
         <h6><i class="fa fa-list-alt"></i> Detailed User Sessions & Locations</h6>
         <div class="table-responsive event-table">
             <table class="table table-bordered table-hover">
-                <thead>
-                    <tr><th>User</th><th>Timestamp</th><th>IP Address</th><th>Location</th><th>Device / OS</th><th>Event Type</th></tr>
-                </thead>
+                <thead><tr><th>User</th><th>Timestamp</th><th>IP Address</th><th>Location</th><th>Device / OS</th><th>Event Type</th></tr></thead>
                 <tbody id="eventsTableBody"></tbody>
             </table>
         </div>
-        <div class="text-muted small mt-2 insight-text" id="geoInsight"></div>
+        <div class="insight-text" id="geoInsight"></div>
     </div>
 
-    <!-- Popular Projects / Extra -->
-    <div class="row">
-        <div class="col-md-12">
-            <div class="chart-card">
-                <h6><i class="fa fa-trophy"></i> Popular Projects (by timesheet hours logged)</h6>
-                <canvas id="popularProjectsChart" height="250"></canvas>
-            </div>
-        </div>
+    <!-- Popular Projects Bar Chart (distinct colors) -->
+    <div class="chart-card">
+        <h6><i class="fa fa-trophy"></i> Popular Projects (by timesheet hours)</h6>
+        <canvas id="popularProjectsChart" height="250"></canvas>
     </div>
 </div>
 
-<footer class="mt-5">
-    <p>© 2026 Your Portfolio — <a href="admin.html" class="text-white">Admin</a> | <a href="guide.html" class="text-white">Guide</a></p>
-</footer>
+<footer><p>© 2026 Your Portfolio — <a href="admin.html" class="text-white">Admin</a></p></footer>
 
 <script>
-    // Ensure only admin can access this page
+    // Admin only check
     (async function() {
         const user = window.SessionManager?.getCurrentUser();
         const isAdmin = user && window.APP_CONFIG.adminUsers && window.APP_CONFIG.adminUsers.includes(user.username);
@@ -192,89 +157,85 @@
         await loadFullAnalytics();
     })();
 
-    let allUsersDataCache = null;
-    let activityChart, projectTypeChart, timesheetChart, storageChart, popularProjectsChart;
+    let allData = null;
+    let charts = {};
+
+    async function fetchUserData(username, fileName) {
+        const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+        const encUser = encodeURIComponent(username);
+        const path = `${dataPath}/users/${encUser}/${fileName}`;
+        try {
+            const file = await GitHubAPI.getFileContent(owner, repo, path, branch, window.currentAdminUser.pat);
+            if (file && file.content) return JSON.parse(file.content);
+        } catch(e) {}
+        return null;
+    }
 
     async function loadFullAnalytics() {
         window.showLoading('Aggregating analytics across all users...');
         try {
             const users = await window.AccountManager.listUsers(window.currentAdminUser.pat);
             const aggregated = {
-                projectsCount: 0, certsCount: 0, totalTimesheetHours: 0, totalBillableHours: 0,
-                deltaVProjects: 0, nonDeltaVProjects: 0,
-                totalImagesCount: 0, estimatedStorageMB: 0,
-                events: [],  // { user, timestamp, type, ip, location, device, details }
-                projectHoursMap: new Map(),  // project name -> hours
+                projectsCount: 0, certsCount: 0, totalHours: 0, billableHours: 0,
+                deltaV: 0, nonDeltaV: 0,
+                totalImages: 0,   // from project images + cert thumbnails
+                projectHoursMap: new Map(),
+                events: []
             };
-            
+
             for (const username of users) {
-                try {
-                    // projects
-                    const projects = await fetchUserData(username, 'projects.json');
-                    const projObj = projects || {};
-                    const projList = Object.values(projObj);
-                    aggregated.projectsCount += projList.length;
-                    for (const proj of projList) {
-                        const isDelta = (proj.projectCategory === 'deltaV' || proj.controllerType);
-                        if (isDelta) aggregated.deltaVProjects++;
-                        else aggregated.nonDeltaVProjects++;
-                        // count images
-                        const imgCount = (proj.selectedImages || []).length;
-                        aggregated.totalImagesCount += imgCount;
-                        // estimate 200KB per image (compressed)
-                        aggregated.estimatedStorageMB += imgCount * 0.2;
-                    }
-                    
-                    // certificates
-                    const certs = await fetchUserData(username, 'certificates.json');
-                    const certList = certs || [];
-                    aggregated.certsCount += certList.length;
-                    for (const cert of certList) {
-                        if (cert.thumbnail && cert.thumbnail.includes('raw.githubusercontent')) {
-                            aggregated.totalImagesCount += 1;
-                            aggregated.estimatedStorageMB += 0.2;
-                        }
-                    }
-                    
-                    // timesheet
-                    const timesheet = await fetchUserData(username, 'timesheet.json');
-                    if (Array.isArray(timesheet)) {
-                        for (const entry of timesheet) {
-                            const hours = parseFloat(entry.hours) || 0;
-                            aggregated.totalTimesheetHours += hours;
-                            if (entry.billable === 'yes') aggregated.totalBillableHours += hours;
-                            const projName = entry.project || 'Other';
-                            aggregated.projectHoursMap.set(projName, (aggregated.projectHoursMap.get(projName) || 0) + hours);
-                        }
-                    }
-                    
-                    // analytics events (login, project_edit, timesheet_update)
-                    const events = await fetchUserData(username, 'analytics/events.json');
-                    if (Array.isArray(events)) {
-                        for (const ev of events) {
-                            aggregated.events.push({
-                                user: username,
-                                timestamp: ev.timestamp,
-                                type: ev.type,
-                                ip: ev.client?.ip || 'N/A',
-                                location: ev.client?.city ? `${ev.client.city}, ${ev.client.country}` : (ev.client?.country || 'Unknown'),
-                                device: ev.client?.deviceType || ev.client?.os || 'Desktop',
-                                details: ev.details || ''
-                            });
-                        }
-                    }
-                } catch(e) { console.warn(`Error processing ${username}:`, e); }
+                // Projects
+                const projects = await fetchUserData(username, 'projects.json') || {};
+                const projList = Object.values(projects);
+                aggregated.projectsCount += projList.length;
+                for (const proj of projList) {
+                    const isDelta = (proj.projectCategory === 'deltaV' || proj.controllerType);
+                    if (isDelta) aggregated.deltaV++;
+                    else aggregated.nonDeltaV++;
+                    // count images in project
+                    const imgCount = (proj.selectedImages || []).length;
+                    aggregated.totalImages += imgCount;
+                }
+
+                // Certificates
+                const certs = await fetchUserData(username, 'certificates.json') || [];
+                aggregated.certsCount += certs.length;
+                for (const cert of certs) {
+                    if (cert.thumbnail && cert.thumbnail.includes('raw.githubusercontent')) aggregated.totalImages++;
+                }
+
+                // Timesheet
+                const timesheet = await fetchUserData(username, 'timesheet.json') || [];
+                for (const entry of timesheet) {
+                    const hrs = parseFloat(entry.hours) || 0;
+                    aggregated.totalHours += hrs;
+                    if (entry.billable === 'yes') aggregated.billableHours += hrs;
+                    const projName = entry.project || 'Other';
+                    aggregated.projectHoursMap.set(projName, (aggregated.projectHoursMap.get(projName) || 0) + hrs);
+                }
+
+                // Analytics events
+                const events = await fetchUserData(username, 'analytics/events.json') || [];
+                for (const ev of events) {
+                    aggregated.events.push({
+                        user: username,
+                        timestamp: ev.timestamp,
+                        type: ev.type,
+                        ip: ev.client?.ip || 'N/A',
+                        location: ev.client?.city ? `${ev.client.city}, ${ev.client.country}` : (ev.client?.country || 'Unknown'),
+                        device: ev.client?.deviceType || ev.client?.os || 'Desktop',
+                        details: ev.details || ''
+                    });
+                }
             }
-            
-            aggregated.estimatedStorageMB = aggregated.estimatedStorageMB.toFixed(1);
-            aggregated.totalNonBillableHours = aggregated.totalTimesheetHours - aggregated.totalBillableHours;
-            
-            allUsersDataCache = aggregated;
+
+            aggregated.nonBillableHours = aggregated.totalHours - aggregated.billableHours;
+            aggregated.estimatedStorageMB = (aggregated.totalImages * 0.2).toFixed(1);
+            allData = aggregated;
             renderKPIs(aggregated);
             renderCharts(aggregated);
             renderEventsTable(aggregated);
-            renderProjectHoursChart(aggregated);
-            renderStorageInsight(aggregated);
+            renderPopularProjectsChart(aggregated);
         } catch (err) {
             console.error(err);
             document.getElementById('kpiCards').innerHTML = `<div class="alert alert-danger">Failed to load analytics: ${err.message}</div>`;
@@ -282,124 +243,96 @@
             window.hideLoading();
         }
     }
-    
-    async function fetchUserData(username, fileRelativePath) {
-        const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-        const encUser = encodeURIComponent(username);
-        const path = `${dataPath}/users/${encUser}/${fileRelativePath}`;
-        try {
-            const file = await GitHubAPI.getFileContent(owner, repo, path, branch, window.currentAdminUser.pat);
-            if (file && file.content) return JSON.parse(file.content);
-        } catch(e) {}
-        return null;
-    }
-    
+
     function renderKPIs(data) {
         const container = document.getElementById('kpiCards');
         container.innerHTML = `
             <div class="col-md-3 col-6 mb-3"><div class="stat-card"><div class="stat-number">${data.projectsCount}</div><div class="stat-label">Total Projects</div></div></div>
             <div class="col-md-3 col-6 mb-3"><div class="stat-card"><div class="stat-number">${data.certsCount}</div><div class="stat-label">Certificates</div></div></div>
-            <div class="col-md-3 col-6 mb-3"><div class="stat-card"><div class="stat-number">${data.totalTimesheetHours.toFixed(1)}</div><div class="stat-label">Hours Logged</div></div></div>
-            <div class="col-md-3 col-6 mb-3"><div class="stat-card"><div class="stat-number">${data.events.length}</div><div class="stat-label">User Events Tracked</div></div></div>
+            <div class="col-md-3 col-6 mb-3"><div class="stat-card"><div class="stat-number">${data.totalHours.toFixed(1)}</div><div class="stat-label">Hours Logged</div></div></div>
+            <div class="col-md-3 col-6 mb-3"><div class="stat-card"><div class="stat-number">${data.events.length}</div><div class="stat-label">Events Tracked</div></div></div>
         `;
     }
-    
+
     function renderCharts(data) {
-        // Activity timeline (group by date, filter by date range)
-        const startDate = document.getElementById('filterStartDate').value ? new Date(document.getElementById('filterStartDate').value) : null;
-        const endDate = document.getElementById('filterEndDate').value ? new Date(document.getElementById('filterEndDate').value) : null;
-        const filterType = document.getElementById('filterEventType').value;
-        
+        const start = document.getElementById('filterStartDate').value ? new Date(document.getElementById('filterStartDate').value) : null;
+        const end = document.getElementById('filterEndDate').value ? new Date(document.getElementById('filterEndDate').value) : null;
+        const typeFilter = document.getElementById('filterEventType').value;
+
         let filteredEvents = [...data.events];
-        if (startDate) filteredEvents = filteredEvents.filter(e => new Date(e.timestamp) >= startDate);
-        if (endDate) {
-            const endPlus = new Date(endDate);
-            endPlus.setHours(23,59,59);
-            filteredEvents = filteredEvents.filter(e => new Date(e.timestamp) <= endPlus);
-        }
-        if (filterType !== 'all') filteredEvents = filteredEvents.filter(e => e.type === filterType);
-        
-        const dateMap = new Map();
+        if (start) filteredEvents = filteredEvents.filter(e => new Date(e.timestamp) >= start);
+        if (end) { const endPlus = new Date(end); endPlus.setHours(23,59,59); filteredEvents = filteredEvents.filter(e => new Date(e.timestamp) <= endPlus); }
+        if (typeFilter !== 'all') filteredEvents = filteredEvents.filter(e => e.type === typeFilter);
+
+        // Timeline
+        const dayMap = new Map();
         filteredEvents.forEach(ev => {
             const day = new Date(ev.timestamp).toISOString().slice(0,10);
-            if (!dateMap.has(day)) dateMap.set(day, { login:0, edit:0, timesheet:0 });
-            const rec = dateMap.get(day);
+            if (!dayMap.has(day)) dayMap.set(day, { login:0, edit:0, timesheet:0 });
+            const rec = dayMap.get(day);
             if (ev.type === 'login') rec.login++;
             else if (ev.type === 'project_edit') rec.edit++;
             else if (ev.type === 'timesheet_update') rec.timesheet++;
         });
-        const sortedDays = Array.from(dateMap.keys()).sort();
-        const loginData = sortedDays.map(d => dateMap.get(d).login);
-        const editData = sortedDays.map(d => dateMap.get(d).edit);
-        const timesheetData = sortedDays.map(d => dateMap.get(d).timesheet);
-        
-        if (activityChart) activityChart.destroy();
-        const ctx = document.getElementById('activityTimelineChart').getContext('2d');
-        activityChart = new Chart(ctx, {
+        const labels = Array.from(dayMap.keys()).sort();
+        const loginData = labels.map(d => dayMap.get(d).login);
+        const editData = labels.map(d => dayMap.get(d).edit);
+        const tsData = labels.map(d => dayMap.get(d).timesheet);
+
+        if (charts.activity) charts.activity.destroy();
+        charts.activity = new Chart(document.getElementById('activityTimelineChart'), {
             type: 'line',
-            data: { labels: sortedDays, datasets: [
+            data: { labels, datasets: [
                 { label: 'Logins', data: loginData, borderColor: '#2fc7ff', backgroundColor: 'rgba(47,199,255,0.1)', tension: 0.3, fill: true },
                 { label: 'Project Edits', data: editData, borderColor: '#ffc107', backgroundColor: 'rgba(255,193,7,0.1)', tension: 0.3 },
-                { label: 'Timesheet Updates', data: timesheetData, borderColor: '#28a745', backgroundColor: 'rgba(40,167,69,0.1)', tension: 0.3 }
+                { label: 'Timesheet Updates', data: tsData, borderColor: '#28a745', backgroundColor: 'rgba(40,167,69,0.1)', tension: 0.3 }
             ] },
-            options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'top' } } }
+            options: { responsive: true, maintainAspectRatio: true }
         });
-        
-        // Project Type pie
-        if (projectTypeChart) projectTypeChart.destroy();
-        const pieCtx = document.getElementById('projectTypeChart').getContext('2d');
-        projectTypeChart = new Chart(pieCtx, {
-            type: 'pie',
-            data: { labels: ['DeltaV Projects', 'Non-DeltaV Projects'], datasets: [{ data: [data.deltaVProjects, data.nonDeltaVProjects], backgroundColor: ['#0b2b3b', '#2fc7ff'] }] },
+
+        if (charts.projectType) charts.projectType.destroy();
+        charts.projectType = new Chart(document.getElementById('projectTypeChart'), {
+            type: 'pie', data: { labels: ['DeltaV', 'Non-DeltaV'], datasets: [{ data: [data.deltaV, data.nonDeltaV], backgroundColor: ['#0b2b3b', '#2fc7ff'] }] },
             options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
         });
-        
-        // Timesheet Summary (billable vs non)
-        if (timesheetChart) timesheetChart.destroy();
-        const timeCtx = document.getElementById('timesheetSummaryChart').getContext('2d');
-        timesheetChart = new Chart(timeCtx, {
-            type: 'doughnut',
-            data: { labels: ['Billable Hours', 'Non-Billable Hours'], datasets: [{ data: [data.totalBillableHours, data.totalNonBillableHours], backgroundColor: ['#28a745', '#dc3545'] }] },
-            options: { responsive: true, plugins: { tooltip: { callbacks: { label: (ctx) => `${ctx.label}: ${ctx.raw.toFixed(1)} hrs` } } } }
+
+        if (charts.timesheet) charts.timesheet.destroy();
+        charts.timesheet = new Chart(document.getElementById('timesheetSummaryChart'), {
+            type: 'doughnut', data: { labels: ['Billable', 'Non-Billable'], datasets: [{ data: [data.billableHours, data.nonBillableHours], backgroundColor: ['#28a745', '#dc3545'] }] },
+            options: { responsive: true }
         });
-        document.getElementById('timesheetTotalsText').innerHTML = `<strong>Total Hours:</strong> ${data.totalTimesheetHours.toFixed(1)} hrs | <strong>Billable:</strong> ${data.totalBillableHours.toFixed(1)} hrs`;
-        
-        // Storage: images count
-        if (storageChart) storageChart.destroy();
-        const storageCtx = document.getElementById('storageChart').getContext('2d');
-        storageChart = new Chart(storageCtx, {
-            type: 'bar',
-            data: { labels: ['Total Images'], datasets: [{ label: 'Image Count', data: [data.totalImagesCount], backgroundColor: '#2fc7ff' }] },
-            options: { responsive: true, scales: { y: { beginAtZero: true, title: { display: true, text: 'Number of Images' } } } }
+        document.getElementById('timesheetTotalsText').innerHTML = `<strong>Total Hours:</strong> ${data.totalHours.toFixed(1)} | <strong>Billable:</strong> ${data.billableHours.toFixed(1)}`;
+
+        if (charts.storage) charts.storage.destroy();
+        charts.storage = new Chart(document.getElementById('storageChart'), {
+            type: 'bar', data: { labels: ['Images'], datasets: [{ label: 'Total Images', data: [data.totalImages], backgroundColor: '#2fc7ff' }] },
+            options: { responsive: true, scales: { y: { beginAtZero: true, title: { display: true, text: 'Count' } } } }
         });
-        document.getElementById('storageDetail').innerHTML = `📸 ${data.totalImagesCount} images stored | 💾 Est. ${data.estimatedStorageMB} MB (compressed estimate)`;
+        document.getElementById('storageDetail').innerHTML = `🖼️ ${data.totalImages} images across all users | 💾 ~${data.estimatedStorageMB} MB (est.)`;
     }
-    
+
     function renderEventsTable(data) {
-        const startDate = document.getElementById('filterStartDate').value ? new Date(document.getElementById('filterStartDate').value) : null;
-        const endDate = document.getElementById('filterEndDate').value ? new Date(document.getElementById('filterEndDate').value) : null;
-        const filterType = document.getElementById('filterEventType').value;
+        const start = document.getElementById('filterStartDate').value ? new Date(document.getElementById('filterStartDate').value) : null;
+        const end = document.getElementById('filterEndDate').value ? new Date(document.getElementById('filterEndDate').value) : null;
+        const typeFilter = document.getElementById('filterEventType').value;
         let filtered = [...data.events];
-        if (startDate) filtered = filtered.filter(e => new Date(e.timestamp) >= startDate);
-        if (endDate) { const end = new Date(endDate); end.setHours(23,59,59); filtered = filtered.filter(e => new Date(e.timestamp) <= end); }
-        if (filterType !== 'all') filtered = filtered.filter(e => e.type === filterType);
-        
+        if (start) filtered = filtered.filter(e => new Date(e.timestamp) >= start);
+        if (end) { const endPlus = new Date(end); endPlus.setHours(23,59,59); filtered = filtered.filter(e => new Date(e.timestamp) <= endPlus); }
+        if (typeFilter !== 'all') filtered = filtered.filter(e => e.type === typeFilter);
         filtered.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+
         const tbody = document.getElementById('eventsTableBody');
         tbody.innerHTML = '';
-        if (filtered.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" class="text-center">No events in selected range</td></tr>';
-            document.getElementById('geoInsight').innerHTML = '';
-            return;
-        }
+        if (filtered.length === 0) { tbody.innerHTML = '<tr><td colspan="6" class="text-center">No events in selected range</td></tr>'; return; }
+
         const countryCount = new Map();
         filtered.forEach(ev => {
-            const country = ev.location.split(',').pop() || 'Unknown';
-            countryCount.set(country, (countryCount.get(country) || 0) + 1);
+            const loc = ev.location.split(',').pop() || 'Unknown';
+            countryCount.set(loc, (countryCount.get(loc) || 0) + 1);
         });
-        let topCountry = [...countryCount.entries()].sort((a,b) => b[1] - a[1])[0];
-        document.getElementById('geoInsight').innerHTML = `🌍 Top access location: ${topCountry ? topCountry[0] : 'N/A'} (${topCountry ? topCountry[1] : 0} events) — Showing ${filtered.length} filtered events.`;
-        
+        const top = [...countryCount.entries()].sort((a,b) => b[1]-a[1])[0];
+        document.getElementById('geoInsight').innerHTML = `🌍 Top location: ${top ? top[0] : 'N/A'} (${top ? top[1] : 0} events) — Showing ${filtered.length} events.`;
+
         for (const ev of filtered) {
             const row = tbody.insertRow();
             const deviceClass = (ev.device || '').toLowerCase().includes('mobile') ? 'badge-mobile' : 'badge-desktop';
@@ -407,186 +340,31 @@
             row.insertCell(1).innerText = new Date(ev.timestamp).toLocaleString();
             row.insertCell(2).innerHTML = `<code>${ev.ip}</code>`;
             row.insertCell(3).innerText = ev.location;
-            row.insertCell(4).innerHTML = `<span class="badge-device ${deviceClass}">${ev.device || 'Desktop'}</span>`;
+            row.insertCell(4).innerHTML = `<span class="badge-device ${deviceClass}">${ev.device}</span>`;
             row.insertCell(5).innerText = ev.type.replace('_', ' ');
         }
     }
-    
-    function renderProjectHoursChart(data) {
-        const sorted = Array.from(data.projectHoursMap.entries()).sort((a,b) => b[1] - a[1]).slice(0, 8);
-        if (popularProjectsChart) popularProjectsChart.destroy();
-        const ctx = document.getElementById('popularProjectsChart').getContext('2d');
-        popularProjectsChart = new Chart(ctx, {
+
+    function renderPopularProjectsChart(data) {
+        const sorted = Array.from(data.projectHoursMap.entries()).sort((a,b) => b[1] - a[1]).slice(0, 10);
+        const distinctColors = ['#2fc7ff', '#ff6b6b', '#ffc107', '#28a745', '#6f42c1', '#fd7e14', '#17a2b8', '#e83e8c', '#20c997', '#6610f2'];
+        const backgroundColors = sorted.map((_, i) => distinctColors[i % distinctColors.length]);
+        if (charts.popular) charts.popular.destroy();
+        charts.popular = new Chart(document.getElementById('popularProjectsChart'), {
             type: 'bar',
-            data: { labels: sorted.map(p => p[0]), datasets: [{ label: 'Hours Logged', data: sorted.map(p => p[1]), backgroundColor: '#2fc7ff', borderRadius: 8 }] },
-            options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'none' }, tooltip: { callbacks: { label: (ctx) => `${ctx.raw.toFixed(1)} hours` } } } }
+            data: { labels: sorted.map(p => p[0]), datasets: [{ label: 'Hours Logged', data: sorted.map(p => p[1]), backgroundColor: backgroundColors, borderRadius: 8 }] },
+            options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => `${ctx.raw.toFixed(1)} hours` } } } }
         });
     }
-    
-    function renderStorageInsight(data) {
-        // already updated
-    }
-    
-    document.getElementById('applyDateFilterBtn').addEventListener('click', () => {
-        if (allUsersDataCache) {
-            renderCharts(allUsersDataCache);
-            renderEventsTable(allUsersDataCache);
-        }
-    });
-    document.getElementById('refreshAnalyticsBtn').addEventListener('click', async () => {
-        await loadFullAnalytics();
-    });
-    
-    // Set default date range (last 30 days)
-    const today = new Date();
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(today.getDate() - 30);
-    document.getElementById('filterStartDate').value = thirtyDaysAgo.toISOString().slice(0,10);
-    document.getElementById('filterEndDate').value = today.toISOString().slice(0,10);
-    
-    // Helper for initial load
-    window.loadFullAnalytics = loadFullAnalytics;
-</script>
-<!-- Enhanced shared.js modifications: new Analytics capture logic -->
-<script>
-    // Extend shared.js with Analytics capturing (non-intrusive)
-    (function extendAnalytics() {
-        if (window._analyticsExtended) return;
-        window._analyticsExtended = true;
-        
-        // Helper to get client info (IP, location, device)
-        async function getClientDetails() {
-            const ua = navigator.userAgent;
-            const isMobile = /Mobile|iP(hone|ad|od)|Android|BlackBerry|IEMobile|Kindle|Silk-Accelerated|(hpw|web)OS|Opera M(ob|in)i/i.test(ua);
-            const deviceType = isMobile ? 'Mobile' : 'Desktop';
-            let os = 'Unknown';
-            if (ua.indexOf('Win') !== -1) os = 'Windows';
-            else if (ua.indexOf('Mac') !== -1) os = 'macOS';
-            else if (ua.indexOf('Linux') !== -1) os = 'Linux';
-            else if (ua.indexOf('Android') !== -1) os = 'Android';
-            else if (ua.indexOf('iOS') !== -1 || ua.indexOf('iPhone') !== -1) os = 'iOS';
-            let browser = 'Other';
-            if (ua.indexOf('Chrome') !== -1 && ua.indexOf('Edg') === -1) browser = 'Chrome';
-            else if (ua.indexOf('Firefox') !== -1) browser = 'Firefox';
-            else if (ua.indexOf('Safari') !== -1 && ua.indexOf('Chrome') === -1) browser = 'Safari';
-            else if (ua.indexOf('Edg') !== -1) browser = 'Edge';
-            try {
-                const resp = await fetch('https://ipapi.co/json/');
-                if (resp.ok) {
-                    const geo = await resp.json();
-                    return {
-                        ip: geo.ip,
-                        city: geo.city,
-                        region: geo.region,
-                        country: geo.country_name,
-                        deviceType: deviceType,
-                        os: os,
-                        browser: browser,
-                        timestamp: Date.now()
-                    };
-                }
-            } catch(e) {}
-            return { ip: 'unknown', city: 'Unknown', country: 'Unknown', deviceType, os, browser, timestamp: Date.now() };
-        }
-        
-        window.Analytics = {
-            async captureEvent(eventType, metadata = {}) {
-                const user = window.SessionManager.getCurrentUser();
-                if (!user) return;
-                try {
-                    const clientInfo = await getClientDetails();
-                    const eventObj = {
-                        type: eventType,
-                        timestamp: Date.now(),
-                        client: {
-                            ip: clientInfo.ip,
-                            city: clientInfo.city,
-                            country: clientInfo.country,
-                            deviceType: clientInfo.deviceType,
-                            os: clientInfo.os,
-                            browser: clientInfo.browser
-                        },
-                        details: metadata
-                    };
-                    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-                    const encUser = encodeURIComponent(user.username);
-                    const eventsPath = `${dataPath}/users/${encUser}/analytics/events.json`;
-                    let existingEvents = [];
-                    let sha = null;
-                    try {
-                        const file = await GitHubAPI.getFileContent(owner, repo, eventsPath, branch, user.pat);
-                        if (file && file.content) {
-                            existingEvents = JSON.parse(file.content);
-                            sha = file.sha;
-                        }
-                    } catch(e) {}
-                    existingEvents.push(eventObj);
-                    // keep last 2000 events to avoid bloat
-                    if (existingEvents.length > 2000) existingEvents = existingEvents.slice(-2000);
-                    await GitHubAPI.updateFile(owner, repo, eventsPath, existingEvents, `Analytics event: ${eventType}`, branch, user.pat, sha);
-                } catch (err) { console.warn('Analytics capture failed', err); }
-            }
-        };
-        
-        // Intercept portfolioData saveProjects to capture project edits
-        const originalSaveProjects = window.portfolioData.saveProjects;
-        if (originalSaveProjects) {
-            window.portfolioData.saveProjects = async function(data, forceEmpty) {
-                const user = window.SessionManager.getCurrentUser();
-                const before = await window.portfolioData.loadProjects().catch(()=>({}));
-                const result = await originalSaveProjects.call(this, data, forceEmpty);
-                if (user) {
-                    // detect added/edited
-                    const after = data;
-                    for (const id in after) {
-                        if (!before[id] || JSON.stringify(before[id]) !== JSON.stringify(after[id])) {
-                            window.Analytics.captureEvent('project_edit', { projectId: id, title: after[id].title || 'Untitled', action: before[id] ? 'edit' : 'create' });
-                        }
-                    }
-                }
-                return result;
-            };
-        }
-        
-        // Intercept timesheet save (timesheet.js uses saveTimesheet, we override via window)
-        const originalSaveTimesheet = window._originalSaveTimesheet;
-        if (!originalSaveTimesheet && window.saveTimesheet) {
-            window._originalSaveTimesheet = window.saveTimesheet;
-            window.saveTimesheet = async function(entries) {
-                const result = await window._originalSaveTimesheet(entries);
-                window.Analytics.captureEvent('timesheet_update', { entriesCount: entries.length });
-                return result;
-            };
-        }
-        
-        // Also override login.js handler: after login capture event
-        if (window.AccountManager && window.AccountManager._originalLogin) {} else {
-            const origLogin = window.AccountManager.login;
-            if (origLogin) {
-                window.AccountManager.login = async function(username, passphrase) {
-                    const result = await origLogin.call(this, username, passphrase);
-                    setTimeout(() => {
-                        window.Analytics.captureEvent('login', { success: true, username });
-                    }, 500);
-                    return result;
-                };
-            }
-        }
-        
-        // Ensure timesheet.js exposes global saveTimesheet
-        setTimeout(() => {
-            if (typeof saveTimesheet !== 'undefined' && !window._originalSaveTimesheet) {
-                window._originalSaveTimesheet = saveTimesheet;
-                window.saveTimesheet = async function(entries) {
-                    const res = await window._originalSaveTimesheet(entries);
-                    window.Analytics.captureEvent('timesheet_update', { action: 'modify' });
-                    return res;
-                };
-            }
-        }, 1000);
-    })();
-</script>
 
+    document.getElementById('applyDateFilterBtn').addEventListener('click', () => { if (allData) renderCharts(allData); renderEventsTable(allData); });
+    document.getElementById('refreshAnalyticsBtn').addEventListener('click', loadFullAnalytics);
+
+    const today = new Date();
+    const monthAgo = new Date(); monthAgo.setDate(today.getDate() - 30);
+    document.getElementById('filterStartDate').value = monthAgo.toISOString().slice(0,10);
+    document.getElementById('filterEndDate').value = today.toISOString().slice(0,10);
+</script>
 <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script>
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
