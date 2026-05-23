@@ -1,3 +1,10 @@
 {
-  "pending": []
+  "pending": [
+    {
+      "email": "thupanasiyabonga@gmail.com",
+      "token": "ccfe6045a40caa5787344d0ddbfd1ede",
+      "expiresAt": 1779647249676,
+      "createdAt": 1779560849676
+    }
+  ]
 }
