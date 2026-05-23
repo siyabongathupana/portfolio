@@ -1,0 +1,18 @@
+[
+  {
+    "type": "login",
+    "timestamp": 1779561038202,
+    "client": {
+      "ip": "unknown",
+      "city": "Unknown",
+      "country": "Unknown",
+      "deviceType": "Mobile",
+      "os": "Linux",
+      "browser": "Edge",
+      "timestamp": 1779561038202
+    },
+    "details": {
+      "username": "thupanasiyabonga@gmail.com"
+    }
+  }
+]
