@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Analytics Dashboard | Your Portfolio</title>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="config.js"></script>
+  <script src="crypto.js"></script>
+  <script src="api.js"></script>
+  <script src="shared.js"></script>
+  <style>
+    .analytics-container {
+      max-width: 1400px;
+      margin: 20px auto;
+      padding: 20px;
+    }
+    .stat-card {
+      background: var(--bg-card);
+      border-radius: 20px;
+      padding: 20px;
+      text-align: center;
+      margin-bottom: 20px;
+      border: 1px solid var(--border-color);
+      transition: transform 0.2s;
+    }
+    .stat-card:hover {
+      transform: translateY(-3px);
+    }
+    .stat-card .stat-icon {
+      font-size: 2rem;
+      color: #2fc7ff;
+      margin-bottom: 10px;
+    }
+    .stat-card .stat-number {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    .stat-card .stat-label {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 5px;
+    }
+    .chart-card {
+      background: var(--bg-card);
+      border-radius: 20px;
+      padding: 20px;
+      margin-bottom: 20px;
+      border: 1px solid var(--border-color);
+    }
+    .chart-card h5 {
+      margin-bottom: 20px;
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+    .filter-bar {
+      background: var(--bg-secondary);
+      border-radius: 16px;
+      padding: 15px;
+      margin-bottom: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .date-range-picker {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .date-range-picker select {
+      padding: 8px 12px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      background: var(--input-bg);
+      color: var(--text-primary);
+    }
+    .btn-export {
+      background: #28a745;
+      color: white;
+      border: none;
+      padding: 8px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .btn-export:hover {
+      background: #218838;
+    }
+    .insight-box {
+      background: linear-gradient(135deg, #2fc7ff10 0%, #0b2b3b10 100%);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 20px;
+      border-left: 4px solid #2fc7ff;
+    }
+    .insight-box h6 {
+      color: #2fc7ff;
+      margin-bottom: 10px;
+    }
+    .insight-box p {
+      margin: 0;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+    .location-item {
+      padding: 12px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .location-item:last-child {
+      border-bottom: none;
+    }
+    @keyframes fadeInOut {
+      0% { opacity: 0; transform: translateX(20px); }
+      10% { opacity: 1; transform: translateX(0); }
+      90% { opacity: 1; transform: translateX(0); }
+      100% { opacity: 0; transform: translateX(20px); }
+    }
+    @media (max-width: 768px) {
+      .analytics-container {
+        padding: 10px;
+      }
+      .stat-card .stat-number {
+        font-size: 1.5rem;
+      }
+      .filter-bar {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .location-item {
+        flex-direction: column;
+        text-align: center;
+        gap: 8px;
+      }
+    }
+  </style>
+</head>
+<body style="background: var(--bg-primary);">
+
+<nav class="navbar navbar-expand-lg custom_nav-container pt-3" style="background:#0b2b3b; padding:15px 0;">
+  <div class="container">
+    <a class="navbar-brand" href="index.html"><span>Your</span> Portfolio</a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navAnalytics">
+      <span class="fa fa-bars text-white"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navAnalytics">
+      <ul class="navbar-nav ml-auto">
+        <li class="nav-item"><a class="nav-link" href="index.html">Home</a></li>
+        <li class="nav-item"><a class="nav-link" href="projects.html">Projects</a></li>
+        <li class="nav-item"><a class="nav-link" href="certificates.html">Certificates</a></li>
+        <li class="nav-item"><a class="nav-link" href="timesheet.html">Timesheet</a></li>
+        <li class="nav-item"><a class="nav-link" href="admin.html">Manage</a></li>
+        <li class="nav-item active"><a class="nav-link" href="analytics.html">Analytics</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div class="container analytics-container">
+  <div class="d-flex justify-content-between align-items-center flex-wrap mb-4">
+    <h2><i class="fa fa-line-chart"></i> Analytics Dashboard</h2>
+    <div>
+      <button id="exportReportBtn" class="btn-export"><i class="fa fa-file-pdf-o"></i> Export Report</button>
+    </div>
+  </div>
+
+  <!-- Filter Bar -->
+  <div class="filter-bar">
+    <div class="date-range-picker">
+      <label>Date Range:</label>
+      <select id="dateRangeSelect" class="form-control form-control-sm" style="width: auto;">
+        <option value="7">Last 7 days</option>
+        <option value="30" selected>Last 30 days</option>
+        <option value="90">Last 90 days</option>
+        <option value="365">Last year</option>
+        <option value="all">All time</option>
+      </select>
+    </div>
+    <div>
+      <button id="refreshAnalyticsBtn" class="btn btn-sm btn-outline-info"><i class="fa fa-refresh"></i> Refresh</button>
+    </div>
+  </div>
+
+  <!-- Stats Row -->
+  <div class="row">
+    <div class="col-md-3 col-sm-6">
+      <div class="stat-card">
+        <div class="stat-icon"><i class="fa fa-folder-open"></i></div>
+        <div class="stat-number" id="totalProjects">0</div>
+        <div class="stat-label">Total Projects</div>
+      </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+      <div class="stat-card">
+        <div class="stat-icon"><i class="fa fa-certificate"></i></div>
+        <div class="stat-number" id="totalCertificates">0</div>
+        <div class="stat-label">Certificates</div>
+      </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+      <div class="stat-card">
+        <div class="stat-icon"><i class="fa fa-clock-o"></i></div>
+        <div class="stat-number" id="totalHours">0</div>
+        <div class="stat-label">Hours Logged</div>
+      </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+      <div class="stat-card">
+        <div class="stat-icon"><i class="fa fa-users"></i></div>
+        <div class="stat-number" id="totalUsers">0</div>
+        <div class="stat-label">Active Users</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts Row -->
+  <div class="row">
+    <div class="col-md-6">
+      <div class="chart-card">
+        <h5><i class="fa fa-pie-chart"></i> Projects by Type</h5>
+        <canvas id="projectsByTypeChart" width="400" height="300"></canvas>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="chart-card">
+        <h5><i class="fa fa-pie-chart"></i> Projects by Status</h5>
+        <canvas id="projectsByStatusChart" width="400" height="300"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-md-6">
+      <div class="chart-card">
+        <h5><i class="fa fa-bar-chart"></i> Projects Created Over Time</h5>
+        <canvas id="projectsTimelineChart" width="400" height="300"></canvas>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="chart-card">
+        <h5><i class="fa fa-bar-chart"></i> Hours Logged by Category</h5>
+        <canvas id="hoursByCategoryChart" width="400" height="300"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Insights Row -->
+  <div class="row">
+    <div class="col-md-12">
+      <div class="insight-box">
+        <h6><i class="fa fa-lightbulb-o"></i> Key Insights</h6>
+        <p id="insightsText">Loading analytics data...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Top Projects Table -->
+  <div class="chart-card">
+    <h5><i class="fa fa-trophy"></i> Top Projects by Hours</h5>
+    <div class="table-responsive">
+      <table class="table table-hover">
+        <thead>
+          <tr><th>Project Name</th><th>Type</th><th>Status</th><th>Hours Logged</th><th>Images</th></tr>
+        </thead>
+        <tbody id="topProjectsTable"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- User Analytics Section (Admin Only) -->
+  <div id="userAnalyticsSection" class="mt-4">
+    <div class="chart-card">
+      <h5><i class="fa fa-users"></i> User Analytics</h5>
+      <div class="row">
+        <div class="col-md-3 col-sm-6">
+          <div class="stat-card" style="padding: 15px;">
+            <div class="stat-number" id="totalSessions">0</div>
+            <div class="stat-label">Total Sessions</div>
+          </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+          <div class="stat-card" style="padding: 15px;">
+            <div class="stat-number" id="uniqueUsers">0</div>
+            <div class="stat-label">Unique Users</div>
+          </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+          <div class="stat-card" style="padding: 15px;">
+            <div class="stat-number" id="uniqueLocations">0</div>
+            <div class="stat-label">Locations</div>
+          </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+          <div class="stat-card" style="padding: 15px;">
+            <div class="stat-number" id="topCountry">0</div>
+            <div class="stat-label">Top Country</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <h5><i class="fa fa-map-marker"></i> User Locations</h5>
+      <div id="locationList" style="max-height: 300px; overflow-y: auto;">
+        <div class="text-center text-muted py-4">Loading location data...</div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-md-4">
+        <div class="chart-card">
+          <h5><i class="fa fa-laptop"></i> Devices</h5>
+          <canvas id="userDevicesChart" width="300" height="250"></canvas>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="chart-card">
+          <h5><i class="fa fa-globe"></i> Browsers</h5>
+          <canvas id="userBrowsersChart" width="300" height="250"></canvas>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="chart-card">
+          <h5><i class="fa fa-windows"></i> Operating Systems</h5>
+          <canvas id="userOSChart" width="300" height="250"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <h5><i class="fa fa-line-chart"></i> Login Trends (Last 30 Days)</h5>
+      <canvas id="loginTrendsChart" width="800" height="300"></canvas>
+    </div>
+
+    <div class="chart-card">
+      <h5><i class="fa fa-history"></i> Recent Logins</h5>
+      <div class="table-responsive">
+        <table class="table table-hover">
+          <thead><tr><th>User</th><th>Date & Time</th><th>IP Address</th><th>Location</th><th>Device/Browser</th><th>OS</th></tr></thead>
+          <tbody id="recentLoginsTable"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <p>© 2026 Your Portfolio</p>
+  <p class="footer-status"><span id="userFooterStatus"></span></p>
+</footer>
+
+<script src="analytics.js"></script>
+<script src="user-analytics.js"></script>
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>
