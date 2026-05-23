@@ -36,5 +36,38 @@
     "selectedImages": [],
     "updatedAt": 1779566289520,
     "blocked": false
+  },
+  "proj_1779566323734": {
+    "id": "proj_1779566323734",
+    "projectCategory": "nonDeltaV",
+    "title": "WDAD",
+    "shortDesc": "",
+    "industry": "",
+    "client": "",
+    "duration": "",
+    "status": "Completed",
+    "userRole": "",
+    "teamMembers": "",
+    "description": "",
+    "technical": {
+      "technologies": "",
+      "hardware": "",
+      "software": "",
+      "protocols": "",
+      "languages": ""
+    },
+    "workBreakdown": {
+      "workBreakdown": "",
+      "problems": "",
+      "rootCauses": "",
+      "solutions": "",
+      "improvements": "",
+      "lessons": "",
+      "risks": "",
+      "testing": ""
+    },
+    "selectedImages": [],
+    "updatedAt": 1779566323734,
+    "blocked": false
   }
 }
