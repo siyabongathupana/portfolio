@@ -76,7 +76,9 @@
       <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#certificatesTab">Certificates</a></li>
       <li class="nav-item"><a class="nav-link" href="timesheet.html">Timesheet</a></li>
       <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#logsTab">Logs</a></li>
-      <li class="nav-item"><a class="nav-link" href="analytics.html">Analytics</a></li>
+      <li class="nav-item" id="analyticsTabNav" style="display:none;">
+           <a class="nav-link" href="analytics.html">Analytics</a>
+      </li>
       <li class="nav-item" id="usersTabNav" style="display:none;"><a class="nav-link" data-toggle="tab" href="#usersTab">Users</a></li>
     </ul>
 
@@ -1038,6 +1040,11 @@
       if (logUserSelectGroup) logUserSelectGroup.style.display = 'block';
       loadUsers();
     }
+    if (isAdmin) {
+      document.getElementById('usersTabNav').style.display = 'block';
+      const analyticsTab = document.getElementById('analyticsTabNav');
+      if (analyticsTab) analyticsTab.style.display = 'block';
+   }  
 
     async function downloadLogsForUser(username, isAdminView = false) {
       window.showLoading(`Fetching logs for ${username}...`);
