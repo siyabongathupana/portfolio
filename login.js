@@ -1,11 +1,12 @@
-// login.js – Complete with session tracking (IP, location, device)
-
+// login.js – Improved with rate limiting, password strength, UX, and email verification
 document.addEventListener('DOMContentLoaded', () => {
+  // Rate limiting: store failed attempts in memory (resets on page refresh)
   let failedAttempts = 0;
   let lastAttemptTime = 0;
-  const BASE_DELAY = 1000;
+  const BASE_DELAY = 1000; // 1 second
   const MAX_ATTEMPTS = 5;
 
+  // Helper to enforce delay
   async function enforceRateLimit() {
     const now = Date.now();
     if (failedAttempts >= MAX_ATTEMPTS) {
@@ -15,6 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const remaining = Math.ceil((waitTime - elapsed) / 1000);
         throw new Error(`Too many failed attempts. Please wait ${remaining} seconds.`);
       } else {
+        // Reset after cooldown
         failedAttempts = 0;
       }
     }
@@ -29,6 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
     failedAttempts = 0;
   }
 
+  // Show/hide password toggle
   document.querySelectorAll('.toggle-password').forEach(toggle => {
     toggle.addEventListener('click', function() {
       const targetId = this.dataset.target;
@@ -45,6 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  // Password strength meter
   const regPassword = document.getElementById('regPassword');
   const strengthDiv = document.getElementById('passwordStrength');
   if (regPassword) {
@@ -65,6 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Loading button state
   function setButtonLoading(btn, isLoading) {
     if (isLoading) {
       btn.classList.add('btn-loading');
@@ -77,6 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // Store original button texts
   const loginBtn = document.getElementById('loginBtn');
   const registerBtn = document.getElementById('registerBtn');
   if (loginBtn) loginBtn.originalText = loginBtn.innerHTML;
@@ -135,19 +141,20 @@ document.addEventListener('DOMContentLoaded', () => {
       await enforceRateLimit();
       setButtonLoading(loginBtn, true);
       
-      const isVerified = await window.AccountManager.isEmailVerified(username);
-      if (!isVerified) {
-        window.location.href = 'login.html?unverified=1';
-        return;
+      // Skip verification for admin email (optional - remove if you want all users to verify)
+      const isAdminEmail = username === 'siyabongatshem@gmail.com';
+      
+      if (!isAdminEmail) {
+        const isVerified = await window.AccountManager.isEmailVerified(username);
+        if (!isVerified) {
+          window.location.href = 'login.html?unverified=1';
+          return;
+        }
       }
       
       const pat = await window.AccountManager.login(username, passphrase);
       resetRateLimit();
       window.SessionManager.setCurrentUser(username, pat);
-      
-      // Track session after successful login (don't await)
-      trackUserSession(username).catch(e => console.error('Session tracking error:', e));
-      
       showSuccess('Login successful! Redirecting...');
       setTimeout(() => { window.location.href = 'admin.html'; }, 1000);
     } catch (err) {
@@ -180,6 +187,7 @@ document.addEventListener('DOMContentLoaded', () => {
       showError('Passphrase must be at least 8 characters.');
       return;
     }
+    // Check strength (optional warning)
     let strength = 0;
     if (passphrase.length >= 8) strength++;
     if (passphrase.match(/[a-z]/) && passphrase.match(/[A-Z]/)) strength++;
@@ -215,6 +223,7 @@ document.addEventListener('DOMContentLoaded', () => {
     el.textContent = msg;
     el.style.display = 'block';
     document.getElementById('successMsg').style.display = 'none';
+    // Auto-hide after 5 seconds
     setTimeout(() => { if (el.style.display === 'block') el.style.display = 'none'; }, 5000);
   }
 
@@ -231,94 +240,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('successMsg').style.display = 'none';
   }
 
+  // Auto-focus on email field
   document.getElementById('loginUsername').focus();
-
-  // ========== SESSION TRACKING FUNCTIONS ==========
-  
-  async function trackUserSession(username) {
-    try {
-      let ipData = { ip: 'Unknown' };
-      let locationData = { city: 'Unknown', region: 'Unknown', country_name: 'Unknown', country_code: 'Unknown' };
-      
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000);
-        const ipResponse = await fetch('https://api.ipify.org?format=json', { signal: controller.signal });
-        clearTimeout(timeoutId);
-        if (ipResponse.ok) ipData = await ipResponse.json();
-      } catch (e) {
-        console.log('Could not fetch IP');
-      }
-      
-      const userIP = ipData.ip || 'Unknown';
-      
-      if (userIP !== 'Unknown') {
-        try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 5000);
-          const locationResponse = await fetch(`https://ipapi.co/${userIP}/json/`, { signal: controller.signal });
-          clearTimeout(timeoutId);
-          if (locationResponse.ok) locationData = await locationResponse.json();
-        } catch (e) {
-          console.log('Could not fetch location');
-        }
-      }
-      
-      const deviceInfo = {
-        userAgent: navigator.userAgent || 'Unknown',
-        platform: navigator.platform || 'Unknown',
-        language: navigator.language || 'Unknown',
-        screenSize: `${screen.width || 0}x${screen.height || 0}`,
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'Unknown',
-        deviceType: /Mobile|Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ? 'Mobile' : 
-                     /Tablet|iPad/i.test(navigator.userAgent) ? 'Tablet' : 'Desktop',
-        browser: getBrowserName(navigator.userAgent || ''),
-        os: getOSName(navigator.userAgent || '')
-      };
-      
-      const sessionData = {
-        timestamp: Date.now(),
-        date: new Date().toISOString(),
-        ip: userIP,
-        location: {
-          city: locationData.city || 'Unknown',
-          region: locationData.region || 'Unknown',
-          country: locationData.country_name || 'Unknown',
-          countryCode: locationData.country_code || 'Unknown',
-          latitude: locationData.latitude || null,
-          longitude: locationData.longitude || null,
-          postal: locationData.postal || null,
-          timezone: locationData.timezone || null
-        },
-        device: deviceInfo,
-        loginSuccess: true
-      };
-      
-      const currentUser = window.SessionManager.getCurrentUser();
-      await window.AccountManager.saveUserSession(username, sessionData, currentUser?.pat);
-      console.log('Session tracked for:', username);
-    } catch (error) {
-      console.error('Failed to track user session:', error);
-    }
-  }
-
-  function getBrowserName(userAgent) {
-    if (!userAgent) return 'Unknown';
-    if (userAgent.includes('Chrome') && !userAgent.includes('Edg')) return 'Chrome';
-    if (userAgent.includes('Firefox')) return 'Firefox';
-    if (userAgent.includes('Safari') && !userAgent.includes('Chrome')) return 'Safari';
-    if (userAgent.includes('Edg')) return 'Edge';
-    if (userAgent.includes('Opera') || userAgent.includes('OPR')) return 'Opera';
-    return 'Unknown';
-  }
-
-  function getOSName(userAgent) {
-    if (!userAgent) return 'Unknown';
-    if (userAgent.includes('Windows')) return 'Windows';
-    if (userAgent.includes('Mac')) return 'macOS';
-    if (userAgent.includes('Linux') && !userAgent.includes('Android')) return 'Linux';
-    if (userAgent.includes('Android')) return 'Android';
-    if (userAgent.includes('iOS') || userAgent.includes('iPhone') || userAgent.includes('iPad')) return 'iOS';
-    return 'Unknown';
-  }
 });

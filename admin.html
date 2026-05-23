@@ -13,6 +13,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   <script src="config.js"></script>
   <script src="crypto.js"></script>
   <script src="api.js"></script>
@@ -47,55 +48,12 @@
     .type-option p { margin: 5px 0 0; font-size: 12px; color: #666; }
     .section-card { background: #fff; border-radius: 16px; padding: 20px; margin-bottom: 20px; border: 1px solid #e2e8f0; }
     .section-title { font-size: 18px; font-weight: 600; color: #2fc7ff; margin-bottom: 15px; padding-bottom: 8px; border-bottom: 2px solid #2fc7ff; display: inline-block; }
-    
-    /* Analytics Tab Styles */
-    .analytics-stats-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 15px;
-      margin-bottom: 20px;
-    }
-    .analytics-stat-card {
-      background: var(--bg-card);
-      border-radius: 16px;
-      padding: 15px;
-      text-align: center;
-      flex: 1;
-      min-width: 120px;
-      border: 1px solid var(--border-color);
-    }
-    .analytics-stat-number {
-      font-size: 1.8rem;
-      font-weight: 700;
-      color: #2fc7ff;
-    }
-    .analytics-stat-label {
-      font-size: 0.75rem;
-      color: var(--text-muted);
-    }
-    .analytics-chart-container {
-      margin-bottom: 20px;
-    }
-    .analytics-chart-container canvas {
-      max-height: 250px;
-    }
-    .access-denied {
-      text-align: center;
-      padding: 40px;
-    }
-    .access-denied i {
-      font-size: 3rem;
-      color: #dc3545;
-      margin-bottom: 15px;
-    }
-    
     @media (max-width: 768px) {
       .admin-container { padding: 20px 15px !important; margin: 15px !important; }
       .image-input-group { flex-direction: column; align-items: flex-start; }
       .image-input-group .img-preview-thumb { width: 100%; height: auto; max-width: 200px; margin-bottom: 10px; }
       .remove-img-btn { position: absolute; top: 10px; right: 10px; }
       .project-type-selector { flex-direction: column; gap: 10px; }
-      .analytics-stats-row { flex-direction: column; }
     }
   </style>
 </head>
@@ -118,12 +76,10 @@
       <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#certificatesTab">Certificates</a></li>
       <li class="nav-item"><a class="nav-link" href="timesheet.html">Timesheet</a></li>
       <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#logsTab">Logs</a></li>
-      <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#analyticsTab">Analytics</a></li>
       <li class="nav-item" id="usersTabNav" style="display:none;"><a class="nav-link" data-toggle="tab" href="#usersTab">Users</a></li>
     </ul>
 
     <div class="tab-content mt-4">
-      <!-- Projects Tab -->
       <div class="tab-pane fade show active" id="projectsTab">
         <div class="mb-3 d-flex flex-wrap">
           <button class="btn btn-delta mr-2" id="addProjectBtn"><i class="fa fa-plus"></i> Add New Project</button>
@@ -133,7 +89,6 @@
         <div id="projectsList"></div>
       </div>
 
-      <!-- Certificates Tab -->
       <div class="tab-pane fade" id="certificatesTab">
         <div class="mb-3 d-flex flex-wrap">
           <button class="btn btn-delta mr-2" id="addCertBtn"><i class="fa fa-plus"></i> Add Certificate</button>
@@ -142,7 +97,6 @@
         <div id="certificatesList"></div>
       </div>
 
-      <!-- Logs Tab -->
       <div class="tab-pane fade" id="logsTab">
         <div class="logs-panel">
           <div class="logs-icon"><i class="fa fa-file-text-o"></i></div>
@@ -160,19 +114,6 @@
         </div>
       </div>
 
-      <!-- Analytics Tab -->
-      <div class="tab-pane fade" id="analyticsTab">
-        <div id="analyticsContent">
-          <div class="text-center py-5">
-            <div class="spinner-border text-primary" role="status">
-              <span class="sr-only">Loading analytics...</span>
-            </div>
-            <p class="mt-2">Loading analytics data...</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Users Tab (Admin only) -->
       <div class="tab-pane fade" id="usersTab">
         <div class="mb-3 d-flex align-items-center flex-wrap">
           <button class="btn btn-delta mr-2" id="refreshUsersBtn"><i class="fa fa-refresh"></i> Refresh List</button>
@@ -449,6 +390,7 @@
 
   let currentProjectType = 'deltaV';
 
+  // Project Type Selector
   document.querySelectorAll('.type-option').forEach(opt => {
     opt.addEventListener('click', function() {
       document.querySelectorAll('.type-option').forEach(o => o.classList.remove('active'));
@@ -783,11 +725,13 @@
       }
     }
 
+    // SIMPLE SAVE FUNCTION - directly creates project object based on current type
     async function saveProject() {
       const projectId = document.getElementById('projectId').value;
       const isNew = !projectId;
       const newId = projectId || ('proj_' + Date.now());
       
+      // Get selected images
       const imgGroups = document.querySelectorAll('#imagesContainer .image-input-group');
       const selectedImages = [];
       for (const group of imgGroups) {
@@ -922,6 +866,7 @@
       const isEdit = projectId !== null;
       document.getElementById('projectModalTitle').innerText = isEdit ? 'Edit Project' : 'New Project';
       
+      // Reset form
       document.getElementById('projectId').value = projectId || '';
       document.getElementById('imagesContainer').innerHTML = '';
       updateImageCounter();
@@ -1001,6 +946,7 @@
           updateImageCounter();
         }
       } else {
+        // Reset for new project - default to DeltaV
         currentProjectType = 'deltaV';
         document.getElementById('projectTypeHidden').value = 'deltaV';
         document.querySelector('.type-option[data-type="deltaV"]').classList.add('active');
@@ -1008,6 +954,7 @@
         document.getElementById('deltaVFields').style.display = 'block';
         document.getElementById('nonDeltaVFields').style.display = 'none';
         
+        // Clear all inputs
         const allInputs = document.querySelectorAll('#projectForm input, #projectForm textarea, #projectForm select');
         allInputs.forEach(input => {
           if (input.id && !input.id.includes('projectId') && input.type !== 'hidden') {
@@ -1023,6 +970,7 @@
       $('#projectModal').modal('show');
     }
 
+    // Save button click handler - using button click instead of form submit
     document.getElementById('saveProjectBtn').addEventListener('click', async function(e) {
       e.preventDefault();
       e.stopPropagation();
@@ -1088,265 +1036,6 @@
       const logUserSelectGroup = document.getElementById('logUserSelectGroup');
       if (logUserSelectGroup) logUserSelectGroup.style.display = 'block';
       loadUsers();
-    }
-
-    // Initialize Analytics Tab when clicked
-    const analyticsTabLink = document.querySelector('a[href="#analyticsTab"]');
-    if (analyticsTabLink) {
-      analyticsTabLink.addEventListener('shown.bs.tab', function() {
-        loadAnalyticsContent();
-      });
-    }
-
-    async function loadAnalyticsContent() {
-      const container = document.getElementById('analyticsContent');
-      if (!container) return;
-      
-      const isAdminUser = window.APP_CONFIG.adminUsers && window.APP_CONFIG.adminUsers.includes(user.username);
-      
-      if (!isAdminUser) {
-        container.innerHTML = `
-          <div class="access-denied">
-            <i class="fa fa-lock"></i>
-            <h4>Access Denied</h4>
-            <p>You don't have permission to view analytics.</p>
-          </div>
-        `;
-        return;
-      }
-      
-      container.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div><p class="mt-2">Loading analytics...</p></div>';
-      
-      try {
-        // Get all users
-        const allUsers = await window.AccountManager.listUsers(user.pat);
-        
-        // Fetch data from all users
-        let allProjects = [];
-        let allCertificates = [];
-        let allTimesheetEntries = [];
-        let allSessions = [];
-        
-        for (const username of allUsers) {
-          try {
-            // Fetch projects
-            const projects = await fetchUserData(username, 'projects.json', user.pat);
-            if (projects && typeof projects === 'object') {
-              allProjects = allProjects.concat(Object.values(projects));
-            }
-            
-            // Fetch certificates
-            const certificates = await fetchUserData(username, 'certificates.json', user.pat);
-            if (certificates && Array.isArray(certificates)) {
-              allCertificates = allCertificates.concat(certificates);
-            }
-            
-            // Fetch timesheet
-            const timesheet = await fetchUserData(username, 'timesheet.json', user.pat);
-            if (timesheet && Array.isArray(timesheet)) {
-              allTimesheetEntries = allTimesheetEntries.concat(timesheet);
-            }
-            
-            // Fetch sessions
-            const sessions = await window.AccountManager.getUserSessions(username, user.pat);
-            if (sessions && Array.isArray(sessions)) {
-              allSessions = allSessions.concat(sessions.map(s => ({ ...s, user: username })));
-            }
-          } catch (err) {
-            console.warn(`Failed to fetch data for ${username}:`, err);
-          }
-        }
-        
-        // Calculate stats
-        const totalProjects = allProjects.length;
-        const totalCertificates = allCertificates.length;
-        const totalHours = allTimesheetEntries.reduce((sum, e) => sum + (e.hours || 0), 0);
-        const completedProjects = allProjects.filter(p => p.status === 'Completed').length;
-        const ongoingProjects = allProjects.filter(p => p.status === 'Ongoing').length;
-        const deltaVProjects = allProjects.filter(p => p.projectCategory === 'deltaV' || p.controllerType).length;
-        const nonDeltaVProjects = totalProjects - deltaVProjects;
-        
-        // Prepare project type chart
-        setTimeout(() => {
-          const ctxType = document.getElementById('analyticsProjectsTypeChart')?.getContext('2d');
-          if (ctxType) {
-            new Chart(ctxType, {
-              type: 'pie',
-              data: { labels: ['DeltaV Projects', 'Non-DeltaV Projects'], datasets: [{ data: [deltaVProjects, nonDeltaVProjects], backgroundColor: ['#2fc7ff', '#ffc107'], borderWidth: 0 }] },
-              options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom' } } }
-            });
-          }
-          
-          const ctxStatus = document.getElementById('analyticsProjectsStatusChart')?.getContext('2d');
-          if (ctxStatus) {
-            new Chart(ctxStatus, {
-              type: 'doughnut',
-              data: { labels: ['Completed', 'Ongoing', 'Other'], datasets: [{ data: [completedProjects, ongoingProjects, totalProjects - completedProjects - ongoingProjects], backgroundColor: ['#28a745', '#2fc7ff', '#6c757d'], borderWidth: 0 }] },
-              options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom' } } }
-            });
-          }
-        }, 100);
-        
-        // Calculate device stats
-        let deviceStats = { Desktop: 0, Mobile: 0, Tablet: 0 };
-        let browserStats = {};
-        let osStats = {};
-        let locationStats = {};
-        
-        for (const session of allSessions) {
-          if (session.device) {
-            deviceStats[session.device.deviceType || 'Desktop'] = (deviceStats[session.device.deviceType || 'Desktop'] || 0) + 1;
-            if (session.device.browser && session.device.browser !== 'Unknown') {
-              browserStats[session.device.browser] = (browserStats[session.device.browser] || 0) + 1;
-            }
-            if (session.device.os && session.device.os !== 'Unknown') {
-              osStats[session.device.os] = (osStats[session.device.os] || 0) + 1;
-            }
-          }
-          if (session.location && session.location.country) {
-            const key = `${session.location.city || 'Unknown'}, ${session.location.country}`;
-            locationStats[key] = (locationStats[key] || 0) + 1;
-          }
-        }
-        
-        // Device chart
-        setTimeout(() => {
-          const ctxDevices = document.getElementById('analyticsDevicesChart')?.getContext('2d');
-          if (ctxDevices && Object.keys(deviceStats).length > 0) {
-            new Chart(ctxDevices, {
-              type: 'pie',
-              data: { labels: Object.keys(deviceStats), datasets: [{ data: Object.values(deviceStats), backgroundColor: ['#2fc7ff', '#28a745', '#ffc107'], borderWidth: 0 }] },
-              options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom' } } }
-            });
-          }
-          
-          const ctxBrowsers = document.getElementById('analyticsBrowsersChart')?.getContext('2d');
-          if (ctxBrowsers && Object.keys(browserStats).length > 0) {
-            new Chart(ctxBrowsers, {
-              type: 'bar',
-              data: { labels: Object.keys(browserStats), datasets: [{ label: 'Sessions', data: Object.values(browserStats), backgroundColor: '#2fc7ff', borderRadius: 8 }] },
-              options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'top' } }, scales: { y: { beginAtZero: true } } }
-            });
-          }
-        }, 100);
-        
-        // Build HTML
-        const locationListHtml = Object.entries(locationStats).slice(0, 10).map(([loc, count]) => `
-          <div class="location-item">
-            <span><i class="fa fa-map-marker"></i> ${window.escapeHtml(loc)}</span>
-            <span class="badge badge-info">${count} visits</span>
-          </div>
-        `).join('');
-        
-        const recentLoginsHtml = allSessions.sort((a, b) => b.timestamp - a.timestamp).slice(0, 10).map(session => `
-          <tr>
-            <td><strong>${window.escapeHtml(session.user)}</strong></td>
-            <td>${new Date(session.timestamp).toLocaleString()}</td>
-            <td>${session.ip || 'N/A'}</td>
-            <td>${session.location ? `${session.location.city || 'N/A'}, ${session.location.country || 'N/A'}` : 'N/A'}</td>
-            <td>${session.device ? `${session.device.deviceType || 'N/A'} - ${session.device.browser || 'N/A'}` : 'N/A'}</td>
-            <td>${session.device ? session.device.os || 'N/A' : 'N/A'}</td>
-          </tr>
-        `).join('');
-        
-        container.innerHTML = `
-          <div class="analytics-container">
-            <div class="analytics-stats-row">
-              <div class="analytics-stat-card"><div class="analytics-stat-number">${totalProjects}</div><div class="analytics-stat-label">Total Projects</div></div>
-              <div class="analytics-stat-card"><div class="analytics-stat-number">${totalCertificates}</div><div class="analytics-stat-label">Certificates</div></div>
-              <div class="analytics-stat-card"><div class="analytics-stat-number">${totalHours.toFixed(1)}</div><div class="analytics-stat-label">Hours Logged</div></div>
-              <div class="analytics-stat-card"><div class="analytics-stat-number">${allUsers.length}</div><div class="analytics-stat-label">Registered Users</div></div>
-              <div class="analytics-stat-card"><div class="analytics-stat-number">${allSessions.length}</div><div class="analytics-stat-label">Total Sessions</div></div>
-            </div>
-            
-            <div class="row">
-              <div class="col-md-6">
-                <div class="section-card"><h6 class="section-title">Projects by Type</h6><canvas id="analyticsProjectsTypeChart" height="200"></canvas></div>
-              </div>
-              <div class="col-md-6">
-                <div class="section-card"><h6 class="section-title">Projects by Status</h6><canvas id="analyticsProjectsStatusChart" height="200"></canvas></div>
-              </div>
-            </div>
-            
-            <div class="row">
-              <div class="col-md-6">
-                <div class="section-card"><h6 class="section-title">Devices Used</h6><canvas id="analyticsDevicesChart" height="200"></canvas></div>
-              </div>
-              <div class="col-md-6">
-                <div class="section-card"><h6 class="section-title">Browser Distribution</h6><canvas id="analyticsBrowsersChart" height="200"></canvas></div>
-              </div>
-            </div>
-            
-            <div class="section-card">
-              <h6 class="section-title"><i class="fa fa-map-marker"></i> Top Locations</h6>
-              <div style="max-height: 250px; overflow-y: auto;">${locationListHtml || '<p class="text-muted text-center">No location data available</p>'}</div>
-            </div>
-            
-            <div class="section-card">
-              <h6 class="section-title"><i class="fa fa-history"></i> Recent Logins</h6>
-              <div class="table-responsive">
-                <table class="table table-sm"><thead><tr><th>User</th><th>Date/Time</th><th>IP</th><th>Location</th><th>Device</th><th>OS</th></tr></thead><tbody>${recentLoginsHtml || '<tr><td colspan="6" class="text-center">No login data available</td></tr>'}</tbody></table>
-              </div>
-            </div>
-          </div>
-        `;
-        
-        // Re-trigger charts
-        setTimeout(() => {
-          const ctxType = document.getElementById('analyticsProjectsTypeChart')?.getContext('2d');
-          if (ctxType) {
-            new Chart(ctxType, {
-              type: 'pie',
-              data: { labels: ['DeltaV Projects', 'Non-DeltaV Projects'], datasets: [{ data: [deltaVProjects, nonDeltaVProjects], backgroundColor: ['#2fc7ff', '#ffc107'], borderWidth: 0 }] },
-              options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom' } } }
-            });
-          }
-          
-          const ctxStatus = document.getElementById('analyticsProjectsStatusChart')?.getContext('2d');
-          if (ctxStatus) {
-            new Chart(ctxStatus, {
-              type: 'doughnut',
-              data: { labels: ['Completed', 'Ongoing', 'Other'], datasets: [{ data: [completedProjects, ongoingProjects, totalProjects - completedProjects - ongoingProjects], backgroundColor: ['#28a745', '#2fc7ff', '#6c757d'], borderWidth: 0 }] },
-              options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom' } } }
-            });
-          }
-          
-          const ctxDevices = document.getElementById('analyticsDevicesChart')?.getContext('2d');
-          if (ctxDevices && Object.keys(deviceStats).length > 0) {
-            new Chart(ctxDevices, {
-              type: 'pie',
-              data: { labels: Object.keys(deviceStats), datasets: [{ data: Object.values(deviceStats), backgroundColor: ['#2fc7ff', '#28a745', '#ffc107'], borderWidth: 0 }] },
-              options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom' } } }
-            });
-          }
-          
-          const ctxBrowsers = document.getElementById('analyticsBrowsersChart')?.getContext('2d');
-          if (ctxBrowsers && Object.keys(browserStats).length > 0) {
-            new Chart(ctxBrowsers, {
-              type: 'bar',
-              data: { labels: Object.keys(browserStats), datasets: [{ label: 'Sessions', data: Object.values(browserStats), backgroundColor: '#2fc7ff', borderRadius: 8 }] },
-              options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'top' } }, scales: { y: { beginAtZero: true } } }
-            });
-          }
-        }, 100);
-        
-      } catch (err) {
-        console.error('Analytics error:', err);
-        container.innerHTML = `<div class="alert alert-danger m-3">Failed to load analytics: ${err.message}</div>`;
-      }
-    }
-    
-    async function fetchUserData(username, fileName, adminToken) {
-      const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-      const encUser = encodeURIComponent(username);
-      const path = `${dataPath}/users/${encUser}/${fileName}`;
-      try {
-        const file = await GitHubAPI.getFileContent(owner, repo, path, branch, adminToken);
-        if (file && file.content) {
-          return JSON.parse(file.content);
-        }
-      } catch (e) {}
-      return fileName === 'projects.json' ? {} : [];
     }
 
     async function downloadLogsForUser(username, isAdminView = false) {

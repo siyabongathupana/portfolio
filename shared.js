@@ -1,4 +1,4 @@
-// shared.js – Complete version with organized PDF, QR code, email verification, session tracking, and all features
+// shared.js – Complete version with isEmailVerified function and all features
 
 window.showLoading = function (msg = 'Processing...') {
   let loader = document.getElementById('globalLoader');
@@ -296,31 +296,42 @@ window.AccountManager = {
     } catch { return null; }
   },
   
-  // Email verification function
+  // ========== ADDED: Email Verification Function ==========
   async isEmailVerified(email) {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(email);
     
+    // Check global verified_users.json first
     const globalUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/data/verified_users.json`;
     try {
       const resp = await fetch(globalUrl);
       if (resp.ok) {
         const data = await resp.json();
-        if (data.verified && data.verified.includes(email)) return true;
+        if (data.verified && data.verified.includes(email)) {
+          return true;
+        }
       }
-    } catch (err) {}
+    } catch (err) {
+      console.log('Global check failed:', err);
+    }
     
+    // Fallback: check user's individual verified.json
     const userUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${dataPath}/users/${encUser}/verified.json`;
     try {
       const resp = await fetch(userUrl);
       if (resp.ok) {
         const data = await resp.json();
-        if (data.verified === true) return true;
+        if (data.verified === true) {
+          return true;
+        }
       }
-    } catch (err) {}
+    } catch (err) {
+      console.log('User file check failed:', err);
+    }
     
     return false;
   },
+  // ========== END ADDED FUNCTION ==========
   
   async register(username, passphrase, pat) {
     const payload = JSON.stringify({ test: 'VALID', token: pat });
@@ -332,18 +343,20 @@ window.AccountManager = {
     if (existing && existing.sha) throw new Error('An account with this email already exists on GitHub.');
     await GitHubAPI.updateFile(owner, repo, path, encrypted, `Register ${username}`, branch, pat, existing?.sha);
     
+    // Create verification status file (unverified)
     const verificationStatus = { verified: false, createdAt: Date.now() };
     const verificationPath = `${dataPath}/users/${encUser}/verified.json`;
     try {
       await GitHubAPI.updateFile(owner, repo, verificationPath, verificationStatus, `Create verification status for ${username}`, branch, pat);
-    } catch (err) {}
+    } catch (err) {
+      console.warn('Could not create verification file:', err);
+    }
     
     this._notifyAdminNewUser(username);
     this._notifyUserConfirmation(username);
     await window.Logger.log('register', `New user registered: ${username}`, 'INFO');
     return true;
   },
-  
   async login(username, passphrase) {
     const blocked = await this.getBlockedUsers();
     if (blocked.includes(username)) throw new Error('Your account has been blocked. Contact the administrator.');
@@ -354,7 +367,6 @@ window.AccountManager = {
     if (data.test !== 'VALID') throw new Error('Corrupted account');
     return data.token;
   },
-  
   async getBlockedUsers() {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const url = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${dataPath}/blocked_users.json`;
@@ -364,7 +376,6 @@ window.AccountManager = {
       return await resp.json();
     } catch { return []; }
   },
-  
   async toggleBlock(username, block, adminToken) {
     const blocked = await this.getBlockedUsers();
     if (block) {
@@ -382,7 +393,6 @@ window.AccountManager = {
     await window.Logger.log('toggle_block', `${block ? 'Blocked' : 'Unblocked'} user ${username}`, 'INFO');
     return true;
   },
-  
   async listUsers(adminToken) {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const url = `https://api.github.com/repos/${owner}/${repo}/contents/${dataPath}/users?ref=${branch}`;
@@ -393,7 +403,6 @@ window.AccountManager = {
     const items = await resp.json();
     return items.filter(i => i.type === 'dir').map(i => i.name);
   },
-  
   async deleteUser(username, adminToken) {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(username);
@@ -410,7 +419,6 @@ window.AccountManager = {
     await window.Logger.log('delete_user', `Deleted user ${username}`, 'INFO');
     return true;
   },
-  
   async getUserStats(username, adminToken) {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(username);
@@ -447,69 +455,6 @@ window.AccountManager = {
       }
     } catch (e) {}
     return { projects: projectCount, certificates: certCount };
-  },
-  
-  // ========== SESSION TRACKING METHODS ==========
-  
-  async saveUserSession(username, sessionData, userToken) {
-    if (!userToken) {
-      console.warn('No user token provided for session save');
-      return false;
-    }
-    
-    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const encUser = encodeURIComponent(username);
-    const sessionPath = `${dataPath}/users/${encUser}/sessions.json`;
-    
-    let existingSessions = [];
-    let sha = null;
-    
-    try {
-      const existing = await GitHubAPI.getFileContent(owner, repo, sessionPath, branch, userToken);
-      if (existing && existing.content) {
-        existingSessions = JSON.parse(existing.content);
-        sha = existing.sha;
-      }
-    } catch (e) {}
-    
-    existingSessions.unshift(sessionData);
-    if (existingSessions.length > 100) existingSessions = existingSessions.slice(0, 100);
-    
-    try {
-      await GitHubAPI.updateFile(owner, repo, sessionPath, existingSessions, `Add session for ${username}`, branch, userToken, sha);
-      await window.Logger.log('session_track', `Session tracked for ${username} from ${sessionData.location?.city || 'Unknown'}, ${sessionData.location?.country || 'Unknown'}`);
-      return true;
-    } catch (err) {
-      console.error('Failed to save session:', err);
-      return false;
-    }
-  },
-  
-  async getUserSessions(username, adminToken) {
-    if (!adminToken) return [];
-    
-    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const encUser = encodeURIComponent(username);
-    const sessionPath = `${dataPath}/users/${encUser}/sessions.json`;
-    
-    try {
-      const file = await GitHubAPI.getFileContent(owner, repo, sessionPath, branch, adminToken);
-      if (file && file.content) return JSON.parse(file.content);
-    } catch (e) {}
-    return [];
-  },
-  
-  async getAllUserSessions(adminToken) {
-    if (!adminToken) return {};
-    
-    const users = await this.listUsers(adminToken);
-    const allSessions = {};
-    
-    for (const user of users) {
-      allSessions[user] = await this.getUserSessions(user, adminToken);
-    }
-    
-    return allSessions;
   }
 };
 
@@ -915,7 +860,7 @@ async function generateQRCodeDataURL(text, size = 50) {
   });
 }
 
-// ========== ORGANIZED PDF GENERATION ==========
+// ========== PDF GENERATION FUNCTION ==========
 window.generateProjectReport = async function(projectId) {
   const data = await window.portfolioData.loadProjectsForView();
   const proj = data[projectId];
@@ -1000,8 +945,9 @@ window.generateProjectReport = async function(projectId) {
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
-    const margin = 15;
-    const contentWidth = pageWidth - (margin * 2);
+    
+    const darkColor = '#0b2b3b';
+    const textColor = '#1e2a3e';
     
     const repoOwner = window.REPO_CONFIG.owner;
     const repoName = window.REPO_CONFIG.repo;
@@ -1020,26 +966,15 @@ window.generateProjectReport = async function(projectId) {
         });
         logoImage = logoDataUrl;
       }
-    } catch (err) {}
-    
-    const addFooter = (pageNum, totalPages) => {
-      const y = pageHeight - 12;
-      doc.setDrawColor(200, 200, 200);
-      doc.setLineWidth(0.3);
-      doc.line(margin, y - 3, pageWidth - margin, y - 3);
-      doc.setFontSize(8);
-      doc.setFont(undefined, 'normal');
-      doc.setTextColor(120, 120, 120);
-      doc.text(`Your Portfolio - ${proj.title.substring(0, 35)}`, margin, y);
-      doc.text(`Page ${pageNum} of ${totalPages}`, pageWidth / 2, y, { align: 'center' });
-    };
+    } catch (err) {
+      console.log('Logo not found');
+    }
     
     // COVER PAGE
-    let yPos = 20;
     doc.setFillColor(11, 43, 59);
-    doc.rect(0, 0, pageWidth, 12, 'F');
+    doc.rect(0, 0, pageWidth, 15, 'F');
     doc.setFillColor(47, 199, 255);
-    doc.rect(0, 12, pageWidth, 3, 'F');
+    doc.rect(0, 15, pageWidth, 3, 'F');
     
     if (logoImage) {
       try {
@@ -1047,36 +982,40 @@ window.generateProjectReport = async function(projectId) {
       } catch (err) {}
     } else {
       doc.setFillColor(47, 199, 255);
-      doc.circle(pageWidth / 2, 55, 18, 'F');
+      doc.circle(pageWidth / 2, 55, 20, 'F');
       doc.setFillColor(255, 255, 255);
-      doc.setFontSize(22);
+      doc.setFontSize(24);
       doc.setFont(undefined, 'bold');
       doc.text('YP', pageWidth / 2, 62, { align: 'center' });
     }
     
     doc.setTextColor(11, 43, 59);
-    doc.setFontSize(28);
+    doc.setFontSize(32);
     doc.setFont(undefined, 'bold');
-    doc.text('PROJECT REPORT', pageWidth / 2, 100, { align: 'center' });
+    doc.text('PROJECT REPORT', pageWidth / 2, 95, { align: 'center' });
     
-    doc.setFontSize(12);
+    doc.setFontSize(14);
     doc.setFont(undefined, 'normal');
     doc.setTextColor(100, 100, 100);
-    doc.text('Professional Engineering Documentation', pageWidth / 2, 115, { align: 'center' });
+    doc.text('Professional Engineering Documentation', pageWidth / 2, 110, { align: 'center' });
     
-    doc.setFontSize(20);
+    doc.setDrawColor(47, 199, 255);
+    doc.setLineWidth(1);
+    doc.line(pageWidth / 2 - 50, 118, pageWidth / 2 + 50, 118);
+    
+    doc.setFontSize(22);
     doc.setFont(undefined, 'bold');
-    doc.setTextColor(11, 43, 59);
+    doc.setTextColor(darkColor);
     const titleLines = doc.splitTextToSize(proj.title, 140);
-    doc.text(titleLines, pageWidth / 2, 150, { align: 'center' });
+    doc.text(titleLines, pageWidth / 2, 145, { align: 'center' });
     
-    const typeText = isDeltaV ? 'DELTAV PROJECT' : 'GENERAL ENGINEERING';
+    const projectTypeText = isDeltaV ? 'DELTAV PROJECT' : 'GENERAL ENGINEERING PROJECT';
     doc.setFillColor(47, 199, 255);
-    doc.roundedRect(pageWidth / 2 - 40, 170, 80, 9, 4, 4, 'F');
+    doc.roundedRect(pageWidth / 2 - 45, 165, 90, 10, 5, 5, 'F');
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(9);
     doc.setFont(undefined, 'bold');
-    doc.text(typeText, pageWidth / 2, 176, { align: 'center' });
+    doc.text(projectTypeText, pageWidth / 2, 172, { align: 'center' });
     
     const status = proj.status || 'Planned';
     let statusColor;
@@ -1086,37 +1025,41 @@ window.generateProjectReport = async function(projectId) {
     else statusColor = [108, 117, 125];
     
     doc.setFillColor(statusColor[0], statusColor[1], statusColor[2]);
-    doc.roundedRect(pageWidth / 2 - 30, 186, 60, 8, 4, 4, 'F');
+    doc.roundedRect(pageWidth / 2 - 35, 182, 70, 9, 5, 5, 'F');
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(8);
-    doc.text(status, pageWidth / 2, 192, { align: 'center' });
+    doc.setFontSize(9);
+    doc.text(status, pageWidth / 2, 188, { align: 'center' });
     
     doc.setFontSize(8);
     doc.setFont(undefined, 'italic');
     doc.setTextColor(150, 150, 150);
-    doc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth / 2, pageHeight - 20, { align: 'center' });
-    doc.text('Your Portfolio System', pageWidth / 2, pageHeight - 12, { align: 'center' });
+    doc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth / 2, pageHeight - 25, { align: 'center' });
+    doc.text('Your Portfolio System', pageWidth / 2, pageHeight - 18, { align: 'center' });
     
-    const qrDataURL = await generateQRCodeDataURL(repoUrl, 40);
+    // QR Code on cover
+    const qrDataURL = await generateQRCodeDataURL(repoUrl, 50);
     if (qrDataURL) {
-      doc.addImage(qrDataURL, 'PNG', pageWidth - 28, pageHeight - 30, 15, 15);
+      doc.addImage(qrDataURL, 'PNG', pageWidth - 25, pageHeight - 28, 15, 15);
     }
     
     doc.addPage();
     
-    // SECTION 1: PROJECT OVERVIEW
-    yPos = 25;
-    doc.setFillColor(11, 43, 59);
-    doc.rect(margin - 3, yPos - 5, contentWidth + 6, 8, 'F');
-    doc.setFillColor(47, 199, 255);
-    doc.rect(margin - 3, yPos - 5 + 8, contentWidth + 6, 2, 'F');
-    doc.setFontSize(16);
-    doc.setFont(undefined, 'bold');
-    doc.setTextColor(11, 43, 59);
-    doc.text('1. PROJECT OVERVIEW', margin, yPos);
-    yPos += 18;
+    // PROJECT OVERVIEW SECTION
+    let yPos = 20;
     
-    const overviewItems = [
+    doc.setFillColor(11, 43, 59);
+    doc.rect(0, yPos, pageWidth, 10, 'F');
+    doc.setFillColor(47, 199, 255);
+    doc.rect(0, yPos + 10, pageWidth, 3, 'F');
+    yPos += 20;
+    
+    doc.setFontSize(20);
+    doc.setFont(undefined, 'bold');
+    doc.setTextColor(darkColor);
+    doc.text('Project Overview', 20, yPos);
+    yPos += 15;
+    
+    const infoItems = [
       { label: 'Project Title', value: proj.title },
       { label: 'Industry/Category', value: proj.industry || 'N/A' },
       { label: 'Company/Client', value: proj.client || 'N/A' },
@@ -1126,90 +1069,97 @@ window.generateProjectReport = async function(projectId) {
       { label: 'Team Members', value: proj.teamMembers || 'N/A' }
     ];
     
-    let leftColY = yPos;
-    let rightColY = yPos;
-    const colWidth = contentWidth / 2 - 5;
+    let leftX = 20, rightX = 110;
+    let leftY = yPos, rightY = yPos;
+    const boxHeight = 22;
     
-    for (let i = 0; i < overviewItems.length; i++) {
-      const item = overviewItems[i];
-      const isLeft = i < Math.ceil(overviewItems.length / 2);
-      const x = isLeft ? margin : margin + colWidth + 10;
-      const y = isLeft ? leftColY : rightColY;
+    for (let i = 0; i < infoItems.length; i++) {
+      const item = infoItems[i];
+      const isLeft = i < Math.ceil(infoItems.length / 2);
+      const x = isLeft ? leftX : rightX;
+      const y = isLeft ? leftY : rightY;
       
       doc.setFillColor(248, 250, 252);
-      doc.roundedRect(x - 3, y - 5, 85, 22, 4, 4, 'F');
+      doc.roundedRect(x - 3, y - 5, 85, boxHeight, 4, 4, 'F');
+      
       doc.setFontSize(8);
       doc.setFont(undefined, 'bold');
       doc.setTextColor(100, 100, 100);
       doc.text(item.label, x, y);
-      doc.setFontSize(9);
+      
+      doc.setFontSize(10);
       doc.setFont(undefined, 'normal');
-      doc.setTextColor(50, 50, 50);
+      doc.setTextColor(textColor);
       const valueLines = doc.splitTextToSize(item.value || 'N/A', 78);
       doc.text(valueLines, x, y + 6);
       
-      if (isLeft) leftColY += 28;
-      else rightColY += 28;
+      if (isLeft) leftY += boxHeight + 3;
+      else rightY += boxHeight + 3;
     }
     
-    yPos = Math.max(leftColY, rightColY) + 12;
+    yPos = Math.max(leftY, rightY) + 10;
     
     if (proj.description || proj.shortDesc) {
-      doc.setFillColor(245, 248, 250);
-      doc.roundedRect(margin, yPos - 3, contentWidth, 8, 3, 3, 'F');
-      doc.setFontSize(12);
+      doc.setFillColor(240, 248, 252);
+      doc.roundedRect(15, yPos - 3, pageWidth - 30, 8, 4, 4, 'F');
+      
+      doc.setFontSize(14);
       doc.setFont(undefined, 'bold');
-      doc.setTextColor(11, 43, 59);
-      doc.text('Description', margin, yPos);
+      doc.setTextColor(darkColor);
+      doc.text('Project Description', 20, yPos);
       yPos += 10;
-      doc.setFontSize(9);
+      
+      doc.setFontSize(10);
       doc.setFont(undefined, 'normal');
-      doc.setTextColor(60, 60, 60);
+      doc.setTextColor(textColor);
       const descText = proj.description || proj.shortDesc || 'No description provided';
-      const descLines = doc.splitTextToSize(descText, contentWidth);
-      doc.text(descLines, margin, yPos);
+      const descLines = doc.splitTextToSize(descText, pageWidth - 40);
+      doc.text(descLines, 20, yPos);
       yPos += (descLines.length * 5) + 15;
     }
     
-    // SECTION 2: TECHNICAL DETAILS
     if (isDeltaV) {
       doc.setFillColor(11, 43, 59);
-      doc.rect(margin - 3, yPos - 5, contentWidth + 6, 8, 'F');
+      doc.rect(0, yPos, pageWidth, 10, 'F');
       doc.setFillColor(47, 199, 255);
-      doc.rect(margin - 3, yPos - 5 + 8, contentWidth + 6, 2, 'F');
-      doc.setFontSize(16);
+      doc.rect(0, yPos + 10, pageWidth, 3, 'F');
+      yPos += 20;
+      
+      doc.setFontSize(18);
       doc.setFont(undefined, 'bold');
-      doc.setTextColor(11, 43, 59);
-      doc.text('2. DELTAV CONFIGURATION', margin, yPos);
-      yPos += 18;
+      doc.setTextColor(darkColor);
+      doc.text('DeltaV Configuration', 20, yPos);
+      yPos += 15;
       
       const deltaVItems = [
         { label: 'Controller Type', value: proj.controllerType || 'N/A' },
         { label: 'DeltaV Version', value: proj.deltaVVersion || 'N/A' },
         { label: 'Project Type', value: proj.projectType || 'N/A' },
-        { label: 'Number of Cabinets', value: proj.cabinetCount?.toString() || '0' }
+        { label: 'Cabinets', value: proj.cabinetCount?.toString() || '0' }
       ];
       
       for (const item of deltaVItems) {
-        doc.setFillColor(248, 250, 252);
-        doc.roundedRect(margin, yPos - 2, contentWidth, 9, 3, 3, 'F');
-        doc.setFontSize(8);
+        doc.setFillColor(245, 247, 250);
+        doc.roundedRect(18, yPos - 3, pageWidth - 36, 10, 3, 3, 'F');
+        
+        doc.setFontSize(9);
         doc.setFont(undefined, 'bold');
         doc.setTextColor(100, 100, 100);
-        doc.text(item.label, margin + 5, yPos + 2);
-        doc.setFontSize(9);
+        doc.text(item.label, 25, yPos);
+        
+        doc.setFontSize(10);
         doc.setFont(undefined, 'normal');
-        doc.setTextColor(50, 50, 50);
-        doc.text(item.value, margin + 55, yPos + 2);
+        doc.setTextColor(textColor);
+        doc.text(item.value, 75, yPos);
         yPos += 12;
       }
       
-      yPos += 5;
+      yPos += 10;
       
-      doc.setFontSize(12);
+      doc.setFontSize(14);
       doc.setFont(undefined, 'bold');
-      doc.setTextColor(11, 43, 59);
-      doc.text('I/O Configuration', margin, yPos);
+      doc.setTextColor(darkColor);
+      doc.text('I/O Configuration', 20, yPos);
       yPos += 12;
       
       const io = proj.io || { AI: 0, AO: 0, DI: 0, DO: 0 };
@@ -1221,28 +1171,32 @@ window.generateProjectReport = async function(projectId) {
       ];
       
       const maxIo = Math.max(io.AI || 0, io.AO || 0, io.DI || 0, io.DO || 0, 1);
-      const startX = margin;
-      const barWidth = 30;
+      const startX = 20;
+      const barWidth = 35;
       
       for (let i = 0; i < ioData.length; i++) {
         const item = ioData[i];
         const barX = startX + (i * 42);
+        
         doc.setFillColor(230, 240, 250);
-        doc.rect(barX, yPos + 2, barWidth, 25, 'F');
-        const barHeight = (item.value / maxIo) * 22;
+        doc.rect(barX, yPos + 5, barWidth, 30, 'F');
+        
+        const barHeight = (item.value / maxIo) * 28;
         doc.setFillColor(47, 199, 255);
-        doc.rect(barX, yPos + 27 - barHeight, barWidth, barHeight, 'F');
-        doc.setFontSize(8);
+        doc.rect(barX, yPos + 35 - barHeight, barWidth, barHeight, 'F');
+        
+        doc.setFontSize(9);
         doc.setFont(undefined, 'bold');
         doc.setTextColor(100, 100, 100);
-        doc.text(item.label, barX + barWidth / 2, yPos + 32, { align: 'center' });
-        doc.setFontSize(10);
+        doc.text(item.label, barX + barWidth / 2, yPos + 42, { align: 'center' });
+        
+        doc.setFontSize(11);
         doc.setFont(undefined, 'bold');
-        doc.setTextColor(11, 43, 59);
-        doc.text(item.value.toString(), barX + barWidth / 2, yPos + 40, { align: 'center' });
+        doc.setTextColor(darkColor);
+        doc.text(item.value.toString(), barX + barWidth / 2, yPos + 50, { align: 'center' });
       }
       
-      yPos += 48;
+      yPos += 60;
       
       if (proj.dates?.start) {
         const dateParts = [];
@@ -1250,57 +1204,63 @@ window.generateProjectReport = async function(projectId) {
         if (proj.dates.finish) dateParts.push(`Finish: ${proj.dates.finish}`);
         if (proj.dates.ifat) dateParts.push(`IFAT: ${proj.dates.ifat}`);
         if (proj.dates.cfat) dateParts.push(`CFAT: ${proj.dates.cfat}`);
+        
         if (dateParts.length > 0) {
-          doc.setFillColor(245, 248, 250);
-          doc.roundedRect(margin, yPos - 3, contentWidth, 8, 3, 3, 'F');
-          doc.setFontSize(8);
+          doc.setFillColor(240, 248, 252);
+          doc.roundedRect(15, yPos - 5, pageWidth - 30, 12, 4, 4, 'F');
+          doc.setFontSize(9);
           doc.setFont(undefined, 'normal');
-          doc.setTextColor(80, 80, 80);
-          doc.text(dateParts.join('  |  '), margin + 5, yPos + 2);
-          yPos += 14;
+          doc.setTextColor(textColor);
+          doc.text(dateParts.join('  |  '), 20, yPos);
+          yPos += 15;
         }
       }
       
       if (proj.team?.lead || proj.team?.engineer || proj.team?.technician) {
-        doc.setFontSize(8);
+        doc.setFontSize(9);
         doc.setTextColor(100, 100, 100);
-        doc.text(`Project Team: Lead: ${proj.team.lead || 'N/A'}  |  Engineer: ${proj.team.engineer || 'N/A'}  |  Technician: ${proj.team.technician || 'N/A'}`, margin, yPos);
-        yPos += 10;
+        doc.text(`Team: Lead: ${proj.team.lead || 'N/A'}  |  Engineer: ${proj.team.engineer || 'N/A'}  |  Technician: ${proj.team.technician || 'N/A'}`, 20, yPos);
+        yPos += 12;
       }
-    } else {
-      doc.setFillColor(11, 43, 59);
-      doc.rect(margin - 3, yPos - 5, contentWidth + 6, 8, 'F');
-      doc.setFillColor(47, 199, 255);
-      doc.rect(margin - 3, yPos - 5 + 8, contentWidth + 6, 2, 'F');
-      doc.setFontSize(16);
-      doc.setFont(undefined, 'bold');
-      doc.setTextColor(11, 43, 59);
-      doc.text('2. TECHNICAL DETAILS', margin, yPos);
-      yPos += 18;
       
+    } else {
       if (proj.technical) {
+        doc.setFillColor(11, 43, 59);
+        doc.rect(0, yPos, pageWidth, 10, 'F');
+        doc.setFillColor(47, 199, 255);
+        doc.rect(0, yPos + 10, pageWidth, 3, 'F');
+        yPos += 20;
+        
+        doc.setFontSize(18);
+        doc.setFont(undefined, 'bold');
+        doc.setTextColor(darkColor);
+        doc.text('Technical Details', 20, yPos);
+        yPos += 15;
+        
         const techItems = [
-          { label: 'Technologies Used', value: proj.technical.technologies },
-          { label: 'Hardware Used', value: proj.technical.hardware },
-          { label: 'Software Used', value: proj.technical.software },
+          { label: 'Technologies', value: proj.technical.technologies },
+          { label: 'Hardware', value: proj.technical.hardware },
+          { label: 'Software', value: proj.technical.software },
           { label: 'Protocols', value: proj.technical.protocols },
-          { label: 'Programming Languages', value: proj.technical.languages }
+          { label: 'Languages', value: proj.technical.languages }
         ];
         
         for (const item of techItems) {
-          if (item.value && item.value.trim()) {
-            doc.setFillColor(248, 250, 252);
-            doc.roundedRect(margin, yPos - 2, contentWidth, 9, 3, 3, 'F');
-            doc.setFontSize(8);
+          if (item.value) {
+            doc.setFillColor(245, 247, 250);
+            doc.roundedRect(18, yPos - 3, pageWidth - 36, 10, 3, 3, 'F');
+            
+            doc.setFontSize(9);
             doc.setFont(undefined, 'bold');
             doc.setTextColor(100, 100, 100);
-            doc.text(item.label, margin + 5, yPos + 2);
-            doc.setFontSize(8);
+            doc.text(item.label, 25, yPos);
+            
+            doc.setFontSize(9);
             doc.setFont(undefined, 'normal');
-            doc.setTextColor(50, 50, 50);
-            const valueLines = doc.splitTextToSize(item.value, contentWidth - 70);
-            doc.text(valueLines, margin + 65, yPos + 2);
-            yPos += 12 + (valueLines.length * 4);
+            doc.setTextColor(textColor);
+            const lines = doc.splitTextToSize(item.value, pageWidth - 80);
+            doc.text(lines, 70, yPos);
+            yPos += 12 + (lines.length * 4);
           }
         }
         yPos += 5;
@@ -1320,123 +1280,143 @@ window.generateProjectReport = async function(projectId) {
         ];
         
         for (const section of wbSections) {
-          if (section.content && section.content.trim()) {
-            if (yPos > pageHeight - 50) {
-              const totalPages = doc.internal.getNumberOfPages() + 1;
-              addFooter(doc.internal.getNumberOfPages(), totalPages);
+          if (section.content) {
+            if (yPos > pageHeight - 60) {
               doc.addPage();
-              yPos = 25;
+              yPos = 20;
+              doc.setFillColor(11, 43, 59);
+              doc.rect(0, yPos, pageWidth, 10, 'F');
+              doc.setFillColor(47, 199, 255);
+              doc.rect(0, yPos + 10, pageWidth, 3, 'F');
+              yPos += 20;
+              doc.setFontSize(18);
+              doc.setFont(undefined, 'bold');
+              doc.setTextColor(darkColor);
+              doc.text('Work Breakdown & Analysis', 20, yPos);
+              yPos += 15;
             }
             
-            doc.setFillColor(245, 248, 250);
-            doc.roundedRect(margin, yPos - 3, contentWidth, 8, 3, 3, 'F');
-            doc.setFontSize(11);
+            doc.setFillColor(240, 248, 252);
+            doc.roundedRect(15, yPos - 3, pageWidth - 30, 8, 4, 4, 'F');
+            
+            doc.setFontSize(12);
             doc.setFont(undefined, 'bold');
-            doc.setTextColor(11, 43, 59);
-            doc.text(section.title, margin, yPos);
+            doc.setTextColor(darkColor);
+            doc.text(section.title, 20, yPos);
             yPos += 10;
-            doc.setFontSize(8);
+            
+            doc.setFontSize(9);
             doc.setFont(undefined, 'normal');
-            doc.setTextColor(60, 60, 60);
-            const contentLines = doc.splitTextToSize(section.content, contentWidth);
-            doc.text(contentLines, margin, yPos);
-            yPos += (contentLines.length * 4.5) + 8;
+            doc.setTextColor(textColor);
+            const contentLines = doc.splitTextToSize(section.content, pageWidth - 40);
+            doc.text(contentLines, 20, yPos);
+            yPos += (contentLines.length * 5) + 10;
           }
         }
       }
     }
     
-    // SECTION 3: PROJECT GALLERY
     if (selectedImages.length > 0) {
-      if (yPos > pageHeight - 50) {
-        const totalPages = doc.internal.getNumberOfPages() + 1;
-        addFooter(doc.internal.getNumberOfPages(), totalPages);
+      if (yPos > pageHeight - 60) {
         doc.addPage();
-        yPos = 25;
+        yPos = 20;
       }
       
       doc.setFillColor(11, 43, 59);
-      doc.rect(margin - 3, yPos - 5, contentWidth + 6, 8, 'F');
+      doc.rect(0, yPos, pageWidth, 10, 'F');
       doc.setFillColor(47, 199, 255);
-      doc.rect(margin - 3, yPos - 5 + 8, contentWidth + 6, 2, 'F');
-      doc.setFontSize(16);
+      doc.rect(0, yPos + 10, pageWidth, 3, 'F');
+      yPos += 20;
+      
+      doc.setFontSize(18);
       doc.setFont(undefined, 'bold');
-      doc.setTextColor(11, 43, 59);
-      doc.text('3. PROJECT GALLERY', margin, yPos);
-      yPos += 18;
+      doc.setTextColor(darkColor);
+      doc.text('Project Gallery', 20, yPos);
+      yPos += 15;
       
       let imgCount = 0;
-      const imagesPerRow = 2;
-      const imgWidth = (contentWidth - 10) / imagesPerRow;
-      const imgHeight = 65;
-      
-      for (let i = 0; i < selectedImages.length; i++) {
-        const img = selectedImages[i];
-        const col = i % imagesPerRow;
-        const row = Math.floor(i / imagesPerRow);
-        
-        if (col === 0 && row > 0) yPos += imgHeight + 10;
-        if (yPos + imgHeight + 20 > pageHeight - 30) {
-          const totalPages = doc.internal.getNumberOfPages() + 1;
-          addFooter(doc.internal.getNumberOfPages(), totalPages);
-          doc.addPage();
-          yPos = 25;
-          doc.setFillColor(11, 43, 59);
-          doc.rect(margin - 3, yPos - 5, contentWidth + 6, 8, 'F');
-          doc.setFillColor(47, 199, 255);
-          doc.rect(margin - 3, yPos - 5 + 8, contentWidth + 6, 2, 'F');
-          doc.setFontSize(16);
-          doc.setFont(undefined, 'bold');
-          doc.setTextColor(11, 43, 59);
-          doc.text('3. PROJECT GALLERY (continued)', margin, yPos);
-          yPos += 18;
-        }
-        
-        const imgX = margin + (col * (imgWidth + 10));
-        const imgY = yPos;
-        
-        doc.setDrawColor(200, 200, 200);
-        doc.setFillColor(250, 250, 250);
-        doc.roundedRect(imgX, imgY, imgWidth, imgHeight, 4, 4, 'FD');
-        
-        try {
-          const imgResponse = await fetch(img.url);
-          if (imgResponse.ok) {
-            const imgBlob = await imgResponse.blob();
-            const imgDataUrl = await new Promise((resolve) => {
-              const reader = new FileReader();
-              reader.onloadend = () => resolve(reader.result);
-              reader.readAsDataURL(imgBlob);
-            });
-            doc.addImage(imgDataUrl, 'JPEG', imgX + 2, imgY + 2, imgWidth - 4, imgHeight - 20);
+      for (const img of selectedImages) {
+        if (imgCount % 2 === 0) {
+          if (yPos > pageHeight - 80) {
+            doc.addPage();
+            yPos = 20;
+            doc.setFillColor(11, 43, 59);
+            doc.rect(0, yPos, pageWidth, 10, 'F');
+            doc.setFillColor(47, 199, 255);
+            doc.rect(0, yPos + 10, pageWidth, 3, 'F');
+            yPos += 20;
+            doc.setFontSize(18);
+            doc.setFont(undefined, 'bold');
+            doc.setTextColor(darkColor);
+            doc.text('Project Gallery (continued)', 20, yPos);
+            yPos += 15;
           }
-        } catch (err) {
-          doc.setFontSize(7);
-          doc.setFont(undefined, 'italic');
-          doc.setTextColor(150, 150, 150);
-          doc.text('Preview not available', imgX + imgWidth / 2, imgY + imgHeight / 2, { align: 'center' });
-        }
-        
-        if (img.caption) {
-          doc.setFontSize(6);
-          doc.setFont(undefined, 'normal');
-          doc.setTextColor(80, 80, 80);
-          const captionLines = doc.splitTextToSize(img.caption, imgWidth - 4);
-          doc.text(captionLines, imgX + 2, imgY + imgHeight - 8);
+          
+          const imgX = 15;
+          const imgY = yPos;
+          
+          doc.setDrawColor(200, 200, 200);
+          doc.setFillColor(250, 250, 250);
+          doc.roundedRect(imgX, imgY, 85, 70, 5, 5, 'FD');
+          
+          try {
+            const imgResponse = await fetch(img.url);
+            if (imgResponse.ok) {
+              const imgBlob = await imgResponse.blob();
+              const imgDataUrl = await new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.readAsDataURL(imgBlob);
+              });
+              doc.addImage(imgDataUrl, 'JPEG', imgX + 2, imgY + 2, 81, 50);
+            }
+          } catch (err) {
+            doc.setFontSize(8);
+            doc.setFont(undefined, 'italic');
+            doc.setTextColor(150, 150, 150);
+            doc.text('Image preview', imgX + 42, imgY + 30, { align: 'center' });
+          }
+          
+          if (img.caption) {
+            doc.setFontSize(7);
+            doc.setFont(undefined, 'normal');
+            doc.setTextColor(100, 100, 100);
+            const captionLines = doc.splitTextToSize(img.caption, 80);
+            doc.text(captionLines, imgX + 2, imgY + 60);
+          }
         }
         
         imgCount++;
-        if (imgCount % 2 === 0) yPos += imgHeight + 10;
+        if (imgCount % 2 === 0) {
+          yPos += 78;
+        }
       }
     }
     
-    const totalPages = doc.internal.getNumberOfPages();
-    for (let i = 1; i <= totalPages; i++) {
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i);
-      addFooter(i, totalPages);
-      doc.setFontSize(45);
-      doc.setTextColor(230, 230, 230);
-      doc.setGState(new doc.GState({ opacity: 0.06 }));
+      
+      doc.setDrawColor(200, 200, 200);
+      doc.setLineWidth(0.5);
+      doc.line(15, pageHeight - 15, pageWidth - 15, pageHeight - 15);
+      
+      doc.setFontSize(8);
+      doc.setFont(undefined, 'normal');
+      doc.setTextColor(120, 120, 120);
+      doc.text(`Your Portfolio - ${proj.title.substring(0, 40)}`, 20, pageHeight - 8);
+      
+      doc.text(`Page ${i} of ${pageCount}`, pageWidth / 2, pageHeight - 8, { align: 'center' });
+      
+      // QR Code on every page
+      const pageQrDataURL = await generateQRCodeDataURL(repoUrl, 25);
+      if (pageQrDataURL) {
+        doc.addImage(pageQrDataURL, 'PNG', pageWidth - 22, pageHeight - 20, 12, 12);
+      }
+      
+      doc.setFontSize(35);
+      doc.setTextColor(240, 240, 240);
+      doc.setGState(new doc.GState({ opacity: 0.08 }));
       doc.text('CONFIDENTIAL', pageWidth / 2, pageHeight / 2, { align: 'center', angle: 45 });
       doc.setGState(new doc.GState({ opacity: 1 }));
     }
