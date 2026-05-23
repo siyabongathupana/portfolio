@@ -278,5 +278,23 @@
     "details": {
       "page": "/portfolio/admin.html"
     }
+  },
+  {
+    "type": "page_view",
+    "timestamp": 1779566202290,
+    "client": {
+      "ip": "unknown",
+      "city": "Unknown",
+      "country": "Unknown",
+      "lat": null,
+      "lon": null,
+      "deviceType": "Mobile",
+      "os": "Linux",
+      "browser": "Edge",
+      "timestamp": 1779566202290
+    },
+    "details": {
+      "page": "/portfolio/admin.html"
+    }
   }
 ]
