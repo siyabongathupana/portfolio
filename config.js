@@ -22,3 +22,6 @@ window.APP_CONFIG = {
     adminEmail: "siyabongatshem@gmail.com"
   }
 };
+
+// in config.js
+window.APP_CONFIG.analyticsToken = "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"; // your admin token with repo scope
