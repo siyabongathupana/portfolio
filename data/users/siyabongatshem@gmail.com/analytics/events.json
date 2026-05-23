@@ -30,5 +30,21 @@
     "details": {
       "page": "/portfolio/index.html"
     }
+  },
+  {
+    "type": "page_view",
+    "timestamp": 1779562084710,
+    "client": {
+      "ip": "197.184.117.22",
+      "city": "Johannesburg",
+      "country": "South Africa",
+      "deviceType": "Mobile",
+      "os": "Linux",
+      "browser": "Edge",
+      "timestamp": 1779562084710
+    },
+    "details": {
+      "page": "/portfolio/admin.html"
+    }
   }
 ]
