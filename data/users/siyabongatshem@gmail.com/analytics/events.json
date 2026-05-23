@@ -334,5 +334,23 @@
       "title": "WDAD",
       "action": "create"
     }
+  },
+  {
+    "type": "page_view",
+    "timestamp": 1779566420415,
+    "client": {
+      "ip": "unknown",
+      "city": "Unknown",
+      "country": "Unknown",
+      "lat": null,
+      "lon": null,
+      "deviceType": "Mobile",
+      "os": "Linux",
+      "browser": "Edge",
+      "timestamp": 1779566420415
+    },
+    "details": {
+      "page": "/portfolio/analytics.html"
+    }
   }
 ]
