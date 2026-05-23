@@ -1,3 +1,10 @@
 {
-  "pending": []
+  "pending": [
+    {
+      "email": "u22687302@tuks.co.za",
+      "token": "29727c15c59b4924d7aacec3af0cb381",
+      "expiresAt": 1779632769371,
+      "createdAt": 1779546369371
+    }
+  ]
 }
