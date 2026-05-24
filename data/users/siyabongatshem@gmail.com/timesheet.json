@@ -1,15 +1,15 @@
 [
   {
-    "id": 1779664025259,
+    "id": 1779664100156,
     "date": "2026-05-20",
-    "start": "08:30",
-    "end": "12:30",
-    "hours": 4,
-    "project": "Omnia Phase 3",
+    "start": "12:30",
+    "end": "16:00",
+    "hours": 3.5,
+    "project": "Sasol MIBK",
     "category": "IFAT",
     "billable": "yes",
-    "notes": "",
-    "updatedAt": 1779664025259
+    "notes": "Graphics IFAT",
+    "updatedAt": 1779664100156
   },
   {
     "id": 1779663220761,
