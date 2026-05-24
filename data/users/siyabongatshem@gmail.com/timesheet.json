@@ -1,5 +1,17 @@
 [
   {
+    "id": 1779666723873,
+    "date": "2026-05-22",
+    "start": "08:30",
+    "end": "15:18",
+    "hours": 6.8,
+    "project": "Omnia Phase 3",
+    "category": "Documentation",
+    "billable": "yes",
+    "notes": "",
+    "updatedAt": 1779666723873
+  },
+  {
     "id": 1779666521046,
     "date": "2026-05-21",
     "start": "08:30",
