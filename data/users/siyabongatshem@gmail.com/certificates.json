@@ -133,5 +133,14 @@
     "link": "",
     "thumbnail": "https://raw.githubusercontent.com/siyabongathupana/portfolio/main/data/users/siyabongatshem%40gmail.com/cert_thumbnails/1779581654106_Screenshot_2026-05-24_020639.png",
     "updatedAt": 1779581801209
+  },
+  {
+    "id": "cert_1779582147088",
+    "title": "AI Fundumentals",
+    "issuer": "IBM",
+    "date": "2024-08",
+    "link": "",
+    "thumbnail": "https://raw.githubusercontent.com/siyabongathupana/portfolio/main/data/users/siyabongatshem%40gmail.com/cert_thumbnails/1779582120833_Screenshot_2026-05-24_022145.png",
+    "updatedAt": 1779582147089
   }
 ]
