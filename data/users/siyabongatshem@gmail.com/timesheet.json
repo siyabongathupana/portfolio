@@ -12,18 +12,6 @@
     "updatedAt": 1778953130831
   },
   {
-    "id": 1778952701580,
-    "date": "2026-05-16",
-    "start": "19:31",
-    "end": "22:31",
-    "hours": 3,
-    "project": "Steam Station 1 Boiler 6",
-    "category": "CodeReview",
-    "billable": "yes",
-    "notes": "Testuing",
-    "updatedAt": 1778952701580
-  },
-  {
     "id": 1778880005334,
     "date": "2026-05-15",
     "start": "23:19",
