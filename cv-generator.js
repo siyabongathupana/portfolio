@@ -1,5 +1,5 @@
 // cv-generator.js – Professional CV generator using jsPDF + autoTable
-// Depends on: shared.js, config.js, jspdf, jspdf-autotable (already loaded)
+// Depends on: shared.js, config.js, jspdf, jspdf-autotable
 
 window.CVGenerator = (function() {
   // Helper to format date
@@ -56,11 +56,19 @@ window.CVGenerator = (function() {
         return { totalHours: totalHours.toFixed(0), billablePct, avgDaily };
       }
     } catch(e) {}
-    return { totalHours: '0', billablePct: '0', avgDaily: '0' };
+    return { totalHours: 'N/A', billablePct: 'N/A', avgDaily: 'N/A' };
   }
 
   // Main public method: generate CV PDF
   async function generateCV(username = null) {
+    // Check if jsPDF is available
+    if (typeof window.jspdf === 'undefined' || !window.jspdf.jsPDF) {
+      console.error('jsPDF library not loaded');
+      showToast('PDF library not loaded. Please refresh the page and try again.', 'error');
+      window.hideLoading();
+      return;
+    }
+
     window.showLoading('Generating your professional CV...');
     try {
       let targetUser = username;
