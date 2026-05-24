@@ -1,15 +1,15 @@
 [
   {
-    "id": 1779661062291,
+    "id": 1779661131687,
     "date": "2026-05-14",
-    "start": "14:30",
-    "end": "15:30",
+    "start": "15:30",
+    "end": "16:30",
     "hours": 1,
     "project": "Other",
-    "category": "Training",
+    "category": "Admin",
     "billable": "no",
     "notes": "",
-    "updatedAt": 1779661062291
+    "updatedAt": 1779661131687
   },
   {
     "id": 1779660913993,
