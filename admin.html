@@ -14,8 +14,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="config.js"></script>
   <script src="crypto.js"></script>
   <script src="api.js"></script>
@@ -105,15 +103,6 @@
       padding: 6px 0;
       font-size: 10px;
     }
-    .country-map {
-      height: 300px;
-      background: #f1f5f9;
-      border-radius: 16px;
-      overflow: hidden;
-    }
-    .analytics-chart {
-      max-height: 250px;
-    }
     @media (max-width: 768px) {
       .admin-container { padding: 20px 15px !important; margin: 15px !important; }
       .image-input-group { flex-direction: column; align-items: flex-start; }
@@ -143,7 +132,7 @@
       <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#certificatesTab">Certificates</a></li>
       <li class="nav-item"><a class="nav-link" href="timesheet.html">Timesheet</a></li>
       <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#logsTab">Logs</a></li>
-      <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#analyticsTab">Analytics</a></li>
+      <li class="nav-item" id="analyticsTabNav" style="display:none;"><a class="nav-link" data-toggle="tab" href="#analyticsTab">Analytics</a></li>
       <li class="nav-item" id="usersTabNav" style="display:none;"><a class="nav-link" data-toggle="tab" href="#usersTab">Users</a></li>
     </ul>
 
@@ -182,119 +171,95 @@
         </div>
       </div>
 
-      <!-- ANALYTICS TAB -->
+      <!-- ANALYTICS TAB (Admin only) -->
       <div class="tab-pane fade" id="analyticsTab">
-        <div class="row">
-          <!-- Real-time Stats -->
-          <div class="col-md-3 col-sm-6">
-            <div class="stats-card text-center">
-              <div class="glowing-dot"></div>
-              <div class="stat-number" id="activeVisitors">0</div>
-              <div class="stat-label">Active Visitors Now</div>
+        <div id="adminAnalyticsPanel">
+          <div class="row">
+            <div class="col-md-3 col-sm-6">
+              <div class="stats-card text-center">
+                <div class="glowing-dot"></div>
+                <div class="stat-number" id="activeVisitors">-</div>
+                <div class="stat-label">Active Visitors Now</div>
+              </div>
+            </div>
+            <div class="col-md-3 col-sm-6">
+              <div class="stats-card text-center">
+                <i class="fa fa-calendar fa-2x" style="color:#2fc7ff;"></i>
+                <div class="stat-number" id="totalVisits">-</div>
+                <div class="stat-label">Total Page Views</div>
+              </div>
+            </div>
+            <div class="col-md-3 col-sm-6">
+              <div class="stats-card text-center">
+                <i class="fa fa-user-plus fa-2x" style="color:#2fc7ff;"></i>
+                <div class="stat-number" id="uniqueVisitors">-</div>
+                <div class="stat-label">Unique Visitors</div>
+              </div>
+            </div>
+            <div class="col-md-3 col-sm-6">
+              <div class="stats-card text-center">
+                <i class="fa fa-clock-o fa-2x" style="color:#2fc7ff;"></i>
+                <div class="stat-number" id="lastVisitor">-</div>
+                <div class="stat-label">Last Visitor</div>
+              </div>
             </div>
           </div>
-          <div class="col-md-3 col-sm-6">
-            <div class="stats-card text-center">
-              <i class="fa fa-calendar fa-2x" style="color:#2fc7ff;"></i>
-              <div class="stat-number" id="totalVisits">0</div>
-              <div class="stat-label">Total Visits</div>
-            </div>
-          </div>
-          <div class="col-md-3 col-sm-6">
-            <div class="stats-card text-center">
-              <i class="fa fa-user-plus fa-2x" style="color:#2fc7ff;"></i>
-              <div class="stat-number" id="uniqueVisitors">0</div>
-              <div class="stat-label">Unique Visitors</div>
-            </div>
-          </div>
-          <div class="col-md-3 col-sm-6">
-            <div class="stats-card text-center">
-              <i class="fa fa-clock-o fa-2x" style="color:#2fc7ff;"></i>
-              <div class="stat-number" id="avgTimeOnSite">0m</div>
-              <div class="stat-label">Avg Time on Site</div>
-            </div>
-          </div>
-        </div>
 
-        <!-- Charts Row -->
-        <div class="row">
-          <div class="col-md-6">
-            <div class="stats-card">
-              <h6><i class="fa fa-bar-chart"></i> Page Views (Last 7 Days)</h6>
-              <canvas id="pageViewsChart" class="analytics-chart" height="200"></canvas>
+          <div class="row">
+            <div class="col-md-6">
+              <div class="stats-card">
+                <h6><i class="fa fa-bar-chart"></i> Page Views (Last 7 Days)</h6>
+                <canvas id="pageViewsChart" height="200"></canvas>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="stats-card">
+                <h6><i class="fa fa-pie-chart"></i> Device Type Breakdown</h6>
+                <canvas id="deviceChart" height="200"></canvas>
+              </div>
             </div>
           </div>
-          <div class="col-md-6">
-            <div class="stats-card">
-              <h6><i class="fa fa-pie-chart"></i> Device Type Breakdown</h6>
-              <canvas id="deviceChart" class="analytics-chart" height="200"></canvas>
-            </div>
-          </div>
-        </div>
 
-        <div class="row">
-          <div class="col-md-6">
-            <div class="stats-card">
-              <h6><i class="fa fa-globe"></i> Browser & OS Stats</h6>
-              <canvas id="browserChart" class="analytics-chart" height="180"></canvas>
+          <div class="row">
+            <div class="col-md-6">
+              <div class="stats-card">
+                <h6><i class="fa fa-globe"></i> Browser Stats</h6>
+                <canvas id="browserChart" height="180"></canvas>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="stats-card">
+                <h6><i class="fa fa-file-text-o"></i> Most Visited Pages</h6>
+                <div id="topPagesList" class="list-group list-group-flush"></div>
+              </div>
             </div>
           </div>
-          <div class="col-md-6">
-            <div class="stats-card">
-              <h6><i class="fa fa-map-marker"></i> Geographic Distribution</h6>
-              <div id="worldMap" class="country-map"></div>
-              <div class="mt-2 small text-muted" id="geoStats"></div>
-            </div>
-          </div>
-        </div>
 
-        <div class="row">
-          <div class="col-md-6">
-            <div class="stats-card">
-              <h6><i class="fa fa-folder-open"></i> Most Visited Projects</h6>
-              <div id="topProjectsList" class="list-group list-group-flush"></div>
-            </div>
-          </div>
-          <div class="col-md-6">
-            <div class="stats-card">
-              <h6><i class="fa fa-hourglass-half"></i> Time Spent per Project</h6>
-              <canvas id="timeSpentChart" height="200"></canvas>
-            </div>
-          </div>
-        </div>
-
-        <div class="row">
-          <div class="col-md-12">
-            <div class="stats-card">
-              <h6><i class="fa fa-terminal"></i> Real-time Activity Log</h6>
-              <div id="realtimeLog" class="realtime-log">
-                <div class="realtime-log-entry">📡 Analytics tracking started...</div>
+          <div class="row">
+            <div class="col-md-12">
+              <div class="stats-card">
+                <h6><i class="fa fa-pie-chart"></i> Timesheet Analytics</h6>
+                <div class="row">
+                  <div class="col-md-4">
+                    <div class="stat-number" id="totalTimesheetHours">-</div>
+                    <div class="stat-label">Total Hours Logged</div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="stat-number" id="avgDailyHours">-</div>
+                    <div class="stat-label">Avg Daily Hours</div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="stat-number" id="billablePercentage">-</div>
+                    <div class="stat-label">Billable Percentage</div>
+                  </div>
+                </div>
+                <canvas id="timesheetChart" height="200"></canvas>
               </div>
             </div>
           </div>
         </div>
-
-        <div class="row">
-          <div class="col-md-12">
-            <div class="stats-card">
-              <h6><i class="fa fa-pie-chart"></i> Timesheet Analytics</h6>
-              <div class="row">
-                <div class="col-md-4">
-                  <div class="stat-number" id="totalTimesheetHours">0</div>
-                  <div class="stat-label">Total Hours Logged</div>
-                </div>
-                <div class="col-md-4">
-                  <div class="stat-number" id="avgDailyHours">0</div>
-                  <div class="stat-label">Avg Daily Hours</div>
-                </div>
-                <div class="col-md-4">
-                  <div class="stat-number" id="billablePercentage">0%</div>
-                  <div class="stat-label">Billable Percentage</div>
-                </div>
-              </div>
-              <canvas id="timesheetChart" height="200"></canvas>
-            </div>
-          </div>
+        <div id="noAdminAnalytics" class="alert alert-warning" style="display:none;">
+          <i class="fa fa-lock"></i> Analytics are only available to administrators.
         </div>
       </div>
 
@@ -341,7 +306,6 @@
             </div>
           </div>
           
-          <!-- DeltaV Fields -->
           <div id="deltaVFields">
             <div class="section-card">
               <div class="section-title">Basic Information</div>
@@ -424,7 +388,6 @@
             </div>
           </div>
           
-          <!-- Non-DeltaV Fields -->
           <div id="nonDeltaVFields" style="display:none;">
             <div class="section-card">
               <div class="section-title">Basic Information</div>
@@ -485,7 +448,6 @@
             </div>
           </div>
           
-          <!-- Media Section -->
           <div class="section-card">
             <div class="section-title">Media Gallery</div>
             <div class="form-group">
@@ -574,7 +536,6 @@
 
   let currentProjectType = 'deltaV';
 
-  // Project Type Selector
   document.querySelectorAll('.type-option').forEach(opt => {
     opt.addEventListener('click', function() {
       document.querySelectorAll('.type-option').forEach(o => o.classList.remove('active'));
@@ -871,7 +832,6 @@
         }
         
         delete current[id];
-        // FIX: Check if resulting projects object is empty, then force empty save
         const isEmpty = Object.keys(current).length === 0;
         await window.portfolioData.saveProjects(current, isEmpty);
         await renderProjects();
@@ -1207,9 +1167,14 @@
     });
 
     const isAdmin = window.APP_CONFIG.adminUsers && window.APP_CONFIG.adminUsers.includes(user.username);
+    
+    // Admin-only UI: show Users and Analytics tabs
     if (isAdmin) {
       const usersTabNav = document.getElementById('usersTabNav');
       if (usersTabNav) usersTabNav.style.display = 'block';
+      const analyticsTabNav = document.getElementById('analyticsTabNav');
+      if (analyticsTabNav) analyticsTabNav.style.display = 'block';
+      
       const refreshUsersBtn = document.getElementById('refreshUsersBtn');
       if (refreshUsersBtn) refreshUsersBtn.addEventListener('click', loadUsers);
       const downloadAllLogsBtn = document.getElementById('downloadAllLogsBtn');
@@ -1217,171 +1182,106 @@
       const logUserSelectGroup = document.getElementById('logUserSelectGroup');
       if (logUserSelectGroup) logUserSelectGroup.style.display = 'block';
       loadUsers();
+    } else {
+      // Non-admin: show only non-admin tabs
+      document.getElementById('usersTabNav').style.display = 'none';
+      document.getElementById('analyticsTabNav').style.display = 'none';
     }
 
-    // Analytics functions
-    function initAnalytics() {
-      // Mock data for demo - in production, this would fetch from real tracking
-      // For now, we'll generate realistic-looking data
+    // Analytics functions (only if admin)
+    async function loadAnalytics() {
+      if (!isAdmin) {
+        document.getElementById('adminAnalyticsPanel').style.display = 'none';
+        document.getElementById('noAdminAnalytics').style.display = 'block';
+        return;
+      }
       
-      // Active visitors (random but plausible)
-      document.getElementById('activeVisitors').innerText = Math.floor(Math.random() * 15) + 1;
-      
-      // Total visits (mock)
-      document.getElementById('totalVisits').innerText = '1,284';
-      
-      // Unique visitors (mock)
-      document.getElementById('uniqueVisitors').innerText = '342';
-      
-      // Avg time on site (mock)
-      document.getElementById('avgTimeOnSite').innerText = '4m 32s';
-      
-      // Page Views Chart (last 7 days)
-      const ctxPageViews = document.getElementById('pageViewsChart').getContext('2d');
-      new Chart(ctxPageViews, {
-        type: 'line',
-        data: {
-          labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-          datasets: [{
-            label: 'Page Views',
-            data: [42, 38, 55, 68, 72, 45, 39],
-            borderColor: '#2fc7ff',
-            backgroundColor: 'rgba(47,199,255,0.1)',
-            tension: 0.4,
-            fill: true
-          }]
-        },
-        options: { responsive: true, maintainAspectRatio: true }
-      });
-      
-      // Device Chart
-      const ctxDevice = document.getElementById('deviceChart').getContext('2d');
-      new Chart(ctxDevice, {
-        type: 'doughnut',
-        data: {
-          labels: ['Desktop', 'Mobile', 'Tablet'],
-          datasets: [{
-            data: [58, 35, 7],
-            backgroundColor: ['#2fc7ff', '#ffc107', '#28a745']
-          }]
-        },
-        options: { responsive: true, maintainAspectRatio: true }
-      });
-      
-      // Browser Chart
-      const ctxBrowser = document.getElementById('browserChart').getContext('2d');
-      new Chart(ctxBrowser, {
-        type: 'pie',
-        data: {
-          labels: ['Chrome', 'Firefox', 'Safari', 'Edge', 'Other'],
-          datasets: [{
-            data: [62, 18, 12, 6, 2],
-            backgroundColor: ['#2fc7ff', '#ffc107', '#28a745', '#dc3545', '#6f42c1']
-          }]
-        },
-        options: { responsive: true, maintainAspectRatio: true }
-      });
-      
-      // Top Projects List
-      const topProjects = [
-        { name: 'DeltaV DCS Upgrade', visits: 342 },
-        { name: 'SIS Migration Project', visits: 287 },
-        { name: 'Control System Integration', visits: 198 },
-        { name: 'Cybersecurity Implementation', visits: 156 }
-      ];
-      const topProjectsList = document.getElementById('topProjectsList');
-      topProjectsList.innerHTML = topProjects.map(p => 
-        `<div class="list-group-item d-flex justify-content-between align-items-center">
-          ${p.name}
-          <span class="badge badge-primary badge-pill">${p.visits} visits</span>
-        </div>`
-      ).join('');
-      
-      // Time Spent Chart
-      const ctxTimeSpent = document.getElementById('timeSpentChart').getContext('2d');
-      new Chart(ctxTimeSpent, {
-        type: 'bar',
-        data: {
-          labels: topProjects.map(p => p.name.substring(0, 15)),
-          datasets: [{
-            label: 'Time Spent (minutes)',
-            data: [245, 189, 134, 98],
-            backgroundColor: '#2fc7ff'
-          }]
-        },
-        options: { responsive: true, maintainAspectRatio: true, indexAxis: 'y' }
-      });
-      
-      // Timesheet Analytics (mock from actual timesheet data)
-      setTimeout(async () => {
-        try {
-          const timesheetData = await loadTimesheetData();
-          if (timesheetData && timesheetData.length) {
-            const totalHours = timesheetData.reduce((sum, e) => sum + (e.hours || 0), 0);
-            const uniqueDays = new Set(timesheetData.map(e => e.date)).size;
-            const avgDaily = uniqueDays > 0 ? (totalHours / uniqueDays).toFixed(1) : 0;
-            const billableHours = timesheetData.filter(e => e.billable === 'yes').reduce((sum, e) => sum + (e.hours || 0), 0);
-            const billablePct = totalHours > 0 ? ((billableHours / totalHours) * 100).toFixed(0) : 0;
-            
-            document.getElementById('totalTimesheetHours').innerText = totalHours.toFixed(1);
-            document.getElementById('avgDailyHours').innerText = avgDaily;
-            document.getElementById('billablePercentage').innerText = billablePct + '%';
-            
-            // Weekly timesheet chart
-            const last7Days = [];
-            for (let i = 6; i >= 0; i--) {
-              const d = new Date();
-              d.setDate(d.getDate() - i);
-              last7Days.push(d.toISOString().split('T')[0]);
+      try {
+        const events = await window.Analytics.getAnalyticsData(user.pat);
+        const stats = window.Analytics.computeStats(events);
+        
+        if (stats) {
+          document.getElementById('activeVisitors').innerText = stats.activeVisitors;
+          document.getElementById('totalVisits').innerText = stats.totalEvents;
+          document.getElementById('uniqueVisitors').innerText = stats.uniqueVisitors;
+          document.getElementById('lastVisitor').innerText = stats.lastVisitor;
+          
+          // Page views chart
+          const ctxPage = document.getElementById('pageViewsChart').getContext('2d');
+          new Chart(ctxPage, {
+            type: 'line',
+            data: {
+              labels: stats.pageViewsLast7Days.map(d => d.date.slice(5)),
+              datasets: [{ label: 'Views', data: stats.pageViewsLast7Days.map(d => d.count), borderColor: '#2fc7ff', fill: true }]
             }
-            const dailyTotals = last7Days.map(date => {
-              return timesheetData.filter(e => e.date === date).reduce((sum, e) => sum + (e.hours || 0), 0);
-            });
-            const ctxTimesheet = document.getElementById('timesheetChart').getContext('2d');
-            new Chart(ctxTimesheet, {
-              type: 'bar',
-              data: {
-                labels: last7Days.map(d => d.substring(5)),
-                datasets: [{
-                  label: 'Hours Logged',
-                  data: dailyTotals,
-                  backgroundColor: '#2fc7ff'
-                }]
-              },
-              options: { responsive: true, maintainAspectRatio: true }
-            });
-          } else {
-            document.getElementById('totalTimesheetHours').innerText = '0';
-            document.getElementById('avgDailyHours').innerText = '0';
-            document.getElementById('billablePercentage').innerText = '0%';
+          });
+          
+          // Device chart
+          const ctxDevice = document.getElementById('deviceChart').getContext('2d');
+          new Chart(ctxDevice, {
+            type: 'doughnut',
+            data: {
+              labels: ['Desktop', 'Mobile', 'Tablet'],
+              datasets: [{ data: [stats.deviceBreakdown.desktop, stats.deviceBreakdown.mobile, stats.deviceBreakdown.tablet], backgroundColor: ['#2fc7ff', '#ffc107', '#28a745'] }]
+            }
+          });
+          
+          // Browser chart
+          const ctxBrowser = document.getElementById('browserChart').getContext('2d');
+          new Chart(ctxBrowser, {
+            type: 'pie',
+            data: {
+              labels: Object.keys(stats.browserBreakdown),
+              datasets: [{ data: Object.values(stats.browserBreakdown), backgroundColor: ['#2fc7ff', '#ffc107', '#28a745', '#dc3545', '#6f42c1'] }]
+            }
+          });
+          
+          // Top pages list
+          const topPagesList = document.getElementById('topPagesList');
+          topPagesList.innerHTML = stats.topPages.map(p => 
+            `<div class="list-group-item d-flex justify-content-between"><span>${p.page}</span><span class="badge badge-primary">${p.count}</span></div>`
+          ).join('');
+        }
+        
+        // Timesheet analytics
+        await loadTimesheetAnalytics();
+        
+      } catch (err) {
+        console.error('Analytics load error:', err);
+      }
+    }
+    
+    async function loadTimesheetAnalytics() {
+      try {
+        const timesheetData = await loadTimesheetData();
+        if (timesheetData && timesheetData.length) {
+          const totalHours = timesheetData.reduce((s,e) => s + (e.hours || 0), 0);
+          const uniqueDays = new Set(timesheetData.map(e => e.date)).size;
+          const avgDaily = uniqueDays ? (totalHours / uniqueDays).toFixed(1) : 0;
+          const billableHours = timesheetData.filter(e => e.billable === 'yes').reduce((s,e) => s + (e.hours || 0), 0);
+          const billablePct = totalHours ? ((billableHours / totalHours) * 100).toFixed(0) : 0;
+          
+          document.getElementById('totalTimesheetHours').innerText = totalHours.toFixed(1);
+          document.getElementById('avgDailyHours').innerText = avgDaily;
+          document.getElementById('billablePercentage').innerText = billablePct + '%';
+          
+          const last7Days = [];
+          for (let i = 6; i >= 0; i--) {
+            const d = new Date(); d.setDate(d.getDate() - i);
+            last7Days.push(d.toISOString().split('T')[0]);
           }
-        } catch(e) { console.warn('Timesheet analytics error', e); }
-      }, 500);
-      
-      // World Map (simple placeholder)
-      const mapContainer = document.getElementById('worldMap');
-      mapContainer.innerHTML = '<div style="height:100%; display:flex; align-items:center; justify-content:center; background:#e2e8f0; color:#64748b;"><i class="fa fa-globe fa-3x"></i><p class="ml-2 mb-0">Interactive map would show visitor locations</p></div>';
-      document.getElementById('geoStats').innerHTML = 'Top regions: 🇿🇦 South Africa (65%), 🇺🇸 USA (12%), 🇬🇧 UK (8%), 🇩🇪 Germany (5%)';
-      
-      // Real-time log simulation
-      const realtimeLog = document.getElementById('realtimeLog');
-      const logMessages = [
-        '🌐 Visitor from Cape Town viewed "DeltaV DCS Upgrade"',
-        '📱 Mobile user viewed certificates page',
-        '🖥️ Desktop user spent 3 min on project details',
-        '🇬🇧 New visitor from London',
-        '📊 PDF report generated for "SIS Migration"',
-        '⏱️ User spent 8 min on timesheet page'
-      ];
-      let logIndex = 0;
-      setInterval(() => {
-        const newEntry = document.createElement('div');
-        newEntry.className = 'realtime-log-entry';
-        newEntry.innerHTML = `🔔 ${logMessages[logIndex % logMessages.length]}`;
-        realtimeLog.insertBefore(newEntry, realtimeLog.firstChild);
-        if (realtimeLog.children.length > 20) realtimeLog.removeChild(realtimeLog.lastChild);
-        logIndex++;
-      }, 8000);
+          const dailyTotals = last7Days.map(date => timesheetData.filter(e => e.date === date).reduce((s,e) => s + (e.hours || 0), 0));
+          const ctxTimesheet = document.getElementById('timesheetChart').getContext('2d');
+          new Chart(ctxTimesheet, {
+            type: 'bar',
+            data: { labels: last7Days.map(d => d.slice(5)), datasets: [{ label: 'Hours', data: dailyTotals, backgroundColor: '#2fc7ff' }] }
+          });
+        } else {
+          document.getElementById('totalTimesheetHours').innerText = '0';
+          document.getElementById('avgDailyHours').innerText = '0';
+          document.getElementById('billablePercentage').innerText = '0%';
+        }
+      } catch(e) { console.warn('Timesheet analytics error', e); }
     }
     
     async function loadTimesheetData() {
@@ -1397,12 +1297,12 @@
       return [];
     }
     
-    // Load analytics when tab is shown
+    // Attach analytics load to tab show (only once)
     $('#analyticsTab').on('shown.bs.tab', function() {
-      initAnalytics();
+      loadAnalytics();
     });
 
-    // Log download functions (same as before, but enhanced)
+    // Log download functions
     async function downloadLogsForUser(username, isAdminView = false) {
       window.showLoading(`Fetching logs for ${username}...`);
       try {
