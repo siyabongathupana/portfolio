@@ -1,15 +1,15 @@
 [
   {
-    "id": 1779660184573,
+    "id": 1779660364182,
     "date": "2026-05-11",
-    "start": "14:36",
-    "end": "16:36",
-    "hours": 2,
+    "start": "13:30",
+    "end": "14:36",
+    "hours": 1.1,
     "project": "Other",
-    "category": "Admin",
-    "billable": "no",
-    "notes": "Email with Emerson IT, SMS",
-    "updatedAt": 1779660184573
+    "category": "Training",
+    "billable": "yes",
+    "notes": "",
+    "updatedAt": 1779660364183
   },
   {
     "id": 1779660033580,
@@ -22,6 +22,18 @@
     "billable": "yes",
     "notes": "",
     "updatedAt": 1779660033580
+  },
+  {
+    "id": 1779660184573,
+    "date": "2026-05-11",
+    "start": "14:36",
+    "end": "16:36",
+    "hours": 2,
+    "project": "Other",
+    "category": "Admin",
+    "billable": "no",
+    "notes": "Email with Emerson IT, SMS",
+    "updatedAt": 1779660184573
   },
   {
     "id": 1779659492775,
