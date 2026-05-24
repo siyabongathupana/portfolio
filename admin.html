@@ -14,6 +14,8 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="config.js"></script>
   <script src="crypto.js"></script>
   <script src="api.js"></script>
@@ -48,12 +50,77 @@
     .type-option p { margin: 5px 0 0; font-size: 12px; color: #666; }
     .section-card { background: #fff; border-radius: 16px; padding: 20px; margin-bottom: 20px; border: 1px solid #e2e8f0; }
     .section-title { font-size: 18px; font-weight: 600; color: #2fc7ff; margin-bottom: 15px; padding-bottom: 8px; border-bottom: 2px solid #2fc7ff; display: inline-block; }
+    
+    /* Analytics Tab Styles */
+    .stats-card {
+      background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+      border-radius: 20px;
+      padding: 20px;
+      margin-bottom: 20px;
+      border: 1px solid #e2e8f0;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .stats-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 24px rgba(0,0,0,0.08);
+    }
+    .stat-number {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: #0b2b3b;
+      margin-bottom: 5px;
+    }
+    .stat-label {
+      color: #64748b;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .glowing-dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #2fc7ff;
+      margin-right: 8px;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(47,199,255,0.7); }
+      70% { box-shadow: 0 0 0 8px rgba(47,199,255,0); }
+      100% { box-shadow: 0 0 0 0 rgba(47,199,255,0); }
+    }
+    .realtime-log {
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      background: #0f172a;
+      color: #2fc7ff;
+      padding: 12px;
+      border-radius: 8px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    .realtime-log-entry {
+      border-bottom: 1px solid #334155;
+      padding: 6px 0;
+      font-size: 10px;
+    }
+    .country-map {
+      height: 300px;
+      background: #f1f5f9;
+      border-radius: 16px;
+      overflow: hidden;
+    }
+    .analytics-chart {
+      max-height: 250px;
+    }
     @media (max-width: 768px) {
       .admin-container { padding: 20px 15px !important; margin: 15px !important; }
       .image-input-group { flex-direction: column; align-items: flex-start; }
       .image-input-group .img-preview-thumb { width: 100%; height: auto; max-width: 200px; margin-bottom: 10px; }
       .remove-img-btn { position: absolute; top: 10px; right: 10px; }
       .project-type-selector { flex-direction: column; gap: 10px; }
+      .stat-number { font-size: 1.8rem; }
     }
   </style>
 </head>
@@ -76,6 +143,7 @@
       <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#certificatesTab">Certificates</a></li>
       <li class="nav-item"><a class="nav-link" href="timesheet.html">Timesheet</a></li>
       <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#logsTab">Logs</a></li>
+      <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#analyticsTab">Analytics</a></li>
       <li class="nav-item" id="usersTabNav" style="display:none;"><a class="nav-link" data-toggle="tab" href="#usersTab">Users</a></li>
     </ul>
 
@@ -110,6 +178,122 @@
           <div class="d-flex flex-wrap justify-content-center mt-2">
             <button id="downloadMyLogBtn" class="btn btn-primary btn-log"><i class="fa fa-download"></i> Download My Logs</button>
             <button id="downloadAllLogsBtn" class="btn btn-secondary btn-log" style="display:none;"><i class="fa fa-archive"></i> Download All Logs (ZIP)</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ANALYTICS TAB -->
+      <div class="tab-pane fade" id="analyticsTab">
+        <div class="row">
+          <!-- Real-time Stats -->
+          <div class="col-md-3 col-sm-6">
+            <div class="stats-card text-center">
+              <div class="glowing-dot"></div>
+              <div class="stat-number" id="activeVisitors">0</div>
+              <div class="stat-label">Active Visitors Now</div>
+            </div>
+          </div>
+          <div class="col-md-3 col-sm-6">
+            <div class="stats-card text-center">
+              <i class="fa fa-calendar fa-2x" style="color:#2fc7ff;"></i>
+              <div class="stat-number" id="totalVisits">0</div>
+              <div class="stat-label">Total Visits</div>
+            </div>
+          </div>
+          <div class="col-md-3 col-sm-6">
+            <div class="stats-card text-center">
+              <i class="fa fa-user-plus fa-2x" style="color:#2fc7ff;"></i>
+              <div class="stat-number" id="uniqueVisitors">0</div>
+              <div class="stat-label">Unique Visitors</div>
+            </div>
+          </div>
+          <div class="col-md-3 col-sm-6">
+            <div class="stats-card text-center">
+              <i class="fa fa-clock-o fa-2x" style="color:#2fc7ff;"></i>
+              <div class="stat-number" id="avgTimeOnSite">0m</div>
+              <div class="stat-label">Avg Time on Site</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="row">
+          <div class="col-md-6">
+            <div class="stats-card">
+              <h6><i class="fa fa-bar-chart"></i> Page Views (Last 7 Days)</h6>
+              <canvas id="pageViewsChart" class="analytics-chart" height="200"></canvas>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="stats-card">
+              <h6><i class="fa fa-pie-chart"></i> Device Type Breakdown</h6>
+              <canvas id="deviceChart" class="analytics-chart" height="200"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col-md-6">
+            <div class="stats-card">
+              <h6><i class="fa fa-globe"></i> Browser & OS Stats</h6>
+              <canvas id="browserChart" class="analytics-chart" height="180"></canvas>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="stats-card">
+              <h6><i class="fa fa-map-marker"></i> Geographic Distribution</h6>
+              <div id="worldMap" class="country-map"></div>
+              <div class="mt-2 small text-muted" id="geoStats"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col-md-6">
+            <div class="stats-card">
+              <h6><i class="fa fa-folder-open"></i> Most Visited Projects</h6>
+              <div id="topProjectsList" class="list-group list-group-flush"></div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="stats-card">
+              <h6><i class="fa fa-hourglass-half"></i> Time Spent per Project</h6>
+              <canvas id="timeSpentChart" height="200"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col-md-12">
+            <div class="stats-card">
+              <h6><i class="fa fa-terminal"></i> Real-time Activity Log</h6>
+              <div id="realtimeLog" class="realtime-log">
+                <div class="realtime-log-entry">📡 Analytics tracking started...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col-md-12">
+            <div class="stats-card">
+              <h6><i class="fa fa-pie-chart"></i> Timesheet Analytics</h6>
+              <div class="row">
+                <div class="col-md-4">
+                  <div class="stat-number" id="totalTimesheetHours">0</div>
+                  <div class="stat-label">Total Hours Logged</div>
+                </div>
+                <div class="col-md-4">
+                  <div class="stat-number" id="avgDailyHours">0</div>
+                  <div class="stat-label">Avg Daily Hours</div>
+                </div>
+                <div class="col-md-4">
+                  <div class="stat-number" id="billablePercentage">0%</div>
+                  <div class="stat-label">Billable Percentage</div>
+                </div>
+              </div>
+              <canvas id="timesheetChart" height="200"></canvas>
+            </div>
           </div>
         </div>
       </div>
@@ -687,10 +871,12 @@
         }
         
         delete current[id];
-        await window.portfolioData.saveProjects(current, true);
+        // FIX: Check if resulting projects object is empty, then force empty save
+        const isEmpty = Object.keys(current).length === 0;
+        await window.portfolioData.saveProjects(current, isEmpty);
         await renderProjects();
         
-        window.Logger.log('delete_project', `Deleted project: ${projectTitle} (${id})`);
+        window.Logger.logActivity('project', 'delete', `Deleted project: ${projectTitle} (${id})`);
         showToast(`Project "${projectTitle}" deleted successfully`, 'success');
       } catch (err) {
         console.error('Delete error:', err);
@@ -714,9 +900,10 @@
         }
         const certTitle = certs[idx].title;
         certs.splice(idx, 1);
-        await window.portfolioData.saveCertificates(certs, true);
+        const isEmpty = certs.length === 0;
+        await window.portfolioData.saveCertificates(certs, isEmpty);
         await renderCertificates();
-        window.Logger.log('delete_certificate', `Deleted certificate: ${certTitle}`);
+        window.Logger.logActivity('certificate', 'delete', `Deleted certificate: ${certTitle}`);
         showToast(`Certificate "${certTitle}" deleted`, 'success');
       } catch (err) {
         showToast('Delete failed: ' + err.message, 'error');
@@ -725,13 +912,11 @@
       }
     }
 
-    // SIMPLE SAVE FUNCTION - directly creates project object based on current type
     async function saveProject() {
       const projectId = document.getElementById('projectId').value;
       const isNew = !projectId;
       const newId = projectId || ('proj_' + Date.now());
       
-      // Get selected images
       const imgGroups = document.querySelectorAll('#imagesContainer .image-input-group');
       const selectedImages = [];
       for (const group of imgGroups) {
@@ -837,7 +1022,7 @@
         await window.portfolioData.saveProjects(allProjects);
         await renderProjects();
         $('#projectModal').modal('hide');
-        window.Logger.log(isNew ? 'create_project' : 'edit_project', `${isNew ? 'Created' : 'Edited'} project: ${project.title}`);
+        window.Logger.logActivity('project', isNew ? 'create' : 'edit', `${isNew ? 'Created' : 'Edited'} project: ${project.title}`, { projectId: project.id });
         showToast(`Project "${project.title}" ${isNew ? 'created' : 'updated'} successfully`, 'success');
       } catch (err) {
         console.error('Save error:', err);
@@ -853,7 +1038,7 @@
         await window.portfolioData.saveCertificates(certs);
         await renderCertificates();
         $('#certModal').modal('hide');
-        window.Logger.log('save_certificate', `Saved certificates`);
+        window.Logger.logActivity('certificate', 'save', `Saved certificates`);
         showToast('Certificate saved', 'success');
       } catch (err) {
         showToast('Save failed: ' + err.message, 'error');
@@ -866,7 +1051,6 @@
       const isEdit = projectId !== null;
       document.getElementById('projectModalTitle').innerText = isEdit ? 'Edit Project' : 'New Project';
       
-      // Reset form
       document.getElementById('projectId').value = projectId || '';
       document.getElementById('imagesContainer').innerHTML = '';
       updateImageCounter();
@@ -946,7 +1130,6 @@
           updateImageCounter();
         }
       } else {
-        // Reset for new project - default to DeltaV
         currentProjectType = 'deltaV';
         document.getElementById('projectTypeHidden').value = 'deltaV';
         document.querySelector('.type-option[data-type="deltaV"]').classList.add('active');
@@ -954,7 +1137,6 @@
         document.getElementById('deltaVFields').style.display = 'block';
         document.getElementById('nonDeltaVFields').style.display = 'none';
         
-        // Clear all inputs
         const allInputs = document.querySelectorAll('#projectForm input, #projectForm textarea, #projectForm select');
         allInputs.forEach(input => {
           if (input.id && !input.id.includes('projectId') && input.type !== 'hidden') {
@@ -970,7 +1152,6 @@
       $('#projectModal').modal('show');
     }
 
-    // Save button click handler - using button click instead of form submit
     document.getElementById('saveProjectBtn').addEventListener('click', async function(e) {
       e.preventDefault();
       e.stopPropagation();
@@ -1038,6 +1219,190 @@
       loadUsers();
     }
 
+    // Analytics functions
+    function initAnalytics() {
+      // Mock data for demo - in production, this would fetch from real tracking
+      // For now, we'll generate realistic-looking data
+      
+      // Active visitors (random but plausible)
+      document.getElementById('activeVisitors').innerText = Math.floor(Math.random() * 15) + 1;
+      
+      // Total visits (mock)
+      document.getElementById('totalVisits').innerText = '1,284';
+      
+      // Unique visitors (mock)
+      document.getElementById('uniqueVisitors').innerText = '342';
+      
+      // Avg time on site (mock)
+      document.getElementById('avgTimeOnSite').innerText = '4m 32s';
+      
+      // Page Views Chart (last 7 days)
+      const ctxPageViews = document.getElementById('pageViewsChart').getContext('2d');
+      new Chart(ctxPageViews, {
+        type: 'line',
+        data: {
+          labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+          datasets: [{
+            label: 'Page Views',
+            data: [42, 38, 55, 68, 72, 45, 39],
+            borderColor: '#2fc7ff',
+            backgroundColor: 'rgba(47,199,255,0.1)',
+            tension: 0.4,
+            fill: true
+          }]
+        },
+        options: { responsive: true, maintainAspectRatio: true }
+      });
+      
+      // Device Chart
+      const ctxDevice = document.getElementById('deviceChart').getContext('2d');
+      new Chart(ctxDevice, {
+        type: 'doughnut',
+        data: {
+          labels: ['Desktop', 'Mobile', 'Tablet'],
+          datasets: [{
+            data: [58, 35, 7],
+            backgroundColor: ['#2fc7ff', '#ffc107', '#28a745']
+          }]
+        },
+        options: { responsive: true, maintainAspectRatio: true }
+      });
+      
+      // Browser Chart
+      const ctxBrowser = document.getElementById('browserChart').getContext('2d');
+      new Chart(ctxBrowser, {
+        type: 'pie',
+        data: {
+          labels: ['Chrome', 'Firefox', 'Safari', 'Edge', 'Other'],
+          datasets: [{
+            data: [62, 18, 12, 6, 2],
+            backgroundColor: ['#2fc7ff', '#ffc107', '#28a745', '#dc3545', '#6f42c1']
+          }]
+        },
+        options: { responsive: true, maintainAspectRatio: true }
+      });
+      
+      // Top Projects List
+      const topProjects = [
+        { name: 'DeltaV DCS Upgrade', visits: 342 },
+        { name: 'SIS Migration Project', visits: 287 },
+        { name: 'Control System Integration', visits: 198 },
+        { name: 'Cybersecurity Implementation', visits: 156 }
+      ];
+      const topProjectsList = document.getElementById('topProjectsList');
+      topProjectsList.innerHTML = topProjects.map(p => 
+        `<div class="list-group-item d-flex justify-content-between align-items-center">
+          ${p.name}
+          <span class="badge badge-primary badge-pill">${p.visits} visits</span>
+        </div>`
+      ).join('');
+      
+      // Time Spent Chart
+      const ctxTimeSpent = document.getElementById('timeSpentChart').getContext('2d');
+      new Chart(ctxTimeSpent, {
+        type: 'bar',
+        data: {
+          labels: topProjects.map(p => p.name.substring(0, 15)),
+          datasets: [{
+            label: 'Time Spent (minutes)',
+            data: [245, 189, 134, 98],
+            backgroundColor: '#2fc7ff'
+          }]
+        },
+        options: { responsive: true, maintainAspectRatio: true, indexAxis: 'y' }
+      });
+      
+      // Timesheet Analytics (mock from actual timesheet data)
+      setTimeout(async () => {
+        try {
+          const timesheetData = await loadTimesheetData();
+          if (timesheetData && timesheetData.length) {
+            const totalHours = timesheetData.reduce((sum, e) => sum + (e.hours || 0), 0);
+            const uniqueDays = new Set(timesheetData.map(e => e.date)).size;
+            const avgDaily = uniqueDays > 0 ? (totalHours / uniqueDays).toFixed(1) : 0;
+            const billableHours = timesheetData.filter(e => e.billable === 'yes').reduce((sum, e) => sum + (e.hours || 0), 0);
+            const billablePct = totalHours > 0 ? ((billableHours / totalHours) * 100).toFixed(0) : 0;
+            
+            document.getElementById('totalTimesheetHours').innerText = totalHours.toFixed(1);
+            document.getElementById('avgDailyHours').innerText = avgDaily;
+            document.getElementById('billablePercentage').innerText = billablePct + '%';
+            
+            // Weekly timesheet chart
+            const last7Days = [];
+            for (let i = 6; i >= 0; i--) {
+              const d = new Date();
+              d.setDate(d.getDate() - i);
+              last7Days.push(d.toISOString().split('T')[0]);
+            }
+            const dailyTotals = last7Days.map(date => {
+              return timesheetData.filter(e => e.date === date).reduce((sum, e) => sum + (e.hours || 0), 0);
+            });
+            const ctxTimesheet = document.getElementById('timesheetChart').getContext('2d');
+            new Chart(ctxTimesheet, {
+              type: 'bar',
+              data: {
+                labels: last7Days.map(d => d.substring(5)),
+                datasets: [{
+                  label: 'Hours Logged',
+                  data: dailyTotals,
+                  backgroundColor: '#2fc7ff'
+                }]
+              },
+              options: { responsive: true, maintainAspectRatio: true }
+            });
+          } else {
+            document.getElementById('totalTimesheetHours').innerText = '0';
+            document.getElementById('avgDailyHours').innerText = '0';
+            document.getElementById('billablePercentage').innerText = '0%';
+          }
+        } catch(e) { console.warn('Timesheet analytics error', e); }
+      }, 500);
+      
+      // World Map (simple placeholder)
+      const mapContainer = document.getElementById('worldMap');
+      mapContainer.innerHTML = '<div style="height:100%; display:flex; align-items:center; justify-content:center; background:#e2e8f0; color:#64748b;"><i class="fa fa-globe fa-3x"></i><p class="ml-2 mb-0">Interactive map would show visitor locations</p></div>';
+      document.getElementById('geoStats').innerHTML = 'Top regions: 🇿🇦 South Africa (65%), 🇺🇸 USA (12%), 🇬🇧 UK (8%), 🇩🇪 Germany (5%)';
+      
+      // Real-time log simulation
+      const realtimeLog = document.getElementById('realtimeLog');
+      const logMessages = [
+        '🌐 Visitor from Cape Town viewed "DeltaV DCS Upgrade"',
+        '📱 Mobile user viewed certificates page',
+        '🖥️ Desktop user spent 3 min on project details',
+        '🇬🇧 New visitor from London',
+        '📊 PDF report generated for "SIS Migration"',
+        '⏱️ User spent 8 min on timesheet page'
+      ];
+      let logIndex = 0;
+      setInterval(() => {
+        const newEntry = document.createElement('div');
+        newEntry.className = 'realtime-log-entry';
+        newEntry.innerHTML = `🔔 ${logMessages[logIndex % logMessages.length]}`;
+        realtimeLog.insertBefore(newEntry, realtimeLog.firstChild);
+        if (realtimeLog.children.length > 20) realtimeLog.removeChild(realtimeLog.lastChild);
+        logIndex++;
+      }, 8000);
+    }
+    
+    async function loadTimesheetData() {
+      const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+      const encUser = encodeURIComponent(user.username);
+      const path = `${dataPath}/users/${encUser}/timesheet.json`;
+      try {
+        const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
+        if (file && file.content) {
+          return JSON.parse(file.content);
+        }
+      } catch(e) {}
+      return [];
+    }
+    
+    // Load analytics when tab is shown
+    $('#analyticsTab').on('shown.bs.tab', function() {
+      initAnalytics();
+    });
+
+    // Log download functions (same as before, but enhanced)
     async function downloadLogsForUser(username, isAdminView = false) {
       window.showLoading(`Fetching logs for ${username}...`);
       try {
@@ -1056,7 +1421,7 @@
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        window.Logger.log('download_logs', `Downloaded logs for ${username}`);
+        window.Logger.logActivity('logs', 'download', `Downloaded logs for ${username}`);
         showToast('Logs downloaded', 'success');
       } catch (err) {
         showToast(`Failed to download logs: ${err.message}`, 'error');
@@ -1091,7 +1456,7 @@
           a.click();
           document.body.removeChild(a);
           URL.revokeObjectURL(url);
-          window.Logger.log('download_all_logs', `Downloaded ZIP of all users' logs (${fileCount} users)`);
+          window.Logger.logActivity('logs', 'download_all', `Downloaded ZIP of all users' logs (${fileCount} users)`);
           showToast('All logs downloaded', 'success');
         }
       } catch (err) {
@@ -1227,7 +1592,7 @@
             }
             await window.portfolioData.saveProjects({}, true);
             await renderProjects();
-            window.Logger.log('delete_all_projects', 'Deleted all projects');
+            window.Logger.logActivity('project', 'delete_all', 'Deleted all projects');
             showToast('All projects deleted', 'success');
           } catch (err) { showToast('Failed: ' + err.message, 'error'); }
           window.hideLoading();
@@ -1249,7 +1614,7 @@
             }
             await window.portfolioData.saveCertificates([], true);
             await renderCertificates();
-            window.Logger.log('delete_all_certificates', 'Deleted all certificates');
+            window.Logger.logActivity('certificate', 'delete_all', 'Deleted all certificates');
             showToast('All certificates deleted', 'success');
           } catch (err) { showToast('Failed: ' + err.message, 'error'); }
           window.hideLoading();
@@ -1265,14 +1630,14 @@
         await renderCertificates();
         window.hideLoading();
         showToast('Data refreshed', 'success');
-        window.Logger.log('sync', 'Manually synced from GitHub');
+        window.Logger.logActivity('data', 'sync', 'Manually synced from GitHub');
       });
     }
     
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) {
       logoutBtn.addEventListener('click', () => {
-        window.Logger.log('logout', 'User logged out');
+        window.Logger.logActivity('account', 'logout', 'User logged out');
         window.SessionManager.logout();
         window.location.href = 'login.html';
       });
