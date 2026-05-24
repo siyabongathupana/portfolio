@@ -1,5 +1,17 @@
 [
   {
+    "id": 1779658499331,
+    "date": "2026-05-08",
+    "start": "08:25",
+    "end": "14:12",
+    "hours": 5.78,
+    "project": "Omnia Phase 3",
+    "category": "CFAT",
+    "billable": "yes",
+    "notes": "",
+    "updatedAt": 1779658499331
+  },
+  {
     "id": 1779658369530,
     "date": "2026-05-07",
     "start": "15:30",
