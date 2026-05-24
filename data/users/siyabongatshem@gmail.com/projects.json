@@ -1,35 +1,4 @@
 {
-  "proj_1779656974294": {
-    "id": "proj_1779656974294",
-    "title": "Omnia Phase 3",
-    "controllerType": "MD",
-    "projectType": "Other",
-    "deltaVVersion": "",
-    "cabinetCount": 0,
-    "io": {
-      "AI": 0,
-      "AO": 0,
-      "DI": 0,
-      "DO": 0
-    },
-    "dates": {
-      "start": "",
-      "finish": "",
-      "ifat": "",
-      "cfat": ""
-    },
-    "siteLocation": "",
-    "team": {
-      "lead": "",
-      "engineer": "",
-      "technician": ""
-    },
-    "description": "Created from timesheet on 5/24/2026",
-    "graphType": "bar",
-    "selectedImages": [],
-    "updatedAt": 1779656974308,
-    "blocked": false
-  },
   "proj_1779657090406": {
     "id": "proj_1779657090406",
     "title": "Omnia Phase 3",
