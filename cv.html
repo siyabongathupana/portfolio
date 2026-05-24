@@ -9,11 +9,19 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
+
+  <!-- Core libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+
+  <!-- Your app scripts (order matters) -->
   <script src="config.js"></script>
   <script src="crypto.js"></script>
   <script src="api.js"></script>
   <script src="shared.js"></script>
   <script src="cv-generator.js"></script>
+
   <style>
     .cv-container {
       max-width: 700px;
@@ -80,6 +88,11 @@
   window.updateUserFooter();
 
   document.getElementById('generateCVBtn').addEventListener('click', async () => {
+    // Check if jsPDF is loaded
+    if (typeof window.jspdf === 'undefined') {
+      showToast('PDF library not loaded. Please refresh the page.', 'error');
+      return;
+    }
     await window.CVGenerator.generateCV();
   });
 </script>
