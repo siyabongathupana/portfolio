@@ -1,5 +1,17 @@
 [
   {
+    "id": 1779664644135,
+    "date": "2026-05-20",
+    "start": "08:30",
+    "end": "12:30",
+    "hours": 4,
+    "project": "Omnia Phase 3",
+    "category": "Other",
+    "billable": "yes",
+    "notes": "Fixing VMs",
+    "updatedAt": 1779664644135
+  },
+  {
     "id": 1779664100156,
     "date": "2026-05-20",
     "start": "12:30",
