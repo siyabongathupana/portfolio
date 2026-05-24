@@ -15,10 +15,10 @@ window.APP_CONFIG = {
   publicProfileEmail: "siyabongatshem@gmail.com",
 
   emailjs: {
-    publicKey: "YOUR_EMAILJS_PUBLIC_KEY",
-    serviceID: "YOUR_SERVICE_ID",
-    adminTemplateID: "YOUR_ADMIN_TEMPLATE_ID",
-    userTemplateID: "YOUR_USER_TEMPLATE_ID",
+    publicKey: "ZhEE6fQ9A0icSOSYh",
+    serviceID: "service_yp6od5r",
+    adminTemplateID: "template_y7kifmr",
+    userTemplateID: "",
     adminEmail: "siyabongatshem@gmail.com"
   }
 };
