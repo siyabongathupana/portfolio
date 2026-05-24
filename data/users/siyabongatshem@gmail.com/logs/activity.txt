@@ -1,3 +1,4 @@
+[2026-05-24 00:36:09] [INFO] [image_delete] Deleted data/users/siyabongatshem%40gmail.com/project_images/1778975313824_1000321814.jpg
 [2026-05-24 00:33:43] [INFO] [login] User logged in as siyabongatshem@gmail.com
 [2026-05-24 00:28:43] [INFO] [save_certificates] Saved 16 certificates
 [2026-05-24 00:22:06] [INFO] [image_upload] Uploaded 1779582120833_Screenshot_2026-05-24_022145.png to cert_thumbnails
