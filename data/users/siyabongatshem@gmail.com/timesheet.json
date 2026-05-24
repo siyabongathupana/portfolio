@@ -8,7 +8,8 @@
     "project": "Test number what what",
     "category": "Meetings",
     "billable": "yes",
-    "notes": ""
+    "notes": "",
+    "updatedAt": 1778953130831
   },
   {
     "id": 1778952701580,
@@ -19,18 +20,8 @@
     "project": "Steam Station 1 Boiler 6",
     "category": "CodeReview",
     "billable": "yes",
-    "notes": "Testuing"
-  },
-  {
-    "id": 1778881223214,
-    "date": "2026-05-15",
-    "start": "23:39",
-    "end": "04:00",
-    "hours": 4.35,
-    "category": "Admin",
-    "billable": "no",
-    "notes": "Test",
-    "project": "Other"
+    "notes": "Testuing",
+    "updatedAt": 1778952701580
   },
   {
     "id": 1778880005334,
@@ -41,7 +32,8 @@
     "category": "Learning",
     "billable": "yes",
     "notes": "Testing",
-    "project": "Other"
+    "project": "Other",
+    "updatedAt": 1778880005334
   },
   {
     "id": 1778879923053,
@@ -52,6 +44,7 @@
     "category": "Development",
     "billable": "yes",
     "notes": "test1",
-    "project": "Other"
+    "project": "Other",
+    "updatedAt": 1778879923053
   }
 ]
