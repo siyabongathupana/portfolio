@@ -413,6 +413,12 @@
     let pendingUploads = [];
     let activeUploads = 0;
     let uploadedCount = 0;
+    const generateCVBtn = document.getElementById('generateCVBtn');
+    if (generateCVBtn) {
+      generateCVBtn.addEventListener('click', () => {
+        window.open('cv.html', '_blank');
+      });
+    }
 
     function updateImageCounter() {
       const count = imgContainer.querySelectorAll('.image-input-group').length;
