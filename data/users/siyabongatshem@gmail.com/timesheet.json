@@ -271,9 +271,9 @@
     "hours": 0.5,
     "project": "Other",
     "category": "Training",
-    "billable": "yes",
+    "billable": "no",
     "notes": "",
-    "updatedAt": 1779656779298
+    "updatedAt": 1779662259211
   },
   {
     "id": 1779656064849,
