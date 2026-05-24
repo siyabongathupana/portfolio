@@ -1,5 +1,4 @@
-// timesheet.js – Beautiful PDF with pie charts, integrated warnings, full-width charts, professional footer
-// FIXED: saveTimesheet now OVERWRITES the remote file (deletions are permanent)
+// timesheet.js – Complete with separate timesheet-only projects (not in portfolio)
 
 (function() {
   const user = window.SessionManager?.getCurrentUser();
@@ -10,11 +9,14 @@
 
   // ======================== CONFIGURATION ========================
   const TIMESHEET_FILE = "timesheet.json";
+  const TIMESHEET_PROJECTS_FILE = "timesheet_projects.json"; // separate file for timesheet-only projects
   const USER_META_FILE = "user_meta.json";
   const PREFS_FILE = "preferences.json";
 
   let entries = [];
-  let projectList = [];
+  let timesheetProjects = [];   // local list of timesheet-only projects
+  let mainPortfolioProjects = []; // read-only from portfolio
+  let allProjectOptions = [];    // combined list for dropdown
   let userFullName = "";
   let notificationsEnabled = true;
   let autoRefreshInterval = null;
@@ -45,56 +47,237 @@
     }
   }
 
-  // ======================== DATA LOAD & SAVE (OVERWRITE) ========================
+  // ======================== DATA LOAD & SAVE (DIRECT GITHUB API) ========================
   async function loadTimesheet() {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(user.username);
     const path = `${dataPath}/users/${encUser}/${TIMESHEET_FILE}`;
+    const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`;
     try {
-      const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
-      if (file && file.content) {
-        const parsed = JSON.parse(file.content);
+      const resp = await fetch(url, {
+        headers: { Authorization: `token ${user.pat}`, Accept: 'application/vnd.github.v3+json' }
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        const content = atob(data.content.replace(/\n/g, ''));
+        const parsed = JSON.parse(content);
         entries = Array.isArray(parsed) ? parsed : [];
         entries = entries.map(e => ({ ...e, updatedAt: e.updatedAt || e.id }));
         entries.sort((a, b) => new Date(b.date) - new Date(a.date));
-      } else {
+        console.log(`Loaded ${entries.length} timesheet entries`);
+      } else if (resp.status === 404) {
         entries = [];
+        console.log("No timesheet file yet, starting empty");
+      } else {
+        throw new Error(`HTTP ${resp.status}`);
       }
     } catch(e) {
+      console.error("Load timesheet error:", e);
       entries = [];
     }
   }
 
-  // ✅ FIXED: Overwrite the remote file completely – no merging, deletions are permanent
-  async function saveTimesheet(optimisticEntries = null) {
-    const dataToSave = optimisticEntries !== null ? optimisticEntries : entries;
+  async function saveTimesheet(dataToSave) {
+    if (!Array.isArray(dataToSave)) {
+      console.error("saveTimesheet called with non-array:", dataToSave);
+      throw new Error("Invalid data: expected array");
+    }
+
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(user.username);
     const path = `${dataPath}/users/${encUser}/${TIMESHEET_FILE}`;
-    
+    const content = JSON.stringify(dataToSave, null, 2);
+    const encodedContent = btoa(unescape(encodeURIComponent(content)));
+
+    let sha = null;
+    const getUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`;
+    try {
+      const getResp = await fetch(getUrl, {
+        headers: { Authorization: `token ${user.pat}`, Accept: 'application/vnd.github.v3+json' }
+      });
+      if (getResp.ok) {
+        const data = await getResp.json();
+        sha = data.sha;
+        console.log("Existing timesheet SHA:", sha);
+      } else if (getResp.status !== 404) {
+        throw new Error(`Failed to get timesheet info: ${getResp.status}`);
+      }
+    } catch(e) {
+      console.warn("Error getting SHA, will create new file:", e);
+    }
+
+    const putUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
+    const body = {
+      message: `Update timesheet – ${new Date().toISOString()}`,
+      content: encodedContent,
+      branch: branch
+    };
+    if (sha) body.sha = sha;
+
     let retries = 3;
     while (retries > 0) {
       try {
-        // Get current SHA if file exists (to avoid 409 conflict)
-        let sha = null;
-        try {
-          const remoteFile = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
-          if (remoteFile && remoteFile.sha) sha = remoteFile.sha;
-        } catch(e) { /* file does not exist – that's fine */ }
-
-        // Overwrite with the local array (no merging)
-        await GitHubAPI.updateFile(owner, repo, path, dataToSave, "Update timesheet", branch, user.pat, sha);
-        entries = dataToSave;  // update local cache
+        const putResp = await fetch(putUrl, {
+          method: 'PUT',
+          headers: {
+            Authorization: `token ${user.pat}`,
+            'Content-Type': 'application/json',
+            Accept: 'application/vnd.github.v3+json'
+          },
+          body: JSON.stringify(body)
+        });
+        if (!putResp.ok) {
+          const errData = await putResp.json();
+          throw new Error(`GitHub API error: ${putResp.status} – ${errData.message}`);
+        }
+        console.log(`Saved ${dataToSave.length} entries to GitHub`);
+        entries = dataToSave;
         return true;
       } catch (err) {
         retries--;
         if (retries === 0) {
-          showToast("Failed to save after multiple attempts: " + err.message, "error");
+          console.error("Save failed after retries:", err);
+          showToast("Failed to save: " + err.message, "error");
           throw err;
         }
-        await new Promise(r => setTimeout(r, 500));
+        console.log(`Retry... (${retries} left)`);
+        await new Promise(r => setTimeout(r, 1000));
       }
     }
+  }
+
+  // ======================== TIMESHEET-SPECIFIC PROJECTS (separate from portfolio) ========================
+  async function loadTimesheetProjects() {
+    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+    const encUser = encodeURIComponent(user.username);
+    const path = `${dataPath}/users/${encUser}/${TIMESHEET_PROJECTS_FILE}`;
+    const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`;
+    try {
+      const resp = await fetch(url, {
+        headers: { Authorization: `token ${user.pat}`, Accept: 'application/vnd.github.v3+json' }
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        const content = atob(data.content.replace(/\n/g, ''));
+        const parsed = JSON.parse(content);
+        timesheetProjects = Array.isArray(parsed) ? parsed : [];
+        console.log(`Loaded ${timesheetProjects.length} timesheet-only projects`);
+      } else if (resp.status === 404) {
+        timesheetProjects = [];
+        console.log("No timesheet projects file yet, starting empty");
+      } else {
+        throw new Error(`HTTP ${resp.status}`);
+      }
+    } catch(e) {
+      console.error("Load timesheet projects error:", e);
+      timesheetProjects = [];
+    }
+  }
+
+  async function saveTimesheetProjects(projectsArray) {
+    if (!Array.isArray(projectsArray)) throw new Error("Invalid data");
+
+    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+    const encUser = encodeURIComponent(user.username);
+    const path = `${dataPath}/users/${encUser}/${TIMESHEET_PROJECTS_FILE}`;
+    const content = JSON.stringify(projectsArray, null, 2);
+    const encodedContent = btoa(unescape(encodeURIComponent(content)));
+
+    let sha = null;
+    const getUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`;
+    try {
+      const getResp = await fetch(getUrl, {
+        headers: { Authorization: `token ${user.pat}`, Accept: 'application/vnd.github.v3+json' }
+      });
+      if (getResp.ok) {
+        const data = await getResp.json();
+        sha = data.sha;
+      }
+    } catch(e) {}
+
+    const putUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
+    const body = {
+      message: `Update timesheet projects – ${new Date().toISOString()}`,
+      content: encodedContent,
+      branch: branch
+    };
+    if (sha) body.sha = sha;
+
+    try {
+      const putResp = await fetch(putUrl, {
+        method: 'PUT',
+        headers: {
+          Authorization: `token ${user.pat}`,
+          'Content-Type': 'application/json',
+          Accept: 'application/vnd.github.v3+json'
+        },
+        body: JSON.stringify(body)
+      });
+      if (!putResp.ok) {
+        const errData = await putResp.json();
+        throw new Error(`Failed to save timesheet projects: ${errData.message}`);
+      }
+      timesheetProjects = projectsArray;
+      console.log(`Saved ${projectsArray.length} timesheet-only projects`);
+      return true;
+    } catch (err) {
+      console.error("Save timesheet projects error:", err);
+      showToast("Failed to save timesheet projects: " + err.message, "error");
+      throw err;
+    }
+  }
+
+  async function loadPortfolioProjects() {
+    try {
+      const projectsData = await window.portfolioData.loadProjects();
+      mainPortfolioProjects = Object.values(projectsData).map(p => p.title).filter(p => p);
+      console.log(`Loaded ${mainPortfolioProjects.length} portfolio projects`);
+    } catch (e) {
+      console.warn("Could not load portfolio projects", e);
+      mainPortfolioProjects = [];
+    }
+  }
+
+  // Combine portfolio projects + timesheet-only projects for dropdown
+  function updateCombinedProjectList() {
+    const combined = [...mainPortfolioProjects];
+    timesheetProjects.forEach(p => {
+      if (!combined.includes(p)) combined.push(p);
+    });
+    combined.sort();
+    allProjectOptions = combined;
+  }
+
+  async function loadProjectsForTimesheet() {
+    await loadPortfolioProjects();
+    await loadTimesheetProjects();
+    updateCombinedProjectList();
+    // Update dropdowns
+    const selects = ['taskProject', 'editProject', 'filterProject'];
+    for (let id of selects) {
+      const sel = document.getElementById(id);
+      if (!sel) continue;
+      const currentVal = sel.value;
+      sel.innerHTML = '';
+      if (id === 'filterProject') sel.innerHTML = '<option value="all">All Projects</option>';
+      allProjectOptions.forEach(proj => {
+        const opt = document.createElement('option');
+        opt.value = proj;
+        opt.textContent = proj;
+        sel.appendChild(opt);
+      });
+      if (currentVal && allProjectOptions.includes(currentVal)) sel.value = currentVal;
+    }
+  }
+
+  async function createTimesheetOnlyProject(projectName) {
+    if (allProjectOptions.includes(projectName)) return false;
+    // Add to timesheetProjects array
+    const newProjects = [...timesheetProjects, projectName];
+    await saveTimesheetProjects(newProjects);
+    await loadProjectsForTimesheet(); // refresh dropdowns
+    await window.Logger.log('create_timesheet_project', `Created timesheet-only project: ${projectName}`);
+    return true;
   }
 
   // ======================== UI HELPERS ========================
@@ -116,58 +299,6 @@
     const start = document.getElementById('startTime').value;
     const end = document.getElementById('endTime').value;
     document.getElementById('hoursAuto').value = calcHours(start, end).toFixed(2);
-  }
-
-  async function loadProjectsFromPortfolio() {
-    try {
-      const projectsData = await window.portfolioData.loadProjects();
-      projectList = Object.values(projectsData).map(p => p.title).filter(p => p);
-      if (!projectList.includes("Other")) projectList.push("Other");
-      projectList.sort();
-    } catch (e) {
-      projectList = ["Other"];
-    }
-    const selects = ['taskProject', 'editProject', 'filterProject'];
-    for (let id of selects) {
-      const sel = document.getElementById(id);
-      if (!sel) continue;
-      const currentVal = sel.value;
-      sel.innerHTML = '';
-      if (id === 'filterProject') sel.innerHTML = '<option value="all">All Projects</option>';
-      projectList.forEach(p => {
-        const opt = document.createElement('option');
-        opt.value = p;
-        opt.textContent = p;
-        sel.appendChild(opt);
-      });
-      if (currentVal && projectList.includes(currentVal)) sel.value = currentVal;
-    }
-  }
-
-  async function createPortfolioProject(projectName) {
-    if (projectList.includes(projectName)) return false;
-    const newId = 'proj_' + Date.now();
-    const newProject = {
-      id: newId,
-      title: projectName,
-      controllerType: 'MD',
-      projectType: 'Other',
-      deltaVVersion: '',
-      cabinetCount: 0,
-      io: { AI: 0, AO: 0, DI: 0, DO: 0 },
-      dates: { start: '', finish: '', ifat: '', cfat: '' },
-      siteLocation: '',
-      team: { lead: '', engineer: '', technician: '' },
-      description: `Created from timesheet on ${new Date().toLocaleDateString()}`,
-      graphType: 'bar',
-      selectedImages: []
-    };
-    const allProjects = await window.portfolioData.loadProjects();
-    allProjects[newId] = newProject;
-    await window.portfolioData.saveProjects(allProjects);
-    await loadProjectsFromPortfolio();
-    await window.Logger.log('create_project_from_timesheet', `Created project: ${projectName}`);
-    return true;
   }
 
   async function addEntry(duplicateData = null) {
@@ -229,10 +360,12 @@
     if (delBtn) setButtonLoading(delBtn, true, "Deleting...");
     try {
       const newEntries = entries.filter(e => e.id != id);
+      console.log(`Deleting entry ${id}, new count: ${newEntries.length}`);
       await saveTimesheet(newEntries);
       showToast("Entry deleted.");
       await refreshView();
     } catch (err) {
+      console.error("Delete error:", err);
       showToast("Delete failed: " + err.message, "error");
     } finally {
       if (delBtn) setButtonLoading(delBtn, false);
@@ -334,7 +467,7 @@
     const tbody = document.getElementById('historyBody');
     const tfoot = document.getElementById('historyFoot');
     if (filtered.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="9" class="text-center">No entries found.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" class="text-center">No entries found.<tr></tr>';
       tfoot.style.display = 'none';
       return;
     }
@@ -458,7 +591,7 @@
     }
   }
 
-  // ======================== BEAUTIFUL PDF REPORT (Pie charts, integrated header, footer at bottom) ========================
+  // ======================== PDF REPORT (full) ========================
   async function generatePDFReport(startDate, endDate) {
     window.showLoading("Generating beautiful PDF report...");
     try {
@@ -473,7 +606,6 @@
       const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
       const pageWidth = doc.internal.pageSize.getWidth();
       
-      // ---- BLUE HEADER (contains both title and warning) ----
       doc.setFillColor(11, 43, 59);
       doc.rect(0, 0, pageWidth, 28, 'F');
       doc.setTextColor(255, 255, 255);
@@ -483,7 +615,6 @@
       doc.setTextColor(255, 200, 200);
       doc.text("DO NOT EDIT – UNTAMPERED DATA", pageWidth / 2, 22, { align: 'center' });
       
-      // ---- User & period info (below header) ----
       doc.setTextColor(0, 0, 0);
       doc.setFontSize(11);
       const name = document.getElementById('reportName')?.value || userFullName || user.username;
@@ -495,8 +626,7 @@
       doc.text(`Period: ${startDate} to ${endDate}`, 14, 49);
       doc.text(`Total Hours: ${totalHours.toFixed(2)}  |  Billable: ${billableHours.toFixed(2)}  |  Non‑billable: ${nonBillable.toFixed(2)}  |  Overtime: ${overtime.toFixed(2)}`, 14, 56);
       
-      // ---- THREE PIE CHARTS (full width, equally spaced, no stretching) ----
-      // Chart 1: Hours per Project
+      // Pie charts
       const projMap = {};
       filtered.forEach(e => { projMap[e.project] = (projMap[e.project] || 0) + e.hours; });
       const canvas1 = document.createElement('canvas');
@@ -515,7 +645,6 @@
       const chartBase64_1 = canvas1.toDataURL('image/png');
       chart1.destroy();
       
-      // Chart 2: Hours per Category
       const catMap = {};
       filtered.forEach(e => { catMap[e.category] = (catMap[e.category] || 0) + e.hours; });
       const canvas2 = document.createElement('canvas');
@@ -533,7 +662,6 @@
       const chartBase64_2 = canvas2.toDataURL('image/png');
       chart2.destroy();
       
-      // Chart 3: Billable vs Non-billable
       let billable = 0, nonBill = 0;
       filtered.forEach(e => { if (e.billable === 'yes') billable += e.hours; else nonBill += e.hours; });
       const canvas3 = document.createElement('canvas');
@@ -551,12 +679,10 @@
       const chartBase64_3 = canvas3.toDataURL('image/png');
       chart3.destroy();
       
-      // Place charts side by side (each ~85mm wide)
       doc.addImage(chartBase64_1, 'PNG', 12, 64, 85, 70);
       doc.addImage(chartBase64_2, 'PNG', 105, 64, 85, 70);
       doc.addImage(chartBase64_3, 'PNG', 198, 64, 85, 70);
       
-      // ---- TABLE (auto‑wraps long notes/projects) ----
       const tableData = filtered.map(e => [
         e.date, e.start, e.end, e.hours.toFixed(2),
         e.project, e.category,
@@ -576,21 +702,19 @@
           1: { cellWidth: 16 },
           2: { cellWidth: 16 },
           3: { cellWidth: 16 },
-          4: { cellWidth: 32 },  // project name
+          4: { cellWidth: 32 },
           5: { cellWidth: 25 },
           6: { cellWidth: 22 },
-          7: { cellWidth: 55 }   // notes
+          7: { cellWidth: 55 }
         },
         margin: { left: 14, right: 14 },
         styles: { overflow: 'linebreak', cellPadding: 2, fontSize: 9 }
       });
       
-      // ---- FOOTER (at bottom of the page) ----
       const finalY = doc.lastAutoTable.finalY + 10;
       const pageHeight = doc.internal.pageSize.getHeight();
       const footerY = Math.min(finalY, pageHeight - 25);
       
-      // QR code
       const qrContainer = document.createElement('div');
       new QRCode(qrContainer, {
         text: "https://github.com/siyabongathupana/",
@@ -612,14 +736,12 @@
       doc.text("Generated by Your Portfolio System – Controlled Copy", 14, footerY + 12);
       doc.text(`Page ${doc.internal.getNumberOfPages()}`, pageWidth - 14, footerY + 18, { align: 'right' });
       
-      // Watermark (light)
       doc.setFontSize(50);
       doc.setTextColor(200, 200, 200);
       doc.setGState(new doc.GState({ opacity: 0.12 }));
       doc.text("FINAL", pageWidth / 2, pageHeight / 2, { align: 'center', angle: 45 });
       doc.setGState(new doc.GState({ opacity: 1 }));
       
-      // Metadata
       doc.setProperties({
         title: `Timesheet_${startDate}_to_${endDate}`,
         subject: "Untampered timesheet data",
@@ -638,7 +760,7 @@
     }
   }
 
-  // ======================== EXCEL WITH PASSWORD (unchanged, but uses bar chart inside Excel) ========================
+  // ======================== EXCEL (full) ========================
   async function exportStyledExcel(startDate, endDate) {
     window.showLoading("Generating Excel report (password: Siya)...");
     try {
@@ -680,7 +802,7 @@
 
       const headers = ['Date', 'Start', 'End', 'Hours', 'Project', 'Category', 'Billable', 'Notes'];
       const headerRow = worksheet.addRow(headers);
-      headerRow.eachCell((cell, colNumber) => {
+      headerRow.eachCell((cell) => {
         cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
         cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
         cell.alignment = { horizontal: 'center', vertical: 'middle' };
@@ -721,7 +843,6 @@
         column.width = Math.min(maxLength + 2, 40);
       });
 
-      // Add bar chart (hours per project) as image
       const projMap = {};
       filtered.forEach(e => { projMap[e.project] = (projMap[e.project] || 0) + e.hours; });
       const canvas = document.createElement('canvas');
@@ -845,7 +966,7 @@
     window.showLoading("Refreshing timesheet...");
     try {
       await loadTimesheet();
-      await loadProjectsFromPortfolio();
+      await loadProjectsForTimesheet(); // reload both portfolio and timesheet projects
       renderHistory();
       updateSummaryAndProgress();
       updateCharts();
@@ -903,6 +1024,7 @@
       }
     };
 
+    // New Project button now creates a timesheet-only project
     document.getElementById('addProjectBtn').onclick = () => {
       document.getElementById('newProjectName').value = '';
       $('#newProjectModal').modal('show');
@@ -910,16 +1032,16 @@
     document.getElementById('confirmNewProjectBtn').onclick = async () => {
       const newProj = document.getElementById('newProjectName')?.value.trim();
       if (!newProj) { showToast("Enter project name.", "error"); return; }
-      window.showLoading(`Creating project "${newProj}"...`);
+      window.showLoading(`Creating timesheet project "${newProj}"...`);
       try {
-        const success = await createPortfolioProject(newProj);
+        const success = await createTimesheetOnlyProject(newProj);
         if (success) {
-          await loadProjectsFromPortfolio();
+          await loadProjectsForTimesheet();
           const taskSelect = document.getElementById('taskProject');
-          if (taskSelect && projectList.includes(newProj)) taskSelect.value = newProj;
-          showToast(`Project "${newProj}" created.`);
+          if (taskSelect && allProjectOptions.includes(newProj)) taskSelect.value = newProj;
+          showToast(`Timesheet project "${newProj}" created (not added to portfolio).`);
         } else {
-          showToast("Project already exists.", "error");
+          showToast("Project already exists in timesheet or portfolio.", "error");
         }
       } catch (err) {
         showToast("Failed to create project: " + err.message, "error");
