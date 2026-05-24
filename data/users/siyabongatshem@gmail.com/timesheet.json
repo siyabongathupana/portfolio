@@ -1,5 +1,17 @@
 [
   {
+    "id": 1779658369530,
+    "date": "2026-05-07",
+    "start": "15:30",
+    "end": "17:00",
+    "hours": 1.5,
+    "project": "Other",
+    "category": "Other",
+    "billable": "no",
+    "notes": "Admin (Timesheets, Emails, SMS)",
+    "updatedAt": 1779658369530
+  },
+  {
     "id": 1779658163369,
     "date": "2026-05-07",
     "start": "08:30",
