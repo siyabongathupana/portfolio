@@ -1,15 +1,15 @@
 [
   {
-    "id": 1779665458150,
+    "id": 1779665566113,
     "date": "2026-05-21",
-    "start": "08:30",
-    "end": "15:50",
-    "hours": 7.33,
-    "project": "Sasol MIBK",
-    "category": "Site",
-    "billable": "yes",
-    "notes": "ASBUILTS",
-    "updatedAt": 1779665458150
+    "start": "15:50",
+    "end": "16:39",
+    "hours": 0.82,
+    "project": "Other",
+    "category": "Training",
+    "billable": "no",
+    "notes": "",
+    "updatedAt": 1779665566113
   },
   {
     "id": 1779664916044,
