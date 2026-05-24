@@ -74,11 +74,6 @@
           <li class="nav-item"><a class="nav-link" href="certificates.html">Certificates</a></li>
           <li class="nav-item"><a class="nav-link" href="timesheet.html">Timesheet</a></li>
           <li class="nav-item"><a class="nav-link" href="admin.html"><i class="fa fa-cog"></i> Manage</a></li>
-          <li class="nav-item">
-            <button class="btn theme-toggle ml-2" id="themeToggleBtn" aria-label="Toggle dark/light mode">
-              <i class="fa fa-moon-o"></i> <span id="themeToggleText">Dark</span>
-            </button>
-          </li>
         </ul>
       </div>
     </nav>
@@ -291,35 +286,6 @@
   window.onload = function() {
     window.updateUserFooter();
     renderFeatured();
-    
-    // Theme toggle functionality
-    const themeToggleBtn = document.getElementById('themeToggleBtn');
-    if (themeToggleBtn) {
-      const updateButton = () => {
-        const isDark = document.body.classList.contains('dark-theme');
-        const icon = themeToggleBtn.querySelector('i');
-        const text = themeToggleBtn.querySelector('#themeToggleText');
-        if (isDark) {
-          if (icon) icon.className = 'fa fa-sun-o';
-          if (text) text.textContent = 'Light';
-        } else {
-          if (icon) icon.className = 'fa fa-moon-o';
-          if (text) text.textContent = 'Dark';
-        }
-      };
-      themeToggleBtn.addEventListener('click', function(e) {
-        e.preventDefault();
-        if (document.body.classList.contains('dark-theme')) {
-          document.body.classList.remove('dark-theme');
-          localStorage.setItem('portfolio-theme', 'light');
-        } else {
-          document.body.classList.add('dark-theme');
-          localStorage.setItem('portfolio-theme', 'dark');
-        }
-        updateButton();
-      });
-      updateButton();
-    }
   };
 </script>
 <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
