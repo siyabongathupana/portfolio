@@ -649,7 +649,6 @@ window.portfolioData = (() => {
     let retries = 3;
     while (retries > 0) {
       try {
-        // Re-fetch remote data and SHA on every attempt
         let remoteData = {};
         let sha = null;
         try {
@@ -693,7 +692,6 @@ window.portfolioData = (() => {
     }
   }
 
-  // FIXED: saveCertificates with proper SHA re-fetch on retries
   async function saveCertificates(data, forceEmpty = false) {
     const prev = localStorage.getItem(CERTS_KEY);
     
@@ -1453,3 +1451,142 @@ window.generateProjectReport = async function(projectId) {
     window.hideLoading();
   }
 };
+
+// Analytics tracking (admin-only data, but visible only in admin panel)
+window.Analytics = {
+  async trackPageView(page, userId = null) {
+    const sessionId = sessionStorage.getItem('analytics_session') || Date.now().toString();
+    sessionStorage.setItem('analytics_session', sessionId);
+    
+    const data = {
+      page: page,
+      timestamp: Date.now(),
+      sessionId: sessionId,
+      userAgent: navigator.userAgent,
+      screenWidth: window.screen.width,
+      screenHeight: window.screen.height,
+      referrer: document.referrer || '',
+      userId: userId || (window.SessionManager.getCurrentUser()?.username || 'visitor')
+    };
+    
+    const pending = JSON.parse(localStorage.getItem('analytics_pending') || '[]');
+    pending.push(data);
+    localStorage.setItem('analytics_pending', JSON.stringify(pending));
+    
+    if (window.SessionManager.getCurrentUser()) {
+      await this.flush();
+    } else {
+      if (pending.length >= 5) await this.flush();
+      else setTimeout(() => this.flush(), 30000);
+    }
+  },
+  
+  async flush() {
+    const pending = JSON.parse(localStorage.getItem('analytics_pending') || '[]');
+    if (pending.length === 0) return;
+    const user = window.SessionManager.getCurrentUser();
+    if (!user) return;
+    
+    try {
+      const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+      const path = `${dataPath}/analytics/events.json`;
+      
+      let existing = [];
+      let sha = null;
+      try {
+        const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
+        if (file && file.content) {
+          existing = JSON.parse(file.content);
+          sha = file.sha;
+        }
+      } catch(e) {}
+      
+      const allEvents = [...pending, ...existing];
+      const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+      const filtered = allEvents.filter(e => e.timestamp > thirtyDaysAgo);
+      
+      await GitHubAPI.updateFile(owner, repo, path, filtered, 'Analytics event batch', branch, user.pat, sha);
+      localStorage.setItem('analytics_pending', '[]');
+      await window.Logger.logActivity('analytics', 'flush', `Flushed ${pending.length} events`);
+    } catch (err) {
+      console.warn('Analytics flush failed:', err);
+    }
+  },
+  
+  async getAnalyticsData(adminToken) {
+    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+    const path = `${dataPath}/analytics/events.json`;
+    try {
+      const file = await GitHubAPI.getFileContent(owner, repo, path, branch, adminToken);
+      if (file && file.content) {
+        return JSON.parse(file.content);
+      }
+    } catch(e) {}
+    return [];
+  },
+  
+  computeStats(events) {
+    if (!events.length) return null;
+    
+    const sessions = new Set(events.map(e => e.sessionId));
+    const uniqueVisitors = sessions.size;
+    
+    const pageViews = {};
+    events.forEach(e => { pageViews[e.page] = (pageViews[e.page] || 0) + 1; });
+    
+    const devices = { desktop: 0, mobile: 0, tablet: 0 };
+    events.forEach(e => {
+      const ua = e.userAgent.toLowerCase();
+      if (ua.includes('mobile')) devices.mobile++;
+      else if (ua.includes('tablet')) devices.tablet++;
+      else devices.desktop++;
+    });
+    
+    const browsers = { Chrome: 0, Firefox: 0, Safari: 0, Edge: 0, Other: 0 };
+    events.forEach(e => {
+      const ua = e.userAgent;
+      if (ua.includes('Chrome') && !ua.includes('Edg')) browsers.Chrome++;
+      else if (ua.includes('Firefox')) browsers.Firefox++;
+      else if (ua.includes('Safari') && !ua.includes('Chrome')) browsers.Safari++;
+      else if (ua.includes('Edg')) browsers.Edge++;
+      else browsers.Other++;
+    });
+    
+    const last7Days = [];
+    const now = Date.now();
+    for (let i = 6; i >= 0; i--) {
+      const day = new Date(now - i * 86400000).toISOString().slice(0,10);
+      const count = events.filter(e => new Date(e.timestamp).toISOString().slice(0,10) === day).length;
+      last7Days.push({ date: day, count });
+    }
+    
+    const topPages = Object.entries(pageViews)
+      .map(([page, count]) => ({ page, count }))
+      .sort((a,b) => b.count - a.count)
+      .slice(0, 5);
+    
+    const fiveMinutesAgo = now - 5 * 60 * 1000;
+    const activeSessions = new Set(events.filter(e => e.timestamp > fiveMinutesAgo).map(e => e.sessionId));
+    const lastVisitor = events.length ? new Date(events[0].timestamp).toLocaleString() : 'Never';
+    
+    return {
+      totalEvents: events.length,
+      uniqueVisitors,
+      activeVisitors: activeSessions.size,
+      lastVisitor,
+      topPages,
+      deviceBreakdown: devices,
+      browserBreakdown: browsers,
+      pageViewsLast7Days: last7Days,
+      pageViewsTotal: events.length
+    };
+  }
+};
+
+// Auto-track page views (skip admin panel to avoid inflating stats)
+document.addEventListener('DOMContentLoaded', () => {
+  const path = window.location.pathname.split('/').pop() || 'index.html';
+  if (!path.includes('admin.html') && !window.SessionManager.isAdmin()) {
+    setTimeout(() => window.Analytics?.trackPageView(path), 100);
+  }
+});
