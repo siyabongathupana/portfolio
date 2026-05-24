@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>{{ name }} – CV</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Helvetica', 'Arial', sans-serif;
+            line-height: 1.4;
+            color: #1e2a3e;
+            background: white;
+            padding: 15mm;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .header {
+            background: #0b2b3b;
+            color: white;
+            text-align: center;
+            padding: 20px;
+            border-radius: 12px 12px 0 0;
+        }
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 5px;
+        }
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        .contact-bar {
+            background: #2fc7ff;
+            height: 4px;
+        }
+        .section {
+            margin-top: 20px;
+        }
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #0b2b3b;
+            border-bottom: 2px solid #2fc7ff;
+            padding-bottom: 4px;
+            margin-bottom: 12px;
+        }
+        .skills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .skill-tag {
+            background: #eef3fc;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            color: #0b2b3b;
+        }
+        .project-item {
+            margin-bottom: 16px;
+        }
+        .project-title {
+            font-weight: bold;
+            font-size: 14px;
+        }
+        .project-meta {
+            font-size: 11px;
+            color: #5a7d9a;
+            margin: 4px 0;
+        }
+        .project-desc {
+            font-size: 12px;
+            margin-top: 4px;
+        }
+        .cert-item {
+            margin-bottom: 8px;
+        }
+        .footer {
+            margin-top: 30px;
+            font-size: 9px;
+            text-align: center;
+            color: #8ba0b5;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 12px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>{{ name }}</h1>
+        <p>{{ title }}</p>
+    </div>
+    <div class="contact-bar"></div>
+
+    <div class="section">
+        <div class="section-title">Professional Summary</div>
+        <p style="font-size: 12px;">{{ summary }}</p>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Core Competencies</div>
+        <div class="skills">
+            {% for skill in skills %}
+            <span class="skill-tag">{{ skill }}</span>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Featured Projects</div>
+        {% for proj in projects %}
+        <div class="project-item">
+            <div class="project-title">{{ proj.title }}</div>
+            <div class="project-meta">
+                {{ proj.client or 'Confidential' }} | {{ proj.duration or 'N/A' }} | Role: {{ proj.userRole or 'Engineer' }}
+            </div>
+            <div class="project-desc">{{ (proj.shortDesc or proj.description or '')[:150] }}...</div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="section">
+        <div class="section-title">Certifications</div>
+        {% for cert in certificates %}
+        <div class="cert-item">
+            <strong>{{ cert.title }}</strong> – {{ cert.issuer }} ({{ cert.date }})
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="footer">
+        Generated on {{ generated_date }} from live portfolio data.<br>
+        Portfolio: {{ portfolio }} | GitHub: {{ github }}
+    </div>
+</div>
+</body>
+</html>
