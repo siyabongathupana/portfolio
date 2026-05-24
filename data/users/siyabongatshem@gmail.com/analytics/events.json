@@ -514,5 +514,23 @@
     "details": {
       "page": "/portfolio/index.html"
     }
+  },
+  {
+    "type": "page_view",
+    "timestamp": 1779581754413,
+    "client": {
+      "ip": "197.185.128.40",
+      "city": "Johannesburg",
+      "country": "South Africa",
+      "lat": -26.2309,
+      "lon": 28.0583,
+      "deviceType": "Desktop",
+      "os": "Windows",
+      "browser": "Edge",
+      "timestamp": 1779581754413
+    },
+    "details": {
+      "page": "/portfolio/admin.html"
+    }
   }
 ]
