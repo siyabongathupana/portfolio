@@ -1,4 +1,4 @@
-// shared.js – Complete version with isEmailVerified function and all features
+// shared.js – Complete version with fixed project deletion, enhanced logging, analytics integration
 
 window.showLoading = function (msg = 'Processing...') {
   let loader = document.getElementById('globalLoader');
@@ -47,7 +47,7 @@ window.SessionManager = (() => {
     setCurrentUser: (username, pat) => {
       current = { username, pat, timestamp: Date.now() };
       sessionStorage.setItem('portfolioUser', JSON.stringify(current));
-      window.Logger.log('login', `User logged in as ${username}`);
+      window.Logger.log('login', `User logged in as ${username}`, 'INFO');
     },
     logout: () => {
       current = null;
@@ -60,6 +60,7 @@ window.SessionManager = (() => {
   };
 })();
 
+// Enhanced Logger with more detailed tracking
 window.Logger = {
   async _writeTextFile(path, content, commitMsg, branch, token, sha = null) {
     const { owner, repo } = window.REPO_CONFIG;
@@ -90,11 +91,19 @@ window.Logger = {
     if (!user) return;
     
     const timestamp = new Date().toISOString().replace('T', ' ').slice(0, 19);
-    const logEntry = `[${timestamp}] [${level}] [${action}] ${details}\n`;
+    const logEntry = JSON.stringify({
+      timestamp,
+      level,
+      action,
+      details,
+      user: user.username,
+      userAgent: navigator.userAgent,
+      page: window.location.pathname
+    }) + '\n';
     
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(user.username);
-    const logPath = `${dataPath}/users/${encUser}/logs/activity.txt`;
+    const logPath = `${dataPath}/users/${encUser}/logs/activity.ndjson`;
     
     let existingContent = '';
     let sha = null;
@@ -116,16 +125,28 @@ window.Logger = {
     }
   },
   
+  async logActivity(module, action, details, metadata = {}) {
+    const fullDetails = `${module}: ${action} - ${details} ${Object.keys(metadata).length ? JSON.stringify(metadata) : ''}`;
+    await this.log(`${module}_${action}`, fullDetails);
+  },
+  
   async getLogsForUser(targetUsername, adminToken) {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(targetUsername);
-    const logPath = `${dataPath}/users/${encUser}/logs/activity.txt`;
+    const logPath = `${dataPath}/users/${encUser}/logs/activity.ndjson`;
     try {
       const url = `https://api.github.com/repos/${owner}/${repo}/contents/${logPath}?ref=${branch}`;
       const resp = await fetch(url, { headers: { Authorization: `token ${adminToken}` } });
       if (resp.ok) {
         const data = await resp.json();
-        return atob(data.content.replace(/\n/g, ''));
+        const content = atob(data.content.replace(/\n/g, ''));
+        const entries = content.trim().split('\n').filter(l => l.trim()).map(l => {
+          try {
+            const obj = JSON.parse(l);
+            return `[${obj.timestamp}] [${obj.level}] [${obj.action}] ${obj.details} (${obj.userAgent?.substring(0, 50)}...)`;
+          } catch(e) { return l; }
+        });
+        return entries.join('\n');
       }
       return 'No logs found for this user.';
     } catch (e) {
@@ -189,7 +210,7 @@ window.uploadImageToGitHub = async function(file, user, folder = 'images') {
   });
   if (!resp.ok) throw new Error('Image upload failed');
   const data = await resp.json();
-  await window.Logger.log('image_upload', `Uploaded ${fileName} to ${folder}`);
+  await window.Logger.logActivity('image', 'upload', `Uploaded ${fileName} to ${folder}`, { size: blob.size });
   return data.content.download_url;
 };
 
@@ -213,7 +234,7 @@ window.deleteImageFromGitHub = async function(imageUrl, user) {
       })
     });
     if (!deleteResp.ok) throw new Error('Failed to delete image');
-    await window.Logger.log('image_delete', `Deleted ${path}`);
+    await window.Logger.logActivity('image', 'delete', `Deleted ${path}`);
   } catch (e) {
     console.warn('Could not delete image:', e);
   }
@@ -296,12 +317,10 @@ window.AccountManager = {
     } catch { return null; }
   },
   
-  // ========== ADDED: Email Verification Function ==========
   async isEmailVerified(email) {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(email);
     
-    // Check global verified_users.json first
     const globalUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/data/verified_users.json`;
     try {
       const resp = await fetch(globalUrl);
@@ -315,7 +334,6 @@ window.AccountManager = {
       console.log('Global check failed:', err);
     }
     
-    // Fallback: check user's individual verified.json
     const userUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${dataPath}/users/${encUser}/verified.json`;
     try {
       const resp = await fetch(userUrl);
@@ -331,7 +349,6 @@ window.AccountManager = {
     
     return false;
   },
-  // ========== END ADDED FUNCTION ==========
   
   async register(username, passphrase, pat) {
     const payload = JSON.stringify({ test: 'VALID', token: pat });
@@ -343,7 +360,6 @@ window.AccountManager = {
     if (existing && existing.sha) throw new Error('An account with this email already exists on GitHub.');
     await GitHubAPI.updateFile(owner, repo, path, encrypted, `Register ${username}`, branch, pat, existing?.sha);
     
-    // Create verification status file (unverified)
     const verificationStatus = { verified: false, createdAt: Date.now() };
     const verificationPath = `${dataPath}/users/${encUser}/verified.json`;
     try {
@@ -354,7 +370,7 @@ window.AccountManager = {
     
     this._notifyAdminNewUser(username);
     this._notifyUserConfirmation(username);
-    await window.Logger.log('register', `New user registered: ${username}`, 'INFO');
+    await window.Logger.logActivity('account', 'register', `New user registered: ${username}`, { email: username });
     return true;
   },
   async login(username, passphrase) {
@@ -365,6 +381,7 @@ window.AccountManager = {
     const decrypted = await window.CryptoUtil.decrypt(blob, passphrase);
     const data = JSON.parse(decrypted);
     if (data.test !== 'VALID') throw new Error('Corrupted account');
+    await window.Logger.logActivity('account', 'login', `User logged in: ${username}`);
     return data.token;
   },
   async getBlockedUsers() {
@@ -390,7 +407,7 @@ window.AccountManager = {
     const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, adminToken).catch(() => null);
     if (existing && existing.sha) sha = existing.sha;
     await GitHubAPI.updateFile(owner, repo, path, blocked, 'Update blocked users', branch, adminToken, sha);
-    await window.Logger.log('toggle_block', `${block ? 'Blocked' : 'Unblocked'} user ${username}`, 'INFO');
+    await window.Logger.logActivity('admin', 'toggle_block', `${block ? 'Blocked' : 'Unblocked'} user ${username}`);
     return true;
   },
   async listUsers(adminToken) {
@@ -416,7 +433,7 @@ window.AccountManager = {
     for (const item of items) {
       await GitHubAPI.deleteFile(owner, repo, item.path, branch, adminToken, item.sha);
     }
-    await window.Logger.log('delete_user', `Deleted user ${username}`, 'INFO');
+    await window.Logger.logActivity('admin', 'delete_user', `Deleted user ${username}`);
     return true;
   },
   async getUserStats(username, adminToken) {
@@ -605,6 +622,7 @@ window.portfolioData = (() => {
     return JSON.parse(localStorage.getItem(CERTS_KEY) || '[]');
   }
 
+  // FIXED: saveProjects with proper deletion handling (remote keys not in local will be removed)
   async function saveProjects(data, forceEmpty = false) {
     const prev = localStorage.getItem(PROJECTS_KEY);
     
@@ -641,10 +659,21 @@ window.portfolioData = (() => {
           }
         } catch(e) {}
         
+        // FIX: Start with remote, then apply local updates, then DELETE keys that exist in remote but NOT in local
         const merged = { ...remoteData };
+        
+        // Update or add from local
         for (const [id, proj] of Object.entries(data)) {
           if (!merged[id] || proj.updatedAt > (merged[id].updatedAt || 0)) {
             merged[id] = proj;
+          }
+        }
+        
+        // Remove keys that are in remote but NOT in local (deletion)
+        for (const id of Object.keys(remoteData)) {
+          if (!data.hasOwnProperty(id)) {
+            delete merged[id];
+            await window.Logger.logActivity('project', 'delete_remote', `Deleted project ${id} from remote`);
           }
         }
         
@@ -654,7 +683,7 @@ window.portfolioData = (() => {
         }
         
         await GitHubAPI.updateFile(owner, repo, path, finalData, 'Update projects', branch, user.pat, sha);
-        await window.Logger.log('save_projects', `Saved ${Object.keys(finalData).length} projects`);
+        await window.Logger.logActivity('project', 'save', `Saved ${Object.keys(finalData).length} projects`);
         return;
       } catch (err) {
         retries--;
@@ -720,7 +749,7 @@ window.portfolioData = (() => {
         }
         
         await GitHubAPI.updateFile(owner, repo, path, finalData, 'Update certificates', branch, user.pat, sha);
-        await window.Logger.log('save_certificates', `Saved ${finalData.length} certificates`);
+        await window.Logger.logActivity('certificate', 'save', `Saved ${finalData.length} certificates`);
         return;
       } catch (err) {
         retries--;
@@ -744,7 +773,7 @@ window.portfolioData = (() => {
         a.href = URL.createObjectURL(blob);
         a.download = `portfolio_data_${window.SessionManager.getCurrentUser()?.username || 'default'}.zip`;
         a.click();
-        window.Logger.log('export_data', 'Exported data to ZIP');
+        window.Logger.logActivity('data', 'export', 'Exported data to ZIP');
       });
     });
   }
@@ -755,7 +784,7 @@ window.portfolioData = (() => {
     projects[projectId].blocked = block;
     projects[projectId].updatedAt = Date.now();
     await saveProjects(projects);
-    await window.Logger.log('block_project', `${block ? 'Blocked' : 'Unblocked'} project: ${projects[projectId].title}`);
+    await window.Logger.logActivity('project', 'block', `${block ? 'Blocked' : 'Unblocked'} project: ${projects[projectId].title}`);
     return true;
   }
 
@@ -798,7 +827,6 @@ window.protectImages = function () {
   });
 };
 
-// Helper function for toasts
 function showToast(message, type = 'success') {
   let container = document.getElementById('toastContainer');
   if (!container) {
@@ -826,7 +854,6 @@ function showToast(message, type = 'success') {
   }, 3000);
 }
 
-// Generate QR Code function (safe wrapper)
 async function generateQRCodeDataURL(text, size = 50) {
   return new Promise((resolve) => {
     if (typeof QRCode === 'undefined') {
@@ -860,7 +887,6 @@ async function generateQRCodeDataURL(text, size = 50) {
   });
 }
 
-// ========== PDF GENERATION FUNCTION ==========
 window.generateProjectReport = async function(projectId) {
   const data = await window.portfolioData.loadProjectsForView();
   const proj = data[projectId];
@@ -1036,7 +1062,6 @@ window.generateProjectReport = async function(projectId) {
     doc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth / 2, pageHeight - 25, { align: 'center' });
     doc.text('Your Portfolio System', pageWidth / 2, pageHeight - 18, { align: 'center' });
     
-    // QR Code on cover
     const qrDataURL = await generateQRCodeDataURL(repoUrl, 50);
     if (qrDataURL) {
       doc.addImage(qrDataURL, 'PNG', pageWidth - 25, pageHeight - 28, 15, 15);
@@ -1408,7 +1433,6 @@ window.generateProjectReport = async function(projectId) {
       
       doc.text(`Page ${i} of ${pageCount}`, pageWidth / 2, pageHeight - 8, { align: 'center' });
       
-      // QR Code on every page
       const pageQrDataURL = await generateQRCodeDataURL(repoUrl, 25);
       if (pageQrDataURL) {
         doc.addImage(pageQrDataURL, 'PNG', pageWidth - 22, pageHeight - 20, 12, 12);
