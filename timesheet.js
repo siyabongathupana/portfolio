@@ -982,7 +982,7 @@
     if (autoRefreshInterval) clearInterval(autoRefreshInterval);
     autoRefreshInterval = setInterval(async () => {
       if (!document.hidden) await refreshView();
-    }, 60000);
+    }, 180000);
   }
 
   // ======================== INITIALISATION ========================
