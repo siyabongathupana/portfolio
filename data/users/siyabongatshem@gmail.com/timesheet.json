@@ -1,1 +1,14 @@
-[]
+[
+  {
+    "id": 1779655263282,
+    "date": "2026-05-01",
+    "start": "08:29",
+    "end": "14:12",
+    "hours": 5.72,
+    "project": "Omnia Phase 3",
+    "category": "CFAT",
+    "billable": "yes",
+    "notes": "Hardware CFAT",
+    "updatedAt": 1779655263282
+  }
+]
