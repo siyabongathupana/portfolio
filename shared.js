@@ -1,4 +1,4 @@
-// shared.js – Complete version with fixed project deletion, enhanced logging, analytics integration
+// shared.js – Complete version with fixed project deletion, enhanced logging, analytics integration, and full PDF generation
 
 window.showLoading = function (msg = 'Processing...') {
   let loader = document.getElementById('globalLoader');
@@ -622,7 +622,7 @@ window.portfolioData = (() => {
     return JSON.parse(localStorage.getItem(CERTS_KEY) || '[]');
   }
 
-  // FIXED: saveProjects with proper deletion handling (remote keys not in local will be removed)
+  // FIXED: saveProjects with proper deletion handling and SHA re-fetch on retries
   async function saveProjects(data, forceEmpty = false) {
     const prev = localStorage.getItem(PROJECTS_KEY);
     
@@ -649,6 +649,7 @@ window.portfolioData = (() => {
     let retries = 3;
     while (retries > 0) {
       try {
+        // Re-fetch remote data and SHA on every attempt
         let remoteData = {};
         let sha = null;
         try {
@@ -659,17 +660,12 @@ window.portfolioData = (() => {
           }
         } catch(e) {}
         
-        // FIX: Start with remote, then apply local updates, then DELETE keys that exist in remote but NOT in local
         const merged = { ...remoteData };
-        
-        // Update or add from local
         for (const [id, proj] of Object.entries(data)) {
           if (!merged[id] || proj.updatedAt > (merged[id].updatedAt || 0)) {
             merged[id] = proj;
           }
         }
-        
-        // Remove keys that are in remote but NOT in local (deletion)
         for (const id of Object.keys(remoteData)) {
           if (!data.hasOwnProperty(id)) {
             delete merged[id];
@@ -692,11 +688,12 @@ window.portfolioData = (() => {
           else localStorage.removeItem(PROJECTS_KEY);
           throw new Error('GitHub write failed after retries: ' + err.message);
         }
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
     }
   }
 
+  // FIXED: saveCertificates with proper SHA re-fetch on retries
   async function saveCertificates(data, forceEmpty = false) {
     const prev = localStorage.getItem(CERTS_KEY);
     
@@ -758,7 +755,7 @@ window.portfolioData = (() => {
           else localStorage.removeItem(CERTS_KEY);
           throw new Error('GitHub write failed after retries: ' + err.message);
         }
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
     }
   }
