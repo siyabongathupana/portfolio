@@ -1,4 +1,6 @@
 // timesheet.js – Beautiful PDF with pie charts, integrated warnings, full-width charts, professional footer
+// FIXED: saveTimesheet now OVERWRITES the remote file (deletions are permanent)
+
 (function() {
   const user = window.SessionManager?.getCurrentUser();
   if (!user) {
@@ -43,7 +45,7 @@
     }
   }
 
-  // ======================== DATA LOAD & SAVE ========================
+  // ======================== DATA LOAD & SAVE (OVERWRITE) ========================
   async function loadTimesheet() {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(user.username);
@@ -51,7 +53,8 @@
     try {
       const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
       if (file && file.content) {
-        entries = JSON.parse(file.content);
+        const parsed = JSON.parse(file.content);
+        entries = Array.isArray(parsed) ? parsed : [];
         entries = entries.map(e => ({ ...e, updatedAt: e.updatedAt || e.id }));
         entries.sort((a, b) => new Date(b.date) - new Date(a.date));
       } else {
@@ -62,33 +65,26 @@
     }
   }
 
+  // ✅ FIXED: Overwrite the remote file completely – no merging, deletions are permanent
   async function saveTimesheet(optimisticEntries = null) {
     const dataToSave = optimisticEntries !== null ? optimisticEntries : entries;
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(user.username);
     const path = `${dataPath}/users/${encUser}/${TIMESHEET_FILE}`;
+    
     let retries = 3;
     while (retries > 0) {
       try {
-        let remoteEntries = [];
+        // Get current SHA if file exists (to avoid 409 conflict)
         let sha = null;
         try {
           const remoteFile = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
-          if (remoteFile && remoteFile.content) {
-            remoteEntries = JSON.parse(remoteFile.content);
-            sha = remoteFile.sha;
-          }
-        } catch(e) { /* no remote */ }
-        const mergedMap = new Map();
-        for (const e of remoteEntries) mergedMap.set(e.id, e);
-        for (const e of dataToSave) {
-          const existing = mergedMap.get(e.id);
-          if (!existing || (e.updatedAt > existing.updatedAt)) mergedMap.set(e.id, e);
-        }
-        const merged = Array.from(mergedMap.values());
-        merged.sort((a,b) => new Date(b.date) - new Date(a.date));
-        await GitHubAPI.updateFile(owner, repo, path, merged, "Update timesheet", branch, user.pat, sha);
-        entries = merged;
+          if (remoteFile && remoteFile.sha) sha = remoteFile.sha;
+        } catch(e) { /* file does not exist – that's fine */ }
+
+        // Overwrite with the local array (no merging)
+        await GitHubAPI.updateFile(owner, repo, path, dataToSave, "Update timesheet", branch, user.pat, sha);
+        entries = dataToSave;  // update local cache
         return true;
       } catch (err) {
         retries--;
