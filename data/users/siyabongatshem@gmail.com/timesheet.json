@@ -1,7 +1,7 @@
 [
   {
     "id": 1779659492775,
-    "date": "2026-05-24",
+    "date": "2026-05-11",
     "start": "08:30",
     "end": "13:30",
     "hours": 5,
@@ -9,7 +9,7 @@
     "category": "Back-Punching",
     "billable": "yes",
     "notes": "",
-    "updatedAt": 1779659492775
+    "updatedAt": 1779659635175
   },
   {
     "id": 1779658604422,
@@ -162,10 +162,10 @@
     "end": "16:34",
     "hours": 2.37,
     "project": "Omnia Phase 3",
-    "category": "Admin",
+    "category": "Other",
     "billable": "no",
     "notes": "Admin",
-    "updatedAt": 1779659589690
+    "updatedAt": 1779655379731
   },
   {
     "id": 1779655263282,
