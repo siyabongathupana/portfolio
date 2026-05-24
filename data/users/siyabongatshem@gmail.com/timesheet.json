@@ -1,17 +1,5 @@
 [
   {
-    "id": 1778953130831,
-    "date": "2026-05-16",
-    "start": "20:40",
-    "end": "12:38",
-    "hours": 15.97,
-    "project": "Test number what what",
-    "category": "Meetings",
-    "billable": "yes",
-    "notes": "",
-    "updatedAt": 1778953130831
-  },
-  {
     "id": 1778880005334,
     "date": "2026-05-15",
     "start": "23:19",
