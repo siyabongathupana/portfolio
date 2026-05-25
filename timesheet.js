@@ -16,7 +16,7 @@
     window.SessionManager.logout();
     setTimeout(() => {
       window.location.href = "login.html?redirect=timesheet&reason=token_expired";
-    }, 2500);
+    }, 8500);
   }
 
   async function githubFetchWithAuth(url, options) {
