@@ -1,5 +1,17 @@
 [
   {
+    "id": 1779694256114,
+    "date": "2026-05-25",
+    "start": "07:43",
+    "end": "09:30",
+    "hours": 1.78,
+    "project": "Other",
+    "category": "Admin",
+    "billable": "no",
+    "notes": "Discussion on MIBK FAT",
+    "updatedAt": 1779694256114
+  },
+  {
     "id": 1779666985448,
     "date": "2026-05-22",
     "start": "08:30",
