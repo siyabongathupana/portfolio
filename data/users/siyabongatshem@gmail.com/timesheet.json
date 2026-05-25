@@ -1,5 +1,17 @@
 [
   {
+    "id": 1779719521489,
+    "date": "2026-05-25",
+    "start": "13:03",
+    "end": "16:31",
+    "hours": 3.47,
+    "project": "Omnia Phase 3",
+    "category": "Documentation",
+    "billable": "yes",
+    "notes": "Reviewing IO Drawings",
+    "updatedAt": 1779719521489
+  },
+  {
     "id": 1779716658791,
     "date": "2026-05-25",
     "start": "11:15",
