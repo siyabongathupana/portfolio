@@ -1,10 +1,31 @@
-// timesheet.js – Complete with fixed save, 10-min auto-refresh, Admin/Back-Punching/Site categories
+// timesheet.js – Complete with fixed save, 10-min auto-refresh, categories, token expiry handling, notifications off by default
 
 (function() {
   const user = window.SessionManager?.getCurrentUser();
   if (!user) {
     window.location.href = "login.html?redirect=timesheet";
     return;
+  }
+
+  // ======================== TOKEN EXPIRY HANDLING ========================
+  async function handleUnauthorized(showMessage = true) {
+    if (showMessage) {
+      showToast("❌ Your GitHub token has expired or is invalid. Please log in again.", "error");
+    }
+    await window.Logger?.log('token_expired', 'GitHub token invalid or expired');
+    window.SessionManager.logout();
+    setTimeout(() => {
+      window.location.href = "login.html?redirect=timesheet&reason=token_expired";
+    }, 2500);
+  }
+
+  async function githubFetchWithAuth(url, options) {
+    const response = await fetch(url, options);
+    if (response.status === 401 || response.status === 403) {
+      await handleUnauthorized(true);
+      throw new Error("Token expired – redirecting to login");
+    }
+    return response;
   }
 
   // ======================== CONFIGURATION ========================
@@ -18,7 +39,7 @@
   let mainPortfolioProjects = [];
   let allProjectOptions = [];
   let userFullName = "";
-  let notificationsEnabled = true;
+  let notificationsEnabled = false;   // DISABLED BY DEFAULT
   let autoRefreshInterval = null;
 
   let projectChart = null, categoryChart = null, billableChart = null;
@@ -28,7 +49,7 @@
     if (!container) return;
     const toastId = "toast-" + Date.now();
     const bgClass = type === "success" ? "bg-success" : (type === "error" ? "bg-danger" : "bg-info");
-    const html = `<div id="${toastId}" class="toast ${bgClass} text-white" role="alert" data-autohide="true" data-delay="3000"><div class="toast-body">${message}</div></div>`;
+    const html = `<div id="${toastId}" class="toast ${bgClass} text-white" role="alert" data-autohide="true" data-delay="5000"><div class="toast-body">${message}</div></div>`;
     container.insertAdjacentHTML("beforeend", html);
     const toastEl = document.getElementById(toastId);
     $(toastEl).toast("show");
@@ -54,7 +75,7 @@
     const path = `${dataPath}/users/${encUser}/${TIMESHEET_FILE}`;
     const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`;
     try {
-      const resp = await fetch(url, {
+      const resp = await githubFetchWithAuth(url, {
         headers: { Authorization: `token ${user.pat}`, Accept: 'application/vnd.github.v3+json' }
       });
       if (resp.ok) {
@@ -72,8 +93,10 @@
         throw new Error(`HTTP ${resp.status}`);
       }
     } catch(e) {
-      console.error("Load timesheet error:", e);
-      entries = [];
+      if (!e.message.includes("Token expired")) {
+        console.error("Load timesheet error:", e);
+        entries = [];
+      }
     }
   }
 
@@ -95,7 +118,7 @@
     let sha = null;
     const getUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`;
     try {
-      const getResp = await fetch(getUrl, {
+      const getResp = await githubFetchWithAuth(getUrl, {
         headers: { Authorization: `token ${user.pat}`, Accept: 'application/vnd.github.v3+json' }
       });
       if (getResp.ok) {
@@ -120,7 +143,7 @@
     let retries = 3;
     while (retries > 0) {
       try {
-        const putResp = await fetch(putUrl, {
+        const putResp = await githubFetchWithAuth(putUrl, {
           method: 'PUT',
           headers: {
             Authorization: `token ${user.pat}`,
@@ -156,7 +179,7 @@
     const path = `${dataPath}/users/${encUser}/${TIMESHEET_PROJECTS_FILE}`;
     const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`;
     try {
-      const resp = await fetch(url, {
+      const resp = await githubFetchWithAuth(url, {
         headers: { Authorization: `token ${user.pat}`, Accept: 'application/vnd.github.v3+json' }
       });
       if (resp.ok) {
@@ -188,7 +211,7 @@
     let sha = null;
     const getUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`;
     try {
-      const getResp = await fetch(getUrl, {
+      const getResp = await githubFetchWithAuth(getUrl, {
         headers: { Authorization: `token ${user.pat}`, Accept: 'application/vnd.github.v3+json' }
       });
       if (getResp.ok) {
@@ -206,7 +229,7 @@
     if (sha) body.sha = sha;
 
     try {
-      const putResp = await fetch(putUrl, {
+      const putResp = await githubFetchWithAuth(putUrl, {
         method: 'PUT',
         headers: {
           Authorization: `token ${user.pat}`,
@@ -350,7 +373,9 @@
       }
     } catch (err) {
       console.error("Add entry error:", err);
-      showToast("Failed to add entry: " + err.message, "error");
+      if (!err.message.includes("Token expired")) {
+        showToast("Failed to add entry: " + err.message, "error");
+      }
     } finally {
       setButtonLoading(addBtn, false);
     }
@@ -368,7 +393,9 @@
       await refreshView();
     } catch (err) {
       console.error("Delete error:", err);
-      showToast("Delete failed: " + err.message, "error");
+      if (!err.message.includes("Token expired")) {
+        showToast("Delete failed: " + err.message, "error");
+      }
     } finally {
       if (delBtn) setButtonLoading(delBtn, false);
     }
@@ -409,7 +436,9 @@
       showToast("Entry updated.");
       await refreshView();
     } catch (err) {
-      showToast("Update failed: " + err.message, "error");
+      if (!err.message.includes("Token expired")) {
+        showToast("Update failed: " + err.message, "error");
+      }
     } finally {
       setButtonLoading(saveBtn, false);
     }
@@ -937,12 +966,12 @@
       const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
       if (file && file.content) {
         const prefs = JSON.parse(file.content);
-        notificationsEnabled = prefs.notifications !== undefined ? prefs.notifications : true;
+        notificationsEnabled = prefs.notifications === true; // only true if explicitly set
       } else {
-        notificationsEnabled = true;
+        notificationsEnabled = false; // disabled by default
       }
     } catch(e) {
-      notificationsEnabled = true;
+      notificationsEnabled = false;
     }
     const toggle = document.getElementById('notificationsToggle');
     if (toggle) toggle.checked = notificationsEnabled;
@@ -973,7 +1002,9 @@
       updateCharts();
     } catch (err) {
       console.error(err);
-      showToast("Refresh failed: " + err.message, "error");
+      if (!err.message.includes("Token expired")) {
+        showToast("Refresh failed: " + err.message, "error");
+      }
     } finally {
       window.hideLoading();
     }
@@ -1081,8 +1112,15 @@
           await saveNotificationPreference(enabled);
           showToast(enabled ? "Email notifications enabled" : "Email notifications disabled");
         } catch (err) {
-          showToast("Failed to save preference: " + err.message, "error");
-          e.target.checked = !enabled;
+          console.error("Save preference error:", err);
+          if (err.message && (err.message.includes("Bad credentials") || err.message.includes("401"))) {
+            showToast("❌ Your GitHub token has expired. Please log in again.", "error");
+            window.SessionManager.logout();
+            setTimeout(() => window.location.href = "login.html?redirect=timesheet&reason=token_expired", 2000);
+          } else {
+            showToast("Failed to save preference: " + err.message, "error");
+            e.target.checked = !enabled;
+          }
         } finally {
           window.hideLoading();
         }
