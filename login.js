@@ -129,132 +129,166 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // ======================== UPDATE TOKEN FUNCTIONALITY ========================
-  document.getElementById('updateTokenLink').addEventListener('click', (e) => {
-    e.preventDefault();
-    document.getElementById('updateTokenEmail').value = '';
-    document.getElementById('updateTokenPassphrase').value = '';
-    document.getElementById('updateTokenNewToken').value = '';
-    document.getElementById('updateTokenError').style.display = 'none';
-    document.getElementById('updateTokenSuccess').style.display = 'none';
-    $('#updateTokenModal').modal('show');
-  });
-
-  document.getElementById('confirmUpdateTokenBtn').addEventListener('click', async () => {
-    const email = document.getElementById('updateTokenEmail').value.trim();
-    const passphrase = document.getElementById('updateTokenPassphrase').value;
-    const newToken = document.getElementById('updateTokenNewToken').value.trim();
-
-    document.getElementById('updateTokenError').style.display = 'none';
-    document.getElementById('updateTokenSuccess').style.display = 'none';
-
-    if (!email || !passphrase || !newToken) {
-      document.getElementById('updateTokenError').textContent = 'All fields are required.';
-      document.getElementById('updateTokenError').style.display = 'block';
-      return;
-    }
-    if (!email.includes('@')) {
-      document.getElementById('updateTokenError').textContent = 'Enter a valid email address.';
-      document.getElementById('updateTokenError').style.display = 'block';
-      return;
-    }
-    if (!newToken.startsWith('ghp_') && !newToken.startsWith('github_pat_')) {
-      document.getElementById('updateTokenError').textContent = 'Token must start with ghp_ or github_pat_';
-      document.getElementById('updateTokenError').style.display = 'block';
-      return;
-    }
-
-    const confirmBtn = document.getElementById('confirmUpdateTokenBtn');
-    confirmBtn.disabled = true;
-    confirmBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Updating...';
-
-    try {
-      // 1. Fetch the existing encrypted account file
-      const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-      const encUser = encodeURIComponent(email);
-      const accountPath = `${dataPath}/users/${encUser}/account.json`;
-      const accountUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${accountPath}`;
-      const resp = await fetch(accountUrl);
-      if (!resp.ok) throw new Error('Account not found. Please register first.');
-      const encryptedBlob = await resp.json();
-
-      // 2. Decrypt with passphrase
-      let decrypted;
-      try {
-        decrypted = await window.CryptoUtil.decrypt(encryptedBlob, passphrase);
-      } catch (e) {
-        throw new Error('Invalid passphrase. Could not decrypt account.');
+  const updateTokenLink = document.getElementById('updateTokenLink');
+  if (updateTokenLink) {
+    updateTokenLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      // Clear previous values
+      const emailInput = document.getElementById('updateTokenEmail');
+      const passphraseInput = document.getElementById('updateTokenPassphrase');
+      const tokenInput = document.getElementById('updateTokenNewToken');
+      if (emailInput) emailInput.value = '';
+      if (passphraseInput) passphraseInput.value = '';
+      if (tokenInput) tokenInput.value = '';
+      const errorDiv = document.getElementById('updateTokenError');
+      const successDiv = document.getElementById('updateTokenSuccess');
+      if (errorDiv) errorDiv.style.display = 'none';
+      if (successDiv) successDiv.style.display = 'none';
+      // Show modal using jQuery (Bootstrap 4)
+      if (typeof $ !== 'undefined' && $('#updateTokenModal').length) {
+        $('#updateTokenModal').modal('show');
+      } else {
+        console.error('jQuery or modal element not found');
+        showError('Could not open token update window. Please refresh the page.');
       }
-      const accountData = JSON.parse(decrypted);
-      if (accountData.test !== 'VALID') throw new Error('Corrupted account data.');
+    });
+  } else {
+    console.warn('Update token link not found in DOM');
+  }
 
-      // 3. Validate the new token with GitHub
-      const testResp = await fetch('https://api.github.com/user', {
-        headers: { Authorization: `token ${newToken}` }
-      });
-      if (!testResp.ok) {
-        if (testResp.status === 401 || testResp.status === 403) {
-          throw new Error('New token is invalid or expired. Please generate a new token with "repo" scope.');
+  const confirmUpdateBtn = document.getElementById('confirmUpdateTokenBtn');
+  if (confirmUpdateBtn) {
+    confirmUpdateBtn.addEventListener('click', async () => {
+      const email = document.getElementById('updateTokenEmail').value.trim();
+      const passphrase = document.getElementById('updateTokenPassphrase').value;
+      const newToken = document.getElementById('updateTokenNewToken').value.trim();
+
+      const errorDiv = document.getElementById('updateTokenError');
+      const successDiv = document.getElementById('updateTokenSuccess');
+      if (errorDiv) errorDiv.style.display = 'none';
+      if (successDiv) successDiv.style.display = 'none';
+
+      if (!email || !passphrase || !newToken) {
+        if (errorDiv) {
+          errorDiv.textContent = 'All fields are required.';
+          errorDiv.style.display = 'block';
         }
-        throw new Error(`GitHub token validation failed (${testResp.status})`);
+        return;
+      }
+      if (!email.includes('@')) {
+        if (errorDiv) {
+          errorDiv.textContent = 'Enter a valid email address.';
+          errorDiv.style.display = 'block';
+        }
+        return;
+      }
+      if (!newToken.startsWith('ghp_') && !newToken.startsWith('github_pat_')) {
+        if (errorDiv) {
+          errorDiv.textContent = 'Token must start with ghp_ or github_pat_';
+          errorDiv.style.display = 'block';
+        }
+        return;
       }
 
-      // 4. Replace token and re-encrypt
-      accountData.token = newToken;
-      const newEncrypted = await window.CryptoUtil.encrypt(JSON.stringify(accountData), passphrase);
+      const confirmBtn = document.getElementById('confirmUpdateTokenBtn');
+      confirmBtn.disabled = true;
+      confirmBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Updating...';
 
-      // 5. Get current SHA of the account.json file
-      let sha = null;
-      const getUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${accountPath}?ref=${branch}`;
-      const getResp = await fetch(getUrl, {
-        headers: { Authorization: `token ${newToken}`, Accept: 'application/vnd.github.v3+json' }
-      });
-      if (getResp.ok) {
-        const data = await getResp.json();
-        sha = data.sha;
-      } else if (getResp.status !== 404) {
-        throw new Error(`Failed to get file info: ${getResp.status}`);
+      try {
+        // 1. Fetch the existing encrypted account file
+        const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+        const encUser = encodeURIComponent(email);
+        const accountPath = `${dataPath}/users/${encUser}/account.json`;
+        const accountUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${accountPath}`;
+        const resp = await fetch(accountUrl);
+        if (!resp.ok) throw new Error('Account not found. Please register first.');
+        const encryptedBlob = await resp.json();
+
+        // 2. Decrypt with passphrase
+        let decrypted;
+        try {
+          decrypted = await window.CryptoUtil.decrypt(encryptedBlob, passphrase);
+        } catch (e) {
+          throw new Error('Invalid passphrase. Could not decrypt account.');
+        }
+        const accountData = JSON.parse(decrypted);
+        if (accountData.test !== 'VALID') throw new Error('Corrupted account data.');
+
+        // 3. Validate the new token with GitHub
+        const testResp = await fetch('https://api.github.com/user', {
+          headers: { Authorization: `token ${newToken}` }
+        });
+        if (!testResp.ok) {
+          if (testResp.status === 401 || testResp.status === 403) {
+            throw new Error('New token is invalid or expired. Please generate a new token with "repo" scope.');
+          }
+          throw new Error(`GitHub token validation failed (${testResp.status})`);
+        }
+
+        // 4. Replace token and re-encrypt
+        accountData.token = newToken;
+        const newEncrypted = await window.CryptoUtil.encrypt(JSON.stringify(accountData), passphrase);
+
+        // 5. Get current SHA of the account.json file
+        let sha = null;
+        const getUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${accountPath}?ref=${branch}`;
+        const getResp = await fetch(getUrl, {
+          headers: { Authorization: `token ${newToken}`, Accept: 'application/vnd.github.v3+json' }
+        });
+        if (getResp.ok) {
+          const data = await getResp.json();
+          sha = data.sha;
+        } else if (getResp.status !== 404) {
+          throw new Error(`Failed to get file info: ${getResp.status}`);
+        }
+
+        // 6. Update the file on GitHub
+        const putUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${accountPath}`;
+        const putBody = {
+          message: `Update token for ${email}`,
+          content: btoa(unescape(encodeURIComponent(JSON.stringify(newEncrypted, null, 2)))),
+          branch: branch
+        };
+        if (sha) putBody.sha = sha;
+
+        const putResp = await fetch(putUrl, {
+          method: 'PUT',
+          headers: {
+            Authorization: `token ${newToken}`,
+            'Content-Type': 'application/json',
+            Accept: 'application/vnd.github.v3+json'
+          },
+          body: JSON.stringify(putBody)
+        });
+        if (!putResp.ok) {
+          const errData = await putResp.json();
+          throw new Error(`Failed to save updated token: ${errData.message}`);
+        }
+
+        if (successDiv) {
+          successDiv.textContent = 'Token updated successfully! You can now log in.';
+          successDiv.style.display = 'block';
+        }
+        // Clear form and close modal after 2 seconds
+        setTimeout(() => {
+          if (typeof $ !== 'undefined') $('#updateTokenModal').modal('hide');
+          // Pre-fill the login email for convenience
+          const loginEmail = document.getElementById('loginUsername');
+          if (loginEmail) loginEmail.value = email;
+        }, 2000);
+      } catch (err) {
+        if (errorDiv) {
+          errorDiv.textContent = err.message;
+          errorDiv.style.display = 'block';
+        }
+      } finally {
+        confirmBtn.disabled = false;
+        confirmBtn.innerHTML = 'Update Token';
       }
-
-      // 6. Update the file on GitHub
-      const putUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${accountPath}`;
-      const putBody = {
-        message: `Update token for ${email}`,
-        content: btoa(unescape(encodeURIComponent(JSON.stringify(newEncrypted, null, 2)))),
-        branch: branch
-      };
-      if (sha) putBody.sha = sha;
-
-      const putResp = await fetch(putUrl, {
-        method: 'PUT',
-        headers: {
-          Authorization: `token ${newToken}`,
-          'Content-Type': 'application/json',
-          Accept: 'application/vnd.github.v3+json'
-        },
-        body: JSON.stringify(putBody)
-      });
-      if (!putResp.ok) {
-        const errData = await putResp.json();
-        throw new Error(`Failed to save updated token: ${errData.message}`);
-      }
-
-      document.getElementById('updateTokenSuccess').textContent = 'Token updated successfully! You can now log in.';
-      document.getElementById('updateTokenSuccess').style.display = 'block';
-      document.getElementById('updateTokenError').style.display = 'none';
-      // Clear form and close modal after 2 seconds
-      setTimeout(() => {
-        $('#updateTokenModal').modal('hide');
-        // Pre-fill the login email for convenience
-        document.getElementById('loginUsername').value = email;
-      }, 2000);
-    } catch (err) {
-      document.getElementById('updateTokenError').textContent = err.message;
-      document.getElementById('updateTokenError').style.display = 'block';
-    } finally {
-      confirmBtn.disabled = false;
-      confirmBtn.innerHTML = 'Update Token';
-    }
-  });
+    });
+  } else {
+    console.warn('Confirm update token button not found');
+  }
 
   // ======================== LOGIN / REGISTER FUNCTIONS ========================
   async function handleLogin() {
