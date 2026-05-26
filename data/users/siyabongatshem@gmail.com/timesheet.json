@@ -1,17 +1,5 @@
 [
   {
-    "id": 1779823190394,
-    "date": "2026-05-26",
-    "start": "21:19",
-    "end": "12:19",
-    "hours": 15,
-    "project": "Omnia Phase 3",
-    "category": "Training",
-    "billable": "yes",
-    "notes": "testing 2",
-    "updatedAt": 1779823190394
-  },
-  {
     "id": 1779823154998,
     "date": "2026-05-26",
     "start": "21:18",
