@@ -9,7 +9,8 @@
     "category": "Other",
     "billable": "yes",
     "notes": "CFAT Preparations",
-    "updatedAt": 1779804307334
+    "updatedAt": 1779804307334,
+    "weekKey": "2026-W22"
   },
   {
     "id": 1779804119593,
@@ -21,7 +22,8 @@
     "category": "Software",
     "billable": "yes",
     "notes": "Importing ASBUILT Exports for Boiler Site work",
-    "updatedAt": 1779804119593
+    "updatedAt": 1779804119593,
+    "weekKey": "2026-W22"
   },
   {
     "id": 1779824635857,
@@ -33,7 +35,8 @@
     "category": "Other",
     "billable": "no",
     "notes": "Helping Mandla carry transformer",
-    "updatedAt": 1779824635857
+    "updatedAt": 1779824635857,
+    "weekKey": "2026-W22"
   },
   {
     "id": 1779824564753,
@@ -45,7 +48,8 @@
     "category": "Documentation",
     "billable": "yes",
     "notes": "Reviewing Power&Earthing",
-    "updatedAt": 1779824564753
+    "updatedAt": 1779824564753,
+    "weekKey": "2026-W22"
   },
   {
     "id": 1779817348592,
@@ -57,7 +61,8 @@
     "category": "Documentation",
     "billable": "yes",
     "notes": "Reviewing Power&Earthing",
-    "updatedAt": 1779817399802
+    "updatedAt": 1779817399802,
+    "weekKey": "2026-W22"
   },
   {
     "id": 1779815686291,
@@ -68,8 +73,9 @@
     "project": "Other",
     "category": "Admin",
     "billable": "no",
-    "notes": "Ysterday's Timesheets",
-    "updatedAt": 1779815686291
+    "notes": "Yesterday's Timesheets",
+    "updatedAt": 1779824816668,
+    "weekKey": "2026-W22"
   },
   {
     "id": 1779783903610,
@@ -81,7 +87,8 @@
     "category": "Training",
     "billable": "no",
     "notes": "Helping Collegues Set Up SMS",
-    "updatedAt": 1779783903610
+    "updatedAt": 1779783903610,
+    "weekKey": "2026-W22"
   },
   {
     "id": 1779719521489,
@@ -93,7 +100,8 @@
     "category": "Documentation",
     "billable": "yes",
     "notes": "Reviewing IO Drawings",
-    "updatedAt": 1779721018842
+    "updatedAt": 1779721018842,
+    "weekKey": "2026-W22"
   },
   {
     "id": 1779716658791,
@@ -105,7 +113,8 @@
     "category": "Other",
     "billable": "yes",
     "notes": "Discusion",
-    "updatedAt": 1779716658791
+    "updatedAt": 1779716658791,
+    "weekKey": "2026-W22"
   },
   {
     "id": 1779700510822,
@@ -117,7 +126,8 @@
     "category": "Admin",
     "billable": "no",
     "notes": "VmWare, Virtualization Manual",
-    "updatedAt": 1779700510822
+    "updatedAt": 1779700510822,
+    "weekKey": "2026-W22"
   },
   {
     "id": 1779694256114,
@@ -129,7 +139,8 @@
     "category": "Admin",
     "billable": "no",
     "notes": "Discussion on MIBK FAT",
-    "updatedAt": 1779694256114
+    "updatedAt": 1779694256114,
+    "weekKey": "2026-W22"
   },
   {
     "id": 1779666985448,
@@ -141,7 +152,8 @@
     "category": "Documentation",
     "billable": "yes",
     "notes": "",
-    "updatedAt": 1779666985448
+    "updatedAt": 1779666985448,
+    "weekKey": "2026-W21"
   },
   {
     "id": 1779666798487,
@@ -153,7 +165,8 @@
     "category": "Admin",
     "billable": "no",
     "notes": "",
-    "updatedAt": 1779666798487
+    "updatedAt": 1779666798487,
+    "weekKey": "2026-W21"
   },
   {
     "id": 1779666521046,
@@ -165,7 +178,8 @@
     "category": "Site",
     "billable": "yes",
     "notes": "ASBUILTS",
-    "updatedAt": 1779666521046
+    "updatedAt": 1779666521046,
+    "weekKey": "2026-W21"
   },
   {
     "id": 1779665566113,
@@ -177,7 +191,8 @@
     "category": "Training",
     "billable": "no",
     "notes": "",
-    "updatedAt": 1779665566113
+    "updatedAt": 1779665566113,
+    "weekKey": "2026-W21"
   },
   {
     "id": 1779664916044,
@@ -189,7 +204,8 @@
     "category": "Other",
     "billable": "yes",
     "notes": "Fixing VMs",
-    "updatedAt": 1779664916044
+    "updatedAt": 1779664916044,
+    "weekKey": "2026-W21"
   },
   {
     "id": 1779664695882,
@@ -201,7 +217,8 @@
     "category": "Admin",
     "billable": "no",
     "notes": "",
-    "updatedAt": 1779664695882
+    "updatedAt": 1779664695882,
+    "weekKey": "2026-W21"
   },
   {
     "id": 1779664100156,
@@ -213,7 +230,8 @@
     "category": "IFAT",
     "billable": "yes",
     "notes": "Graphics IFAT",
-    "updatedAt": 1779664100156
+    "updatedAt": 1779664100156,
+    "weekKey": "2026-W21"
   },
   {
     "id": 1779663220761,
@@ -225,7 +243,8 @@
     "category": "Training",
     "billable": "no",
     "notes": "",
-    "updatedAt": 1779663739866
+    "updatedAt": 1779663739866,
+    "weekKey": "2026-W21"
   },
   {
     "id": 1779663035197,
@@ -237,7 +256,8 @@
     "category": "Admin",
     "billable": "no",
     "notes": "",
-    "updatedAt": 1779663035197
+    "updatedAt": 1779663035197,
+    "weekKey": "2026-W21"
   },
   {
     "id": 1779662895769,
@@ -249,7 +269,8 @@
     "category": "IFAT",
     "billable": "yes",
     "notes": "Graphics IFAT",
-    "updatedAt": 1779662895769
+    "updatedAt": 1779662895769,
+    "weekKey": "2026-W21"
   },
   {
     "id": 1779662690587,
@@ -261,7 +282,8 @@
     "category": "IFAT",
     "billable": "yes",
     "notes": "Graphics IFAT",
-    "updatedAt": 1779662690587
+    "updatedAt": 1779662690587,
+    "weekKey": "2026-W21"
   },
   {
     "id": 1779662510542,
@@ -273,7 +295,8 @@
     "category": "Admin",
     "billable": "no",
     "notes": "",
-    "updatedAt": 1779662510542
+    "updatedAt": 1779662510542,
+    "weekKey": "2026-W21"
   },
   {
     "id": 1779661891208,
@@ -285,7 +308,8 @@
     "category": "Admin",
     "billable": "no",
     "notes": "",
-    "updatedAt": 1779661891208
+    "updatedAt": 1779661891208,
+    "weekKey": "2026-W20"
   },
   {
     "id": 1779661743557,
@@ -297,7 +321,8 @@
     "category": "Training",
     "billable": "no",
     "notes": "Eningma",
-    "updatedAt": 1779661743557
+    "updatedAt": 1779661743557,
+    "weekKey": "2026-W20"
   },
   {
     "id": 1779661659846,
@@ -309,7 +334,8 @@
     "category": "IFAT",
     "billable": "yes",
     "notes": "Graphics IFAT",
-    "updatedAt": 1779661659846
+    "updatedAt": 1779661659846,
+    "weekKey": "2026-W20"
   },
   {
     "id": 1779661365801,
@@ -321,7 +347,8 @@
     "category": "Training",
     "billable": "no",
     "notes": "ProcessWorld, Enigma",
-    "updatedAt": 1779661365801
+    "updatedAt": 1779661365801,
+    "weekKey": "2026-W20"
   },
   {
     "id": 1779661131687,
@@ -333,7 +360,8 @@
     "category": "Admin",
     "billable": "no",
     "notes": "",
-    "updatedAt": 1779661131687
+    "updatedAt": 1779661131687,
+    "weekKey": "2026-W20"
   },
   {
     "id": 1779660913993,
@@ -345,7 +373,8 @@
     "category": "Back-Punching",
     "billable": "yes",
     "notes": "",
-    "updatedAt": 1779660913993
+    "updatedAt": 1779660913993,
+    "weekKey": "2026-W20"
   },
   {
     "id": 1779660730429,
@@ -357,7 +386,8 @@
     "category": "Admin",
     "billable": "no",
     "notes": "",
-    "updatedAt": 1779660730429
+    "updatedAt": 1779660730429,
+    "weekKey": "2026-W20"
   },
   {
     "id": 1779660690151,
@@ -369,7 +399,8 @@
     "category": "Back-Punching",
     "billable": "yes",
     "notes": "",
-    "updatedAt": 1779660690151
+    "updatedAt": 1779660690151,
+    "weekKey": "2026-W20"
   },
   {
     "id": 1779660552114,
@@ -381,7 +412,8 @@
     "category": "Admin",
     "billable": "no",
     "notes": "",
-    "updatedAt": 1779660552114
+    "updatedAt": 1779660552114,
+    "weekKey": "2026-W20"
   },
   {
     "id": 1779660033580,
@@ -393,7 +425,8 @@
     "category": "Back-Punching",
     "billable": "yes",
     "notes": "",
-    "updatedAt": 1779660033580
+    "updatedAt": 1779660033580,
+    "weekKey": "2026-W20"
   },
   {
     "id": 1779660364182,
@@ -405,7 +438,8 @@
     "category": "Training",
     "billable": "no",
     "notes": "",
-    "updatedAt": 1779662145249
+    "updatedAt": 1779662145249,
+    "weekKey": "2026-W20"
   },
   {
     "id": 1779660184573,
@@ -417,7 +451,8 @@
     "category": "Admin",
     "billable": "no",
     "notes": "Email with Emerson IT, SMS",
-    "updatedAt": 1779660184573
+    "updatedAt": 1779660184573,
+    "weekKey": "2026-W20"
   },
   {
     "id": 1779659492775,
@@ -429,7 +464,8 @@
     "category": "Back-Punching",
     "billable": "yes",
     "notes": "",
-    "updatedAt": 1779659826033
+    "updatedAt": 1779659826033,
+    "weekKey": "2026-W20"
   },
   {
     "id": 1779658604422,
@@ -441,7 +477,8 @@
     "category": "Other",
     "billable": "no",
     "notes": "Admin (SMS)",
-    "updatedAt": 1779662007966
+    "updatedAt": 1779662007966,
+    "weekKey": "2026-W19"
   },
   {
     "id": 1779658499331,
@@ -453,7 +490,8 @@
     "category": "CFAT",
     "billable": "yes",
     "notes": "",
-    "updatedAt": 1779658499331
+    "updatedAt": 1779658499331,
+    "weekKey": "2026-W19"
   },
   {
     "id": 1779658369530,
@@ -465,7 +503,8 @@
     "category": "Other",
     "billable": "no",
     "notes": "Admin (Timesheets, Emails, SMS)",
-    "updatedAt": 1779658369530
+    "updatedAt": 1779658369530,
+    "weekKey": "2026-W19"
   },
   {
     "id": 1779658163369,
@@ -477,7 +516,8 @@
     "category": "CFAT",
     "billable": "yes",
     "notes": "",
-    "updatedAt": 1779658163369
+    "updatedAt": 1779658163369,
+    "weekKey": "2026-W19"
   },
   {
     "id": 1779657878307,
@@ -489,7 +529,8 @@
     "category": "Other",
     "billable": "no",
     "notes": "Admin (FAT files etc)",
-    "updatedAt": 1779657878307
+    "updatedAt": 1779657878307,
+    "weekKey": "2026-W19"
   },
   {
     "id": 1779657792243,
@@ -501,7 +542,8 @@
     "category": "CFAT",
     "billable": "yes",
     "notes": "",
-    "updatedAt": 1779657792243
+    "updatedAt": 1779657792243,
+    "weekKey": "2026-W19"
   },
   {
     "id": 1779657966806,
@@ -513,7 +555,8 @@
     "category": "Training",
     "billable": "no",
     "notes": "",
-    "updatedAt": 1779657966806
+    "updatedAt": 1779657966806,
+    "weekKey": "2026-W19"
   },
   {
     "id": 1779657679680,
@@ -525,7 +568,8 @@
     "category": "Other",
     "billable": "no",
     "notes": "Admin",
-    "updatedAt": 1779657679680
+    "updatedAt": 1779657679680,
+    "weekKey": "2026-W19"
   },
   {
     "id": 1779657490299,
@@ -537,7 +581,8 @@
     "category": "CFAT",
     "billable": "yes",
     "notes": "",
-    "updatedAt": 1779657490299
+    "updatedAt": 1779657490299,
+    "weekKey": "2026-W19"
   },
   {
     "id": 1779656779298,
@@ -549,7 +594,8 @@
     "category": "Training",
     "billable": "no",
     "notes": "",
-    "updatedAt": 1779662259211
+    "updatedAt": 1779662259211,
+    "weekKey": "2026-W19"
   },
   {
     "id": 1779656064849,
@@ -561,7 +607,8 @@
     "category": "Admin",
     "billable": "no",
     "notes": "Admin",
-    "updatedAt": 1779659697311
+    "updatedAt": 1779659697311,
+    "weekKey": "2026-W19"
   },
   {
     "id": 1779655887950,
@@ -573,6 +620,7 @@
     "category": "CFAT",
     "billable": "yes",
     "notes": "",
-    "updatedAt": 1779655887950
+    "updatedAt": 1779655887950,
+    "weekKey": "2026-W19"
   }
 ]
