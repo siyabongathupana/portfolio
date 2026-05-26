@@ -492,18 +492,6 @@
     "updatedAt": 1779655887950
   },
   {
-    "id": 1779655379731,
-    "date": "2026-05-01",
-    "start": "14:12",
-    "end": "16:34",
-    "hours": 2.37,
-    "project": "Omnia Phase 3",
-    "category": "Admin",
-    "billable": "no",
-    "notes": "Admin",
-    "updatedAt": 1779659589690
-  },
-  {
     "id": 1779655263282,
     "date": "2026-05-01",
     "start": "08:29",
