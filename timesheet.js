@@ -1,4 +1,4 @@
-// timesheet.js – Complete, fixed PDF encryption fallback + delete timesheet projects
+// timesheet.js – Fixed PDF generation, full-width table, week coloring, delete projects
 (function() {
   const user = window.SessionManager?.getCurrentUser();
   if (!user) {
@@ -307,7 +307,7 @@
     const tbody = document.getElementById('historyBody');
     const tfoot = document.getElementById('historyFoot');
     if (filtered.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="9" class="text-center">No entries found. </td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" class="text-center">No entries found. </tr></tr>';
       tfoot.style.display = 'none';
       return;
     }
@@ -399,7 +399,7 @@
       let chart = null;
       try {
         chart = await chartBuilder(ctx, canvas);
-        await new Promise(r => setTimeout(r, 500));
+        await new Promise(r => setTimeout(r, 600)); // increased timeout
         const imgData = canvas.toDataURL('image/png');
         if (imgData.length < 1000) throw new Error('Chart image too small');
         resolve(imgData);
@@ -411,7 +411,7 @@
     });
   }
 
-  // ======================== PDF REPORT (with fallback encryption) ========================
+  // ======================== PDF REPORT (fixed margins & encryption fallback) ========================
   async function generatePDFReport(startDate, endDate) {
     window.showLoading("Generating professional PDF report...");
     try {
@@ -466,7 +466,7 @@
       doc.text(`Report ID: ${Date.now()}`, pageWidth - margin - 30, yPos);
       yPos += 8;
 
-      // Generate charts with fallback
+      // Charts
       let chart1Img = null, chart2Img = null, chart3Img = null;
       try {
         const projMap = {}; filtered.forEach(e=>{ projMap[e.project]=(projMap[e.project]||0)+e.hours; });
@@ -490,18 +490,38 @@
       else { doc.setFontSize(10); doc.text("Chart unavailable", pageWidth/2, yPos+30, { align:'center' }); }
       yPos += 66;
 
-      // Table
+      // Data table - full width with balanced columns
       const tableData = filtered.map(e=>[e.date, e.start, e.end, e.hours.toFixed(2), e.project, e.category, e.billable==='yes'?'✓ Billable':'✗ Non-billable', e.notes||'-']);
       const rowColors = filtered.map(e=>getRowColor(e));
+      
+      // Calculate column widths proportionally to contentWidth
+      const colWidths = [22, 14, 14, 14, 30, 25, 20, 55];
+      const totalColWidth = colWidths.reduce((a,b)=>a+b,0);
+      const scale = contentWidth / totalColWidth;
+      const scaledWidths = colWidths.map(w => w * scale);
+      
       doc.autoTable({
-        startY: yPos, head: [['Date','Start','End','Hours','Project','Category','Billable','Notes']], body: tableData,
-        foot: [['','','', totalHours.toFixed(2),'','','','']], theme: 'grid',
+        startY: yPos,
+        head: [['Date','Start','End','Hours','Project','Category','Billable','Notes']],
+        body: tableData,
+        foot: [['','','', totalHours.toFixed(2),'','','','']],
+        theme: 'grid',
         headStyles: { fillColor: primary, textColor: 255, fontStyle: 'bold', halign: 'center', fontSize: 9 },
         footStyles: { fillColor: [248,250,252], textColor: primary, fontStyle: 'bold', halign: 'center', fontSize: 9 },
         bodyStyles: { fontSize: 8, cellPadding: 2, valign: 'middle' },
         rowBackground: (row) => rowColors[row] || [255,255,255],
-        columnStyles: { 0:{ cellWidth:22 },1:{ cellWidth:14 },2:{ cellWidth:14 },3:{ cellWidth:14 },4:{ cellWidth:30 },5:{ cellWidth:25 },6:{ cellWidth:20 },7:{ cellWidth:55 } },
-        margin: { left: margin, right: margin }, tableWidth: contentWidth
+        columnStyles: {
+          0: { cellWidth: scaledWidths[0] },
+          1: { cellWidth: scaledWidths[1] },
+          2: { cellWidth: scaledWidths[2] },
+          3: { cellWidth: scaledWidths[3] },
+          4: { cellWidth: scaledWidths[4] },
+          5: { cellWidth: scaledWidths[5] },
+          6: { cellWidth: scaledWidths[6] },
+          7: { cellWidth: scaledWidths[7] }
+        },
+        margin: { left: margin, right: margin },
+        tableWidth: contentWidth
       });
 
       const finalY = doc.lastAutoTable.finalY + 8;
@@ -519,7 +539,7 @@
       doc.text("CONFIDENTIAL", pageWidth/2, pageHeight/2, { align:'center', angle:45 });
       doc.setGState(new doc.GState({ opacity: 1 }));
 
-      // ========== PDF ENCRYPTION WITH FALLBACK ==========
+      // PDF encryption with fallback
       try {
         if (typeof PDFLib !== 'undefined' && PDFLib.PDFDocument) {
           const pdfBlob = doc.output('blob');
@@ -544,15 +564,15 @@
             saveAs(encryptedBlob, `Timesheet_${startDate}_to_${endDate}_readonly.pdf`);
             showToast("PDF saved – opens without password, cannot be edited/copied.", "success");
           } else {
-            throw new Error("pdfDoc.encrypt not a function");
+            throw new Error("encrypt method missing");
           }
         } else {
-          throw new Error("pdf-lib not loaded");
+          throw new Error("PDFLib not loaded");
         }
       } catch (encryptErr) {
         console.warn("PDF encryption failed, saving unencrypted:", encryptErr);
-        doc.save(`Timesheet_${startDate}_to_${endDate}.pdf`);
-        showToast("PDF generated without encryption (pdf-lib error).", "warning");
+        doc.save(`Timesheet_${startDate}_to_${endDate}_unprotected.pdf`);
+        showToast("PDF generated without encryption (library error).", "warning");
       }
     } catch (err) {
       console.error(err);
@@ -663,7 +683,7 @@
           data: { labels: Object.keys(projMap), datasets: [{ label: 'Hours', data: Object.values(projMap), backgroundColor: '#2fc7ff' }] },
           options: { responsive: false }
         });
-        await new Promise(r => setTimeout(r, 500));
+        await new Promise(r => setTimeout(r, 600));
         const chartBase64 = canvas.toDataURL('image/png');
         chart.destroy();
         const chartImage = workbook.addImage({ base64: chartBase64, extension: 'png' });
