@@ -1,18 +1,30 @@
 [
   {
-    "id": 1779797786794,
+    "id": 1779798300590,
+    "date": "2026-05-26",
+    "start": "09:15",
+    "end": "09:25",
+    "hours": 0.17,
+    "project": "Steam Station 2 Effluent Upgrade",
+    "category": "Implementation",
+    "billable": "yes",
+    "notes": "",
+    "updatedAt": 1779798300590
+  },
+  {
+    "id": 1779797887968,
     "date": "2026-05-26",
     "start": "08:30",
     "end": "09:15",
     "hours": 0.75,
     "project": "Other",
     "category": "Admin",
-    "billable": "no",
+    "billable": "yes",
     "notes": "Timesheet",
-    "updatedAt": 1779798220284
+    "updatedAt": 1779797887968
   },
   {
-    "id": 1779797663094,
+    "id": 1779797723787,
     "date": "2026-05-26",
     "start": "07:30",
     "end": "08:30",
@@ -21,7 +33,7 @@
     "category": "Training",
     "billable": "no",
     "notes": "",
-    "updatedAt": 1779797663094
+    "updatedAt": 1779797723787
   },
   {
     "id": 1779797522231,
