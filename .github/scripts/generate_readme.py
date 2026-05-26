@@ -282,15 +282,6 @@ def get_contribution_graph():
     # Return placeholder if API fails
     return "⬜ ⬜ ⬜ ⬜ ⬜ ⬜ ⬜"
 
-def format_duration(seconds):
-    """Format seconds into human readable duration"""
-    if seconds < 60:
-        return f"{seconds}s"
-    elif seconds < 3600:
-        return f"{seconds // 60}m"
-    else:
-        return f"{seconds // 3600}h {(seconds % 3600) // 60}m"
-
 def get_latest_activity(logs, limit=5):
     """Format latest activity for display"""
     activities = []
@@ -424,7 +415,7 @@ def main():
             "project_breakdown": timesheet_stats['project_breakdown'],
             "daily_average_by_day": timesheet_stats['daily_average_by_day']
         },
-        "projects_with_progress": projects_with_progress[:5],  # Top 5 by progress
+        "projects_with_progress": projects_with_progress[:5],
         "featured_projects": user_data.get('projects_list', [])[:3],
         "recent_certificates": user_data.get('certificates', [])[:4],
         "github_stats": github_stats,
