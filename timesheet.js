@@ -1,4 +1,4 @@
-// timesheet.js – Fixed PDF chart generation + delete timesheet projects
+// timesheet.js – Complete, fixed PDF encryption fallback + delete timesheet projects
 (function() {
   const user = window.SessionManager?.getCurrentUser();
   if (!user) {
@@ -165,7 +165,6 @@
     return true;
   }
 
-  // NEW: Delete a timesheet-only project
   async function deleteTimesheetProject(projectName) {
     if (!timesheetProjects.includes(projectName)) return false;
     const updated = timesheetProjects.filter(p => p !== projectName);
@@ -308,7 +307,7 @@
     const tbody = document.getElementById('historyBody');
     const tfoot = document.getElementById('historyFoot');
     if (filtered.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="9" class="text-center">No entries found.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" class="text-center">No entries found. </td></tr>';
       tfoot.style.display = 'none';
       return;
     }
@@ -400,14 +399,11 @@
       let chart = null;
       try {
         chart = await chartBuilder(ctx, canvas);
-        // Wait for chart to render fully
         await new Promise(r => setTimeout(r, 500));
-        // Ensure canvas is not empty
         const imgData = canvas.toDataURL('image/png');
-        if (imgData.length < 1000) throw new Error('Chart image too small, likely corrupt');
+        if (imgData.length < 1000) throw new Error('Chart image too small');
         resolve(imgData);
       } catch (err) {
-        console.error('Chart capture failed:', err);
         reject(err);
       } finally {
         if (chart && typeof chart.destroy === 'function') chart.destroy();
@@ -415,14 +411,13 @@
     });
   }
 
-  // ======================== PDF REPORT with fixed chart generation ========================
+  // ======================== PDF REPORT (with fallback encryption) ========================
   async function generatePDFReport(startDate, endDate) {
     window.showLoading("Generating professional PDF report...");
     try {
       const filtered = entries.filter(e => e.date >= startDate && e.date <= endDate);
       if (!filtered.length) { showToast("No entries in selected range.", "error"); window.hideLoading(); return; }
 
-      // Assign week keys
       filtered.forEach(e => { e.weekKey = `${new Date(e.date).getFullYear()}-W${getWeekNumber(e.date)}`; });
       const weeks = [...new Map(filtered.map(e => [e.weekKey, e.weekKey])).values()];
       const weekColors = weeks.map((w, idx) => ({ week: w, color: idx % 2 === 0 ? [245,247,250] : [255,248,225] }));
@@ -436,7 +431,7 @@
       const contentWidth = pageWidth - margin * 2;
       const primary = [11,43,59], accent = [47,199,255];
 
-      // Header (same as before)
+      // Header
       doc.setFillColor(primary[0], primary[1], primary[2]); doc.rect(0,0,pageWidth,28,'F');
       doc.setFillColor(accent[0], accent[1], accent[2]); doc.rect(0,28,pageWidth,4,'F');
       doc.setTextColor(255,255,255); doc.setFontSize(18); doc.setFont(undefined,'bold');
@@ -471,7 +466,7 @@
       doc.text(`Report ID: ${Date.now()}`, pageWidth - margin - 30, yPos);
       yPos += 8;
 
-      // Generate charts with robust capture
+      // Generate charts with fallback
       let chart1Img = null, chart2Img = null, chart3Img = null;
       try {
         const projMap = {}; filtered.forEach(e=>{ projMap[e.project]=(projMap[e.project]||0)+e.hours; });
@@ -479,12 +474,10 @@
         const projData = projLabels.map(l=>projMap[l]);
         chart1Img = await captureChartImage((ctx,canvas) => new Chart(ctx, { type:'bar', data:{ labels:projLabels, datasets:[{ label:'Hours', data:projData, backgroundColor:'rgba(47,199,255,0.7)' }] }, options:{ responsive:true, maintainAspectRatio:true } }), 600, 400);
       } catch(e) { console.warn("Chart1 failed", e); }
-
       try {
         const catMap = {}; filtered.forEach(e=>{ catMap[e.category]=(catMap[e.category]||0)+e.hours; });
         chart2Img = await captureChartImage((ctx,canvas) => new Chart(ctx, { type:'pie', data:{ labels:Object.keys(catMap), datasets:[{ data:Object.values(catMap), backgroundColor:['#2fc7ff','#ffc107','#28a745','#dc3545','#6f42c1','#fd7e14'] }] }, options:{ responsive:true, maintainAspectRatio:true } }), 500, 400);
       } catch(e) { console.warn("Chart2 failed", e); }
-
       try {
         chart3Img = await captureChartImage((ctx,canvas) => new Chart(ctx, { type:'doughnut', data:{ labels:['Billable','Non-billable'], datasets:[{ data:[billableHours,nonBillable], backgroundColor:['#28a745','#dc3545'] }] }, options:{ responsive:true, maintainAspectRatio:true } }), 400, 400);
       } catch(e) { console.warn("Chart3 failed", e); }
@@ -497,7 +490,7 @@
       else { doc.setFontSize(10); doc.text("Chart unavailable", pageWidth/2, yPos+30, { align:'center' }); }
       yPos += 66;
 
-      // Data table with week-based row coloring
+      // Table
       const tableData = filtered.map(e=>[e.date, e.start, e.end, e.hours.toFixed(2), e.project, e.category, e.billable==='yes'?'✓ Billable':'✗ Non-billable', e.notes||'-']);
       const rowColors = filtered.map(e=>getRowColor(e));
       doc.autoTable({
@@ -526,35 +519,48 @@
       doc.text("CONFIDENTIAL", pageWidth/2, pageHeight/2, { align:'center', angle:45 });
       doc.setGState(new doc.GState({ opacity: 1 }));
 
-      // Apply PDF permissions using pdf-lib (no open password, no edit/copy)
-      if (typeof PDFLib === 'undefined') throw new Error("pdf-lib not loaded. Please refresh.");
-      const pdfBlob = doc.output('blob');
-      const pdfBytes = await pdfBlob.arrayBuffer();
-      const pdfDoc = await PDFLib.PDFDocument.load(pdfBytes);
-      pdfDoc.encrypt({
-        userPassword: '',
-        ownerPassword: 'SiyaOwner',
-        permissions: {
-          printing: 'highResolution',
-          modifying: false,
-          copying: false,
-          annotating: false,
-          fillingForms: false,
-          contentAccessibility: true,
-          documentAssembly: false
+      // ========== PDF ENCRYPTION WITH FALLBACK ==========
+      try {
+        if (typeof PDFLib !== 'undefined' && PDFLib.PDFDocument) {
+          const pdfBlob = doc.output('blob');
+          const pdfBytes = await pdfBlob.arrayBuffer();
+          const pdfDoc = await PDFLib.PDFDocument.load(pdfBytes);
+          if (typeof pdfDoc.encrypt === 'function') {
+            pdfDoc.encrypt({
+              userPassword: '',
+              ownerPassword: 'SiyaOwner',
+              permissions: {
+                printing: 'highResolution',
+                modifying: false,
+                copying: false,
+                annotating: false,
+                fillingForms: false,
+                contentAccessibility: true,
+                documentAssembly: false
+              }
+            });
+            const encryptedBytes = await pdfDoc.save();
+            const encryptedBlob = new Blob([encryptedBytes], { type: 'application/pdf' });
+            saveAs(encryptedBlob, `Timesheet_${startDate}_to_${endDate}_readonly.pdf`);
+            showToast("PDF saved – opens without password, cannot be edited/copied.", "success");
+          } else {
+            throw new Error("pdfDoc.encrypt not a function");
+          }
+        } else {
+          throw new Error("pdf-lib not loaded");
         }
-      });
-      const encryptedBytes = await pdfDoc.save();
-      const encryptedBlob = new Blob([encryptedBytes], { type: 'application/pdf' });
-      saveAs(encryptedBlob, `Timesheet_${startDate}_to_${endDate}_readonly.pdf`);
-      showToast("PDF saved – opens without password, cannot be edited/copied.", "success");
+      } catch (encryptErr) {
+        console.warn("PDF encryption failed, saving unencrypted:", encryptErr);
+        doc.save(`Timesheet_${startDate}_to_${endDate}.pdf`);
+        showToast("PDF generated without encryption (pdf-lib error).", "warning");
+      }
     } catch (err) {
       console.error(err);
       showToast("PDF generation failed: " + err.message, "error");
     } finally { window.hideLoading(); }
   }
 
-  // ======================== EXCEL EXPORT with week coloring + worksheet protection ========================
+  // ======================== EXCEL EXPORT (protected worksheet) ========================
   async function exportStyledExcel(startDate, endDate) {
     window.showLoading("Generating protected Excel report...");
     try {
@@ -573,7 +579,6 @@
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet("Timesheet Report", { pageSetup: { orientation: 'landscape', fitToPage: true } });
 
-      // Header
       worksheet.mergeCells('A1:H1');
       const titleCell = worksheet.getCell('A1');
       titleCell.value = `TIMESHEET REPORT - ${userFullName || user.username}`;
@@ -646,7 +651,7 @@
       worksheet.getRow(1).height = 32; worksheet.getRow(2).height = 22; worksheet.getRow(3).height = 24; worksheet.getRow(4).height = 22;
       worksheet.views = [{ state: 'frozen', ySplit: 4 }];
 
-      // Add chart (optional, with robust capture)
+      // Add chart (optional)
       try {
         const projMap = {};
         filtered.forEach(e => { projMap[e.project] = (projMap[e.project] || 0) + e.hours; });
@@ -765,7 +770,7 @@
     document.getElementById('filterCategory').onchange = () => { renderHistory(); updateSummaryAndProgress(); updateCharts(); };
     document.getElementById('saveNameBtn').onclick = async () => { const newName = document.getElementById('userFullName')?.value.trim(); if(!newName) return; window.showLoading("Saving name..."); try { await saveUserMeta(newName); showToast("Name saved."); } catch(err){ showToast("Failed: "+err.message,"error"); } finally{ window.hideLoading(); } };
 
-    // Manage Projects button and modal
+    // Manage Projects button
     const manageProjectsBtn = document.createElement('button');
     manageProjectsBtn.type = 'button';
     manageProjectsBtn.className = 'btn btn-sm btn-outline-secondary ml-2';
@@ -788,7 +793,6 @@
     startAutoRefresh();
   }
 
-  // ======================== MANAGE PROJECTS MODAL ========================
   function showManageProjectsModal() {
     let modal = document.getElementById('manageProjectsModal');
     if (!modal) {
@@ -807,7 +811,7 @@
       `;
       document.body.appendChild(modal);
     }
-    const renderProjectsList = () => {
+    const renderList = () => {
       const container = document.getElementById('manageProjectsList');
       if (!timesheetProjects.length) {
         container.innerHTML = '<p class="text-muted">No timesheet-only projects. Use "New Project" to add.</p>';
@@ -828,12 +832,12 @@
           const projectName = btn.getAttribute('data-project');
           if (confirm(`Delete timesheet project "${projectName}"? This will NOT delete existing entries, but the project will be removed from the dropdown.`)) {
             await deleteTimesheetProject(projectName);
-            renderProjectsList();
+            renderList();
           }
         });
       });
     };
-    renderProjectsList();
+    renderList();
     $(modal).modal('show');
   }
 
