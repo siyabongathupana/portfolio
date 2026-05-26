@@ -1,4 +1,4 @@
-// timesheet.js – Fixed PDF generation, full-width table, week coloring, delete projects
+// timesheet.js – Complete, with fixed PDF week‑based row coloring
 (function() {
   const user = window.SessionManager?.getCurrentUser();
   if (!user) {
@@ -307,7 +307,7 @@
     const tbody = document.getElementById('historyBody');
     const tfoot = document.getElementById('historyFoot');
     if (filtered.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="9" class="text-center">No entries found. </tr></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" class="text-center">No entries found.  </td></tr>';
       tfoot.style.display = 'none';
       return;
     }
@@ -399,7 +399,7 @@
       let chart = null;
       try {
         chart = await chartBuilder(ctx, canvas);
-        await new Promise(r => setTimeout(r, 600)); // increased timeout
+        await new Promise(r => setTimeout(r, 600));
         const imgData = canvas.toDataURL('image/png');
         if (imgData.length < 1000) throw new Error('Chart image too small');
         resolve(imgData);
@@ -411,17 +411,27 @@
     });
   }
 
-  // ======================== PDF REPORT (fixed margins & encryption fallback) ========================
+  // ======================== PDF REPORT (with fixed week coloring) ========================
   async function generatePDFReport(startDate, endDate) {
     window.showLoading("Generating professional PDF report...");
     try {
       const filtered = entries.filter(e => e.date >= startDate && e.date <= endDate);
       if (!filtered.length) { showToast("No entries in selected range.", "error"); window.hideLoading(); return; }
 
-      filtered.forEach(e => { e.weekKey = `${new Date(e.date).getFullYear()}-W${getWeekNumber(e.date)}`; });
+      // Assign week keys and prepare row colors
+      filtered.forEach(e => {
+        e.weekKey = `${new Date(e.date).getFullYear()}-W${getWeekNumber(e.date)}`;
+      });
       const weeks = [...new Map(filtered.map(e => [e.weekKey, e.weekKey])).values()];
-      const weekColors = weeks.map((w, idx) => ({ week: w, color: idx % 2 === 0 ? [245,247,250] : [255,248,225] }));
-      const getRowColor = (entry) => weekColors.find(wc => wc.week === entry.weekKey)?.color || [255,255,255];
+      const weekColors = weeks.map((w, idx) => ({
+        week: w,
+        color: idx % 2 === 0 ? [245, 247, 250] : [255, 248, 225]  // light gray / light cream
+      }));
+      // Map each filtered entry to its background color
+      const rowColors = filtered.map(entry => {
+        const match = weekColors.find(wc => wc.week === entry.weekKey);
+        return match ? match.color : [255, 255, 255];
+      });
 
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
@@ -466,7 +476,7 @@
       doc.text(`Report ID: ${Date.now()}`, pageWidth - margin - 30, yPos);
       yPos += 8;
 
-      // Charts
+      // Generate charts (as before)
       let chart1Img = null, chart2Img = null, chart3Img = null;
       try {
         const projMap = {}; filtered.forEach(e=>{ projMap[e.project]=(projMap[e.project]||0)+e.hours; });
@@ -490,15 +500,13 @@
       else { doc.setFontSize(10); doc.text("Chart unavailable", pageWidth/2, yPos+30, { align:'center' }); }
       yPos += 66;
 
-      // Data table - full width with balanced columns
+      // Data table with week-based row coloring
       const tableData = filtered.map(e=>[e.date, e.start, e.end, e.hours.toFixed(2), e.project, e.category, e.billable==='yes'?'✓ Billable':'✗ Non-billable', e.notes||'-']);
-      const rowColors = filtered.map(e=>getRowColor(e));
       
-      // Calculate column widths proportionally to contentWidth
-      const colWidths = [22, 14, 14, 14, 30, 25, 20, 55];
-      const totalColWidth = colWidths.reduce((a,b)=>a+b,0);
-      const scale = contentWidth / totalColWidth;
-      const scaledWidths = colWidths.map(w => w * scale);
+      // Scale column widths to fit contentWidth
+      const baseWidths = [22, 14, 14, 14, 30, 25, 20, 55];
+      const totalBase = baseWidths.reduce((a,b)=>a+b,0);
+      const scaledWidths = baseWidths.map(w => (w / totalBase) * contentWidth);
       
       doc.autoTable({
         startY: yPos,
@@ -509,6 +517,7 @@
         headStyles: { fillColor: primary, textColor: 255, fontStyle: 'bold', halign: 'center', fontSize: 9 },
         footStyles: { fillColor: [248,250,252], textColor: primary, fontStyle: 'bold', halign: 'center', fontSize: 9 },
         bodyStyles: { fontSize: 8, cellPadding: 2, valign: 'middle' },
+        // KEY FIX: rowBackground uses rowColors array
         rowBackground: (row) => rowColors[row] || [255,255,255],
         columnStyles: {
           0: { cellWidth: scaledWidths[0] },
@@ -580,7 +589,7 @@
     } finally { window.hideLoading(); }
   }
 
-  // ======================== EXCEL EXPORT (protected worksheet) ========================
+  // ======================== EXCEL EXPORT (protected worksheet, week coloring) ========================
   async function exportStyledExcel(startDate, endDate) {
     window.showLoading("Generating protected Excel report...");
     try {
@@ -671,7 +680,7 @@
       worksheet.getRow(1).height = 32; worksheet.getRow(2).height = 22; worksheet.getRow(3).height = 24; worksheet.getRow(4).height = 22;
       worksheet.views = [{ state: 'frozen', ySplit: 4 }];
 
-      // Add chart (optional)
+      // Add chart
       try {
         const projMap = {};
         filtered.forEach(e => { projMap[e.project] = (projMap[e.project] || 0) + e.hours; });
