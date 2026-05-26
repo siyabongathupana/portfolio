@@ -1,5 +1,17 @@
 [
   {
+    "id": 1779824635857,
+    "date": "2026-05-26",
+    "start": "13:30",
+    "end": "13:35",
+    "hours": 0.08,
+    "project": "Other",
+    "category": "Other",
+    "billable": "no",
+    "notes": "Helping Mandla carry transformer",
+    "updatedAt": 1779824635857
+  },
+  {
     "id": 1779824564753,
     "date": "2026-05-26",
     "start": "13:00",
