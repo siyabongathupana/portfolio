@@ -1,5 +1,17 @@
 [
   {
+    "id": 1779824564753,
+    "date": "2026-05-26",
+    "start": "13:00",
+    "end": "13:30",
+    "hours": 0.5,
+    "project": "Omnia Phase 3",
+    "category": "Documentation",
+    "billable": "yes",
+    "notes": "Reviewing Power&Earthing",
+    "updatedAt": 1779824564753
+  },
+  {
     "id": 1779817348592,
     "date": "2026-05-26",
     "start": "09:00",
@@ -20,8 +32,8 @@
     "project": "Other",
     "category": "Admin",
     "billable": "no",
-    "notes": "Yesterday's Timesheets",
-    "updatedAt": 1779795370505
+    "notes": "Ysterday's Timesheets",
+    "updatedAt": 1779815686291
   },
   {
     "id": 1779783903610,
