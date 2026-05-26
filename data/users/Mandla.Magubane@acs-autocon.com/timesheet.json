@@ -1,18 +1,18 @@
 [
   {
-    "id": 1779797786794,
+    "id": 1779797887968,
     "date": "2026-05-26",
     "start": "08:30",
-    "end": "09:30",
-    "hours": 1,
+    "end": "09:15",
+    "hours": 0.75,
     "project": "Other",
     "category": "Admin",
-    "billable": "no",
-    "notes": "",
-    "updatedAt": 1779797786794
+    "billable": "yes",
+    "notes": "Timesheet",
+    "updatedAt": 1779797887968
   },
   {
-    "id": 1779797663094,
+    "id": 1779797723787,
     "date": "2026-05-26",
     "start": "07:30",
     "end": "08:30",
@@ -21,7 +21,7 @@
     "category": "Training",
     "billable": "no",
     "notes": "",
-    "updatedAt": 1779797663094
+    "updatedAt": 1779797723787
   },
   {
     "id": 1779797522231,
