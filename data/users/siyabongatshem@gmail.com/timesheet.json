@@ -1,5 +1,17 @@
 [
   {
+    "id": 1779804307334,
+    "date": "2026-05-26",
+    "start": "14:30",
+    "end": "16:04",
+    "hours": 1.57,
+    "project": "Sasol MIBK",
+    "category": "Other",
+    "billable": "yes",
+    "notes": "CFAT Preparations",
+    "updatedAt": 1779804307334
+  },
+  {
     "id": 1779804119593,
     "date": "2026-05-26",
     "start": "13:35",
