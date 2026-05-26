@@ -26,7 +26,7 @@
 
 | Projects | Certifications | Users | Hours | Billable | Daily Avg |
 |:--------:|:--------------:|:-----:|:-----:|:--------:|:---------:|
-| 0 | 18 | 5 | 153.6 | 126.7 | 9.0h |
+| 0 | 18 | 5 | 135.6 | 108.7 | 8.0h |
 
 ---
 
@@ -86,6 +86,6 @@
 
 <div align="center">
 
-*Last updated: May 26, 2026 at 20:00:24 UTC*
+*Last updated: May 26, 2026 at 20:01:07 UTC*
 
 </div>
