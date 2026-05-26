@@ -8,11 +8,9 @@ on:
       - 'data/users/**/projects.json'
       - 'data/users/**/certificates.json'
       - 'data/users/**/timesheet.json'
-      - 'data/users/**/logs/*.ndjson'
-      - 'scripts/generate_readme.py'
+      - '.github/scripts/generate_readme.py'
       - 'templates/readme_template.md'
   schedule:
-    # Run daily at 00:00 UTC to refresh stats
     - cron: '0 0 * * *'
   workflow_dispatch:
 
@@ -21,9 +19,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      pages: write
-      actions: read
-    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -37,24 +32,27 @@ jobs:
           
       - name: Install dependencies
         run: |
-          pip install pyyaml jinja2 requests python-dateutil
+          pip install jinja2 requests
+          
+      - name: Debug - List files
+        run: |
+          echo "Current directory: $(pwd)"
+          echo "Contents of root:"
+          ls -la
+          echo "Contents of .github/scripts:"
+          ls -la .github/scripts/ || echo ".github/scripts folder not found"
+          echo "Contents of templates:"
+          ls -la templates/ || echo "templates folder not found"
           
       - name: Generate README
-        run: |
-          python scripts/generate_readme.py
+        run: python .github/scripts/generate_readme.py
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           
-      - name: Check for changes
-        id: git-check
-        run: |
-          git diff --quiet README.md || echo "changed=true" >> $GITHUB_OUTPUT
-          
       - name: Commit and push changes
-        if: steps.git-check.outputs.changed == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add README.md
-          git commit -m "🤖 Auto-update README with latest portfolio data [skip ci]"
+          git diff --quiet && git diff --staged --quiet || git commit -m "Auto-update README with latest portfolio data [skip ci]"
           git push
