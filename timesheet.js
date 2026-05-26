@@ -1,4 +1,4 @@
-// timesheet.js – Complete with week‑based coloring, PDF permissions (no open password), Excel worksheet protection
+// timesheet.js – Fixed PDF chart generation + delete timesheet projects
 (function() {
   const user = window.SessionManager?.getCurrentUser();
   if (!user) {
@@ -51,7 +51,7 @@
     toastEl.addEventListener("hidden.bs.toast", () => toastEl.remove());
   }
 
-  // ======================== DATA LOAD & SAVE (DIRECT GITHUB API) ========================
+  // ======================== DATA LOAD & SAVE ========================
   async function loadTimesheet() {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(user.username);
@@ -162,6 +162,16 @@
     if (allProjectOptions.includes(projectName)) return false;
     await saveTimesheetProjects([...timesheetProjects, projectName]);
     await loadProjectsForTimesheet();
+    return true;
+  }
+
+  // NEW: Delete a timesheet-only project
+  async function deleteTimesheetProject(projectName) {
+    if (!timesheetProjects.includes(projectName)) return false;
+    const updated = timesheetProjects.filter(p => p !== projectName);
+    await saveTimesheetProjects(updated);
+    await loadProjectsForTimesheet();
+    showToast(`Project "${projectName}" deleted from timesheet list.`, "success");
     return true;
   }
 
@@ -380,7 +390,32 @@
     return 1 + Math.round(((d - week1) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
   }
 
-  // ======================== PDF REPORT with week coloring & permissions (no open password) ========================
+  // ======================== ROBUST CHART IMAGE GENERATION ========================
+  async function captureChartImage(chartBuilder, width = 500, height = 400) {
+    return new Promise(async (resolve, reject) => {
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      let chart = null;
+      try {
+        chart = await chartBuilder(ctx, canvas);
+        // Wait for chart to render fully
+        await new Promise(r => setTimeout(r, 500));
+        // Ensure canvas is not empty
+        const imgData = canvas.toDataURL('image/png');
+        if (imgData.length < 1000) throw new Error('Chart image too small, likely corrupt');
+        resolve(imgData);
+      } catch (err) {
+        console.error('Chart capture failed:', err);
+        reject(err);
+      } finally {
+        if (chart && typeof chart.destroy === 'function') chart.destroy();
+      }
+    });
+  }
+
+  // ======================== PDF REPORT with fixed chart generation ========================
   async function generatePDFReport(startDate, endDate) {
     window.showLoading("Generating professional PDF report...");
     try {
@@ -401,7 +436,7 @@
       const contentWidth = pageWidth - margin * 2;
       const primary = [11,43,59], accent = [47,199,255];
 
-      // Header
+      // Header (same as before)
       doc.setFillColor(primary[0], primary[1], primary[2]); doc.rect(0,0,pageWidth,28,'F');
       doc.setFillColor(accent[0], accent[1], accent[2]); doc.rect(0,28,pageWidth,4,'F');
       doc.setTextColor(255,255,255); doc.setFontSize(18); doc.setFont(undefined,'bold');
@@ -436,31 +471,33 @@
       doc.text(`Report ID: ${Date.now()}`, pageWidth - margin - 30, yPos);
       yPos += 8;
 
-      // Charts (simplified but high-res)
-      async function createChartImage(chartFn, w=500, h=400) {
-        const canvas = document.createElement('canvas'); canvas.width = w; canvas.height = h;
-        const ctx = canvas.getContext('2d');
-        const chart = await chartFn(ctx, canvas);
-        await new Promise(r => setTimeout(r, 300));
-        const img = canvas.toDataURL('image/png');
-        if (chart && typeof chart.destroy === 'function') chart.destroy();
-        return img;
-      }
-      const projMap = {}; filtered.forEach(e=>{ projMap[e.project]=(projMap[e.project]||0)+e.hours; });
-      const projLabels = Object.keys(projMap).slice(0,8);
-      const projData = projLabels.map(l=>projMap[l]);
-      const chart1Img = await createChartImage((ctx,canvas)=>new Chart(ctx,{ type:'bar', data:{ labels:projLabels, datasets:[{ label:'Hours', data:projData, backgroundColor:'rgba(47,199,255,0.7)' }] }, options:{ responsive:true } }),600,400);
-      const catMap = {}; filtered.forEach(e=>{ catMap[e.category]=(catMap[e.category]||0)+e.hours; });
-      const chart2Img = await createChartImage((ctx,canvas)=>new Chart(ctx,{ type:'pie', data:{ labels:Object.keys(catMap), datasets:[{ data:Object.values(catMap), backgroundColor:['#2fc7ff','#ffc107','#28a745','#dc3545','#6f42c1','#fd7e14'] }] }, options:{ responsive:true } }),500,400);
-      const chart3Img = await createChartImage((ctx,canvas)=>new Chart(ctx,{ type:'doughnut', data:{ labels:['Billable','Non-billable'], datasets:[{ data:[billableHours,nonBillable], backgroundColor:['#28a745','#dc3545'] }] }, options:{ responsive:true } }),400,400);
+      // Generate charts with robust capture
+      let chart1Img = null, chart2Img = null, chart3Img = null;
+      try {
+        const projMap = {}; filtered.forEach(e=>{ projMap[e.project]=(projMap[e.project]||0)+e.hours; });
+        const projLabels = Object.keys(projMap).slice(0,8);
+        const projData = projLabels.map(l=>projMap[l]);
+        chart1Img = await captureChartImage((ctx,canvas) => new Chart(ctx, { type:'bar', data:{ labels:projLabels, datasets:[{ label:'Hours', data:projData, backgroundColor:'rgba(47,199,255,0.7)' }] }, options:{ responsive:true, maintainAspectRatio:true } }), 600, 400);
+      } catch(e) { console.warn("Chart1 failed", e); }
+
+      try {
+        const catMap = {}; filtered.forEach(e=>{ catMap[e.category]=(catMap[e.category]||0)+e.hours; });
+        chart2Img = await captureChartImage((ctx,canvas) => new Chart(ctx, { type:'pie', data:{ labels:Object.keys(catMap), datasets:[{ data:Object.values(catMap), backgroundColor:['#2fc7ff','#ffc107','#28a745','#dc3545','#6f42c1','#fd7e14'] }] }, options:{ responsive:true, maintainAspectRatio:true } }), 500, 400);
+      } catch(e) { console.warn("Chart2 failed", e); }
+
+      try {
+        chart3Img = await captureChartImage((ctx,canvas) => new Chart(ctx, { type:'doughnut', data:{ labels:['Billable','Non-billable'], datasets:[{ data:[billableHours,nonBillable], backgroundColor:['#28a745','#dc3545'] }] }, options:{ responsive:true, maintainAspectRatio:true } }), 400, 400);
+      } catch(e) { console.warn("Chart3 failed", e); }
+
       const chartWidth = (contentWidth-10)/2, chartHeight = 65;
-      doc.addImage(chart1Img,'PNG',margin,yPos,chartWidth,chartHeight);
-      doc.addImage(chart2Img,'PNG',margin+chartWidth+5,yPos,chartWidth,chartHeight);
+      if (chart1Img) doc.addImage(chart1Img,'PNG',margin,yPos,chartWidth,chartHeight);
+      if (chart2Img) doc.addImage(chart2Img,'PNG',margin+chartWidth+5,yPos,chartWidth,chartHeight);
       yPos += chartHeight+5;
-      doc.addImage(chart3Img,'PNG',pageWidth/2-35,yPos,70,56);
+      if (chart3Img) doc.addImage(chart3Img,'PNG',pageWidth/2-35,yPos,70,56);
+      else { doc.setFontSize(10); doc.text("Chart unavailable", pageWidth/2, yPos+30, { align:'center' }); }
       yPos += 66;
 
-      // Data table with week‑based row coloring
+      // Data table with week-based row coloring
       const tableData = filtered.map(e=>[e.date, e.start, e.end, e.hours.toFixed(2), e.project, e.category, e.billable==='yes'?'✓ Billable':'✗ Non-billable', e.notes||'-']);
       const rowColors = filtered.map(e=>getRowColor(e));
       doc.autoTable({
@@ -489,18 +526,19 @@
       doc.text("CONFIDENTIAL", pageWidth/2, pageHeight/2, { align:'center', angle:45 });
       doc.setGState(new doc.GState({ opacity: 1 }));
 
-      // ========== Apply PDF permissions using pdf-lib (no open password, but no editing/copying) ==========
+      // Apply PDF permissions using pdf-lib (no open password, no edit/copy)
+      if (typeof PDFLib === 'undefined') throw new Error("pdf-lib not loaded. Please refresh.");
       const pdfBlob = doc.output('blob');
       const pdfBytes = await pdfBlob.arrayBuffer();
       const pdfDoc = await PDFLib.PDFDocument.load(pdfBytes);
       pdfDoc.encrypt({
-        userPassword: '',                     // No password to open
-        ownerPassword: 'SiyaOwner',           // Required to change permissions
+        userPassword: '',
+        ownerPassword: 'SiyaOwner',
         permissions: {
-          printing: 'highResolution',         // Allow printing
-          modifying: false,                  // No editing
-          copying: false,                    // No copying
-          annotating: false,                 // No annotations
+          printing: 'highResolution',
+          modifying: false,
+          copying: false,
+          annotating: false,
           fillingForms: false,
           contentAccessibility: true,
           documentAssembly: false
@@ -509,21 +547,20 @@
       const encryptedBytes = await pdfDoc.save();
       const encryptedBlob = new Blob([encryptedBytes], { type: 'application/pdf' });
       saveAs(encryptedBlob, `Timesheet_${startDate}_to_${endDate}_readonly.pdf`);
-      showToast("PDF saved – opens without password, but cannot be edited/copied.", "success");
+      showToast("PDF saved – opens without password, cannot be edited/copied.", "success");
     } catch (err) {
       console.error(err);
       showToast("PDF generation failed: " + err.message, "error");
     } finally { window.hideLoading(); }
   }
 
-  // ======================== EXCEL EXPORT with week coloring + worksheet protection (no file password) ========================
+  // ======================== EXCEL EXPORT with week coloring + worksheet protection ========================
   async function exportStyledExcel(startDate, endDate) {
-    window.showLoading("Generating password‑protected Excel report...");
+    window.showLoading("Generating protected Excel report...");
     try {
       const filtered = entries.filter(e => e.date >= startDate && e.date <= endDate);
       if (!filtered.length) { showToast("No entries in selected range.", "error"); window.hideLoading(); return; }
 
-      // Assign week keys
       filtered.forEach(e => { e.weekKey = `${new Date(e.date).getFullYear()}-W${getWeekNumber(e.date)}`; });
       const weeks = [...new Map(filtered.map(e => [e.weekKey, e.weekKey])).values()];
       const weekFills = weeks.map((w, idx) => ({
@@ -565,7 +602,6 @@
       summaryCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9EDF7' } };
       worksheet.getRow(3).height = 24;
 
-      // Headers
       const headers = ['Date','Start','End','Hours','Project','Category','Billable','Notes'];
       const headerRow = worksheet.addRow(headers);
       headerRow.eachCell(cell => {
@@ -576,7 +612,6 @@
       });
       worksheet.getRow(4).height = 22;
 
-      // Data rows with week coloring
       for (const entry of filtered) {
         const row = worksheet.addRow([
           entry.date, entry.start, entry.end, entry.hours.toFixed(2),
@@ -600,7 +635,6 @@
         }
       }
 
-      // Total row
       const totalRow = worksheet.addRow(['','','', totalHours.toFixed(1),'','','','']);
       totalRow.getCell(4).font = { bold: true, size: 11 };
       totalRow.eachCell(cell => {
@@ -608,59 +642,47 @@
         cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF0F0F0' } };
       });
 
-      // Set column widths
       worksheet.columns = [ { width:12 },{ width:8 },{ width:8 },{ width:8 },{ width:25 },{ width:18 },{ width:12 },{ width:35 } ];
       worksheet.getRow(1).height = 32; worksheet.getRow(2).height = 22; worksheet.getRow(3).height = 24; worksheet.getRow(4).height = 22;
-
-      // Freeze header row
       worksheet.views = [{ state: 'frozen', ySplit: 4 }];
 
-      // Add chart (optional)
-      const projMap = {};
-      filtered.forEach(e => { projMap[e.project] = (projMap[e.project] || 0) + e.hours; });
-      const canvas = document.createElement('canvas');
-      canvas.width = 800; canvas.height = 400;
-      const ctx = canvas.getContext('2d');
-      const chart = new Chart(ctx, {
-        type: 'bar',
-        data: { labels: Object.keys(projMap), datasets: [{ label: 'Hours', data: Object.values(projMap), backgroundColor: '#2fc7ff' }] },
-        options: { responsive: false }
-      });
-      await new Promise(r => setTimeout(r, 400));
-      const chartBase64 = canvas.toDataURL('image/png');
-      chart.destroy();
-      const chartImage = workbook.addImage({ base64: chartBase64, extension: 'png' });
-      const startRow = filtered.length + 6;
-      worksheet.addImage(chartImage, { tl: { col: 0, row: startRow }, br: { col: 6, row: startRow + 18 }, editAs: 'oneCell' });
+      // Add chart (optional, with robust capture)
+      try {
+        const projMap = {};
+        filtered.forEach(e => { projMap[e.project] = (projMap[e.project] || 0) + e.hours; });
+        const canvas = document.createElement('canvas');
+        canvas.width = 800; canvas.height = 400;
+        const ctx = canvas.getContext('2d');
+        const chart = new Chart(ctx, {
+          type: 'bar',
+          data: { labels: Object.keys(projMap), datasets: [{ label: 'Hours', data: Object.values(projMap), backgroundColor: '#2fc7ff' }] },
+          options: { responsive: false }
+        });
+        await new Promise(r => setTimeout(r, 500));
+        const chartBase64 = canvas.toDataURL('image/png');
+        chart.destroy();
+        const chartImage = workbook.addImage({ base64: chartBase64, extension: 'png' });
+        const startRow = filtered.length + 6;
+        worksheet.addImage(chartImage, { tl: { col: 0, row: startRow }, br: { col: 6, row: startRow + 18 }, editAs: 'oneCell' });
+      } catch(e) { console.warn("Excel chart failed", e); }
 
-      // Footer
-      const footerRowIdx = startRow + 20;
+      const footerRowIdx = filtered.length + 26;
       worksheet.getCell(`A${footerRowIdx}`).value = "This document is protected. Password to unprotect sheet: Siya";
       worksheet.getCell(`A${footerRowIdx}`).font = { italic: true, size: 9 };
       worksheet.mergeCells(`A${footerRowIdx}:H${footerRowIdx}`);
       worksheet.getCell(`A${footerRowIdx+1}`).value = `© Your Portfolio – Generated on ${new Date().toLocaleString()}`;
       worksheet.mergeCells(`A${footerRowIdx+1}:H${footerRowIdx+1}`);
 
-      // Lock all cells and protect worksheet (no file password, so opens without password)
       worksheet.protect('Siya', {
-        selectLockedCells: false,
-        selectUnlockedCells: false,
-        formatCells: false,
-        formatColumns: false,
-        formatRows: false,
-        insertRows: false,
-        deleteRows: false,
-        insertColumns: false,
-        deleteColumns: false,
-        sort: false,
-        autoFilter: false,
-        pivotTables: false
+        selectLockedCells: false, selectUnlockedCells: false, formatCells: false, formatColumns: false,
+        formatRows: false, insertRows: false, deleteRows: false, insertColumns: false, deleteColumns: false,
+        sort: false, autoFilter: false, pivotTables: false
       });
 
-      const buffer = await workbook.xlsx.writeBuffer();   // No file encryption – opens directly
+      const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       saveAs(blob, `Timesheet_${startDate}_to_${endDate}_readonly.xlsx`);
-      showToast("Excel saved – opens without password, but cells are locked (cannot edit).", "success");
+      showToast("Excel saved – opens without password, cells locked.", "success");
     } catch (err) {
       console.error(err);
       showToast("Excel generation failed: " + err.message, "error");
@@ -742,6 +764,16 @@
     document.getElementById('filterProject').onchange = () => { renderHistory(); updateSummaryAndProgress(); updateCharts(); };
     document.getElementById('filterCategory').onchange = () => { renderHistory(); updateSummaryAndProgress(); updateCharts(); };
     document.getElementById('saveNameBtn').onclick = async () => { const newName = document.getElementById('userFullName')?.value.trim(); if(!newName) return; window.showLoading("Saving name..."); try { await saveUserMeta(newName); showToast("Name saved."); } catch(err){ showToast("Failed: "+err.message,"error"); } finally{ window.hideLoading(); } };
+
+    // Manage Projects button and modal
+    const manageProjectsBtn = document.createElement('button');
+    manageProjectsBtn.type = 'button';
+    manageProjectsBtn.className = 'btn btn-sm btn-outline-secondary ml-2';
+    manageProjectsBtn.innerHTML = '<i class="fa fa-cog"></i> Manage Projects';
+    manageProjectsBtn.onclick = () => showManageProjectsModal();
+    const projectSelectParent = document.getElementById('taskProject').parentNode;
+    projectSelectParent.appendChild(manageProjectsBtn);
+
     document.getElementById('addProjectBtn').onclick = () => { document.getElementById('newProjectName').value = ''; $('#newProjectModal').modal('show'); };
     document.getElementById('confirmNewProjectBtn').onclick = async () => { const newProj = document.getElementById('newProjectName')?.value.trim(); if(!newProj) return; window.showLoading(`Creating project "${newProj}"...`); try { await createTimesheetOnlyProject(newProj); showToast(`Project "${newProj}" created.`); } catch(err){ showToast("Failed: "+err.message,"error"); } finally{ window.hideLoading(); $('#newProjectModal').modal('hide'); } };
     document.getElementById('generateReportBtn').onclick = () => { document.getElementById('reportName').value = userFullName; const end = new Date(); const start = new Date(); start.setDate(start.getDate()-30); document.getElementById('reportStartDate').value = formatDate(start); document.getElementById('reportEndDate').value = formatDate(end); $('#reportModal').modal('show'); };
@@ -755,6 +787,57 @@
     await refreshView();
     startAutoRefresh();
   }
+
+  // ======================== MANAGE PROJECTS MODAL ========================
+  function showManageProjectsModal() {
+    let modal = document.getElementById('manageProjectsModal');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'manageProjectsModal';
+      modal.className = 'modal fade';
+      modal.tabIndex = -1;
+      modal.innerHTML = `
+        <div class="modal-dialog modal-sm">
+          <div class="modal-content">
+            <div class="modal-header"><h5>Timesheet Projects</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div>
+            <div class="modal-body" id="manageProjectsList"><p>Loading...</p></div>
+            <div class="modal-footer"><button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button></div>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    }
+    const renderProjectsList = () => {
+      const container = document.getElementById('manageProjectsList');
+      if (!timesheetProjects.length) {
+        container.innerHTML = '<p class="text-muted">No timesheet-only projects. Use "New Project" to add.</p>';
+        return;
+      }
+      container.innerHTML = '<ul class="list-group">';
+      timesheetProjects.forEach(proj => {
+        container.innerHTML += `
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            ${escapeHtml(proj)}
+            <button class="btn btn-sm btn-outline-danger delete-ts-project" data-project="${escapeHtml(proj)}"><i class="fa fa-trash"></i></button>
+          </li>
+        `;
+      });
+      container.innerHTML += '</ul>';
+      document.querySelectorAll('.delete-ts-project').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          const projectName = btn.getAttribute('data-project');
+          if (confirm(`Delete timesheet project "${projectName}"? This will NOT delete existing entries, but the project will be removed from the dropdown.`)) {
+            await deleteTimesheetProject(projectName);
+            renderProjectsList();
+          }
+        });
+      });
+    };
+    renderProjectsList();
+    $(modal).modal('show');
+  }
+
+  function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m] || m); }
 
   init().catch(err => console.error("Timesheet init error", err));
 })();
