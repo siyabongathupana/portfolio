@@ -16,7 +16,7 @@
 
 <div align="center">
 
-*DeltaV DCS engineer with expertise in SIS, industrial automation, and cybersecurity.*
+*Experienced DeltaV DCS engineer with expertise in SIS, industrial automation, and cybersecurity. Passionate about building intelligent automation solutions and bridging the gap between complex engineering and seamless user experiences.*
 
 </div>
 
@@ -55,6 +55,8 @@
 
 - **DeltaV Field Service Supervised** - Emerson  (2025-05)
 
+- **NDG Linux Unhatched** - NDG (2024-01)
+
 
 ---
 
@@ -62,9 +64,9 @@
 
 | Stars | Forks | Watchers | Issues | Contributors | Size |
 |:-----:|:-----:|:--------:|:------:|:------------:|:----:|
-| 1 | 0 | 1 | 0 | 0 | 96.3 MB |
+| 0 | 0 | 0 | 0 | 0 | 0.0 MB |
 
-**Language:** HTML
+**Language:** N/A
 
 ---
 
@@ -84,6 +86,6 @@
 
 <div align="center">
 
-*Last updated: May 26, 2026 at 16:53:48*
+*Last updated: May 26, 2026 at 16:59:20 UTC*
 
 </div>
