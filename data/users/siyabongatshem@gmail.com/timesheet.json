@@ -1,5 +1,17 @@
 [
   {
+    "id": 1779783903610,
+    "date": "2026-05-26",
+    "start": "07:30",
+    "end": "08:30",
+    "hours": 1,
+    "project": "Other",
+    "category": "Training",
+    "billable": "no",
+    "notes": "Helping Collegues Set Up SMS",
+    "updatedAt": 1779783903610
+  },
+  {
     "id": 1779719521489,
     "date": "2026-05-25",
     "start": "13:03",
