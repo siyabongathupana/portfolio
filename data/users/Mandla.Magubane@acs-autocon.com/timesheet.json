@@ -1,5 +1,17 @@
 [
   {
+    "id": 1779880424816,
+    "date": "2026-05-27",
+    "start": "07:30",
+    "end": "11:30",
+    "hours": 4,
+    "project": "Steam Station 2 DCS Replacement",
+    "category": "Hardware",
+    "billable": "yes",
+    "notes": "Boiler 09 Preshut Drawings",
+    "updatedAt": 1779880424816
+  },
+  {
     "id": 1779799005283,
     "date": "2026-05-26",
     "start": "14:30",
