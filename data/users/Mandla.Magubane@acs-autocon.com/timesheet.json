@@ -43,9 +43,9 @@
     "hours": 0.33,
     "project": "Other",
     "category": "Admin",
-    "billable": "yes",
+    "billable": "no",
     "notes": "Timesheet",
-    "updatedAt": 1779880607743
+    "updatedAt": 1779885570967
   },
   {
     "id": 1779880561982,
