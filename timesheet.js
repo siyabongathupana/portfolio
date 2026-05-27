@@ -701,7 +701,7 @@
       } catch(e) { console.warn("Excel chart failed", e); }
 
       const footerRowIdx = filtered.length + 26;
-      worksheet.getCell(`A${footerRowIdx}`).value = "This document is protected. Password to unprotect sheet: Siya";
+      worksheet.getCell(`A${footerRowIdx}`).value = "This document is protected.";
       worksheet.getCell(`A${footerRowIdx}`).font = { italic: true, size: 9 };
       worksheet.mergeCells(`A${footerRowIdx}:H${footerRowIdx}`);
       worksheet.getCell(`A${footerRowIdx+1}`).value = `© Your Portfolio – Generated on ${new Date().toLocaleString()}`;
