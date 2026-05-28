@@ -1,17 +1,5 @@
 [
   {
-    "id": 1779960173073,
-    "date": "2026-04-03",
-    "start": "11:24",
-    "end": "11:22",
-    "hours": 23.97,
-    "project": "Sasol Boiler 6",
-    "category": "Site",
-    "billable": "yes",
-    "notes": "",
-    "updatedAt": 1779960173073
-  },
-  {
     "id": 1779892782091,
     "date": "2026-05-27",
     "start": "12:30",
@@ -660,6 +648,18 @@
     "weekKey": "2026-W19"
   },
   {
+    "id": 1779960173073,
+    "date": "2026-04-03",
+    "start": "11:24",
+    "end": "11:22",
+    "hours": 23.97,
+    "project": "Sasol Boiler 6",
+    "category": "Site",
+    "billable": "yes",
+    "notes": "",
+    "updatedAt": 1779960173073
+  },
+  {
     "id": 1779960133016,
     "date": "2026-04-02",
     "start": "01:21",
@@ -670,17 +670,5 @@
     "billable": "no",
     "notes": "",
     "updatedAt": 1779960133016
-  },
-  {
-    "id": 1779960100759,
-    "date": "2026-04-01",
-    "start": "00:21",
-    "end": "13:21",
-    "hours": 13,
-    "project": "Omnia Phase 3",
-    "category": "CFAT",
-    "billable": "yes",
-    "notes": "",
-    "updatedAt": 1779960100759
   }
 ]
