@@ -646,17 +646,5 @@
     "notes": "",
     "updatedAt": 1779655887950,
     "weekKey": "2026-W19"
-  },
-  {
-    "id": 1779960173073,
-    "date": "2026-04-03",
-    "start": "11:24",
-    "end": "11:22",
-    "hours": 23.97,
-    "project": "Sasol Boiler 6",
-    "category": "Site",
-    "billable": "yes",
-    "notes": "",
-    "updatedAt": 1779960173073
   }
 ]
