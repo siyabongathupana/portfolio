@@ -26,7 +26,7 @@
 
 | Projects | Certifications | Users | Hours | Billable | Daily Avg |
 |:--------:|:--------------:|:-----:|:-----:|:--------:|:---------:|
-| 0 | 18 | 5 | 143.2 | 116.3 | 8.0h |
+| 1 | 18 | 5 | 143.2 | 116.3 | 8.0h |
 
 ---
 
@@ -42,6 +42,10 @@
 
 ## 🏗️ Featured Projects
 
+
+- ** test** -  ()
+  - Status: Ongoing | Progress: 65%
+  - 
 
 
 ---
@@ -73,6 +77,12 @@
 ## 🛠️ Skills
 
 
+`DCS`
+
+`DeltaV MD`
+
+`oil`
+
 
 ---
 
@@ -86,6 +96,6 @@
 
 <div align="center">
 
-*Last updated: May 28, 2026 at 09:42:39 UTC*
+*Last updated: May 28, 2026 at 10:57:02 UTC*
 
 </div>
