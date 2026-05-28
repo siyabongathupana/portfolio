@@ -2,8 +2,8 @@ name: Monthly Timesheet Email
 
 on:
   schedule:
-    - cron: '0 9 1 * *'       # 09:00 UTC on 1st day of each month
-  workflow_dispatch:           # manual trigger
+    - cron: '0 9 1 * *'
+  workflow_dispatch:
 
 jobs:
   generate-and-send:
@@ -19,7 +19,7 @@ jobs:
           node-version: 20
 
       - name: Install dependencies
-        run: npm install exceljs nodemailer
+        run: npm install   # uses your package.json (includes exceljs + nodemailer)
 
       - name: Run monthly timesheet email script
         env:
