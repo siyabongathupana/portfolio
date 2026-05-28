@@ -1,5 +1,17 @@
 [
   {
+    "id": 1779966581830,
+    "date": "2026-05-28",
+    "start": "07:00",
+    "end": "07:25",
+    "hours": 0.42,
+    "project": "Steam Station 2 DCS Replacement",
+    "category": "Hardware",
+    "billable": "yes",
+    "notes": "I/O Wiring B09 Preshut Works",
+    "updatedAt": 1779966581830
+  },
+  {
     "id": 1779885549070,
     "date": "2026-05-27",
     "start": "14:20",
