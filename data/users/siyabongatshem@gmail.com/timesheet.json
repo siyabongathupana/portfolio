@@ -658,17 +658,5 @@
     "billable": "yes",
     "notes": "",
     "updatedAt": 1779960173073
-  },
-  {
-    "id": 1779960133016,
-    "date": "2026-04-02",
-    "start": "01:21",
-    "end": "14:21",
-    "hours": 13,
-    "project": "Sasol Boiler 6",
-    "category": "CFAT",
-    "billable": "no",
-    "notes": "",
-    "updatedAt": 1779960133016
   }
 ]
