@@ -14,14 +14,14 @@
   {
     "id": 1779975704788,
     "date": "2026-05-29",
-    "start": "12:30",
+    "start": "13:00",
     "end": "15:30",
-    "hours": 3,
+    "hours": 2.5,
     "project": "KOGAS",
     "category": "Hardware",
     "billable": "yes",
     "notes": "Helping Valter with Autocon (Estimated)",
-    "updatedAt": 1779975732202
+    "updatedAt": 1779975781744
   },
   {
     "id": 1779974932357,
