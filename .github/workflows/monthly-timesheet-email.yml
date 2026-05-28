@@ -2,9 +2,8 @@ name: Monthly Timesheet Email
 
 on:
   schedule:
-    # Run at 09:00 UTC on the 1st day of every month
-    - cron: '0 9 1 * *'
-  workflow_dispatch:  # allow manual trigger
+    - cron: '0 9 1 * *'       # 09:00 UTC on 1st day of each month
+  workflow_dispatch:           # manual trigger
 
 jobs:
   generate-and-send:
@@ -22,7 +21,7 @@ jobs:
       - name: Install dependencies
         run: npm install exceljs nodemailer
 
-      - name: Run timesheet email generator
+      - name: Run monthly timesheet email script
         env:
           SMTP_HOST: ${{ secrets.SMTP_HOST }}
           SMTP_PORT: ${{ secrets.SMTP_PORT }}
@@ -32,4 +31,4 @@ jobs:
           REPO_OWNER: ${{ github.repository_owner }}
           REPO_NAME: ${{ github.event.repository.name }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: node scripts/generate-monthly-timesheet.js
+        run: node .github/scripts/generate-monthly-timesheet.js
