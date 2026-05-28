@@ -1,17 +1,5 @@
 [
   {
-    "id": 1779975704788,
-    "date": "2026-05-28",
-    "start": "12:30",
-    "end": "15:30",
-    "hours": 3,
-    "project": "KOGAS",
-    "category": "Hardware",
-    "billable": "yes",
-    "notes": "Helping Valter with Autocon (Estimated)",
-    "updatedAt": 1779975704788
-  },
-  {
     "id": 1779975486956,
     "date": "2026-05-29",
     "start": "08:30",
@@ -22,6 +10,18 @@
     "billable": "yes",
     "notes": "Preparing for SITE work (Estimated)",
     "updatedAt": 1779975511907
+  },
+  {
+    "id": 1779975704788,
+    "date": "2026-05-29",
+    "start": "12:30",
+    "end": "15:30",
+    "hours": 3,
+    "project": "KOGAS",
+    "category": "Hardware",
+    "billable": "yes",
+    "notes": "Helping Valter with Autocon (Estimated)",
+    "updatedAt": 1779975732202
   },
   {
     "id": 1779974932357,
