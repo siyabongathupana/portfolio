@@ -51,13 +51,13 @@
     "id": 1779880561982,
     "date": "2026-05-27",
     "start": "15:00",
-    "end": "15:30",
-    "hours": 0.5,
+    "end": "16:00",
+    "hours": 1,
     "project": "Steam Station 2 Effluent Upgrade",
     "category": "CFAT",
     "billable": "yes",
     "notes": "",
-    "updatedAt": 1779880561982
+    "updatedAt": 1779966448289
   },
   {
     "id": 1779880531831,
