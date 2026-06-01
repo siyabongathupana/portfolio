@@ -1,5 +1,17 @@
 [
   {
+    "id": 1780317759146,
+    "date": "2026-06-01",
+    "start": "12:00",
+    "end": "13:00",
+    "hours": 1,
+    "project": "Entitled Time",
+    "category": "Other",
+    "billable": "no",
+    "notes": "Lunch",
+    "updatedAt": 1780317759146
+  },
+  {
     "id": 1780317462454,
     "date": "2026-06-01",
     "start": "10:46",
