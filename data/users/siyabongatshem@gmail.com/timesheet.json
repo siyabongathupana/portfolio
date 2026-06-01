@@ -1,5 +1,17 @@
 [
   {
+    "id": 1780321198895,
+    "date": "2026-06-02",
+    "start": "07:30",
+    "end": "16:00",
+    "hours": 8.5,
+    "project": "Sasol Boiler 6",
+    "category": "Site",
+    "billable": "yes",
+    "notes": "Configuring Historization For Boiler 7",
+    "updatedAt": 1780321198895
+  },
+  {
     "id": 1780320606692,
     "date": "2026-06-01",
     "start": "13:48",
