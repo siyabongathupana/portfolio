@@ -26,7 +26,7 @@
 
 | Projects | Certifications | Users | Hours | Billable | Daily Avg |
 |:--------:|:--------------:|:-----:|:-----:|:--------:|:---------:|
-| 0 | 18 | 4 | 156.7 | 129.8 | 7.8h |
+| 0 | 18 | 4 | 160.0 | 133.1 | 7.6h |
 
 ---
 
@@ -36,7 +36,7 @@
 |----------|-------|
 | Top Category | CFAT |
 | Top Project | Omnia Phase 3 |
-| Active Days | 20 |
+| Active Days | 21 |
 
 ---
 
@@ -86,6 +86,6 @@
 
 <div align="center">
 
-*Last updated: June 01, 2026 at 04:17:57 UTC*
+*Last updated: June 01, 2026 at 09:12:59 UTC*
 
 </div>
