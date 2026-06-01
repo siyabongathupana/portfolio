@@ -1,5 +1,17 @@
 [
   {
+    "id": 1780315006347,
+    "date": "2026-06-01",
+    "start": "11:00",
+    "end": "12:00",
+    "hours": 1,
+    "project": "Sasol Boiler 6",
+    "category": "Software",
+    "billable": "yes",
+    "notes": "Sorting out Historization list for Boiler 7",
+    "updatedAt": 1780315006347
+  },
+  {
     "id": 1780305907467,
     "date": "2026-06-01",
     "start": "10:45",
