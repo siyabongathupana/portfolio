@@ -1,10 +1,3 @@
 {
-  "pending": [
-    {
-      "email": "andrewnarekobe@gmail.com",
-      "token": "5d5546daafaa82733abc937a2da1300b",
-      "expiresAt": 1780402770998,
-      "createdAt": 1780316370998
-    }
-  ]
+  "pending": []
 }
