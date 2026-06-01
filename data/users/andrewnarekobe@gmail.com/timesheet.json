@@ -1,5 +1,17 @@
 [
   {
+    "id": 1780319685212,
+    "date": "2026-06-01",
+    "start": "14:43",
+    "end": "14:59",
+    "hours": 0.27,
+    "project": "Others",
+    "category": "Other",
+    "billable": "no",
+    "notes": "Helping Find Dongles Assignment",
+    "updatedAt": 1780319685212
+  },
+  {
     "id": 1780317852109,
     "date": "2026-06-01",
     "start": "13:00",
