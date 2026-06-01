@@ -1,5 +1,17 @@
 [
   {
+    "id": 1780317852109,
+    "date": "2026-06-01",
+    "start": "13:00",
+    "end": "14:43",
+    "hours": 1.72,
+    "project": "MIBK 1&2",
+    "category": "Other",
+    "billable": "yes",
+    "notes": "Hardware Cabinet PDF Redlines",
+    "updatedAt": 1780317852109
+  },
+  {
     "id": 1780317759146,
     "date": "2026-06-01",
     "start": "12:00",
