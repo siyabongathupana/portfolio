@@ -1,5 +1,17 @@
 [
   {
+    "id": 1780402230400,
+    "date": "2026-06-02",
+    "start": "13:20",
+    "end": "14:06",
+    "hours": 0.77,
+    "project": "NH3",
+    "category": "Hardware",
+    "billable": "yes",
+    "notes": "Helping Valter with Setting up Autocon",
+    "updatedAt": 1780402230400
+  },
+  {
     "id": 1780398897802,
     "date": "2026-06-02",
     "start": "13:02",
