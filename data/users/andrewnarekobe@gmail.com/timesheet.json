@@ -1,5 +1,17 @@
 [
   {
+    "id": 1780382474459,
+    "date": "2026-06-02",
+    "start": "07:45",
+    "end": "08:40",
+    "hours": 0.92,
+    "project": "MIBK 1&2",
+    "category": "Hardware",
+    "billable": "yes",
+    "notes": "Redline Cabinet drawings",
+    "updatedAt": 1780382474459
+  },
+  {
     "id": 1780319685212,
     "date": "2026-06-01",
     "start": "14:43",
