@@ -1,5 +1,17 @@
 [
   {
+    "id": 1780394156535,
+    "date": "2026-06-02",
+    "start": "08:41",
+    "end": "12:00",
+    "hours": 3.32,
+    "project": "MIBK 1&2",
+    "category": "Hardware",
+    "billable": "yes",
+    "notes": "MIBK SOFWARE BACKPUNCHING",
+    "updatedAt": 1780394156535
+  },
+  {
     "id": 1780382474459,
     "date": "2026-06-02",
     "start": "07:45",
