@@ -1,7 +1,4 @@
-// shared.js – Complete with full encryption for ALL user data
-// Passphrase stored in sessionStorage – no repeated prompts.
-// Logged-in users always see their own data, never public profile.
-
+// shared.js – Complete with full encryption & sessionStorage passphrase
 window.showLoading = function (msg = 'Processing...') {
   let loader = document.getElementById('globalLoader');
   if (!loader) {
@@ -33,7 +30,7 @@ window.escapeHtml = function (str) {
 async function encryptDataBlob(obj, passphrase) {
   const json = JSON.stringify(obj);
   const encrypted = await window.CryptoUtil.encrypt(json, passphrase);
-  return encrypted; // { salt, iv, ciphertext }
+  return encrypted;
 }
 
 async function decryptDataBlob(encryptedBlob, passphrase) {
@@ -46,14 +43,13 @@ async function getUserEncryptionKey() {
   const user = window.SessionManager.getCurrentUser();
   if (!user) throw new Error('No logged-in user');
   if (!window._userPassphrase) {
-    // Try to retrieve from sessionStorage
     const stored = sessionStorage.getItem('portfolioPassphrase');
     if (stored) {
       try {
         window._userPassphrase = atob(stored);
-        console.log("🔐 Passphrase restored from session");
+        console.log("✅ Passphrase restored from sessionStorage");
         return window._userPassphrase;
-      } catch(e) {}
+      } catch(e) { console.warn("Failed to decode stored passphrase", e); }
     }
     const pwd = prompt("🔐 Enter your passphrase to access your data:", "");
     if (!pwd) throw new Error('Passphrase required');
@@ -410,6 +406,7 @@ window.AccountManager = {
     // Store passphrase in memory and sessionStorage
     window._userPassphrase = passphrase;
     sessionStorage.setItem('portfolioPassphrase', btoa(passphrase));
+    console.log("✅ Passphrase stored in sessionStorage");
     await window.Logger.logActivity('account', 'login', `User logged in: ${username}`);
     return data.token;
   },
@@ -508,7 +505,6 @@ window.portfolioData = (() => {
       const resp = await fetch(rawUrl);
       if (resp.ok) {
         const data = await resp.json();
-        // If the public data is encrypted (should not be), but handle gracefully
         if (data && typeof data === 'object' && data.salt) {
           return type === 'projects' ? {} : [];
         }
@@ -518,11 +514,9 @@ window.portfolioData = (() => {
     return type === 'projects' ? {} : [];
   }
 
-  // Helper to load an encrypted file for the logged-in user only
   async function loadUserFile(filename, defaultEmpty) {
     const user = window.SessionManager.getCurrentUser();
     if (!user || !user.pat) {
-      // No logged-in user: return empty (never fallback to public for editing)
       return defaultEmpty;
     }
     await verifyNotBlocked();
@@ -532,12 +526,10 @@ window.portfolioData = (() => {
       const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
       if (!file || !file.content) return defaultEmpty;
       let decrypted;
-      // Check if content is encrypted blob
       if (typeof file.content === 'object' && file.content.salt && file.content.iv && file.content.ciphertext) {
         const passphrase = await getUserEncryptionKey();
         decrypted = await decryptDataBlob(file.content, passphrase);
       } else {
-        // Legacy plain JSON – keep as is, will be encrypted on next save
         decrypted = file.content;
         window._needsMigration = true;
       }
@@ -579,11 +571,9 @@ window.portfolioData = (() => {
     } catch(e) {}
   }
 
-  // Public view (for visitors) – always reads public profile data
   async function loadProjectsForView() {
     const user = window.SessionManager.getCurrentUser();
     if (user) {
-      // Logged in: return user's own projects (decrypted)
       return await loadUserFile('projects.json', {});
     }
     const publicEmail = window.APP_CONFIG.publicProfileEmail;
@@ -601,7 +591,6 @@ window.portfolioData = (() => {
     return [];
   }
 
-  // Admin/edit functions – always work on logged-in user's data
   async function loadProjects() {
     const data = await loadUserFile('projects.json', {});
     localStorage.setItem(PROJECTS_KEY, JSON.stringify(data));
