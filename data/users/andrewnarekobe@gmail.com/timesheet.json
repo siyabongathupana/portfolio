@@ -1,5 +1,17 @@
 [
   {
+    "id": 1780488187823,
+    "date": "2026-06-03",
+    "start": "08:02",
+    "end": "12:00",
+    "hours": 3.97,
+    "project": "NH3",
+    "category": "IFAT",
+    "billable": "yes",
+    "notes": "Helping Valter with Autocon",
+    "updatedAt": 1780488187823
+  },
+  {
     "id": 1780488116657,
     "date": "2026-06-03",
     "start": "07:45",
