@@ -1,5 +1,6 @@
 // shared.js – Complete with full encryption for ALL user data
-// account.json already encrypted, all other user files now encrypted too.
+// Passphrase stored in sessionStorage – no repeated prompts.
+// Logged-in users always see their own data, never public profile.
 
 window.showLoading = function (msg = 'Processing...') {
   let loader = document.getElementById('globalLoader');
@@ -40,13 +41,24 @@ async function decryptDataBlob(encryptedBlob, passphrase) {
   return JSON.parse(decrypted);
 }
 
+// Get current user's passphrase from memory or sessionStorage
 async function getUserEncryptionKey() {
   const user = window.SessionManager.getCurrentUser();
   if (!user) throw new Error('No logged-in user');
   if (!window._userPassphrase) {
+    // Try to retrieve from sessionStorage
+    const stored = sessionStorage.getItem('portfolioPassphrase');
+    if (stored) {
+      try {
+        window._userPassphrase = atob(stored);
+        console.log("🔐 Passphrase restored from session");
+        return window._userPassphrase;
+      } catch(e) {}
+    }
     const pwd = prompt("🔐 Enter your passphrase to access your data:", "");
     if (!pwd) throw new Error('Passphrase required');
     window._userPassphrase = pwd;
+    sessionStorage.setItem('portfolioPassphrase', btoa(pwd));
   }
   return window._userPassphrase;
 }
@@ -83,6 +95,7 @@ window.SessionManager = (() => {
     logout: () => {
       current = null;
       window._userPassphrase = null;
+      sessionStorage.removeItem('portfolioPassphrase');
       sessionStorage.removeItem('portfolioUser');
     },
     isAdmin: () => {
@@ -394,7 +407,9 @@ window.AccountManager = {
     const decrypted = await window.CryptoUtil.decrypt(blob, passphrase);
     const data = JSON.parse(decrypted);
     if (data.test !== 'VALID') throw new Error('Corrupted account');
+    // Store passphrase in memory and sessionStorage
     window._userPassphrase = passphrase;
+    sessionStorage.setItem('portfolioPassphrase', btoa(passphrase));
     await window.Logger.logActivity('account', 'login', `User logged in: ${username}`);
     return data.token;
   },
@@ -469,7 +484,7 @@ window.AccountManager = {
   }
 };
 
-// ======================== PORTFOLIO DATA (fully encrypted) ========================
+// ======================== PORTFOLIO DATA (fully encrypted, always loads logged-in user) ========================
 window.portfolioData = (() => {
   const PROJECTS_KEY = 'portfolioProjects';
   const CERTS_KEY = 'portfolioCertificates';
@@ -493,6 +508,7 @@ window.portfolioData = (() => {
       const resp = await fetch(rawUrl);
       if (resp.ok) {
         const data = await resp.json();
+        // If the public data is encrypted (should not be), but handle gracefully
         if (data && typeof data === 'object' && data.salt) {
           return type === 'projects' ? {} : [];
         }
@@ -502,12 +518,11 @@ window.portfolioData = (() => {
     return type === 'projects' ? {} : [];
   }
 
-  async function loadEncryptedFile(filename, defaultEmpty, isPublic = false) {
+  // Helper to load an encrypted file for the logged-in user only
+  async function loadUserFile(filename, defaultEmpty) {
     const user = window.SessionManager.getCurrentUser();
     if (!user || !user.pat) {
-      if (!isPublic && window.APP_CONFIG.publicProfileEmail) {
-        return await fetchPublicData(window.APP_CONFIG.publicProfileEmail, filename.replace('.json',''));
-      }
+      // No logged-in user: return empty (never fallback to public for editing)
       return defaultEmpty;
     }
     await verifyNotBlocked();
@@ -517,10 +532,12 @@ window.portfolioData = (() => {
       const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
       if (!file || !file.content) return defaultEmpty;
       let decrypted;
+      // Check if content is encrypted blob
       if (typeof file.content === 'object' && file.content.salt && file.content.iv && file.content.ciphertext) {
         const passphrase = await getUserEncryptionKey();
         decrypted = await decryptDataBlob(file.content, passphrase);
       } else {
+        // Legacy plain JSON – keep as is, will be encrypted on next save
         decrypted = file.content;
         window._needsMigration = true;
       }
@@ -531,7 +548,7 @@ window.portfolioData = (() => {
     }
   }
 
-  async function saveEncryptedFile(filename, data, forceEmpty = false) {
+  async function saveUserFile(filename, data, forceEmpty = false) {
     const user = window.SessionManager.getCurrentUser();
     if (!user || !user.pat) return;
     await verifyNotBlocked();
@@ -562,9 +579,13 @@ window.portfolioData = (() => {
     } catch(e) {}
   }
 
+  // Public view (for visitors) – always reads public profile data
   async function loadProjectsForView() {
     const user = window.SessionManager.getCurrentUser();
-    if (user) return await loadEncryptedFile('projects.json', {});
+    if (user) {
+      // Logged in: return user's own projects (decrypted)
+      return await loadUserFile('projects.json', {});
+    }
     const publicEmail = window.APP_CONFIG.publicProfileEmail;
     if (publicEmail) return await fetchPublicData(publicEmail, 'projects');
     return {};
@@ -572,20 +593,23 @@ window.portfolioData = (() => {
 
   async function loadCertificatesForView() {
     const user = window.SessionManager.getCurrentUser();
-    if (user) return await loadEncryptedFile('certificates.json', []);
+    if (user) {
+      return await loadUserFile('certificates.json', []);
+    }
     const publicEmail = window.APP_CONFIG.publicProfileEmail;
     if (publicEmail) return await fetchPublicData(publicEmail, 'certificates');
     return [];
   }
 
+  // Admin/edit functions – always work on logged-in user's data
   async function loadProjects() {
-    const data = await loadEncryptedFile('projects.json', {});
+    const data = await loadUserFile('projects.json', {});
     localStorage.setItem(PROJECTS_KEY, JSON.stringify(data));
     return data;
   }
 
   async function loadCertificates() {
-    const data = await loadEncryptedFile('certificates.json', []);
+    const data = await loadUserFile('certificates.json', []);
     localStorage.setItem(CERTS_KEY, JSON.stringify(data));
     return data;
   }
@@ -603,7 +627,7 @@ window.portfolioData = (() => {
       if (data[id].blocked === undefined) data[id].blocked = false;
     }
     localStorage.setItem(PROJECTS_KEY, JSON.stringify(data));
-    await saveEncryptedFile('projects.json', data, forceEmpty);
+    await saveUserFile('projects.json', data, forceEmpty);
     await window.Logger.logActivity('project', 'save', `Saved ${Object.keys(data).length} projects`);
   }
 
@@ -617,7 +641,7 @@ window.portfolioData = (() => {
     }
     data = data.map(cert => { if (!cert.updatedAt) cert.updatedAt = Date.now(); return cert; });
     localStorage.setItem(CERTS_KEY, JSON.stringify(data));
-    await saveEncryptedFile('certificates.json', data, forceEmpty);
+    await saveUserFile('certificates.json', data, forceEmpty);
     await window.Logger.logActivity('certificate', 'save', `Saved ${data.length} certificates`);
   }
 
