@@ -1,5 +1,17 @@
 [
   {
+    "id": 1780475950579,
+    "date": "2026-06-03",
+    "start": "08:11",
+    "end": "10:39",
+    "hours": 2.47,
+    "project": "Omnia Phase 3",
+    "category": "IFAT",
+    "billable": "yes",
+    "notes": "Software IFAT",
+    "updatedAt": 1780475950579
+  },
+  {
     "id": 1780467137271,
     "date": "2026-06-03",
     "start": "07:30",
