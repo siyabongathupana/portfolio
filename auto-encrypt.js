@@ -1,20 +1,20 @@
-// auto-encrypt.js – Hardened encryption for user data
-// Anti‑debugging, obfuscated strings, runtime integrity.
+// auto-encrypt.js – Hardened encryption (no false positive DevTools detection)
 // Drop this file in your root and add one script tag.
 
 (function(){
-  // ---------- Anti‑debugging / DevTools detection ----------
-  const startTime = performance.now();
-  const devToolsCheck = setInterval(() => {
-    if (performance.now() - startTime > 100) {
-      clearInterval(devToolsCheck);
-      // If devtools is open, performance.now() drifts
-      document.body.innerHTML = '<h1>Security Error</h1><p>Developer tools detected. Please close them and reload.</p>';
-      throw new Error('DevTools detected');
+  // ---------- Safe anti‑debug (only warns, does not break) ----------
+  let devToolsOpen = false;
+  const element = new Image();
+  Object.defineProperty(element, 'id', {
+    get: function() {
+      devToolsOpen = true;
+      console.warn('⚠️ Developer tools may be open – data is still encrypted.');
+      return '';
     }
-  }, 50);
+  });
+  console.log(element);
 
-  // Override console methods to prevent logging of sensitive data
+  // ---------- Console protection (prevents logging sensitive data) ----------
   const noop = () => {};
   if (window.console) {
     const originalLog = console.log;
@@ -31,7 +31,7 @@
   const _ = (str, shift = 3) => {
     return str.split('').map(c => String.fromCharCode(c.charCodeAt(0) - shift)).join('');
   };
-  const __ = (str) => atob(str); // base64 decode
+  const __ = (str) => atob(str);
 
   // Dependencies with obfuscated names
   const _crypto = window[_('FsurwHwlo', 3)];        // CryptoUtil
@@ -53,7 +53,7 @@
 
   let failCount = 0, failTime = 0, timeoutId = null;
 
-  // ---------- Path check (obfuscated strings) ----------
+  // ---------- Path check ----------
   function isUserPath(p) {
     const pub = window.APP_CONFIG?.publicProfileEmail;
     if (pub && p.includes(encodeURIComponent(pub))) return false;
@@ -64,7 +64,7 @@
     return p.includes(dataUsers) && !p.endsWith(account) && !p.endsWith(verified) && !p.endsWith(stats);
   }
 
-  // ---------- Passphrase with rate limiting and timeout ----------
+  // ---------- Passphrase with rate limiting ----------
   async function getPass() {
     const user = _session.getCurrentUser();
     if (!user) throw new Error('Not logged in');
@@ -73,7 +73,7 @@
     }
     if (failCount >= _cfg.maxFail) { failCount = 0; failTime = 0; }
 
-    if (!window._P) {  // _P holds the passphrase
+    if (!window._P) {
       const pwd = prompt(__('RmFzdHdlbGw6IEVudGVyIHlvdXIgcGFzc3BocmFzZSB0byBhY2Nlc3MgZW5jcnlwdGVkIGRhdGE6'), '');
       if (!pwd) throw new Error('Passphrase required');
       window._P = pwd;
@@ -86,7 +86,7 @@
     return window._P;
   }
 
-  // ---------- HMAC (obfuscated) ----------
+  // ---------- HMAC ----------
   async function _hmac(data, pass) {
     const enc = new TextEncoder();
     const key = await crypto.subtle.importKey('raw', enc.encode(pass), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
@@ -149,23 +149,7 @@
     return _origPut(owner, repo, path, final, msg, branch, token, sha);
   };
 
-  // Override portfolioData methods to force migration on first save
-  const _origLoad = window.portfolioData?.loadProjects;
-  if (_origLoad) {
-    window.portfolioData.loadProjects = async function() {
-      const data = await _origLoad();
-      if (window._needsMigration && window._session?.getCurrentUser()) {
-        window._pendingEnc = true;
-      }
-      return data;
-    };
-    window.portfolioData.saveProjects = async function(data, force) {
-      if (window._pendingEnc) delete window._pendingEnc;
-      return _origLoad ? _origLoad(data, force) : null;
-    };
-  }
-
-  // Cleanup interval on page unload
+  // Cleanup on page unload
   window.addEventListener('beforeunload', () => {
     if (timeoutId) clearTimeout(timeoutId);
     window._P = null;
