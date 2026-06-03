@@ -1,159 +1,183 @@
-// auto-encrypt.js – Hardened encryption (no false positive DevTools detection)
-// Drop this file in your root and add one script tag.
+// auto-encrypt.js – Intercepts ALL fetch calls to GitHub API
+// Encrypts/decrypts user data files transparently.
+// No modifications to any existing .js files required.
 
-(function(){
-  // ---------- Safe anti‑debug (only warns, does not break) ----------
-  let devToolsOpen = false;
-  const element = new Image();
-  Object.defineProperty(element, 'id', {
-    get: function() {
-      devToolsOpen = true;
-      console.warn('⚠️ Developer tools may be open – data is still encrypted.');
-      return '';
-    }
-  });
-  console.log(element);
-
-  // ---------- Console protection (prevents logging sensitive data) ----------
-  const noop = () => {};
-  if (window.console) {
-    const originalLog = console.log;
-    console.log = function(...args) {
-      const str = args.join('');
-      if (str.includes('passphrase') || str.includes('decrypt') || str.includes('encrypt')) return;
-      originalLog.apply(console, args);
-    };
-    console.warn = noop;
-    console.error = (...args) => { if (args[0]?.includes('auto-encrypt')) return; };
-  }
-
-  // ---------- Obfuscated string decoder ----------
-  const _ = (str, shift = 3) => {
-    return str.split('').map(c => String.fromCharCode(c.charCodeAt(0) - shift)).join('');
-  };
-  const __ = (str) => atob(str);
-
-  // Dependencies with obfuscated names
-  const _crypto = window[_('FsurwHwlo', 3)];        // CryptoUtil
-  const _github = window[_('JlxLvXQ', 3)];          // GitHubAPI
-  const _session = window[_('VhvvlrqPdqdjhu', 3)];  // SessionManager
-
-  if (!_crypto || !_github || !_session) {
-    console.warn('Encryption disabled: dependencies missing');
+(function() {
+  // Wait for dependencies
+  if (!window.CryptoUtil || !window.SessionManager) {
+    console.warn('auto-encrypt.js: dependencies not ready, retrying...');
+    setTimeout(arguments.callee, 200);
     return;
   }
 
-  // ---------- Configuration (obfuscated) ----------
-  const _cfg = {
-    maxFail: 3,
-    lockoutMs: 30 * 60 * 1000,
-    timeoutMs: 60 * 60 * 1000,
-    useHmac: true
+  // ---------- Configuration ----------
+  const CONFIG = {
+    MAX_DECRYPT_ATTEMPTS: 3,
+    LOCKOUT_MS: 30 * 60 * 1000,
+    SESSION_TIMEOUT_MS: 60 * 60 * 1000,
+    USE_HMAC: true
   };
 
-  let failCount = 0, failTime = 0, timeoutId = null;
+  let decryptAttempts = 0;
+  let lastFailTime = 0;
+  let sessionTimeoutId = null;
 
-  // ---------- Path check ----------
-  function isUserPath(p) {
-    const pub = window.APP_CONFIG?.publicProfileEmail;
-    if (pub && p.includes(encodeURIComponent(pub))) return false;
-    const dataUsers = _('gdwd/ xvhuv/', 3);
-    const account = _('dffrxqw/ mvrq', 3);
-    const verified = _('yhulilhg/ mvrq', 3);
-    const stats = _('vwdwv/ mvrq', 3);
-    return p.includes(dataUsers) && !p.endsWith(account) && !p.endsWith(verified) && !p.endsWith(stats);
+  // ---------- Helper functions ----------
+  function isUserDataPath(path) {
+    const publicEmail = window.APP_CONFIG?.publicProfileEmail;
+    if (publicEmail && path.includes(encodeURIComponent(publicEmail))) {
+      return false;
+    }
+    return path.includes('/data/users/') &&
+           !path.endsWith('account.json') &&
+           !path.endsWith('verified.json') &&
+           !path.endsWith('stats.json');
   }
 
-  // ---------- Passphrase with rate limiting ----------
-  async function getPass() {
-    const user = _session.getCurrentUser();
+  async function getPassphrase() {
+    const user = window.SessionManager.getCurrentUser();
     if (!user) throw new Error('Not logged in');
-    if (failCount >= _cfg.maxFail && (Date.now() - failTime) < _cfg.lockoutMs) {
-      throw new Error(__('VG9vIG1hbnkgZmFpbGVkIGF0dGVtcHRzLg=='));
-    }
-    if (failCount >= _cfg.maxFail) { failCount = 0; failTime = 0; }
 
-    if (!window._P) {
-      const pwd = prompt(__('RmFzdHdlbGw6IEVudGVyIHlvdXIgcGFzc3BocmFzZSB0byBhY2Nlc3MgZW5jcnlwdGVkIGRhdGE6'), '');
+    if (decryptAttempts >= CONFIG.MAX_DECRYPT_ATTEMPTS &&
+        (Date.now() - lastFailTime) < CONFIG.LOCKOUT_MS) {
+      throw new Error('Too many failed attempts. Please wait.');
+    }
+    if (decryptAttempts >= CONFIG.MAX_DECRYPT_ATTEMPTS) {
+      decryptAttempts = 0;
+      lastFailTime = 0;
+    }
+
+    if (!window._userPassphrase) {
+      const pwd = prompt("🔐 Enter your passphrase to access encrypted data:", "");
       if (!pwd) throw new Error('Passphrase required');
-      window._P = pwd;
-      if (timeoutId) clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => { window._P = null; }, _cfg.timeoutMs);
+      window._userPassphrase = pwd;
+      if (sessionTimeoutId) clearTimeout(sessionTimeoutId);
+      sessionTimeoutId = setTimeout(() => {
+        window._userPassphrase = null;
+      }, CONFIG.SESSION_TIMEOUT_MS);
     } else {
-      if (timeoutId) clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => { window._P = null; }, _cfg.timeoutMs);
+      if (sessionTimeoutId) clearTimeout(sessionTimeoutId);
+      sessionTimeoutId = setTimeout(() => {
+        window._userPassphrase = null;
+      }, CONFIG.SESSION_TIMEOUT_MS);
     }
-    return window._P;
+    return window._userPassphrase;
   }
 
-  // ---------- HMAC ----------
-  async function _hmac(data, pass) {
-    const enc = new TextEncoder();
-    const key = await crypto.subtle.importKey('raw', enc.encode(pass), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
-    const sig = await crypto.subtle.sign('HMAC', key, enc.encode(data));
-    return Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('');
+  async function computeHMAC(data, passphrase) {
+    const encoder = new TextEncoder();
+    const key = await crypto.subtle.importKey(
+      'raw', encoder.encode(passphrase),
+      { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+    );
+    const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(data));
+    return Array.from(new Uint8Array(signature)).map(b => b.toString(16).padStart(2, '0')).join('');
   }
 
-  // ---------- Encrypt / Decrypt ----------
-  async function _encrypt(obj, pass) {
+  async function encryptBlob(obj, passphrase) {
     const json = JSON.stringify(obj);
-    const enc = await _crypto.encrypt(json, pass);
-    const blob = { s: enc.salt, i: enc.iv, c: enc.ciphertext };
-    if (_cfg.useHmac) blob.h = await _hmac(JSON.stringify(blob), pass);
+    const encrypted = await window.CryptoUtil.encrypt(json, passphrase);
+    const blob = { salt: encrypted.salt, iv: encrypted.iv, ciphertext: encrypted.ciphertext };
+    if (CONFIG.USE_HMAC) {
+      blob.hmac = await computeHMAC(JSON.stringify(blob), passphrase);
+    }
     return blob;
   }
 
-  async function _decrypt(blob, pass) {
-    if (_cfg.useHmac && blob.h) {
-      const copy = { s: blob.s, i: blob.i, c: blob.c };
-      const expected = await _hmac(JSON.stringify(copy), pass);
-      if (expected !== blob.h) throw new Error('Integrity failure');
-    }
-    const dec = await _crypto.decrypt({ salt: blob.s, iv: blob.i, ciphertext: blob.c }, pass);
-    return JSON.parse(dec);
-  }
-
-  // ---------- Override GitHubAPI ----------
-  const _origGet = _github.getFileContent;
-  const _origPut = _github.updateFile;
-
-  _github.getFileContent = async function(owner, repo, path, branch, token) {
-    const res = await _origGet(owner, repo, path, branch, token);
-    if (!res || !res.content || !isUserPath(path)) return res;
-    let content = res.content;
-    let encrypted = false;
-    try {
-      const p = typeof content === 'string' ? JSON.parse(content) : content;
-      if (p && p.s && p.i && p.c) encrypted = true;
-    } catch(e) {}
-    if (encrypted) {
-      const pass = await getPass();
-      try {
-        const dec = await _decrypt(content, pass);
-        res.content = JSON.stringify(dec);
-        failCount = 0; failTime = 0;
-      } catch(err) {
-        failCount++; failTime = Date.now();
-        throw new Error('Decryption failed');
+  async function decryptBlob(blob, passphrase) {
+    if (CONFIG.USE_HMAC && blob.hmac) {
+      const copy = { ...blob };
+      delete copy.hmac;
+      const expected = await computeHMAC(JSON.stringify(copy), passphrase);
+      if (expected !== blob.hmac) {
+        throw new Error('Data integrity check failed');
       }
     }
-    return res;
-  };
+    const decrypted = await window.CryptoUtil.decrypt(
+      { salt: blob.salt, iv: blob.iv, ciphertext: blob.ciphertext },
+      passphrase
+    );
+    return JSON.parse(decrypted);
+  }
 
-  _github.updateFile = async function(owner, repo, path, content, msg, branch, token, sha) {
-    let final = content;
-    if (isUserPath(path)) {
-      const pass = await getPass();
-      final = await _encrypt(content, pass);
+  // ---------- Intercept global fetch ----------
+  const originalFetch = window.fetch;
+
+  window.fetch = async function(url, options) {
+    // Only intercept GitHub API calls that read/write file contents
+    if (typeof url === 'string' && url.includes('api.github.com/repos/') && url.includes('/contents/')) {
+      const isGet = !options || options.method === 'GET' || !options.method;
+      const isPut = options && (options.method === 'PUT' || options.method === 'PUT');
+
+      // GET: decrypt content if it's a user data file
+      if (isGet) {
+        const response = await originalFetch(url, options);
+        if (!response.ok) return response;
+        const clonedResponse = response.clone();
+        const data = await clonedResponse.json();
+        if (data && data.content && data.path && isUserDataPath(data.path)) {
+          let content = data.content;
+          let isEncrypted = false;
+          try {
+            const parsed = JSON.parse(atob(content));
+            if (parsed && parsed.salt && parsed.iv && parsed.ciphertext) {
+              isEncrypted = true;
+            }
+          } catch(e) {}
+          if (isEncrypted) {
+            const pass = await getPassphrase();
+            try {
+              const encryptedBlob = JSON.parse(atob(content));
+              const decrypted = await decryptBlob(encryptedBlob, pass);
+              const newContent = btoa(unescape(encodeURIComponent(JSON.stringify(decrypted))));
+              // Return a new response with decrypted content
+              const newData = { ...data, content: newContent };
+              const newResponse = new Response(JSON.stringify(newData), {
+                status: response.status,
+                statusText: response.statusText,
+                headers: response.headers
+              });
+              decryptAttempts = 0;
+              lastFailTime = 0;
+              return newResponse;
+            } catch(err) {
+              decryptAttempts++;
+              lastFailTime = Date.now();
+              console.error('Decryption failed', err);
+            }
+          }
+        }
+        return response;
+      }
+
+      // PUT: encrypt content before sending
+      if (isPut && options && options.body) {
+        let body = JSON.parse(options.body);
+        if (body && body.content && body.path && isUserDataPath(body.path)) {
+          const pass = await getPassphrase();
+          let originalContent;
+          try {
+            originalContent = JSON.parse(atob(body.content));
+          } catch(e) {
+            originalContent = body.content;
+          }
+          // Check if it's already encrypted (to avoid double encryption)
+          let isAlreadyEncrypted = false;
+          try {
+            if (originalContent && originalContent.salt && originalContent.iv && originalContent.ciphertext) {
+              isAlreadyEncrypted = true;
+            }
+          } catch(e) {}
+          if (!isAlreadyEncrypted) {
+            const encryptedBlob = await encryptBlob(originalContent, pass);
+            body.content = btoa(unescape(encodeURIComponent(JSON.stringify(encryptedBlob))));
+            options.body = JSON.stringify(body);
+          }
+        }
+      }
     }
-    return _origPut(owner, repo, path, final, msg, branch, token, sha);
+    return originalFetch(url, options);
   };
 
-  // Cleanup on page unload
-  window.addEventListener('beforeunload', () => {
-    if (timeoutId) clearTimeout(timeoutId);
-    window._P = null;
-  });
-
-  console.log('🔒 Secure encryption layer active');
+  console.log('🔒 Global fetch interceptor active – all user data will be encrypted');
 })();
