@@ -5,11 +5,11 @@
     "start": "07:30",
     "end": "16:00",
     "hours": 8.5,
-    "project": "Sasol Boiler 6",
+    "project": "Sasol Boiler 7",
     "category": "Site",
     "billable": "yes",
     "notes": "Configuring Historization For Boiler 7",
-    "updatedAt": 1780321198895
+    "updatedAt": 1780464573899
   },
   {
     "id": 1780320606692,
