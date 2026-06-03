@@ -1,5 +1,17 @@
 [
   {
+    "id": 1780488349303,
+    "date": "2026-06-03",
+    "start": "14:05",
+    "end": "15:05",
+    "hours": 1,
+    "project": "MIBK 1&2",
+    "category": "Back-Punching",
+    "billable": "yes",
+    "notes": "Software Backpuncing",
+    "updatedAt": 1780488349303
+  },
+  {
     "id": 1780488250716,
     "date": "2026-06-03",
     "start": "13:10",
