@@ -1,4 +1,4 @@
-// timesheet.js – Complete, with fixed PDF week‑based row coloring
+// timesheet.js – Complete, with full encryption for all user data files
 (function() {
   const user = window.SessionManager?.getCurrentUser();
   if (!user) {
@@ -21,6 +21,33 @@
       throw new Error("Token expired – redirecting");
     }
     return response;
+  }
+
+  // ======================== ENCRYPTION HELPERS ========================
+  async function encryptDataBlob(obj, passphrase) {
+    const json = JSON.stringify(obj);
+    const encrypted = await window.CryptoUtil.encrypt(json, passphrase);
+    return encrypted;
+  }
+
+  async function decryptDataBlob(encryptedBlob, passphrase) {
+    const decrypted = await window.CryptoUtil.decrypt(encryptedBlob, passphrase);
+    return JSON.parse(decrypted);
+  }
+
+  async function getUserEncryptionKey() {
+    if (!window._userPassphrase) {
+      const pwd = prompt("🔐 Enter your passphrase to access timesheet data:", "");
+      if (!pwd) throw new Error('Passphrase required');
+      window._userPassphrase = pwd;
+    }
+    return window._userPassphrase;
+  }
+
+  function getUserDataPath(username, filename) {
+    const { dataPath } = window.REPO_CONFIG;
+    const encUser = encodeURIComponent(username);
+    return `${dataPath}/users/${encUser}/${filename}`;
   }
 
   // ======================== CONFIGURATION ========================
@@ -51,18 +78,24 @@
     toastEl.addEventListener("hidden.bs.toast", () => toastEl.remove());
   }
 
-  // ======================== DATA LOAD & SAVE ========================
+  // ======================== DATA LOAD & SAVE (encrypted) ========================
   async function loadTimesheet() {
-    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const encUser = encodeURIComponent(user.username);
-    const path = `${dataPath}/users/${encUser}/${TIMESHEET_FILE}`;
+    const { owner, repo, branch } = window.REPO_CONFIG;
+    const path = getUserDataPath(user.username, TIMESHEET_FILE);
     const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`;
     try {
       const resp = await githubFetchWithAuth(url, { headers: { Authorization: `token ${user.pat}`, Accept: 'application/vnd.github.v3+json' } });
       if (resp.ok) {
         const data = await resp.json();
-        const content = atob(data.content.replace(/\n/g, ''));
-        const parsed = JSON.parse(content);
+        const content = data.content;
+        let parsed;
+        if (typeof content === 'object' && content.salt && content.iv && content.ciphertext) {
+          const passphrase = await getUserEncryptionKey();
+          parsed = await decryptDataBlob(content, passphrase);
+        } else {
+          parsed = JSON.parse(atob(content.replace(/\n/g, '')));
+          window._needsTimesheetMigration = true;
+        }
         entries = Array.isArray(parsed) ? parsed : [];
         entries = entries.map(e => ({ ...e, updatedAt: e.updatedAt || e.id }));
         entries.sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -73,10 +106,11 @@
 
   async function saveTimesheet(dataToSave) {
     if (!Array.isArray(dataToSave)) throw new Error("Invalid data: expected array");
-    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const encUser = encodeURIComponent(user.username);
-    const path = `${dataPath}/users/${encUser}/${TIMESHEET_FILE}`;
-    const content = JSON.stringify(dataToSave, null, 2);
+    const passphrase = await getUserEncryptionKey();
+    const encryptedBlob = await encryptDataBlob(dataToSave, passphrase);
+    const { owner, repo, branch } = window.REPO_CONFIG;
+    const path = getUserDataPath(user.username, TIMESHEET_FILE);
+    const content = JSON.stringify(encryptedBlob);
     const encodedContent = btoa(unescape(encodeURIComponent(content)));
 
     let sha = null;
@@ -102,21 +136,29 @@
   }
 
   async function loadTimesheetProjects() {
-    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const encUser = encodeURIComponent(user.username);
-    const path = `${dataPath}/users/${encUser}/${TIMESHEET_PROJECTS_FILE}`;
+    const { owner, repo, branch } = window.REPO_CONFIG;
+    const path = getUserDataPath(user.username, TIMESHEET_PROJECTS_FILE);
     try {
       const resp = await githubFetchWithAuth(`https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`, { headers: { Authorization: `token ${user.pat}` } });
-      if (resp.ok) { const data = await resp.json(); timesheetProjects = JSON.parse(atob(data.content.replace(/\n/g, ''))); }
-      else if (resp.status === 404) timesheetProjects = [];
+      if (resp.ok) {
+        const data = await resp.json();
+        const content = data.content;
+        if (typeof content === 'object' && content.salt) {
+          const passphrase = await getUserEncryptionKey();
+          timesheetProjects = await decryptDataBlob(content, passphrase);
+        } else {
+          timesheetProjects = JSON.parse(atob(content.replace(/\n/g, '')));
+        }
+      } else if (resp.status === 404) timesheetProjects = [];
     } catch(e) { timesheetProjects = []; }
   }
 
   async function saveTimesheetProjects(projectsArray) {
-    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const encUser = encodeURIComponent(user.username);
-    const path = `${dataPath}/users/${encUser}/${TIMESHEET_PROJECTS_FILE}`;
-    const content = JSON.stringify(projectsArray, null, 2);
+    const passphrase = await getUserEncryptionKey();
+    const encryptedBlob = await encryptDataBlob(projectsArray, passphrase);
+    const { owner, repo, branch } = window.REPO_CONFIG;
+    const path = getUserDataPath(user.username, TIMESHEET_PROJECTS_FILE);
+    const content = JSON.stringify(encryptedBlob);
     let sha = null;
     try {
       const getResp = await githubFetchWithAuth(`https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`, { headers: { Authorization: `token ${user.pat}` } });
@@ -307,7 +349,7 @@
     const tbody = document.getElementById('historyBody');
     const tfoot = document.getElementById('historyFoot');
     if (filtered.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="9" class="text-center">No entries found.  </td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" class="text-center">No entries found.   </tr>';
       tfoot.style.display = 'none';
       return;
     }
@@ -418,16 +460,14 @@
       const filtered = entries.filter(e => e.date >= startDate && e.date <= endDate);
       if (!filtered.length) { showToast("No entries in selected range.", "error"); window.hideLoading(); return; }
 
-      // Assign week keys and prepare row colors
       filtered.forEach(e => {
         e.weekKey = `${new Date(e.date).getFullYear()}-W${getWeekNumber(e.date)}`;
       });
       const weeks = [...new Map(filtered.map(e => [e.weekKey, e.weekKey])).values()];
       const weekColors = weeks.map((w, idx) => ({
         week: w,
-        color: idx % 2 === 0 ? [245, 247, 250] : [255, 248, 225]  // light gray / light cream
+        color: idx % 2 === 0 ? [245, 247, 250] : [255, 248, 225]
       }));
-      // Map each filtered entry to its background color
       const rowColors = filtered.map(entry => {
         const match = weekColors.find(wc => wc.week === entry.weekKey);
         return match ? match.color : [255, 255, 255];
@@ -441,7 +481,6 @@
       const contentWidth = pageWidth - margin * 2;
       const primary = [11,43,59], accent = [47,199,255];
 
-      // Header
       doc.setFillColor(primary[0], primary[1], primary[2]); doc.rect(0,0,pageWidth,28,'F');
       doc.setFillColor(accent[0], accent[1], accent[2]); doc.rect(0,28,pageWidth,4,'F');
       doc.setTextColor(255,255,255); doc.setFontSize(18); doc.setFont(undefined,'bold');
@@ -476,7 +515,6 @@
       doc.text(`Report ID: ${Date.now()}`, pageWidth - margin - 30, yPos);
       yPos += 8;
 
-      // Generate charts (as before)
       let chart1Img = null, chart2Img = null, chart3Img = null;
       try {
         const projMap = {}; filtered.forEach(e=>{ projMap[e.project]=(projMap[e.project]||0)+e.hours; });
@@ -500,10 +538,7 @@
       else { doc.setFontSize(10); doc.text("Chart unavailable", pageWidth/2, yPos+30, { align:'center' }); }
       yPos += 66;
 
-      // Data table with week-based row coloring
       const tableData = filtered.map(e=>[e.date, e.start, e.end, e.hours.toFixed(2), e.project, e.category, e.billable==='yes'?'✓ Billable':'✗ Non-billable', e.notes||'-']);
-      
-      // Scale column widths to fit contentWidth
       const baseWidths = [22, 14, 14, 14, 30, 25, 20, 55];
       const totalBase = baseWidths.reduce((a,b)=>a+b,0);
       const scaledWidths = baseWidths.map(w => (w / totalBase) * contentWidth);
@@ -517,7 +552,6 @@
         headStyles: { fillColor: primary, textColor: 255, fontStyle: 'bold', halign: 'center', fontSize: 9 },
         footStyles: { fillColor: [248,250,252], textColor: primary, fontStyle: 'bold', halign: 'center', fontSize: 9 },
         bodyStyles: { fontSize: 8, cellPadding: 2, valign: 'middle' },
-        // KEY FIX: rowBackground uses rowColors array
         rowBackground: (row) => rowColors[row] || [255,255,255],
         columnStyles: {
           0: { cellWidth: scaledWidths[0] },
@@ -548,7 +582,6 @@
       doc.text("CONFIDENTIAL", pageWidth/2, pageHeight/2, { align:'center', angle:45 });
       doc.setGState(new doc.GState({ opacity: 1 }));
 
-      // PDF encryption with fallback
       try {
         if (typeof PDFLib !== 'undefined' && PDFLib.PDFDocument) {
           const pdfBlob = doc.output('blob');
@@ -680,7 +713,6 @@
       worksheet.getRow(1).height = 32; worksheet.getRow(2).height = 22; worksheet.getRow(3).height = 24; worksheet.getRow(4).height = 22;
       worksheet.views = [{ state: 'frozen', ySplit: 4 }];
 
-      // Add chart
       try {
         const projMap = {};
         filtered.forEach(e => { projMap[e.project] = (projMap[e.project] || 0) + e.hours; });
@@ -725,46 +757,61 @@
 
   // ======================== USER META & NOTIFICATIONS ========================
   async function loadUserMeta() {
-    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const encUser = encodeURIComponent(user.username);
-    const path = `${dataPath}/users/${encUser}/${USER_META_FILE}`;
+    const { owner, repo, branch } = window.REPO_CONFIG;
+    const path = getUserDataPath(user.username, USER_META_FILE);
     try {
       const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
-      if (file && file.content) userFullName = JSON.parse(file.content).fullName || "";
+      if (file && file.content) {
+        if (typeof file.content === 'object' && file.content.salt) {
+          const passphrase = await getUserEncryptionKey();
+          const decrypted = await decryptDataBlob(file.content, passphrase);
+          userFullName = decrypted.fullName || "";
+        } else {
+          userFullName = JSON.parse(file.content).fullName || "";
+        }
+      }
     } catch(e) { userFullName = ""; }
     document.getElementById('userFullName').value = userFullName;
     document.getElementById('reportName').value = userFullName;
   }
 
   async function saveUserMeta(fullName) {
-    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const encUser = encodeURIComponent(user.username);
-    const path = `${dataPath}/users/${encUser}/${USER_META_FILE}`;
+    const passphrase = await getUserEncryptionKey();
+    const encryptedBlob = await encryptDataBlob({ fullName }, passphrase);
+    const { owner, repo, branch } = window.REPO_CONFIG;
+    const path = getUserDataPath(user.username, USER_META_FILE);
     let sha = null;
     try { const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat); if (existing) sha = existing.sha; } catch(e) {}
-    await GitHubAPI.updateFile(owner, repo, path, { fullName }, "Update user name", branch, user.pat, sha);
+    await GitHubAPI.updateFile(owner, repo, path, encryptedBlob, "Update user name", branch, user.pat, sha);
     userFullName = fullName;
   }
 
   async function loadNotificationPreference() {
-    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const encUser = encodeURIComponent(user.username);
-    const path = `${dataPath}/users/${encUser}/${PREFS_FILE}`;
+    const { owner, repo, branch } = window.REPO_CONFIG;
+    const path = getUserDataPath(user.username, PREFS_FILE);
     try {
       const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
-      if (file && file.content) notificationsEnabled = JSON.parse(file.content).notifications === true;
-      else notificationsEnabled = false;
+      if (file && file.content) {
+        if (typeof file.content === 'object' && file.content.salt) {
+          const passphrase = await getUserEncryptionKey();
+          const decrypted = await decryptDataBlob(file.content, passphrase);
+          notificationsEnabled = decrypted.notifications === true;
+        } else {
+          notificationsEnabled = JSON.parse(file.content).notifications === true;
+        }
+      } else notificationsEnabled = false;
     } catch(e) { notificationsEnabled = false; }
     document.getElementById('notificationsToggle').checked = notificationsEnabled;
   }
 
   async function saveNotificationPreference(enabled) {
-    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const encUser = encodeURIComponent(user.username);
-    const path = `${dataPath}/users/${encUser}/${PREFS_FILE}`;
+    const passphrase = await getUserEncryptionKey();
+    const encryptedBlob = await encryptDataBlob({ notifications: enabled }, passphrase);
+    const { owner, repo, branch } = window.REPO_CONFIG;
+    const path = getUserDataPath(user.username, PREFS_FILE);
     let sha = null;
     try { const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat); if (existing) sha = existing.sha; } catch(e) {}
-    await GitHubAPI.updateFile(owner, repo, path, { notifications: enabled }, "Update notification preference", branch, user.pat, sha);
+    await GitHubAPI.updateFile(owner, repo, path, encryptedBlob, "Update notification preference", branch, user.pat, sha);
     notificationsEnabled = enabled;
   }
 
@@ -799,7 +846,6 @@
     document.getElementById('filterCategory').onchange = () => { renderHistory(); updateSummaryAndProgress(); updateCharts(); };
     document.getElementById('saveNameBtn').onclick = async () => { const newName = document.getElementById('userFullName')?.value.trim(); if(!newName) return; window.showLoading("Saving name..."); try { await saveUserMeta(newName); showToast("Name saved."); } catch(err){ showToast("Failed: "+err.message,"error"); } finally{ window.hideLoading(); } };
 
-    // Manage Projects button
     const manageProjectsBtn = document.createElement('button');
     manageProjectsBtn.type = 'button';
     manageProjectsBtn.className = 'btn btn-sm btn-outline-secondary ml-2';
