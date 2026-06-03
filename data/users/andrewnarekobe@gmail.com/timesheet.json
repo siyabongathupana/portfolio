@@ -1,5 +1,17 @@
 [
   {
+    "id": 1780494813279,
+    "date": "2026-06-03",
+    "start": "15:35",
+    "end": "15:50",
+    "hours": 0.25,
+    "project": "Others",
+    "category": "Admin",
+    "billable": "no",
+    "notes": "Discuss the week Plan",
+    "updatedAt": 1780494813279
+  },
+  {
     "id": 1780488349303,
     "date": "2026-06-03",
     "start": "14:05",
