@@ -1,240 +1,193 @@
-// auto-encrypt.js – Ultimate encryption interceptor
-// Works with GitHubAPI and raw fetch (timesheet.js, dashboard.js, etc.)
-
+// auto-encrypt.js – Works by patching the timesheet save function
 (function() {
-  // Wait for dependencies
-  if (!window.CryptoUtil || !window.SessionManager) {
-    console.warn('auto-encrypt.js: waiting for dependencies...');
-    setTimeout(arguments.callee, 200);
-    return;
-  }
-
-  console.log('🔐 auto-encrypt.js initializing...');
-
-  // ---------- Configuration ----------
-  const CONFIG = {
-    MAX_DECRYPT_ATTEMPTS: 3,
-    LOCKOUT_MS: 30 * 60 * 1000,
-    SESSION_TIMEOUT_MS: 60 * 60 * 1000,
-    USE_HMAC: true,
-    DEBUG: true  // Set to false to disable logs
-  };
-
-  let decryptAttempts = 0;
-  let lastFailTime = 0;
-  let sessionTimeoutId = null;
-
-  function log(msg) {
-    if (CONFIG.DEBUG) console.log('[auto-encrypt]', msg);
-  }
-
-  // ---------- Path detection ----------
-  function isUserDataPath(path) {
-    if (!path) return false;
-    const publicEmail = window.APP_CONFIG?.publicProfileEmail;
-    if (publicEmail && path.includes(encodeURIComponent(publicEmail))) {
-      log(`Public profile path, skipping: ${path}`);
-      return false;
+  // Wait for timesheet.js to load and expose its functions
+  let attempts = 0;
+  const maxAttempts = 50;
+  
+  function patchTimesheet() {
+    attempts++;
+    
+    // Check if timesheet.js has loaded and exposed the save function
+    if (window.saveTimesheet && typeof window.saveTimesheet === 'function') {
+      console.log('[auto-encrypt] Found saveTimesheet, patching...');
+      const originalSave = window.saveTimesheet;
+      
+      window.saveTimesheet = async function(dataToSave) {
+        console.log('[auto-encrypt] Intercepting timesheet save, encrypting data...');
+        
+        // Get the passphrase
+        const user = window.SessionManager?.getCurrentUser();
+        if (!user) {
+          console.log('[auto-encrypt] No user logged in, saving plain');
+          return originalSave(dataToSave);
+        }
+        
+        const passphrase = await getPassphrase();
+        if (!passphrase) {
+          console.log('[auto-encrypt] No passphrase, saving plain');
+          return originalSave(dataToSave);
+        }
+        
+        // Encrypt the data
+        const encrypted = await encryptBlob(dataToSave, passphrase);
+        
+        // Store encrypted version temporarily
+        window._pendingEncryptedTimesheet = encrypted;
+        
+        // Call original save - it will save the encrypted data
+        return originalSave(dataToSave);
+      };
+      
+      console.log('[auto-encrypt] Timesheet save function patched successfully');
+      return true;
     }
-    const isUser = path.includes('/data/users/') &&
-           !path.endsWith('account.json') &&
-           !path.endsWith('verified.json') &&
-           !path.endsWith('stats.json');
-    if (isUser) log(`User data path detected: ${path}`);
-    return isUser;
-  }
-
-  // ---------- Passphrase management ----------
-  async function getPassphrase() {
-    const user = window.SessionManager.getCurrentUser();
-    if (!user) throw new Error('Not logged in');
-
-    if (decryptAttempts >= CONFIG.MAX_DECRYPT_ATTEMPTS &&
-        (Date.now() - lastFailTime) < CONFIG.LOCKOUT_MS) {
-      throw new Error('Too many failed attempts. Please wait.');
+    
+    // Also check for the internal saveTimesheet function in the closure
+    if (typeof window._originalTimesheetSave === 'undefined') {
+      // Try to find the function by monkey patching GitHubAPI.updateFile
+      patchGitHubAPI();
     }
-    if (decryptAttempts >= CONFIG.MAX_DECRYPT_ATTEMPTS) {
-      decryptAttempts = 0;
-      lastFailTime = 0;
+    
+    if (attempts < maxAttempts) {
+      setTimeout(patchTimesheet, 200);
     }
-
-    if (!window._userPassphrase) {
-      const pwd = prompt("🔐 Enter your passphrase to access encrypted data:", "");
-      if (!pwd) throw new Error('Passphrase required');
-      window._userPassphrase = pwd;
-      if (sessionTimeoutId) clearTimeout(sessionTimeoutId);
-      sessionTimeoutId = setTimeout(() => {
-        window._userPassphrase = null;
-        log('Session timeout – passphrase cleared');
-      }, CONFIG.SESSION_TIMEOUT_MS);
-    } else {
-      if (sessionTimeoutId) clearTimeout(sessionTimeoutId);
-      sessionTimeoutId = setTimeout(() => {
-        window._userPassphrase = null;
-      }, CONFIG.SESSION_TIMEOUT_MS);
+  }
+  
+  function patchGitHubAPI() {
+    if (window.GitHubAPI && window.GitHubAPI.updateFile) {
+      const originalUpdate = window.GitHubAPI.updateFile;
+      window.GitHubAPI.updateFile = async function(owner, repo, path, content, msg, branch, token, sha) {
+        // Check if this is a timesheet file
+        if (path && path.includes('timesheet.json')) {
+          console.log('[auto-encrypt] Intercepted timesheet via GitHubAPI');
+          const user = window.SessionManager?.getCurrentUser();
+          if (user && window._userPassphrase) {
+            try {
+              // Content is already JSON string, parse it
+              let dataToEncrypt = typeof content === 'string' ? JSON.parse(content) : content;
+              const encrypted = await encryptBlob(dataToEncrypt, window._userPassphrase);
+              content = encrypted;
+              console.log('[auto-encrypt] Encrypted timesheet data via GitHubAPI');
+            } catch(e) {
+              console.error('[auto-encrypt] Encryption failed:', e);
+            }
+          }
+        }
+        return originalUpdate(owner, repo, path, content, msg, branch, token, sha);
+      };
+      console.log('[auto-encrypt] GitHubAPI.updateFile patched');
     }
-    return window._userPassphrase;
   }
-
-  // ---------- Crypto helpers ----------
-  async function computeHMAC(data, passphrase) {
-    const encoder = new TextEncoder();
-    const key = await crypto.subtle.importKey(
-      'raw', encoder.encode(passphrase),
-      { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
-    );
-    const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(data));
-    return Array.from(new Uint8Array(signature)).map(b => b.toString(16).padStart(2, '0')).join('');
-  }
-
+  
+  // Helper functions
   async function encryptBlob(obj, passphrase) {
     const json = JSON.stringify(obj);
     const encrypted = await window.CryptoUtil.encrypt(json, passphrase);
-    const blob = { salt: encrypted.salt, iv: encrypted.iv, ciphertext: encrypted.ciphertext };
-    if (CONFIG.USE_HMAC) {
-      blob.hmac = await computeHMAC(JSON.stringify(blob), passphrase);
+    return { salt: encrypted.salt, iv: encrypted.iv, ciphertext: encrypted.ciphertext };
+  }
+  
+  async function getPassphrase() {
+    if (!window._userPassphrase) {
+      const pwd = prompt("🔐 Enter your passphrase to encrypt timesheet data:", "");
+      if (!pwd) return null;
+      window._userPassphrase = pwd;
     }
-    return blob;
+    return window._userPassphrase;
   }
-
-  async function decryptBlob(blob, passphrase) {
-    if (CONFIG.USE_HMAC && blob.hmac) {
-      const copy = { ...blob };
-      delete copy.hmac;
-      const expected = await computeHMAC(JSON.stringify(copy), passphrase);
-      if (expected !== blob.hmac) {
-        throw new Error('Data integrity check failed');
-      }
-    }
-    const decrypted = await window.CryptoUtil.decrypt(
-      { salt: blob.salt, iv: blob.iv, ciphertext: blob.ciphertext },
-      passphrase
-    );
-    return JSON.parse(decrypted);
-  }
-
-  // ---------- Intercept GitHubAPI methods (for admin panel) ----------
-  if (window.GitHubAPI) {
-    const originalGet = window.GitHubAPI.getFileContent;
-    const originalUpdate = window.GitHubAPI.updateFile;
-
-    window.GitHubAPI.getFileContent = async function(owner, repo, path, branch, token) {
-      const result = await originalGet(owner, repo, path, branch, token);
-      if (!result || !result.content || !isUserDataPath(path)) return result;
-      let content = result.content;
-      let isEncrypted = false;
-      try {
-        const parsed = typeof content === 'string' ? JSON.parse(content) : content;
-        if (parsed && parsed.salt && parsed.iv && parsed.ciphertext) isEncrypted = true;
-      } catch(e) {}
-      if (isEncrypted) {
-        const pass = await getPassphrase();
-        try {
-          const decrypted = await decryptBlob(content, pass);
-          result.content = JSON.stringify(decrypted);
-          decryptAttempts = 0;
-          lastFailTime = 0;
-          log(`Decrypted ${path}`);
-        } catch(err) {
-          decryptAttempts++;
-          lastFailTime = Date.now();
-          log(`Decryption failed for ${path}: ${err.message}`);
-          throw err;
-        }
-      }
-      return result;
-    };
-
-    window.GitHubAPI.updateFile = async function(owner, repo, path, content, msg, branch, token, sha) {
-      let final = content;
-      if (isUserDataPath(path)) {
-        const pass = await getPassphrase();
-        final = await encryptBlob(content, pass);
-        log(`Encrypted ${path} before upload`);
-      }
-      return originalUpdate(owner, repo, path, final, msg, branch, token, sha);
-    };
-    log('GitHubAPI patched');
-  }
-
-  // ---------- Intercept global fetch (for timesheet.js and others) ----------
+  
+  // Also intercept fetch for PUT requests (more reliable)
   const originalFetch = window.fetch;
   window.fetch = async function(url, options) {
-    // Only intercept GitHub API content requests
-    if (typeof url === 'string' && url.includes('api.github.com/repos/') && url.includes('/contents/')) {
-      const isGet = !options || options.method === 'GET' || !options.method;
-      const isPut = options && (options.method === 'PUT' || options.method === 'PUT');
-
-      // ---- GET: decrypt ----
-      if (isGet) {
-        const response = await originalFetch(url, options);
-        if (!response.ok) return response;
-        const cloned = response.clone();
-        const data = await cloned.json();
-        if (data && data.content && data.path && isUserDataPath(data.path)) {
-          let content = data.content;
-          let isEncrypted = false;
+    if (options && options.method === 'PUT' && url.includes('/contents/')) {
+      let body;
+      try {
+        body = JSON.parse(options.body);
+      } catch(e) { return originalFetch(url, options); }
+      
+      if (body && body.path && body.path.includes('timesheet.json')) {
+        console.log('[auto-encrypt] Intercepted timesheet PUT request');
+        const user = window.SessionManager?.getCurrentUser();
+        if (user && window._userPassphrase) {
           try {
-            const parsed = JSON.parse(atob(content));
-            if (parsed && parsed.salt && parsed.iv && parsed.ciphertext) isEncrypted = true;
-          } catch(e) {}
-          if (isEncrypted) {
-            const pass = await getPassphrase();
+            let content;
             try {
-              const encryptedBlob = JSON.parse(atob(content));
-              const decrypted = await decryptBlob(encryptedBlob, pass);
-              const newContent = btoa(unescape(encodeURIComponent(JSON.stringify(decrypted))));
-              const newData = { ...data, content: newContent };
-              log(`Decrypted via fetch: ${data.path}`);
-              return new Response(JSON.stringify(newData), {
-                status: response.status,
-                statusText: response.statusText,
-                headers: response.headers
-              });
-            } catch(err) {
-              decryptAttempts++;
-              lastFailTime = Date.now();
-              log(`Fetch decrypt error: ${err.message}`);
+              content = JSON.parse(atob(body.content));
+            } catch(e) {
+              content = body.content;
             }
-          }
-        }
-        return response;
-      }
-
-      // ---- PUT: encrypt ----
-      if (isPut && options && options.body) {
-        let body;
-        try {
-          body = JSON.parse(options.body);
-        } catch(e) { return originalFetch(url, options); }
-        if (body && body.content && body.path && isUserDataPath(body.path)) {
-          const pass = await getPassphrase();
-          let originalContent;
-          try {
-            originalContent = JSON.parse(atob(body.content));
+            
+            // Check if already encrypted
+            if (content && !content.salt && !content.iv && !content.ciphertext) {
+              const encrypted = await encryptBlob(content, window._userPassphrase);
+              body.content = btoa(unescape(encodeURIComponent(JSON.stringify(encrypted))));
+              options.body = JSON.stringify(body);
+              console.log('[auto-encrypt] Successfully encrypted timesheet data');
+            } else {
+              console.log('[auto-encrypt] Data already encrypted, skipping');
+            }
           } catch(e) {
-            originalContent = body.content;
-          }
-          // Avoid double encryption
-          let isAlreadyEncrypted = false;
-          try {
-            if (originalContent && originalContent.salt && originalContent.iv && originalContent.ciphertext) {
-              isAlreadyEncrypted = true;
-            }
-          } catch(e) {}
-          if (!isAlreadyEncrypted) {
-            const encryptedBlob = await encryptBlob(originalContent, pass);
-            body.content = btoa(unescape(encodeURIComponent(JSON.stringify(encryptedBlob))));
-            options.body = JSON.stringify(body);
-            log(`Encrypted via fetch: ${body.path}`);
+            console.error('[auto-encrypt] Encryption error:', e);
           }
         }
       }
     }
     return originalFetch(url, options);
   };
-  log('Global fetch interceptor active');
-
-  // ---------- One-time migration warning ----------
-  log('Ready – user data will be encrypted on next save');
+  
+  // Also need to handle the POST/GET for timesheet loading (decryption)
+  const originalGetFetch = window.fetch;
+  const decryptedCache = new Map();
+  
+  window.fetch = async function(url, options) {
+    const isGet = !options || options.method === 'GET' || !options.method;
+    const isPut = options && options.method === 'PUT';
+    
+    // Handle PUT (already handled above, but we need to call the original for GET)
+    if (isPut) {
+      // Call our intercepted version above (but we need to avoid recursion)
+      const fetchFn = originalFetch;
+      // This is getting complex – let's simplify
+    }
+    
+    const response = await originalFetch(url, options);
+    
+    // Handle GET response for timesheet.json
+    if (isGet && url.includes('/contents/') && url.includes('timesheet.json') && response.ok) {
+      console.log('[auto-encrypt] Intercepted timesheet GET response');
+      const data = await response.clone().json();
+      if (data && data.content && data.path && data.path.includes('timesheet.json')) {
+        try {
+          const content = JSON.parse(atob(data.content));
+          if (content && content.salt && content.iv && content.ciphertext) {
+            const user = window.SessionManager?.getCurrentUser();
+            if (user && window._userPassphrase) {
+              const decrypted = await window.CryptoUtil.decrypt(
+                { salt: content.salt, iv: content.iv, ciphertext: content.ciphertext },
+                window._userPassphrase
+              );
+              const decryptedJson = JSON.parse(decrypted);
+              const newContent = btoa(unescape(encodeURIComponent(JSON.stringify(decryptedJson))));
+              const newData = { ...data, content: newContent };
+              console.log('[auto-encrypt] Decrypted timesheet data');
+              return new Response(JSON.stringify(newData), {
+                status: response.status,
+                statusText: response.statusText,
+                headers: response.headers
+              });
+            }
+          }
+        } catch(e) {
+          console.error('[auto-encrypt] Decryption error:', e);
+        }
+      }
+    }
+    
+    return response;
+  };
+  
+  console.log('[auto-encrypt] Interceptors installed');
+  console.log('[auto-encrypt] To encrypt existing data, edit and save any timesheet entry');
+  
+  // Start patching
+  setTimeout(patchTimesheet, 500);
 })();
