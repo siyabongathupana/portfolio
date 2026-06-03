@@ -1,5 +1,17 @@
 [
   {
+    "id": 1780493014279,
+    "date": "2026-06-03",
+    "start": "15:25",
+    "end": "17:23",
+    "hours": 1.97,
+    "project": "Sasol",
+    "category": "Other",
+    "billable": "yes",
+    "notes": "",
+    "updatedAt": 1780493014279
+  },
+  {
     "id": 1780492448501,
     "date": "2026-06-03",
     "start": "17:13",
