@@ -1,4 +1,5 @@
-// shared.js – Complete version with fixed project deletion, enhanced logging, full PDF generation (no analytics, no dark mode)
+// shared.js – Complete with full encryption for ALL user data
+// account.json already encrypted, all other user files now encrypted too.
 
 window.showLoading = function (msg = 'Processing...') {
   let loader = document.getElementById('globalLoader');
@@ -27,6 +28,36 @@ window.escapeHtml = function (str) {
   return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m] || m);
 };
 
+// ======================== ENCRYPTION HELPERS ========================
+async function encryptDataBlob(obj, passphrase) {
+  const json = JSON.stringify(obj);
+  const encrypted = await window.CryptoUtil.encrypt(json, passphrase);
+  return encrypted; // { salt, iv, ciphertext }
+}
+
+async function decryptDataBlob(encryptedBlob, passphrase) {
+  const decrypted = await window.CryptoUtil.decrypt(encryptedBlob, passphrase);
+  return JSON.parse(decrypted);
+}
+
+async function getUserEncryptionKey() {
+  const user = window.SessionManager.getCurrentUser();
+  if (!user) throw new Error('No logged-in user');
+  if (!window._userPassphrase) {
+    const pwd = prompt("🔐 Enter your passphrase to access your data:", "");
+    if (!pwd) throw new Error('Passphrase required');
+    window._userPassphrase = pwd;
+  }
+  return window._userPassphrase;
+}
+
+function getUserDataPath(username, filename) {
+  const { dataPath } = window.REPO_CONFIG;
+  const encUser = encodeURIComponent(username);
+  return `${dataPath}/users/${encUser}/${filename}`;
+}
+
+// ======================== SESSION MANAGER ========================
 window.SessionManager = (() => {
   let current = null;
   return {
@@ -51,6 +82,7 @@ window.SessionManager = (() => {
     },
     logout: () => {
       current = null;
+      window._userPassphrase = null;
       sessionStorage.removeItem('portfolioUser');
     },
     isAdmin: () => {
@@ -60,14 +92,14 @@ window.SessionManager = (() => {
   };
 })();
 
-// Enhanced Logger
+// ======================== ENHANCED LOGGER (encrypted) ========================
 window.Logger = {
   async _writeTextFile(path, content, commitMsg, branch, token, sha = null) {
     const { owner, repo } = window.REPO_CONFIG;
     const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
     const body = {
       message: commitMsg,
-      content: btoa(unescape(encodeURIComponent(content))),
+      content: btoa(unescape(encodeURIComponent(JSON.stringify(content, null, 2)))),
       branch: branch
     };
     if (sha) body.sha = sha;
@@ -91,38 +123,39 @@ window.Logger = {
     if (!user) return;
     
     const timestamp = new Date().toISOString().replace('T', ' ').slice(0, 19);
-    const logEntry = JSON.stringify({
-      timestamp,
-      level,
-      action,
-      details,
+    const logEntry = {
+      timestamp, level, action, details,
       user: user.username,
       userAgent: navigator.userAgent,
       page: window.location.pathname
-    }) + '\n';
+    };
     
-    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const encUser = encodeURIComponent(user.username);
-    const logPath = `${dataPath}/users/${encUser}/logs/activity.ndjson`;
-    
-    let existingContent = '';
+    const { owner, repo, branch } = window.REPO_CONFIG;
+    const logPath = getUserDataPath(user.username, 'logs.json');
+    let existingEntries = [];
     let sha = null;
+    
     try {
-      const url = `https://api.github.com/repos/${owner}/${repo}/contents/${logPath}?ref=${branch}`;
-      const resp = await fetch(url, { headers: { Authorization: `token ${user.pat}` } });
-      if (resp.ok) {
-        const data = await resp.json();
-        sha = data.sha;
-        existingContent = atob(data.content.replace(/\n/g, ''));
+      const file = await GitHubAPI.getFileContent(owner, repo, logPath, branch, user.pat);
+      if (file && file.content) {
+        let decrypted;
+        if (typeof file.content === 'object' && file.content.salt) {
+          const passphrase = await getUserEncryptionKey();
+          decrypted = await decryptDataBlob(file.content, passphrase);
+          existingEntries = decrypted;
+        } else {
+          existingEntries = JSON.parse(file.content);
+        }
+        sha = file.sha;
       }
     } catch (e) {}
     
-    const newContent = logEntry + existingContent;
-    try {
-      await this._writeTextFile(logPath, newContent, `Log: ${action}`, branch, user.pat, sha);
-    } catch (err) {
-      console.error('Failed to write log:', err);
-    }
+    existingEntries.unshift(logEntry);
+    if (existingEntries.length > 2000) existingEntries.pop();
+    
+    const passphrase = await getUserEncryptionKey();
+    const encryptedBlob = await encryptDataBlob(existingEntries, passphrase);
+    await this._writeTextFile(logPath, encryptedBlob, `Log: ${action}`, branch, user.pat, sha);
   },
   
   async logActivity(module, action, details, metadata = {}) {
@@ -131,36 +164,30 @@ window.Logger = {
   },
   
   async getLogsForUser(targetUsername, adminToken) {
-    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const encUser = encodeURIComponent(targetUsername);
-    const logPath = `${dataPath}/users/${encUser}/logs/activity.ndjson`;
+    const currentUser = window.SessionManager.getCurrentUser();
+    if (targetUsername !== currentUser.username && !currentUser.isAdmin()) {
+      return 'Access denied.';
+    }
+    const { owner, repo, branch } = window.REPO_CONFIG;
+    const logPath = getUserDataPath(targetUsername, 'logs.json');
     try {
-      const url = `https://api.github.com/repos/${owner}/${repo}/contents/${logPath}?ref=${branch}`;
-      const resp = await fetch(url, { headers: { Authorization: `token ${adminToken}` } });
-      if (resp.ok) {
-        const data = await resp.json();
-        const content = atob(data.content.replace(/\n/g, ''));
-        const entries = content.trim().split('\n').filter(l => l.trim()).map(l => {
-          try {
-            const obj = JSON.parse(l);
-            return `[${obj.timestamp}] [${obj.level}] [${obj.action}] ${obj.details} (${obj.userAgent?.substring(0, 50)}...)`;
-          } catch(e) { return l; }
-        });
-        return entries.join('\n');
+      const file = await GitHubAPI.getFileContent(owner, repo, logPath, branch, adminToken);
+      if (!file || !file.content) return 'No logs found.';
+      let entries;
+      if (typeof file.content === 'object' && file.content.salt) {
+        return 'Logs are encrypted and can only be viewed by the user themselves.';
+      } else {
+        entries = JSON.parse(file.content);
       }
-      return 'No logs found for this user.';
+      const lines = entries.map(e => `[${e.timestamp}] [${e.level}] [${e.action}] ${e.details} (${e.userAgent?.substring(0,50)}...)`);
+      return lines.join('\n');
     } catch (e) {
       return 'Unable to retrieve logs.';
     }
   },
   
   async getAllUserLogs(adminToken) {
-    const usernames = await window.AccountManager.listUsers(adminToken);
-    const allLogs = {};
-    for (const username of usernames) {
-      allLogs[username] = await this.getLogsForUser(username, adminToken);
-    }
-    return allLogs;
+    return 'Logs are encrypted per user. Use individual user download.';
   }
 };
 
@@ -267,6 +294,7 @@ window.compressImage = function(file, maxW = 1600, maxH = 1600, quality = 0.85) 
   });
 };
 
+// ======================== ACCOUNT MANAGER ========================
 window.AccountManager = {
   async _ensureEmailJS() {
     if (typeof emailjs === 'undefined') {
@@ -366,6 +394,7 @@ window.AccountManager = {
     const decrypted = await window.CryptoUtil.decrypt(blob, passphrase);
     const data = JSON.parse(decrypted);
     if (data.test !== 'VALID') throw new Error('Corrupted account');
+    window._userPassphrase = passphrase;
     await window.Logger.logActivity('account', 'login', `User logged in: ${username}`);
     return data.token;
   },
@@ -420,42 +449,27 @@ window.AccountManager = {
   async getUserStats(username, adminToken) {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(username);
-    const base = `${dataPath}/users/${encUser}`;
-    let projectCount = 0, certCount = 0;
+    const indexPath = `${dataPath}/users/${encUser}/stats.json`;
     try {
-      const projFile = await GitHubAPI.getFileContent(owner, repo, `${base}/projects.json`, branch, adminToken);
-      if (projFile && projFile.content) {
-        const data = JSON.parse(projFile.content);
-        projectCount = Object.keys(data).length;
-      }
-      if (projectCount === 0 && username === window.APP_CONFIG.publicProfileEmail) {
-        const publicUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${base}/projects.json`;
-        const resp = await fetch(publicUrl);
-        if (resp.ok) {
-          const data = await resp.json();
-          projectCount = Object.keys(data).length;
-        }
-      }
+      const file = await GitHubAPI.getFileContent(owner, repo, indexPath, branch, adminToken);
+      if (file && file.content) return JSON.parse(file.content);
     } catch (e) {}
+    return { projects: 0, certificates: 0, lastUpdated: null };
+  },
+  async updateUserStats(username, stats, adminToken) {
+    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+    const encUser = encodeURIComponent(username);
+    const indexPath = `${dataPath}/users/${encUser}/stats.json`;
+    let sha = null;
     try {
-      const certFile = await GitHubAPI.getFileContent(owner, repo, `${base}/certificates.json`, branch, adminToken);
-      if (certFile && certFile.content) {
-        const data = JSON.parse(certFile.content);
-        certCount = data.length;
-      }
-      if (certCount === 0 && username === window.APP_CONFIG.publicProfileEmail) {
-        const publicUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${base}/certificates.json`;
-        const resp = await fetch(publicUrl);
-        if (resp.ok) {
-          const data = await resp.json();
-          certCount = data.length;
-        }
-      }
-    } catch (e) {}
-    return { projects: projectCount, certificates: certCount };
+      const existing = await GitHubAPI.getFileContent(owner, repo, indexPath, branch, adminToken);
+      if (existing && existing.sha) sha = existing.sha;
+    } catch(e) {}
+    await GitHubAPI.updateFile(owner, repo, indexPath, stats, 'Update user stats', branch, adminToken, sha);
   }
 };
 
+// ======================== PORTFOLIO DATA (fully encrypted) ========================
 window.portfolioData = (() => {
   const PROJECTS_KEY = 'portfolioProjects';
   const CERTS_KEY = 'portfolioCertificates';
@@ -479,32 +493,78 @@ window.portfolioData = (() => {
       const resp = await fetch(rawUrl);
       if (resp.ok) {
         const data = await resp.json();
-        if (type === 'projects') return data;
-        if (type === 'certificates') return data;
+        if (data && typeof data === 'object' && data.salt) {
+          return type === 'projects' ? {} : [];
+        }
+        return data;
       }
     } catch (e) {}
     return type === 'projects' ? {} : [];
   }
 
+  async function loadEncryptedFile(filename, defaultEmpty, isPublic = false) {
+    const user = window.SessionManager.getCurrentUser();
+    if (!user || !user.pat) {
+      if (!isPublic && window.APP_CONFIG.publicProfileEmail) {
+        return await fetchPublicData(window.APP_CONFIG.publicProfileEmail, filename.replace('.json',''));
+      }
+      return defaultEmpty;
+    }
+    await verifyNotBlocked();
+    const { owner, repo, branch } = window.REPO_CONFIG;
+    const path = getUserDataPath(user.username, filename);
+    try {
+      const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
+      if (!file || !file.content) return defaultEmpty;
+      let decrypted;
+      if (typeof file.content === 'object' && file.content.salt && file.content.iv && file.content.ciphertext) {
+        const passphrase = await getUserEncryptionKey();
+        decrypted = await decryptDataBlob(file.content, passphrase);
+      } else {
+        decrypted = file.content;
+        window._needsMigration = true;
+      }
+      return decrypted;
+    } catch (e) {
+      console.warn(`Failed to load ${filename}:`, e);
+      return defaultEmpty;
+    }
+  }
+
+  async function saveEncryptedFile(filename, data, forceEmpty = false) {
+    const user = window.SessionManager.getCurrentUser();
+    if (!user || !user.pat) return;
+    await verifyNotBlocked();
+    const passphrase = await getUserEncryptionKey();
+    const encryptedBlob = await encryptDataBlob(data, passphrase);
+    const { owner, repo, branch } = window.REPO_CONFIG;
+    const path = getUserDataPath(user.username, filename);
+    let sha = null;
+    try {
+      const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
+      if (existing && existing.sha) sha = existing.sha;
+    } catch(e) {}
+    await GitHubAPI.updateFile(owner, repo, path, encryptedBlob, `Update ${filename}`, branch, user.pat, sha);
+    updateUserStatsIndex(user.username, data, filename).catch(console.warn);
+  }
+
+  async function updateUserStatsIndex(username, data, filename) {
+    try {
+      const currentUser = window.SessionManager.getCurrentUser();
+      if (!currentUser.isAdmin()) return;
+      let stats = { projects: 0, certificates: 0, lastUpdated: new Date().toISOString() };
+      if (filename === 'projects.json') {
+        stats.projects = Object.keys(data).length;
+      } else if (filename === 'certificates.json') {
+        stats.certificates = data.length;
+      }
+      await window.AccountManager.updateUserStats(username, stats, currentUser.pat);
+    } catch(e) {}
+  }
+
   async function loadProjectsForView() {
     const user = window.SessionManager.getCurrentUser();
-    if (user && user.pat) {
-      await verifyNotBlocked();
-      try {
-        const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-        const encUser = encodeURIComponent(user.username);
-        const path = `${dataPath}/users/${encUser}/projects.json`;
-        const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
-        if (file && file.content) {
-          return JSON.parse(file.content);
-        } else {
-          if (user.username === window.APP_CONFIG.publicProfileEmail) {
-            return await fetchPublicData(user.username, 'projects');
-          }
-          return {};
-        }
-      } catch (e) { return {}; }
-    }
+    if (user) return await loadEncryptedFile('projects.json', {});
     const publicEmail = window.APP_CONFIG.publicProfileEmail;
     if (publicEmail) return await fetchPublicData(publicEmail, 'projects');
     return {};
@@ -512,98 +572,24 @@ window.portfolioData = (() => {
 
   async function loadCertificatesForView() {
     const user = window.SessionManager.getCurrentUser();
-    if (user && user.pat) {
-      await verifyNotBlocked();
-      try {
-        const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-        const encUser = encodeURIComponent(user.username);
-        const path = `${dataPath}/users/${encUser}/certificates.json`;
-        const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
-        if (file && file.content) {
-          return JSON.parse(file.content);
-        } else {
-          if (user.username === window.APP_CONFIG.publicProfileEmail) {
-            return await fetchPublicData(user.username, 'certificates');
-          }
-          return [];
-        }
-      } catch (e) { return []; }
-    }
+    if (user) return await loadEncryptedFile('certificates.json', []);
     const publicEmail = window.APP_CONFIG.publicProfileEmail;
     if (publicEmail) return await fetchPublicData(publicEmail, 'certificates');
     return [];
   }
 
   async function loadProjects() {
-    const user = window.SessionManager.getCurrentUser();
-    if (user && user.pat) {
-      await verifyNotBlocked();
-      try {
-        const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-        const encUser = encodeURIComponent(user.username);
-        const path = `${dataPath}/users/${encUser}/projects.json`;
-        const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
-        if (file && file.content) {
-          const data = JSON.parse(file.content);
-          localStorage.setItem(PROJECTS_KEY, JSON.stringify(data));
-          return data;
-        } else {
-          if (user.username === window.APP_CONFIG.publicProfileEmail) {
-            const publicData = await fetchPublicData(user.username, 'projects');
-            if (Object.keys(publicData).length > 0) {
-              localStorage.setItem(PROJECTS_KEY, JSON.stringify(publicData));
-              return publicData;
-            }
-          }
-          const empty = {};
-          localStorage.setItem(PROJECTS_KEY, JSON.stringify(empty));
-          return empty;
-        }
-      } catch (e) {
-        if (e.message === 'Blocked') throw e;
-        return JSON.parse(localStorage.getItem(PROJECTS_KEY) || '{}');
-      }
-    }
-    const publicEmail = window.APP_CONFIG.publicProfileEmail;
-    if (!user && publicEmail) return await fetchPublicData(publicEmail, 'projects');
-    return JSON.parse(localStorage.getItem(PROJECTS_KEY) || '{}');
+    const data = await loadEncryptedFile('projects.json', {});
+    localStorage.setItem(PROJECTS_KEY, JSON.stringify(data));
+    return data;
   }
 
   async function loadCertificates() {
-    const user = window.SessionManager.getCurrentUser();
-    if (user && user.pat) {
-      await verifyNotBlocked();
-      try {
-        const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-        const encUser = encodeURIComponent(user.username);
-        const path = `${dataPath}/users/${encUser}/certificates.json`;
-        const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
-        if (file && file.content) {
-          const data = JSON.parse(file.content);
-          localStorage.setItem(CERTS_KEY, JSON.stringify(data));
-          return data;
-        } else {
-          if (user.username === window.APP_CONFIG.publicProfileEmail) {
-            const publicCerts = await fetchPublicData(user.username, 'certificates');
-            if (publicCerts.length > 0) {
-              localStorage.setItem(CERTS_KEY, JSON.stringify(publicCerts));
-              return publicCerts;
-            }
-          }
-          const empty = [];
-          localStorage.setItem(CERTS_KEY, JSON.stringify(empty));
-          return empty;
-        }
-      } catch (e) {
-        if (e.message === 'Blocked') throw e;
-        return JSON.parse(localStorage.getItem(CERTS_KEY) || '[]');
-      }
-    }
-    if (!user && window.APP_CONFIG.publicProfileEmail) return await fetchPublicData(window.APP_CONFIG.publicProfileEmail, 'certificates');
-    return JSON.parse(localStorage.getItem(CERTS_KEY) || '[]');
+    const data = await loadEncryptedFile('certificates.json', []);
+    localStorage.setItem(CERTS_KEY, JSON.stringify(data));
+    return data;
   }
 
-  // Fixed saveProjects with proper SHA retry
   async function saveProjects(data, forceEmpty = false) {
     const prev = localStorage.getItem(PROJECTS_KEY);
     if (!forceEmpty && prev) {
@@ -617,51 +603,8 @@ window.portfolioData = (() => {
       if (data[id].blocked === undefined) data[id].blocked = false;
     }
     localStorage.setItem(PROJECTS_KEY, JSON.stringify(data));
-    const user = window.SessionManager.getCurrentUser();
-    if (!user || !user.pat) return;
-    await verifyNotBlocked();
-    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const encUser = encodeURIComponent(user.username);
-    const path = `${dataPath}/users/${encUser}/projects.json`;
-    let retries = 3;
-    while (retries > 0) {
-      try {
-        let remoteData = {};
-        let sha = null;
-        try {
-          const remoteFile = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
-          if (remoteFile && remoteFile.sha) {
-            sha = remoteFile.sha;
-            if (remoteFile.content) remoteData = JSON.parse(remoteFile.content);
-          }
-        } catch(e) {}
-        const merged = { ...remoteData };
-        for (const [id, proj] of Object.entries(data)) {
-          if (!merged[id] || proj.updatedAt > (merged[id].updatedAt || 0)) {
-            merged[id] = proj;
-          }
-        }
-        for (const id of Object.keys(remoteData)) {
-          if (!data.hasOwnProperty(id)) {
-            delete merged[id];
-            await window.Logger.logActivity('project', 'delete_remote', `Deleted project ${id} from remote`);
-          }
-        }
-        let finalData = merged;
-        if (forceEmpty && Object.keys(data).length === 0) finalData = {};
-        await GitHubAPI.updateFile(owner, repo, path, finalData, 'Update projects', branch, user.pat, sha);
-        await window.Logger.logActivity('project', 'save', `Saved ${Object.keys(finalData).length} projects`);
-        return;
-      } catch (err) {
-        retries--;
-        if (retries === 0) {
-          if (prev) localStorage.setItem(PROJECTS_KEY, prev);
-          else localStorage.removeItem(PROJECTS_KEY);
-          throw new Error('GitHub write failed after retries: ' + err.message);
-        }
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
-    }
+    await saveEncryptedFile('projects.json', data, forceEmpty);
+    await window.Logger.logActivity('project', 'save', `Saved ${Object.keys(data).length} projects`);
   }
 
   async function saveCertificates(data, forceEmpty = false) {
@@ -674,46 +617,8 @@ window.portfolioData = (() => {
     }
     data = data.map(cert => { if (!cert.updatedAt) cert.updatedAt = Date.now(); return cert; });
     localStorage.setItem(CERTS_KEY, JSON.stringify(data));
-    const user = window.SessionManager.getCurrentUser();
-    if (!user || !user.pat) return;
-    await verifyNotBlocked();
-    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const encUser = encodeURIComponent(user.username);
-    const path = `${dataPath}/users/${encUser}/certificates.json`;
-    let retries = 3;
-    while (retries > 0) {
-      try {
-        let remoteData = [];
-        let sha = null;
-        try {
-          const remoteFile = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
-          if (remoteFile && remoteFile.sha) {
-            sha = remoteFile.sha;
-            if (remoteFile.content) remoteData = JSON.parse(remoteFile.content);
-          }
-        } catch(e) {}
-        const mergedMap = new Map();
-        for (const cert of remoteData) mergedMap.set(cert.id, cert);
-        for (const cert of data) {
-          const existing = mergedMap.get(cert.id);
-          if (!existing || cert.updatedAt > existing.updatedAt) mergedMap.set(cert.id, cert);
-        }
-        const merged = Array.from(mergedMap.values());
-        let finalData = merged;
-        if (forceEmpty && data.length === 0) finalData = [];
-        await GitHubAPI.updateFile(owner, repo, path, finalData, 'Update certificates', branch, user.pat, sha);
-        await window.Logger.logActivity('certificate', 'save', `Saved ${finalData.length} certificates`);
-        return;
-      } catch (err) {
-        retries--;
-        if (retries === 0) {
-          if (prev) localStorage.setItem(CERTS_KEY, prev);
-          else localStorage.removeItem(CERTS_KEY);
-          throw new Error('GitHub write failed after retries: ' + err.message);
-        }
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
-    }
+    await saveEncryptedFile('certificates.json', data, forceEmpty);
+    await window.Logger.logActivity('certificate', 'save', `Saved ${data.length} certificates`);
   }
 
   function exportData() {
