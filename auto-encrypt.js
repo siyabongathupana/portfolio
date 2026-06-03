@@ -1,39 +1,50 @@
-// auto-encrypt.js – Intercepts ALL fetch calls to GitHub API
-// Encrypts/decrypts user data files transparently.
-// No modifications to any existing .js files required.
+// auto-encrypt.js – Ultimate encryption interceptor
+// Works with GitHubAPI and raw fetch (timesheet.js, dashboard.js, etc.)
 
 (function() {
   // Wait for dependencies
   if (!window.CryptoUtil || !window.SessionManager) {
-    console.warn('auto-encrypt.js: dependencies not ready, retrying...');
+    console.warn('auto-encrypt.js: waiting for dependencies...');
     setTimeout(arguments.callee, 200);
     return;
   }
+
+  console.log('🔐 auto-encrypt.js initializing...');
 
   // ---------- Configuration ----------
   const CONFIG = {
     MAX_DECRYPT_ATTEMPTS: 3,
     LOCKOUT_MS: 30 * 60 * 1000,
     SESSION_TIMEOUT_MS: 60 * 60 * 1000,
-    USE_HMAC: true
+    USE_HMAC: true,
+    DEBUG: true  // Set to false to disable logs
   };
 
   let decryptAttempts = 0;
   let lastFailTime = 0;
   let sessionTimeoutId = null;
 
-  // ---------- Helper functions ----------
+  function log(msg) {
+    if (CONFIG.DEBUG) console.log('[auto-encrypt]', msg);
+  }
+
+  // ---------- Path detection ----------
   function isUserDataPath(path) {
+    if (!path) return false;
     const publicEmail = window.APP_CONFIG?.publicProfileEmail;
     if (publicEmail && path.includes(encodeURIComponent(publicEmail))) {
+      log(`Public profile path, skipping: ${path}`);
       return false;
     }
-    return path.includes('/data/users/') &&
+    const isUser = path.includes('/data/users/') &&
            !path.endsWith('account.json') &&
            !path.endsWith('verified.json') &&
            !path.endsWith('stats.json');
+    if (isUser) log(`User data path detected: ${path}`);
+    return isUser;
   }
 
+  // ---------- Passphrase management ----------
   async function getPassphrase() {
     const user = window.SessionManager.getCurrentUser();
     if (!user) throw new Error('Not logged in');
@@ -54,6 +65,7 @@
       if (sessionTimeoutId) clearTimeout(sessionTimeoutId);
       sessionTimeoutId = setTimeout(() => {
         window._userPassphrase = null;
+        log('Session timeout – passphrase cleared');
       }, CONFIG.SESSION_TIMEOUT_MS);
     } else {
       if (sessionTimeoutId) clearTimeout(sessionTimeoutId);
@@ -64,6 +76,7 @@
     return window._userPassphrase;
   }
 
+  // ---------- Crypto helpers ----------
   async function computeHMAC(data, passphrase) {
     const encoder = new TextEncoder();
     const key = await crypto.subtle.importKey(
@@ -100,29 +113,70 @@
     return JSON.parse(decrypted);
   }
 
-  // ---------- Intercept global fetch ----------
-  const originalFetch = window.fetch;
+  // ---------- Intercept GitHubAPI methods (for admin panel) ----------
+  if (window.GitHubAPI) {
+    const originalGet = window.GitHubAPI.getFileContent;
+    const originalUpdate = window.GitHubAPI.updateFile;
 
+    window.GitHubAPI.getFileContent = async function(owner, repo, path, branch, token) {
+      const result = await originalGet(owner, repo, path, branch, token);
+      if (!result || !result.content || !isUserDataPath(path)) return result;
+      let content = result.content;
+      let isEncrypted = false;
+      try {
+        const parsed = typeof content === 'string' ? JSON.parse(content) : content;
+        if (parsed && parsed.salt && parsed.iv && parsed.ciphertext) isEncrypted = true;
+      } catch(e) {}
+      if (isEncrypted) {
+        const pass = await getPassphrase();
+        try {
+          const decrypted = await decryptBlob(content, pass);
+          result.content = JSON.stringify(decrypted);
+          decryptAttempts = 0;
+          lastFailTime = 0;
+          log(`Decrypted ${path}`);
+        } catch(err) {
+          decryptAttempts++;
+          lastFailTime = Date.now();
+          log(`Decryption failed for ${path}: ${err.message}`);
+          throw err;
+        }
+      }
+      return result;
+    };
+
+    window.GitHubAPI.updateFile = async function(owner, repo, path, content, msg, branch, token, sha) {
+      let final = content;
+      if (isUserDataPath(path)) {
+        const pass = await getPassphrase();
+        final = await encryptBlob(content, pass);
+        log(`Encrypted ${path} before upload`);
+      }
+      return originalUpdate(owner, repo, path, final, msg, branch, token, sha);
+    };
+    log('GitHubAPI patched');
+  }
+
+  // ---------- Intercept global fetch (for timesheet.js and others) ----------
+  const originalFetch = window.fetch;
   window.fetch = async function(url, options) {
-    // Only intercept GitHub API calls that read/write file contents
+    // Only intercept GitHub API content requests
     if (typeof url === 'string' && url.includes('api.github.com/repos/') && url.includes('/contents/')) {
       const isGet = !options || options.method === 'GET' || !options.method;
       const isPut = options && (options.method === 'PUT' || options.method === 'PUT');
 
-      // GET: decrypt content if it's a user data file
+      // ---- GET: decrypt ----
       if (isGet) {
         const response = await originalFetch(url, options);
         if (!response.ok) return response;
-        const clonedResponse = response.clone();
-        const data = await clonedResponse.json();
+        const cloned = response.clone();
+        const data = await cloned.json();
         if (data && data.content && data.path && isUserDataPath(data.path)) {
           let content = data.content;
           let isEncrypted = false;
           try {
             const parsed = JSON.parse(atob(content));
-            if (parsed && parsed.salt && parsed.iv && parsed.ciphertext) {
-              isEncrypted = true;
-            }
+            if (parsed && parsed.salt && parsed.iv && parsed.ciphertext) isEncrypted = true;
           } catch(e) {}
           if (isEncrypted) {
             const pass = await getPassphrase();
@@ -130,29 +184,29 @@
               const encryptedBlob = JSON.parse(atob(content));
               const decrypted = await decryptBlob(encryptedBlob, pass);
               const newContent = btoa(unescape(encodeURIComponent(JSON.stringify(decrypted))));
-              // Return a new response with decrypted content
               const newData = { ...data, content: newContent };
-              const newResponse = new Response(JSON.stringify(newData), {
+              log(`Decrypted via fetch: ${data.path}`);
+              return new Response(JSON.stringify(newData), {
                 status: response.status,
                 statusText: response.statusText,
                 headers: response.headers
               });
-              decryptAttempts = 0;
-              lastFailTime = 0;
-              return newResponse;
             } catch(err) {
               decryptAttempts++;
               lastFailTime = Date.now();
-              console.error('Decryption failed', err);
+              log(`Fetch decrypt error: ${err.message}`);
             }
           }
         }
         return response;
       }
 
-      // PUT: encrypt content before sending
+      // ---- PUT: encrypt ----
       if (isPut && options && options.body) {
-        let body = JSON.parse(options.body);
+        let body;
+        try {
+          body = JSON.parse(options.body);
+        } catch(e) { return originalFetch(url, options); }
         if (body && body.content && body.path && isUserDataPath(body.path)) {
           const pass = await getPassphrase();
           let originalContent;
@@ -161,7 +215,7 @@
           } catch(e) {
             originalContent = body.content;
           }
-          // Check if it's already encrypted (to avoid double encryption)
+          // Avoid double encryption
           let isAlreadyEncrypted = false;
           try {
             if (originalContent && originalContent.salt && originalContent.iv && originalContent.ciphertext) {
@@ -172,12 +226,15 @@
             const encryptedBlob = await encryptBlob(originalContent, pass);
             body.content = btoa(unescape(encodeURIComponent(JSON.stringify(encryptedBlob))));
             options.body = JSON.stringify(body);
+            log(`Encrypted via fetch: ${body.path}`);
           }
         }
       }
     }
     return originalFetch(url, options);
   };
+  log('Global fetch interceptor active');
 
-  console.log('🔒 Global fetch interceptor active – all user data will be encrypted');
+  // ---------- One-time migration warning ----------
+  log('Ready – user data will be encrypted on next save');
 })();
