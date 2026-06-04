@@ -181,7 +181,7 @@
       }
       
       // Get service token from user (or from a secure endpoint)
-      // For production, you should create a simple Cloudflare Worker or GitHub API endpoint
+  
       const serviceToken = await getServiceToken();
       
       if (!serviceToken) {
@@ -198,7 +198,7 @@
       await updateGitHubFileWithToken('data/verified_users.json', newVerified, `Verify email: ${email}`, serviceToken);
       await updateGitHubFileWithToken('data/pending_verification.json', newPending, `Remove pending verification for ${email}`, serviceToken);
       
-      // Also create user's individual verified.json file
+      // Creating user's individual verified.json file
       const encUser = encodeURIComponent(email);
       const userVerifiedPath = `data/users/${encUser}/verified.json`;
       const userVerifiedContent = { 
