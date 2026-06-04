@@ -1,4 +1,4 @@
-// lifeos.js – Smart Life OS with seamless passphrase reuse (no extra prompts)
+// lifeos.js – Smart Life OS with persistent passphrase (stored in sessionStorage)
 (function() {
   const user = window.SessionManager?.getCurrentUser();
   if (!user) {
@@ -6,42 +6,37 @@
     return;
   }
 
-  // ========== ENCRYPTION HELPERS (use shared.js if available, otherwise self-contained) ==========
-  let encryptDataBlob, decryptDataBlob, getUserEncryptionKey;
+  // ========== PASSPHRASE MANAGEMENT (stores in sessionStorage) ==========
+  let cachedPassphrase = null;
 
-  if (typeof window.encryptDataBlob === 'function' && typeof window.decryptDataBlob === 'function' && typeof window.getUserEncryptionKey === 'function') {
-    // Use existing global helpers from shared.js
-    encryptDataBlob = window.encryptDataBlob;
-    decryptDataBlob = window.decryptDataBlob;
-    getUserEncryptionKey = window.getUserEncryptionKey;
-    console.log("Using encryption helpers from shared.js");
-  } else {
-    // Self-contained fallback (should not be needed, but just in case)
-    encryptDataBlob = async (obj, passphrase) => {
-      const json = JSON.stringify(obj);
-      return await window.CryptoUtil.encrypt(json, passphrase);
-    };
-    decryptDataBlob = async (encryptedBlob, passphrase) => {
-      const decrypted = await window.CryptoUtil.decrypt(encryptedBlob, passphrase);
-      return JSON.parse(decrypted);
-    };
-    getUserEncryptionKey = async () => {
-      if (!window._userPassphrase) {
-        const stored = sessionStorage.getItem('portfolioPassphrase');
-        if (stored) {
-          window._userPassphrase = atob(stored);
-          console.log("✅ Passphrase restored from sessionStorage");
-          return window._userPassphrase;
-        }
-        // This should never happen after login, but as a last resort:
-        const pwd = prompt("🔐 Enter your passphrase to access Smart Life OS data:", "");
-        if (!pwd) throw new Error('Passphrase required');
-        window._userPassphrase = pwd;
-        sessionStorage.setItem('portfolioPassphrase', btoa(pwd));
-      }
-      return window._userPassphrase;
-    };
-    console.log("Using self-contained encryption helpers (fallback)");
+  async function getPassphrase() {
+    if (cachedPassphrase) return cachedPassphrase;
+    // Try to retrieve from sessionStorage
+    const stored = sessionStorage.getItem('portfolioPassphrase');
+    if (stored) {
+      try {
+        cachedPassphrase = atob(stored);
+        console.log("✅ Passphrase restored from sessionStorage");
+        return cachedPassphrase;
+      } catch(e) {}
+    }
+    // If not found, prompt (only once per session)
+    const pwd = prompt("🔐 Enter your passphrase to access Smart Life OS data:", "");
+    if (!pwd) throw new Error('Passphrase required');
+    cachedPassphrase = pwd;
+    sessionStorage.setItem('portfolioPassphrase', btoa(pwd));
+    return cachedPassphrase;
+  }
+
+  // ========== ENCRYPTION HELPERS (use CryptoUtil directly) ==========
+  async function encryptDataBlob(obj, passphrase) {
+    const json = JSON.stringify(obj);
+    return await window.CryptoUtil.encrypt(json, passphrase);
+  }
+
+  async function decryptDataBlob(encryptedBlob, passphrase) {
+    const decrypted = await window.CryptoUtil.decrypt(encryptedBlob, passphrase);
+    return JSON.parse(decrypted);
   }
 
   function getUserDataPath(username, filename) {
@@ -68,16 +63,24 @@
     isLoading = true;
     window.showLoading("Loading your Smart Life OS data...");
     try {
+      const passphrase = await getPassphrase();
       const { owner, repo, branch } = window.REPO_CONFIG;
       const path = getUserDataPath(user.username, 'lifeos.json');
       const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
       let data = { tasks: [], goals: [] };
       if (file && file.content) {
-        if (typeof file.content === 'object' && file.content.salt && file.content.iv && file.content.ciphertext) {
-          const passphrase = await getUserEncryptionKey();
-          data = await decryptDataBlob(file.content, passphrase);
+        // Check if content is already an object or a string
+        let content = file.content;
+        if (typeof content === 'string') {
+          try {
+            content = JSON.parse(content);
+          } catch(e) {}
+        }
+        if (content && content.salt && content.iv && content.ciphertext) {
+          data = await decryptDataBlob(content, passphrase);
         } else {
-          data = JSON.parse(file.content);
+          // Legacy plain JSON
+          data = content;
         }
       }
       tasks = data.tasks || [];
@@ -104,18 +107,17 @@
     if (isLoading) return;
     isLoading = true;
     try {
-      const passphrase = await getUserEncryptionKey();
+      const passphrase = await getPassphrase();
       const dataToSave = { tasks, goals };
       const encryptedBlob = await encryptDataBlob(dataToSave, passphrase);
       const { owner, repo, branch } = window.REPO_CONFIG;
       const path = getUserDataPath(user.username, 'lifeos.json');
 
-      // Always fetch the latest SHA before saving (to avoid conflicts)
       let sha = null;
       try {
         const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
         if (existing && existing.sha) sha = existing.sha;
-      } catch(e) { /* file doesn't exist yet */ }
+      } catch(e) {}
 
       await GitHubAPI.updateFile(owner, repo, path, encryptedBlob, "Update LifeOS data", branch, user.pat, sha);
       localStorage.setItem('lifeos_tasks', JSON.stringify(tasks));
@@ -192,7 +194,7 @@
     if (energySpan) energySpan.innerHTML = `<i class="fa fa-hourglass-half"></i> ${energyTip}`;
   }
 
-  // ========== TASKS (scrollable) ==========
+  // ========== RENDER TASKS (scrollable) ==========
   function renderTasks() {
     const container = document.getElementById('taskList');
     if (!container) return;
@@ -459,7 +461,7 @@
     document.getElementById('aiResponse').innerHTML = plan.replace(/\n/g, '<br>');
   }
 
-  // ========== EXCEL EXPORT (FULL) ==========
+  // ========== EXCEL EXPORT (full) ==========
   async function exportToExcel() {
     window.showLoading("Generating Excel report...");
     try {
@@ -468,7 +470,6 @@
       const goalsSheet = workbook.addWorksheet("Goals", { pageSetup: { orientation: 'landscape', fitToPage: true } });
       const chartSheet = workbook.addWorksheet("Chart", { pageSetup: { orientation: 'landscape', fitToPage: true } });
 
-      // Tasks sheet header
       worksheet.mergeCells('A1:I1');
       const titleCell = worksheet.getCell('A1');
       titleCell.value = `SMART LIFE OS - TASKS (${user.username})`;
@@ -523,7 +524,6 @@
       worksheet.columns = [{ width: 30 }, { width: 12 }, { width: 12 }, { width: 12 }, { width: 15 }, { width: 30 }, { width: 12 }, { width: 20 }, { width: 20 }];
       worksheet.views = [{ state: 'frozen', ySplit: 4 }];
 
-      // Goals sheet
       goalsSheet.mergeCells('A1:E1');
       const goalTitle = goalsSheet.getCell('A1');
       goalTitle.value = `SMART LIFE OS - GOALS (${user.username})`;
@@ -552,7 +552,6 @@
       });
       goalsSheet.columns = [{ width: 30 }, { width: 15 }, { width: 15 }, { width: 15 }, { width: 15 }];
 
-      // Chart sheet
       const priorityCount = { High: 0, Medium: 0, Low: 0 };
       tasks.forEach(t => { priorityCount[t.priority]++; });
       chartSheet.addRows([['Priority', 'Count'], ['High', priorityCount.High], ['Medium', priorityCount.Medium], ['Low', priorityCount.Low]]);
