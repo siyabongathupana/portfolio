@@ -1,7 +1,7 @@
 [
   {
     "id": 1780556501005,
-    "date": "2026-06-04",
+    "date": "2026-06-03",
     "start": "13:07",
     "end": "16:15",
     "hours": 3.13,
@@ -9,7 +9,7 @@
     "category": "IFAT",
     "billable": "yes",
     "notes": "Software IFAT",
-    "updatedAt": 1780556501005
+    "updatedAt": 1780556522716
   },
   {
     "id": 1780484844562,
