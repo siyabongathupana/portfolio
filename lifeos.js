@@ -1,4 +1,4 @@
-// lifeos.js – Smart Life OS with Daily Dashboard, User Authentication, Encryption, Excel Export
+// lifeos.js – Smart Life OS (Self‑Contained Encryption, No shared.js helpers needed)
 (function() {
   const user = window.SessionManager?.getCurrentUser();
   if (!user) {
@@ -6,13 +6,49 @@
     return;
   }
 
+  // ======================== SELF-CONTAINED ENCRYPTION HELPERS ========================
+  async function encryptDataBlob(obj, passphrase) {
+    const json = JSON.stringify(obj);
+    const encrypted = await window.CryptoUtil.encrypt(json, passphrase);
+    return encrypted; // { salt, iv, ciphertext }
+  }
+
+  async function decryptDataBlob(encryptedBlob, passphrase) {
+    const decrypted = await window.CryptoUtil.decrypt(encryptedBlob, passphrase);
+    return JSON.parse(decrypted);
+  }
+
+  async function getUserEncryptionKey() {
+    if (!window._userPassphrase) {
+      const stored = sessionStorage.getItem('portfolioPassphrase');
+      if (stored) {
+        try {
+          window._userPassphrase = atob(stored);
+          console.log("✅ Passphrase restored from sessionStorage");
+          return window._userPassphrase;
+        } catch(e) {}
+      }
+      const pwd = prompt("🔐 Enter your passphrase to access Smart Life OS data:", "");
+      if (!pwd) throw new Error('Passphrase required');
+      window._userPassphrase = pwd;
+      sessionStorage.setItem('portfolioPassphrase', btoa(pwd));
+    }
+    return window._userPassphrase;
+  }
+
+  function getUserDataPath(username, filename) {
+    const { dataPath } = window.REPO_CONFIG;
+    const encUser = encodeURIComponent(username);
+    return `${dataPath}/users/${encUser}/${filename}`;
+  }
+
+  // ======================== DATA STORAGE ========================
   let tasks = [];
   let goals = [];
   let currentDate = new Date();
   let weeklyChart = null;
   let isLoading = false;
 
-  // Helper: get first name from email
   function getUserFirstName() {
     if (!user) return "Guest";
     const email = user.username;
@@ -21,18 +57,12 @@
     return firstPart.charAt(0).toUpperCase() + firstPart.slice(1);
   }
 
-  function getLifeOSDataPath() {
-    const { dataPath } = window.REPO_CONFIG;
-    const encUser = encodeURIComponent(user.username);
-    return `${dataPath}/users/${encUser}/lifeos.json`;
-  }
-
   async function loadFromGitHub() {
     isLoading = true;
     window.showLoading("Loading your Smart Life OS data...");
     try {
       const { owner, repo, branch } = window.REPO_CONFIG;
-      const path = getLifeOSDataPath();
+      const path = getUserDataPath(user.username, 'lifeos.json');
       const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
       let data = { tasks: [], goals: [] };
       if (file && file.content) {
@@ -49,7 +79,7 @@
       goals.forEach(g => { if (!g.id) g.id = Date.now() + Math.random(); });
       localStorage.setItem('lifeos_tasks', JSON.stringify(tasks));
       localStorage.setItem('lifeos_goals', JSON.stringify(goals));
-      console.log("✅ LifeOS data loaded from GitHub");
+      console.log("✅ LifeOS data loaded from GitHub", { tasksCount: tasks.length, goalsCount: goals.length });
     } catch (err) {
       console.error("Failed to load lifeos data from GitHub:", err);
       const storedTasks = localStorage.getItem('lifeos_tasks');
@@ -70,7 +100,7 @@
       const dataToSave = { tasks, goals };
       const encryptedBlob = await encryptDataBlob(dataToSave, passphrase);
       const { owner, repo, branch } = window.REPO_CONFIG;
-      const path = getLifeOSDataPath();
+      const path = getUserDataPath(user.username, 'lifeos.json');
       let sha = null;
       try {
         const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
@@ -100,7 +130,6 @@
   // ======================== DAILY DASHBOARD ========================
   function updateDailyDashboard() {
     const today = new Date().toISOString().split('T')[0];
-    // Tasks due today (including overdue if due date is exactly today)
     const todayTasks = tasks.filter(t => t.dueDate === today && !t.done);
     const highPriorityPending = tasks.filter(t => !t.done && t.priority === 'High' && t.dueDate !== today);
     const displayTasks = [...todayTasks, ...highPriorityPending].slice(0, 5);
@@ -138,7 +167,6 @@
         container.appendChild(taskDiv);
       });
     }
-    // Energy suggestion based on time of day
     const hour = new Date().getHours();
     let energyTip = '';
     if (hour < 12) energyTip = '🌅 Good morning! Your energy is naturally high. Tackle your most important task now.';
@@ -148,7 +176,7 @@
     if (energySpan) energySpan.innerHTML = `<i class="fa fa-hourglass-half"></i> ${energyTip}`;
   }
 
-  // Render Tasks (with scrollable container)
+  // ======================== RENDER TASKS (with scrollable list) ========================
   function renderTasks() {
     const container = document.getElementById('taskList');
     if (!container) return;
@@ -222,6 +250,7 @@
     }
   }
 
+  // ======================== GOALS ========================
   function renderGoals() {
     const container = document.getElementById('goalList');
     if (!container) return;
@@ -277,6 +306,7 @@
     }
   }
 
+  // ======================== WEEKLY REFLECTION ========================
   function updateWeeklyReflection() {
     const now = new Date();
     const startOfWeek = new Date(now);
@@ -309,6 +339,7 @@
     });
   }
 
+  // ======================== ENERGY SUGGESTION ========================
   function suggestTaskByEnergy(energy) {
     let filtered = tasks.filter(t => !t.done);
     if (energy === 'High') {
@@ -324,6 +355,7 @@
     return filtered[0] || null;
   }
 
+  // ======================== CALENDAR ========================
   function renderCalendar() {
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
@@ -382,6 +414,7 @@
 
   function formatDateYMD(date) { return date ? date.toISOString().split('T')[0] : null; }
 
+  // ======================== AI ASSISTANT ========================
   async function generateAIPlan() {
     const pendingTasks = tasks.filter(t => !t.done);
     if (pendingTasks.length === 0) { document.getElementById('aiResponse').innerHTML = '🎉 No pending tasks! Enjoy your free time.'; return; }
@@ -410,6 +443,7 @@
     document.getElementById('aiResponse').innerHTML = plan.replace(/\n/g, '<br>');
   }
 
+  // ======================== EXCEL EXPORT ========================
   async function exportToExcel() {
     window.showLoading("Generating Excel report...");
     try {
@@ -566,6 +600,7 @@
     toastEl.addEventListener('hidden.bs.toast', () => toastEl.remove());
   }
 
+  // ======================== INITIALIZATION ========================
   document.addEventListener('DOMContentLoaded', async () => {
     await loadFromGitHub();
     const nameSpan = document.getElementById('userFirstName');
@@ -576,10 +611,12 @@
     renderCalendar();
     updateDailyDashboard();
 
-    // Make task list scrollable (CSS already provides, but ensure container has max-height)
+    // Make task list scrollable
     const taskListDiv = document.getElementById('taskList');
-    if (taskListDiv) taskListDiv.style.maxHeight = '400px';
-    if (taskListDiv) taskListDiv.style.overflowY = 'auto';
+    if (taskListDiv) {
+      taskListDiv.style.maxHeight = '400px';
+      taskListDiv.style.overflowY = 'auto';
+    }
 
     document.getElementById('addTaskBtn').addEventListener('click', async () => {
       const title = document.getElementById('taskTitle').value.trim();
