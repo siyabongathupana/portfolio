@@ -1,5 +1,17 @@
 [
   {
+    "id": 1780581471956,
+    "date": "2026-06-04",
+    "start": "15:30",
+    "end": "15:57",
+    "hours": 0.45,
+    "project": "Omnia Phase 3",
+    "category": "IFAT",
+    "billable": "yes",
+    "notes": "Software IFAT (BPCS)",
+    "updatedAt": 1780581471956
+  },
+  {
     "id": 1780579836671,
     "date": "2026-06-04",
     "start": "15:13",
