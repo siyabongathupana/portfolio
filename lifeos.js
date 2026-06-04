@@ -1,4 +1,4 @@
-// lifeos.js – Smart Life OS (Self‑Contained Encryption, No shared.js helpers needed)
+// lifeos.js – Smart Life OS with seamless passphrase reuse (no extra prompts)
 (function() {
   const user = window.SessionManager?.getCurrentUser();
   if (!user) {
@@ -6,34 +6,42 @@
     return;
   }
 
-  // ======================== SELF-CONTAINED ENCRYPTION HELPERS ========================
-  async function encryptDataBlob(obj, passphrase) {
-    const json = JSON.stringify(obj);
-    const encrypted = await window.CryptoUtil.encrypt(json, passphrase);
-    return encrypted; // { salt, iv, ciphertext }
-  }
+  // ========== ENCRYPTION HELPERS (use shared.js if available, otherwise self-contained) ==========
+  let encryptDataBlob, decryptDataBlob, getUserEncryptionKey;
 
-  async function decryptDataBlob(encryptedBlob, passphrase) {
-    const decrypted = await window.CryptoUtil.decrypt(encryptedBlob, passphrase);
-    return JSON.parse(decrypted);
-  }
-
-  async function getUserEncryptionKey() {
-    if (!window._userPassphrase) {
-      const stored = sessionStorage.getItem('portfolioPassphrase');
-      if (stored) {
-        try {
+  if (typeof window.encryptDataBlob === 'function' && typeof window.decryptDataBlob === 'function' && typeof window.getUserEncryptionKey === 'function') {
+    // Use existing global helpers from shared.js
+    encryptDataBlob = window.encryptDataBlob;
+    decryptDataBlob = window.decryptDataBlob;
+    getUserEncryptionKey = window.getUserEncryptionKey;
+    console.log("Using encryption helpers from shared.js");
+  } else {
+    // Self-contained fallback (should not be needed, but just in case)
+    encryptDataBlob = async (obj, passphrase) => {
+      const json = JSON.stringify(obj);
+      return await window.CryptoUtil.encrypt(json, passphrase);
+    };
+    decryptDataBlob = async (encryptedBlob, passphrase) => {
+      const decrypted = await window.CryptoUtil.decrypt(encryptedBlob, passphrase);
+      return JSON.parse(decrypted);
+    };
+    getUserEncryptionKey = async () => {
+      if (!window._userPassphrase) {
+        const stored = sessionStorage.getItem('portfolioPassphrase');
+        if (stored) {
           window._userPassphrase = atob(stored);
           console.log("✅ Passphrase restored from sessionStorage");
           return window._userPassphrase;
-        } catch(e) {}
+        }
+        // This should never happen after login, but as a last resort:
+        const pwd = prompt("🔐 Enter your passphrase to access Smart Life OS data:", "");
+        if (!pwd) throw new Error('Passphrase required');
+        window._userPassphrase = pwd;
+        sessionStorage.setItem('portfolioPassphrase', btoa(pwd));
       }
-      const pwd = prompt("🔐 Enter your passphrase to access Smart Life OS data:", "");
-      if (!pwd) throw new Error('Passphrase required');
-      window._userPassphrase = pwd;
-      sessionStorage.setItem('portfolioPassphrase', btoa(pwd));
-    }
-    return window._userPassphrase;
+      return window._userPassphrase;
+    };
+    console.log("Using self-contained encryption helpers (fallback)");
   }
 
   function getUserDataPath(username, filename) {
@@ -42,7 +50,7 @@
     return `${dataPath}/users/${encUser}/${filename}`;
   }
 
-  // ======================== DATA STORAGE ========================
+  // ========== DATA STORAGE ==========
   let tasks = [];
   let goals = [];
   let currentDate = new Date();
@@ -50,7 +58,6 @@
   let isLoading = false;
 
   function getUserFirstName() {
-    if (!user) return "Guest";
     const email = user.username;
     const namePart = email.split('@')[0];
     const firstPart = namePart.split('.')[0];
@@ -79,20 +86,21 @@
       goals.forEach(g => { if (!g.id) g.id = Date.now() + Math.random(); });
       localStorage.setItem('lifeos_tasks', JSON.stringify(tasks));
       localStorage.setItem('lifeos_goals', JSON.stringify(goals));
-      console.log("✅ LifeOS data loaded from GitHub", { tasksCount: tasks.length, goalsCount: goals.length });
+      console.log(`✅ Loaded ${tasks.length} tasks, ${goals.length} goals`);
     } catch (err) {
-      console.error("Failed to load lifeos data from GitHub:", err);
+      console.error("Load failed:", err);
       const storedTasks = localStorage.getItem('lifeos_tasks');
       const storedGoals = localStorage.getItem('lifeos_goals');
       tasks = storedTasks ? JSON.parse(storedTasks) : [];
       goals = storedGoals ? JSON.parse(storedGoals) : [];
+      showToast("Could not sync with GitHub, using local cache.", "warning");
     } finally {
       isLoading = false;
       window.hideLoading();
     }
   }
 
-  async function saveToGitHub() {
+  async function saveToGitHub(retryCount = 0) {
     if (isLoading) return;
     isLoading = true;
     try {
@@ -101,17 +109,25 @@
       const encryptedBlob = await encryptDataBlob(dataToSave, passphrase);
       const { owner, repo, branch } = window.REPO_CONFIG;
       const path = getUserDataPath(user.username, 'lifeos.json');
+
+      // Always fetch the latest SHA before saving (to avoid conflicts)
       let sha = null;
       try {
         const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
         if (existing && existing.sha) sha = existing.sha;
-      } catch(e) {}
+      } catch(e) { /* file doesn't exist yet */ }
+
       await GitHubAPI.updateFile(owner, repo, path, encryptedBlob, "Update LifeOS data", branch, user.pat, sha);
       localStorage.setItem('lifeos_tasks', JSON.stringify(tasks));
       localStorage.setItem('lifeos_goals', JSON.stringify(goals));
-      console.log("✅ LifeOS data saved to GitHub");
+      console.log("✅ Saved to GitHub");
     } catch (err) {
-      console.error("Failed to save lifeos data to GitHub:", err);
+      console.error("Save failed:", err);
+      if (err.message && err.message.includes("does not match") && retryCount < 3) {
+        console.log(`SHA conflict, retry ${retryCount + 1}/3...`);
+        await new Promise(r => setTimeout(r, 1000));
+        return saveToGitHub(retryCount + 1);
+      }
       showToast("Auto-save failed: " + err.message, "error");
     } finally {
       isLoading = false;
@@ -127,7 +143,7 @@
     await saveToGitHub();
   }
 
-  // ======================== DAILY DASHBOARD ========================
+  // ========== DAILY DASHBOARD ==========
   function updateDailyDashboard() {
     const today = new Date().toISOString().split('T')[0];
     const todayTasks = tasks.filter(t => t.dueDate === today && !t.done);
@@ -176,7 +192,7 @@
     if (energySpan) energySpan.innerHTML = `<i class="fa fa-hourglass-half"></i> ${energyTip}`;
   }
 
-  // ======================== RENDER TASKS (with scrollable list) ========================
+  // ========== TASKS (scrollable) ==========
   function renderTasks() {
     const container = document.getElementById('taskList');
     if (!container) return;
@@ -250,7 +266,7 @@
     }
   }
 
-  // ======================== GOALS ========================
+  // ========== GOALS ==========
   function renderGoals() {
     const container = document.getElementById('goalList');
     if (!container) return;
@@ -306,7 +322,7 @@
     }
   }
 
-  // ======================== WEEKLY REFLECTION ========================
+  // ========== WEEKLY REFLECTION ==========
   function updateWeeklyReflection() {
     const now = new Date();
     const startOfWeek = new Date(now);
@@ -339,7 +355,7 @@
     });
   }
 
-  // ======================== ENERGY SUGGESTION ========================
+  // ========== ENERGY SUGGESTION ==========
   function suggestTaskByEnergy(energy) {
     let filtered = tasks.filter(t => !t.done);
     if (energy === 'High') {
@@ -355,7 +371,7 @@
     return filtered[0] || null;
   }
 
-  // ======================== CALENDAR ========================
+  // ========== CALENDAR ==========
   function renderCalendar() {
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
@@ -414,7 +430,7 @@
 
   function formatDateYMD(date) { return date ? date.toISOString().split('T')[0] : null; }
 
-  // ======================== AI ASSISTANT ========================
+  // ========== AI ASSISTANT ==========
   async function generateAIPlan() {
     const pendingTasks = tasks.filter(t => !t.done);
     if (pendingTasks.length === 0) { document.getElementById('aiResponse').innerHTML = '🎉 No pending tasks! Enjoy your free time.'; return; }
@@ -443,7 +459,7 @@
     document.getElementById('aiResponse').innerHTML = plan.replace(/\n/g, '<br>');
   }
 
-  // ======================== EXCEL EXPORT ========================
+  // ========== EXCEL EXPORT (FULL) ==========
   async function exportToExcel() {
     window.showLoading("Generating Excel report...");
     try {
@@ -452,6 +468,7 @@
       const goalsSheet = workbook.addWorksheet("Goals", { pageSetup: { orientation: 'landscape', fitToPage: true } });
       const chartSheet = workbook.addWorksheet("Chart", { pageSetup: { orientation: 'landscape', fitToPage: true } });
 
+      // Tasks sheet header
       worksheet.mergeCells('A1:I1');
       const titleCell = worksheet.getCell('A1');
       titleCell.value = `SMART LIFE OS - TASKS (${user.username})`;
@@ -506,6 +523,7 @@
       worksheet.columns = [{ width: 30 }, { width: 12 }, { width: 12 }, { width: 12 }, { width: 15 }, { width: 30 }, { width: 12 }, { width: 20 }, { width: 20 }];
       worksheet.views = [{ state: 'frozen', ySplit: 4 }];
 
+      // Goals sheet
       goalsSheet.mergeCells('A1:E1');
       const goalTitle = goalsSheet.getCell('A1');
       goalTitle.value = `SMART LIFE OS - GOALS (${user.username})`;
@@ -534,10 +552,10 @@
       });
       goalsSheet.columns = [{ width: 30 }, { width: 15 }, { width: 15 }, { width: 15 }, { width: 15 }];
 
+      // Chart sheet
       const priorityCount = { High: 0, Medium: 0, Low: 0 };
       tasks.forEach(t => { priorityCount[t.priority]++; });
-      const chartData = [['Priority', 'Count'], ['High', priorityCount.High], ['Medium', priorityCount.Medium], ['Low', priorityCount.Low]];
-      chartSheet.addRows(chartData);
+      chartSheet.addRows([['Priority', 'Count'], ['High', priorityCount.High], ['Medium', priorityCount.Medium], ['Low', priorityCount.Low]]);
       chartSheet.getCell('A1').value = 'Tasks by Priority';
       chartSheet.getCell('A1').font = { bold: true, size: 14 };
       try {
@@ -600,18 +618,16 @@
     toastEl.addEventListener('hidden.bs.toast', () => toastEl.remove());
   }
 
-  // ======================== INITIALIZATION ========================
+  // ========== INITIALIZATION ==========
   document.addEventListener('DOMContentLoaded', async () => {
     await loadFromGitHub();
-    const nameSpan = document.getElementById('userFirstName');
-    if (nameSpan) nameSpan.innerText = getUserFirstName();
+    document.getElementById('userFirstName').innerText = getUserFirstName();
     renderTasks();
     renderGoals();
     updateWeeklyReflection();
     renderCalendar();
     updateDailyDashboard();
 
-    // Make task list scrollable
     const taskListDiv = document.getElementById('taskList');
     if (taskListDiv) {
       taskListDiv.style.maxHeight = '400px';
