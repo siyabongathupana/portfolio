@@ -17,7 +17,8 @@
     if (!user) return "Guest";
     const email = user.username;
     const namePart = email.split('@')[0];
-    return namePart.split('.')[0].charAt(0).toUpperCase() + namePart.split('.')[0].slice(1);
+    const firstPart = namePart.split('.')[0];
+    return firstPart.charAt(0).toUpperCase() + firstPart.slice(1);
   }
 
   function getLifeOSDataPath() {
@@ -48,8 +49,9 @@
       goals.forEach(g => { if (!g.id) g.id = Date.now() + Math.random(); });
       localStorage.setItem('lifeos_tasks', JSON.stringify(tasks));
       localStorage.setItem('lifeos_goals', JSON.stringify(goals));
+      console.log("✅ LifeOS data loaded from GitHub");
     } catch (err) {
-      console.error("Failed to load lifeos data:", err);
+      console.error("Failed to load lifeos data from GitHub:", err);
       const storedTasks = localStorage.getItem('lifeos_tasks');
       const storedGoals = localStorage.getItem('lifeos_goals');
       tasks = storedTasks ? JSON.parse(storedTasks) : [];
@@ -77,8 +79,9 @@
       await GitHubAPI.updateFile(owner, repo, path, encryptedBlob, "Update LifeOS data", branch, user.pat, sha);
       localStorage.setItem('lifeos_tasks', JSON.stringify(tasks));
       localStorage.setItem('lifeos_goals', JSON.stringify(goals));
+      console.log("✅ LifeOS data saved to GitHub");
     } catch (err) {
-      console.error("Failed to save lifeos data:", err);
+      console.error("Failed to save lifeos data to GitHub:", err);
       showToast("Auto-save failed: " + err.message, "error");
     } finally {
       isLoading = false;
@@ -97,14 +100,18 @@
   // ======================== DAILY DASHBOARD ========================
   function updateDailyDashboard() {
     const today = new Date().toISOString().split('T')[0];
+    // Tasks due today (including overdue if due date is exactly today)
     const todayTasks = tasks.filter(t => t.dueDate === today && !t.done);
     const highPriorityPending = tasks.filter(t => !t.done && t.priority === 'High' && t.dueDate !== today);
     const displayTasks = [...todayTasks, ...highPriorityPending].slice(0, 5);
     const totalToday = todayTasks.length;
     const completedToday = tasks.filter(t => t.dueDate === today && t.done).length;
     const percent = totalToday > 0 ? Math.round((completedToday / totalToday) * 100) : 0;
-    document.getElementById('todayProgressBar').style.width = percent + '%';
-    document.getElementById('todayProgressBar').innerText = percent + '%';
+    const progressBar = document.getElementById('todayProgressBar');
+    if (progressBar) {
+      progressBar.style.width = percent + '%';
+      progressBar.innerText = percent + '%';
+    }
     document.getElementById('todayCompletedTasks').innerText = completedToday;
     document.getElementById('todayTotalTasks').innerText = totalToday;
     const container = document.getElementById('todayTasksList');
@@ -137,10 +144,11 @@
     if (hour < 12) energyTip = '🌅 Good morning! Your energy is naturally high. Tackle your most important task now.';
     else if (hour < 17) energyTip = '☀️ Afternoon energy is stable. Focus on medium-priority tasks.';
     else energyTip = '🌙 Evening energy is lower. Do light tasks or plan for tomorrow.';
-    document.getElementById('energySuggestionText').innerHTML = `<i class="fa fa-hourglass-half"></i> ${energyTip}`;
+    const energySpan = document.getElementById('energySuggestionText');
+    if (energySpan) energySpan.innerHTML = `<i class="fa fa-hourglass-half"></i> ${energyTip}`;
   }
 
-  // Render Tasks
+  // Render Tasks (with scrollable container)
   function renderTasks() {
     const container = document.getElementById('taskList');
     if (!container) return;
@@ -560,13 +568,18 @@
 
   document.addEventListener('DOMContentLoaded', async () => {
     await loadFromGitHub();
-    // Set user name in dashboard
-    document.getElementById('userFirstName').innerText = getUserFirstName();
+    const nameSpan = document.getElementById('userFirstName');
+    if (nameSpan) nameSpan.innerText = getUserFirstName();
     renderTasks();
     renderGoals();
     updateWeeklyReflection();
     renderCalendar();
     updateDailyDashboard();
+
+    // Make task list scrollable (CSS already provides, but ensure container has max-height)
+    const taskListDiv = document.getElementById('taskList');
+    if (taskListDiv) taskListDiv.style.maxHeight = '400px';
+    if (taskListDiv) taskListDiv.style.overflowY = 'auto';
 
     document.getElementById('addTaskBtn').addEventListener('click', async () => {
       const title = document.getElementById('taskTitle').value.trim();
