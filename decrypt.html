@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Decrypt LifeOS Data</title>
+  <script src="crypto.js"></script>
+  <style>
+    body { font-family: monospace; padding: 20px; max-width: 900px; margin: auto; }
+    textarea { width: 100%; height: 200px; }
+    pre { background: #f4f4f4; padding: 10px; overflow: auto; }
+    button { margin-top: 10px; padding: 8px 16px; font-size: 16px; }
+  </style>
+</head>
+<body>
+  <h2>🔓 Decrypt Encrypted LifeOS Data</h2>
+  <p>Paste the encrypted blob (the JSON you shared) below, then enter the passphrase and click "Decrypt".</p>
+  <label>Encrypted Blob (JSON):</label>
+  <textarea id="encryptedBlob">{"salt":[...],"iv":[...],"ciphertext":[...]}</textarea>
+  <label>Passphrase:</label>
+  <input type="password" id="passphrase" style="width: 300px;">
+  <br>
+  <button id="decryptBtn">Decrypt</button>
+  <h3>Decrypted Data:</h3>
+  <pre id="result"></pre>
+
+  <script>
+    document.getElementById('decryptBtn').addEventListener('click', async () => {
+      const blobText = document.getElementById('encryptedBlob').value.trim();
+      const pass = document.getElementById('passphrase').value;
+      if (!blobText || !pass) {
+        alert("Please fill both fields.");
+        return;
+      }
+      let encrypted;
+      try {
+        encrypted = JSON.parse(blobText);
+      } catch(e) {
+        alert("Invalid JSON in encrypted blob.");
+        return;
+      }
+      if (!encrypted.salt || !encrypted.iv || !encrypted.ciphertext) {
+        alert("Invalid encrypted blob structure (missing salt/iv/ciphertext).");
+        return;
+      }
+      try {
+        const decrypted = await window.CryptoUtil.decrypt(encrypted, pass);
+        const data = JSON.parse(decrypted);
+        document.getElementById('result').innerText = JSON.stringify(data, null, 2);
+        alert("Decryption successful!");
+      } catch(err) {
+        alert("Decryption failed: " + err.message + "\nWrong passphrase or corrupted data.");
+        document.getElementById('result').innerText = err.message;
+      }
+    });
+  </script>
+</body>
+</html>
