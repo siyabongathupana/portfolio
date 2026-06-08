@@ -1,5 +1,17 @@
 [
   {
+    "id": 1780947171053,
+    "date": "2026-06-09",
+    "start": "08:30",
+    "end": "16:30",
+    "hours": 8,
+    "project": "Other",
+    "category": "Admin",
+    "billable": "no",
+    "notes": "Exam (BSC101)",
+    "updatedAt": 1780947171053
+  },
+  {
     "id": 1780947133484,
     "date": "2026-06-08",
     "start": "08:30",
