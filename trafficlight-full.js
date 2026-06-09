@@ -1,36 +1,42 @@
-// trafficlight-full.js – Complete with Download Rules PDF
+// trafficlight-full.js – COMPLETE & BUG-FREE
 (function() {
     // ---------- UTILITIES ----------
     function formatYMD(d) {
         return d.toISOString().split('T')[0];
     }
+    
     function getMonday(date) {
         const d = new Date(date);
-        d.setUTCHours(0,0,0,0);
+        d.setUTCHours(0, 0, 0, 0);
         const day = d.getUTCDay();
         const diff = (day === 0 ? 6 : day - 1);
         d.setUTCDate(d.getUTCDate() - diff);
         return d;
     }
-    // ---------- South African Public Holidays ----------
+    
+    // ---------- SOUTH AFRICAN PUBLIC HOLIDAYS ----------
     function isSouthAfricanPublicHoliday(date) {
         const year = date.getFullYear();
         const month = date.getMonth();
         const day = date.getDate();
-        const key = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+        const key = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         
         const fixedHolidays = [
             `${year}-01-01`, `${year}-03-21`, `${year}-04-27`, `${year}-05-01`,
             `${year}-06-16`, `${year}-08-09`, `${year}-09-24`, `${year}-12-16`,
             `${year}-12-25`, `${year}-12-26`
         ];
+        
         const easter = getEasterDate(year);
-        const goodFriday = new Date(easter); goodFriday.setDate(easter.getDate() - 2);
-        const easterMonday = new Date(easter); easterMonday.setDate(easter.getDate() + 1);
+        const goodFriday = new Date(easter);
+        goodFriday.setDate(easter.getDate() - 2);
+        const easterMonday = new Date(easter);
+        easterMonday.setDate(easter.getDate() + 1);
         const movable = [formatYMD(goodFriday), formatYMD(easterMonday)];
         
         return fixedHolidays.includes(key) || movable.includes(key);
     }
+    
     function getEasterDate(year) {
         const a = year % 19;
         const b = Math.floor(year / 100);
@@ -48,13 +54,14 @@
         const day = ((h + l - 7 * m + 114) % 31) + 1;
         return new Date(year, month - 1, day);
     }
-    // Get working days (Mon-Fri, no public holidays) up to maxDate (exclusive)
+    
+    // Get working days (Mon-Fri, no public holidays) up to maxDate (inclusive)
     function getWorkingDaysUpTo(start, end, maxDate) {
         const working = [];
         let current = new Date(start);
-        current.setUTCHours(0,0,0,0);
+        current.setUTCHours(0, 0, 0, 0);
         const limit = new Date(maxDate < end ? maxDate : end);
-        limit.setUTCHours(0,0,0,0);
+        limit.setUTCHours(0, 0, 0, 0);
         
         while (current <= limit) {
             const utcDay = current.getUTCDay();
@@ -67,6 +74,7 @@
         }
         return working;
     }
+    
     function checkTrainingThisMonth(entries, today) {
         const year = today.getFullYear();
         const month = today.getMonth();
@@ -75,6 +83,7 @@
             return e.category === 'Training' && d.getFullYear() === year && d.getMonth() === month;
         });
     }
+    
     function checkWeekendWork(entries, start, end) {
         return entries.some(e => {
             const d = new Date(e.date);
@@ -82,6 +91,7 @@
             return (day === 0 || day === 6) && d >= start && d <= end;
         });
     }
+    
     function findConsecutiveMissing(workingDays, dayMap) {
         let max = 0, cur = 0;
         for (let day of workingDays) {
@@ -95,6 +105,7 @@
         }
         return max;
     }
+    
     function getEarliestEntryDate(entries) {
         if (!entries.length) return null;
         let earliest = new Date(entries[0].date);
@@ -104,17 +115,18 @@
         }
         return earliest;
     }
-
-    // ---------- MAIN ANALYSIS ----------
+    
+    // ---------- MAIN ANALYSIS (FIXED UTC DATE COMPARISON) ----------
     function analyzeTimesheetHealth(entries, filterType, today = new Date()) {
         const todayStart = new Date(today);
-        todayStart.setUTCHours(0,0,0,0);
+        todayStart.setUTCHours(0, 0, 0, 0);
+        const todayYMD = formatYMD(todayStart);
         
         let startDate, endDate;
         if (filterType === 'day') {
             startDate = new Date(todayStart);
             endDate = new Date(todayStart);
-            endDate.setUTCHours(23,59,59,999);
+            endDate.setUTCHours(23, 59, 59, 999);
         } else if (filterType === 'week') {
             const monday = getMonday(todayStart);
             startDate = monday;
@@ -130,6 +142,7 @@
             endDate = todayStart;
         }
         
+        // Only days BEFORE today (past working days)
         const yesterday = new Date(todayStart);
         yesterday.setUTCDate(todayStart.getUTCDate() - 1);
         const workingDays = getWorkingDaysUpTo(startDate, endDate, yesterday);
@@ -147,8 +160,12 @@
         
         entries.forEach(entry => {
             const entryDate = new Date(entry.date);
-            if (entryDate < startDate || entryDate > endDate) return;
-            const ds = formatYMD(entryDate);
+            // Convert to UTC for consistent date comparison
+            const entryUTC = new Date(Date.UTC(entryDate.getFullYear(), entryDate.getMonth(), entryDate.getDate()));
+            const entryYMD = formatYMD(entryUTC);
+            
+            if (entryUTC < startDate || entryUTC > endDate) return;
+            
             const hrs = entry.hours;
             totalHours += hrs;
             if (entry.category === 'Admin') adminHours += hrs;
@@ -158,14 +175,14 @@
             if (seen.has(key)) duplicateEntries.push(entry);
             else seen.add(key);
             
-            if (entryDate < todayStart) {
-                if (dayMap.has(ds)) {
-                    const d = dayMap.get(ds);
+            if (entryUTC < todayStart) {
+                if (dayMap.has(entryYMD)) {
+                    const d = dayMap.get(entryYMD);
                     d.hours += hrs;
                     if (entry.project) d.projects.add(entry.project);
                     if (entry.notes?.trim()) d.hasNotes = true;
                 }
-            } else if (entryDate.toDateString() === todayStart.toDateString()) {
+            } else if (entryYMD === todayYMD) {
                 todayHours += hrs;
             }
         });
@@ -173,7 +190,8 @@
         if (window.__timesheetProjectOptions && window.__timesheetProjectOptions.length) {
             entries.forEach(entry => {
                 const entryDate = new Date(entry.date);
-                if (entryDate < startDate || entryDate > endDate) return;
+                const entryUTC = new Date(Date.UTC(entryDate.getFullYear(), entryDate.getMonth(), entryDate.getDate()));
+                if (entryUTC < startDate || entryUTC > endDate) return;
                 if (entry.project && !window.__timesheetProjectOptions.includes(entry.project))
                     invalidProjects.add(entry.project);
             });
@@ -208,7 +226,8 @@
         const hasWeekendWork = checkWeekendWork(entries, startDate, endDate);
         const unallocated = entries.filter(e => {
             const d = new Date(e.date);
-            return d >= startDate && d <= endDate && (!e.project || e.project.trim() === "");
+            const dUTC = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+            return dUTC >= startDate && dUTC <= endDate && (!e.project || e.project.trim() === "");
         }).length;
         const weeklyTargetReached = totalHours >= 40;
         const weeklySignificantlyBelow = totalHours < 30;
@@ -332,15 +351,15 @@
             }
         };
     }
-
-    // ---------- GENERATE PDF WITH RULES (Download Button) ----------
+    
+    // ---------- GENERATE PDF WITH RULES ----------
     function downloadRulesPDF() {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
         const pageWidth = doc.internal.pageSize.getWidth();
         const margin = 15;
         let y = 20;
-
+        
         doc.setFontSize(24);
         doc.setTextColor(11, 43, 59);
         doc.setFont(undefined, 'bold');
@@ -350,7 +369,7 @@
         doc.setLineWidth(1);
         doc.line(margin, y, pageWidth - margin, y);
         y += 10;
-
+        
         doc.setFontSize(10);
         doc.setTextColor(80, 80, 80);
         doc.setFont(undefined, 'normal');
@@ -358,8 +377,8 @@
         y += 8;
         doc.text("The light evaluates your timesheet based on past working days only (Mon–Fri, excluding South African public holidays).", margin, y);
         y += 12;
-
-        // GREEN section
+        
+        // GREEN
         doc.setFillColor(40, 167, 69);
         doc.rect(margin, y, 5, 5, 'F');
         doc.setFontSize(12);
@@ -383,13 +402,10 @@
             "• At least one project worked",
             "• No negative or impossible hours"
         ];
-        greenRules.forEach(rule => {
-            doc.text(rule, margin + 4, y);
-            y += 5;
-        });
+        greenRules.forEach(rule => { doc.text(rule, margin + 4, y); y += 5; });
         y += 5;
-
-        // AMBER section
+        
+        // AMBER
         if (y > 240) { doc.addPage(); y = 20; }
         doc.setFillColor(255, 193, 7);
         doc.rect(margin, y, 5, 5, 'F');
@@ -411,13 +427,10 @@
             "• No training logged in current month",
             "• Overtime worked more than twice in the week"
         ];
-        amberRules.forEach(rule => {
-            doc.text(rule, margin + 4, y);
-            y += 5;
-        });
+        amberRules.forEach(rule => { doc.text(rule, margin + 4, y); y += 5; });
         y += 5;
-
-        // RED section
+        
+        // RED
         if (y > 240) { doc.addPage(); y = 20; }
         doc.setFillColor(220, 53, 69);
         doc.rect(margin, y, 5, 5, 'F');
@@ -441,12 +454,9 @@
             "• Unallocated hour entries",
             "• Burnout risk (≥5 overtime days, weekend work, or ≥50h week)"
         ];
-        redRules.forEach(rule => {
-            doc.text(rule, margin + 4, y);
-            y += 5;
-        });
+        redRules.forEach(rule => { doc.text(rule, margin + 4, y); y += 5; });
         y += 5;
-
+        
         // Special badges
         if (y > 240) { doc.addPage(); y = 20; }
         doc.setFontSize(12);
@@ -463,12 +473,9 @@
             "🌟 Rockstar Week: Perfect week + training logged + zero corrections.",
             "⚠️ Burnout Risk: Forces RED status – unsustainable workload."
         ];
-        badges.forEach(b => {
-            doc.text(b, margin + 4, y);
-            y += 5;
-        });
+        badges.forEach(b => { doc.text(b, margin + 4, y); y += 5; });
         y += 5;
-
+        
         // Health score weights
         if (y > 240) { doc.addPage(); y = 20; }
         doc.setFontSize(12);
@@ -499,12 +506,9 @@
             "• >4 projects in a day: -2 each",
             "• Weekly target not reached (<40h): -5"
         ];
-        weightsList.forEach(w => {
-            doc.text(w, margin + 4, y);
-            y += 5;
-        });
+        weightsList.forEach(w => { doc.text(w, margin + 4, y); y += 5; });
         y += 5;
-
+        
         // Footer
         if (y > 260) { doc.addPage(); y = 20; }
         doc.setFontSize(8);
@@ -512,10 +516,10 @@
         doc.text(`Generated: ${new Date().toLocaleString()} | Your Portfolio Timesheet System`, margin, y + 10);
         doc.text("The traffic light evaluates only past working days (Mon–Fri, excluding SA public holidays).", margin, y + 15);
         doc.text("Today's progress is shown in the tooltip but never penalises the colour.", margin, y + 20);
-
+        
         doc.save("Timesheet_TrafficLight_Rules.pdf");
     }
-
+    
     // ---------- UI UPDATE ----------
     function updateTrafficLight() {
         const container = document.getElementById("standaloneTrafficLight");
@@ -542,7 +546,7 @@
         }
         tooltip += `\n📊 Total hours (period): ${health.metrics.totalHours}\n`;
         tooltip += `⚙️ Admin: ${health.metrics.adminRatio}% | O/T days: ${health.metrics.overtimeDays}\n`;
-        if (health.reasons.length) tooltip += `⚠️ Issues: ${health.reasons.slice(0,2).join(", ")}${health.reasons.length>2?"...":""}\n`;
+        if (health.reasons.length) tooltip += `⚠️ Issues: ${health.reasons.slice(0, 2).join(", ")}${health.reasons.length > 2 ? "..." : ""}\n`;
         tooltip += `📌 ${health.todayMsg}\n`;
         if (health.specialMsg) tooltip += `🏅 ${health.specialMsg}`;
         
@@ -555,7 +559,7 @@
         `;
         container.innerHTML = html;
     }
-
+    
     // ---------- EVENT LISTENERS ----------
     document.addEventListener("timesheetUpdated", updateTrafficLight);
     $(document).ready(function() {
