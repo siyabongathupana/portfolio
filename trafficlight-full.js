@@ -4,14 +4,15 @@
     function formatYMD(d) {
         return d.toISOString().split('T')[0];
     }
+    
     function getMonday(date) {
-        const d = new Date(date);
-        const day = d.getDay();
-        const diff = (day === 0 ? 6 : day - 1);
-        d.setDate(d.getDate() - diff);
-        d.setHours(0,0,0,0);
-        return d;
-    }
+    const d = new Date(date);
+    d.setUTCHours(0,0,0,0);
+    const day = d.getUTCDay(); // 0=Sun, 6=Sat
+    const diff = (day === 0 ? 6 : day - 1);
+    d.setUTCDate(d.getUTCDate() - diff);
+    return d;
+}
     // ---------- South African Public Holidays (2026) ----------
     function isSouthAfricanPublicHoliday(date) {
         const year = date.getFullYear();
