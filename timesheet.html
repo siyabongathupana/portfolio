@@ -307,7 +307,12 @@
       </select>
     </div>
     <!-----------------------------------------------------------TRAFFFIC--------------------------------------------------------->
-    <div id="standaloneTrafficLight" style="display: inline-block; margin-left: 15px; vertical-align: middle;"></div>
+     <div style="display: inline-flex; align-items: center; gap: 8px; margin-left: 15px;">
+        <div id="standaloneTrafficLight"></div>
+        <button id="downloadRulesBtn" class="btn btn-sm btn-outline-info" title="Download traffic light rules">
+            <i class="fa fa-download"></i>
+        </button>
+    </div>
     <button id="refreshHistoryBtn" class="btn btn-sm btn-outline-info"><i class="fa fa-refresh"></i> Refresh</button>
   </div>
 
