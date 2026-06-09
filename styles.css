@@ -107,3 +107,27 @@ footer { background:#051f29; color:#bdd3e0; text-align:center; padding:24px; }
   }
 }
 
+/*---------------------------------tRAFIC---------------------------------*/
+/* Compact Traffic Light */
+.traffic-light-standalone {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    background: #2c2c2c;
+    padding: 6px 5px;
+    border-radius: 28px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    cursor: help;
+}
+.traffic-light-standalone .light {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    margin: 3px 0;
+    background-color: #5a5a5a;
+    transition: background-color 0.2s, box-shadow 0.1s;
+}
+.traffic-light-standalone .light.red.lit { background-color: #ff4444; box-shadow: 0 0 6px #ff4444; }
+.traffic-light-standalone .light.amber.lit { background-color: #ffaa33; box-shadow: 0 0 6px #ffaa33; }
+.traffic-light-standalone .light.green.lit { background-color: #44cc44; box-shadow: 0 0 6px #44cc44; }
+
