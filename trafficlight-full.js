@@ -1,8 +1,7 @@
-// trafficlight-full.js – Performance Fixed (No freeze on "All Time")
+// trafficlight-full.js – Past days only, weekends ignored, All Time from first entry
 (function() {
-    // ---------- Helper Functions ----------
     function formatYMD(date) {
-        return date.toISOString().split('T')[0];
+        return date.toISOString(). split('T')[0];
     }
     function getMonday(date) {
         const d = new Date(date);
@@ -12,12 +11,13 @@
         d.setHours(0,0,0,0);
         return d;
     }
-    // Efficient weekday generation with max range limit
-    function getWeekdaysInRange(startDate, endDate, maxDays = 400) {
+    // Get weekdays (Mon-Fri) within a range, but only up to a specified max date
+    function getWeekdaysInRange(startDate, endDate, maxDate = null, maxDays = 400) {
         const weekdays = [];
         let current = new Date(startDate);
         let iterations = 0;
-        while (current <= endDate && iterations < maxDays) {
+        const effectiveEnd = maxDate && maxDate < endDate ? maxDate : endDate;
+        while (current <= effectiveEnd && iterations < maxDays) {
             const day = current.getDay();
             if (day !== 0 && day !== 6) weekdays.push(new Date(current));
             current.setDate(current.getDate() + 1);
@@ -61,19 +61,49 @@
         return maxConsecutive;
     }
 
-    // ---------- Core Analysis (optimized) ----------
-    function analyzeTimesheetHealth(entries, startDate, endDate, allProjectOptions = []) {
-        // For "all time", limit to last 365 days (current year approximately)
+    function getEarliestEntryDate(entries) {
+        if (!entries.length) return null;
+        let earliest = new Date(entries[0].date);
+        for (let i = 1; i < entries.length; i++) {
+            const d = new Date(entries[i].date);
+            if (d < earliest) earliest = d;
+        }
+        return earliest;
+    }
+
+    function analyzeTimesheetHealth(entries, startDate, endDate, allProjectOptions = [], filterType = 'week', today = new Date()) {
+        // Normalise today to start of day
+        const todayStart = new Date(today);
+        todayStart.setHours(0,0,0,0);
+
+        // For "all time", adjust startDate to earliest entry date
         let effectiveStart = startDate;
         let effectiveEnd = endDate;
-        if (startDate.getFullYear() < 2000) {
-            // "All time" selected – analyse last 365 days only
+        let effectiveMaxDate = todayStart; // never count future days
+
+        if (filterType === 'all') {
+            const firstEntry = getEarliestEntryDate(entries);
+            if (firstEntry) {
+                effectiveStart = firstEntry;
+                effectiveEnd = todayStart;
+            } else {
+                return { status: "red", reasons: ["No timesheet data"], score: 0, metrics: {} };
+            }
+        } else if (startDate.getFullYear() < 2000) {
+            // fallback for any weird case
             effectiveStart = new Date();
             effectiveStart.setDate(effectiveStart.getDate() - 365);
-            effectiveEnd = new Date();
+            effectiveEnd = todayStart;
         }
 
-        const weekdays = getWeekdaysInRange(effectiveStart, effectiveEnd, 400);
+        // For month filter, effectiveEnd should be the end of the month, but we cap by today
+        if (filterType === 'month') {
+            // Keep original endDate (last day of month) for range, but we will cap weekdays by today
+            effectiveEnd = endDate;
+        }
+
+        // Get weekdays only up to today (no future days)
+        const weekdays = getWeekdaysInRange(effectiveStart, effectiveEnd, effectiveMaxDate, 400);
         const daysMap = new Map();
         weekdays.forEach(day => {
             const ds = formatYMD(day);
@@ -89,7 +119,7 @@
             if (entryDate < effectiveStart || entryDate > effectiveEnd) return;
             const ds = formatYMD(entryDate);
             if (!daysMap.has(ds)) {
-                // Entry on a weekend – still count it
+                // Weekend or future day (should not happen for future because we capped)
                 daysMap.set(ds, { totalHours: 0, projectsSet: new Set(), hasNotes: false, entries: [] });
             }
             const dayData = daysMap.get(ds);
@@ -102,7 +132,6 @@
             if (entry.hours < 0 || entry.hours > 24) negativeHoursFound = true;
         });
 
-        // Duplicate detection (within range only)
         const seen = new Set();
         entries.forEach(entry => {
             const entryDate = new Date(entry.date);
@@ -112,7 +141,6 @@
             else seen.add(key);
         });
 
-        // Invalid projects
         if (allProjectOptions.length) {
             entries.forEach(entry => {
                 const entryDate = new Date(entry.date);
@@ -122,7 +150,7 @@
             });
         }
 
-        // Metrics
+        // Metrics – only for days that have passed (already limited by weekdays)
         let missingDays = 0, daysBelowTarget = 0, daysOutside759 = 0, daysAbove10 = 0, daysAbove12 = 0;
         let daysWithManyProjects = 0, overtimeDays = 0, notesMissing = 0, zeroHourDays = 0;
 
@@ -153,17 +181,22 @@
         const weeklySignificantlyBelow = totalHours < 30;
         const adminRatio = totalHours > 0 ? (adminHours / totalHours) * 100 : 0;
         const consecutiveMissing = findConsecutiveMissing(weekdays, daysMap);
-        const trainingThisMonth = checkTrainingThisMonth(entries, new Date()); // current month
+        const trainingThisMonth = checkTrainingThisMonth(entries, today);
         const hasWeekendWork = checkWeekendWork(entries, effectiveStart, effectiveEnd);
         const unallocated = entries.filter(e => {
             const d = new Date(e.date);
             return d >= effectiveStart && d <= effectiveEnd && (!e.project || e.project.trim() === "");
         }).length;
 
-        // Determine status
         let redFlags = [], amberFlags = [];
 
-        if (missingDays >= 2) redFlags.push("Two or more missing working days");
+        if (filterType === 'week') {
+            if (missingDays >= 2) redFlags.push("Two or more missing working days (past days only)");
+            else if (missingDays === 1) amberFlags.push("One missing working day");
+        } else {
+            if (missingDays > 15) redFlags.push(`Many missing working days (${missingDays})`);
+        }
+
         if (weeklySignificantlyBelow) redFlags.push("Weekly hours significantly below target (<30h)");
         if (negativeHoursFound) redFlags.push("Negative or impossible hour values");
         if (duplicateEntries.length > 0) redFlags.push(`Duplicate entries detected (${duplicateEntries.length})`);
@@ -173,7 +206,6 @@
         if (invalidProjects.size > 0) redFlags.push(`Invalid project codes: ${[...invalidProjects].join(', ')}`);
         if (unallocated > 0) redFlags.push(`${unallocated} unallocated hour entries`);
 
-        if (missingDays === 1) amberFlags.push("One missing working day");
         if (daysBelowTarget > 0) amberFlags.push(`Daily hours below target on ${daysBelowTarget} day(s)`);
         if (daysAbove10 > 0) amberFlags.push(`Daily hours above 10 on ${daysAbove10} day(s)`);
         if (!weeklyTargetReached) amberFlags.push("Weekly target not yet reached (<40h)");
@@ -183,7 +215,6 @@
         if (!trainingThisMonth) amberFlags.push("Training not logged this month");
         if (overtimeDays > 2) amberFlags.push(`Overtime worked more than twice this week (${overtimeDays} days)`);
 
-        // Special badges
         let specialBadge = null, specialMessage = null;
         if (overtimeDays >= 5 || hasWeekendWork || totalHours >= 50) {
             specialBadge = "burnout";
@@ -229,7 +260,6 @@
             reasons = ["Some entries need attention (see details)"];
         }
 
-        // Weighted score
         let score = 100;
         const weights = {
             missingDay: 25, weeklyBelow30: 30, duplicate: 5, invalidProject: 10, unallocated: 8,
@@ -237,7 +267,7 @@
             trainingMissing: 2, overtimeDay: 3, daysAbove10: 3, daysBelowTarget: 3, manyProjects: 2,
             weeklyTargetNotReached: 5
         };
-        if (missingDays > 0) score -= Math.min(missingDays * weights.missingDay, 50);
+        if (filterType === 'week' && missingDays > 0) score -= Math.min(missingDays * weights.missingDay, 50);
         if (weeklySignificantlyBelow) score -= weights.weeklyBelow30;
         if (duplicateEntries.length) score -= Math.min(duplicateEntries.length * weights.duplicate, 15);
         if (invalidProjects.size) score -= Math.min(invalidProjects.size * weights.invalidProject, 20);
@@ -260,7 +290,6 @@
         return { status, reasons, score, specialMessage, metrics: { totalHours, missingDays, adminRatio: adminRatio.toFixed(1), overtimeDays, duplicateCount: duplicateEntries.length, notesMissing } };
     }
 
-    // ---------- UI Update ----------
     function updateTrafficLight() {
         const container = document.getElementById("standaloneTrafficLight");
         if (!container) return;
@@ -288,18 +317,20 @@
         }
 
         const projectOptions = window.__timesheetProjectOptions || [];
-        const health = analyzeTimesheetHealth(window.__timesheetEntries, startDate, endDate, projectOptions);
+        const health = analyzeTimesheetHealth(window.__timesheetEntries, startDate, endDate, projectOptions, range, now);
 
         const redLit = health.status === "red" ? "lit" : "";
         const amberLit = health.status === "amber" ? "lit" : "";
         const greenLit = health.status === "green" ? "lit" : "";
 
         let tooltip = `${health.status.toUpperCase()} – Score: ${health.score}/100`;
-        if (health.reasons.length) {
+        if (health.reasons && health.reasons.length) {
             tooltip += `\nReasons: ${health.reasons.slice(0,3).join(", ")}${health.reasons.length>3 ? "..." : ""}`;
         }
         if (health.specialMessage) tooltip += `\n${health.specialMessage}`;
-        tooltip += `\nTotal: ${health.metrics.totalHours.toFixed(1)}h | Missing: ${health.metrics.missingDays} | Admin: ${health.metrics.adminRatio}% | O/T: ${health.metrics.overtimeDays}`;
+        if (health.metrics && health.metrics.totalHours !== undefined) {
+            tooltip += `\nTotal: ${health.metrics.totalHours.toFixed(1)}h | Missing: ${health.metrics.missingDays} | Admin: ${health.metrics.adminRatio}% | O/T: ${health.metrics.overtimeDays}`;
+        }
 
         const html = `
             <div class="traffic-light-standalone" title="${tooltip.replace(/"/g, '&quot;')}">
