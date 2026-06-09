@@ -1,5 +1,17 @@
-// trafficlight-full.js – Excludes weekends AND South African public holidays
+// trafficlight-full.js – Weekends ABSOLUTELY excluded
 (function() {
+    // ---------- UTILITIES ----------
+    function formatYMD(d) {
+        return d.toISOString().split('T')[0];
+    }
+    function getMonday(date) {
+        const d = new Date(date);
+        const day = d.getDay();
+        const diff = (day === 0 ? 6 : day - 1);
+        d.setDate(d.getDate() - diff);
+        d.setHours(0,0,0,0);
+        return d;
+    }
     // ---------- South African Public Holidays (2026) ----------
     function isSouthAfricanPublicHoliday(date) {
         const year = date.getFullYear();
@@ -7,40 +19,19 @@
         const day = date.getDate();
         const key = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
         
-        // Static holidays (fixed dates)
         const fixedHolidays = [
-            `${year}-01-01`, // New Year's Day
-            `${year}-03-21`, // Human Rights Day
-            `${year}-04-27`, // Freedom Day
-            `${year}-05-01`, // Workers' Day
-            `${year}-06-16`, // Youth Day
-            `${year}-08-09`, // National Women's Day
-            `${year}-09-24`, // Heritage Day
-            `${year}-12-16`, // Day of Reconciliation
-            `${year}-12-25`, // Christmas Day
-            `${year}-12-26`, // Day of Goodwill
+            `${year}-01-01`, `${year}-03-21`, `${year}-04-27`, `${year}-05-01`,
+            `${year}-06-16`, `${year}-08-09`, `${year}-09-24`, `${year}-12-16`,
+            `${year}-12-25`, `${year}-12-26`
         ];
-        
-        // Movable holidays (calculated for the given year)
-        // Good Friday & Easter Monday are based on the Gregorian calculation
+        // Good Friday & Easter Monday
         const easter = getEasterDate(year);
-        const goodFriday = new Date(easter);
-        goodFriday.setDate(easter.getDate() - 2);
-        const easterMonday = new Date(easter);
-        easterMonday.setDate(easter.getDate() + 1);
+        const goodFriday = new Date(easter); goodFriday.setDate(easter.getDate() - 2);
+        const easterMonday = new Date(easter); easterMonday.setDate(easter.getDate() + 1);
+        const movable = [formatYMD(goodFriday), formatYMD(easterMonday)];
         
-        const movableHolidays = [
-            formatYMD(goodFriday),
-            formatYMD(easterMonday),
-        ];
-        
-        // Family Day is 24 December? No, that's not standard. Actually Family Day is 26 Dec? Already covered.
-        // For completeness, add any other public holidays like "Day off for Christmas" etc.
-        
-        return fixedHolidays.includes(key) || movableHolidays.includes(key);
+        return fixedHolidays.includes(key) || movable.includes(key);
     }
-    
-    // Calculate Easter Sunday (Anonymous Gregorian algorithm)
     function getEasterDate(year) {
         const a = year % 19;
         const b = Math.floor(year / 100);
@@ -58,34 +49,27 @@
         const day = ((h + l - 7 * m + 114) % 31) + 1;
         return new Date(year, month - 1, day);
     }
-    
-    function formatYMD(d) {
-        return d.toISOString().split('T')[0];
-    }
-    function getMonday(date) {
-        const d = new Date(date);
-        const day = d.getDay();
-        const diff = (day === 0 ? 6 : day - 1);
-        d.setDate(d.getDate() - diff);
-        d.setHours(0,0,0,0);
-        return d;
-    }
-    // Get weekdays (Mon-Fri) up to maxDate, excluding public holidays
+    // ---------- Get working days (Mon-Fri, no public holidays) up to maxDate (exclusive) ----------
     function getWorkingDaysUpTo(start, end, maxDate) {
-        const workingDays = [];
+        const working = [];
         let current = new Date(start);
-        const limit = maxDate < end ? maxDate : end;
+        // Normalise to UTC midnight to avoid timezone issues
+        current.setUTCHours(0,0,0,0);
+        const limit = new Date(maxDate < end ? maxDate : end);
+        limit.setUTCHours(0,0,0,0);
+        
         while (current <= limit) {
-            const day = current.getDay();
-            const isWeekend = (day === 0 || day === 6);
+            const utcDay = current.getUTCDay(); // 0=Sun, 6=Sat
+            const isWeekend = (utcDay === 0 || utcDay === 6);
             const isHoliday = isSouthAfricanPublicHoliday(current);
             if (!isWeekend && !isHoliday) {
-                workingDays.push(new Date(current));
+                working.push(new Date(current));
             }
-            current.setDate(current.getDate() + 1);
+            current.setUTCDate(current.getUTCDate() + 1);
         }
-        return workingDays;
+        return working;
     }
+    // ---------- Other helpers ----------
     function checkTrainingThisMonth(entries, today) {
         const year = today.getFullYear();
         const month = today.getMonth();
@@ -97,7 +81,7 @@
     function checkWeekendWork(entries, start, end) {
         return entries.some(e => {
             const d = new Date(e.date);
-            const day = d.getDay();
+            const day = d.getUTCDay();
             return (day === 0 || day === 6) && d >= start && d <= end;
         });
     }
@@ -123,43 +107,47 @@
         }
         return earliest;
     }
-
+    // ---------- Main analysis (only past working days) ----------
     function analyzeTimesheetHealth(entries, filterType, today = new Date()) {
         const todayStart = new Date(today);
-        todayStart.setHours(0,0,0,0);
-
+        todayStart.setUTCHours(0,0,0,0);
+        
         let startDate, endDate;
         if (filterType === 'day') {
             startDate = new Date(todayStart);
             endDate = new Date(todayStart);
-            endDate.setHours(23,59,59,999);
+            endDate.setUTCHours(23,59,59,999);
         } else if (filterType === 'week') {
             const monday = getMonday(todayStart);
             startDate = monday;
             endDate = new Date(monday);
-            endDate.setDate(monday.getDate() + 6);
+            endDate.setUTCDate(monday.getUTCDate() + 6);
         } else if (filterType === 'month') {
-            startDate = new Date(todayStart.getFullYear(), todayStart.getMonth(), 1);
-            endDate = new Date(todayStart.getFullYear(), todayStart.getMonth() + 1, 0);
-        } else {
+            startDate = new Date(Date.UTC(todayStart.getFullYear(), todayStart.getMonth(), 1));
+            endDate = new Date(Date.UTC(todayStart.getFullYear(), todayStart.getMonth() + 1, 0));
+        } else { // 'all'
             const first = getEarliestEntryDate(entries);
             if (!first) return null;
             startDate = first;
             endDate = todayStart;
         }
-
-        // Only working days (Mon-Fri excluding public holidays) that are BEFORE today
-        const cutoff = new Date(todayStart);
-        const workingDays = getWorkingDaysUpTo(startDate, endDate, new Date(cutoff.getTime() - 86400000));
+        
+        // Only days BEFORE today (past working days)
+        const yesterday = new Date(todayStart);
+        yesterday.setUTCDate(todayStart.getUTCDate() - 1);
+        const workingDays = getWorkingDaysUpTo(startDate, endDate, yesterday);
+        
         const dayMap = new Map();
-        workingDays.forEach(day => dayMap.set(formatYMD(day), { hours: 0, projects: new Set(), hasNotes: false }));
-
-        let todayHours = 0, todayProjects = new Set(), todayHasNotes = false;
+        workingDays.forEach(day => {
+            dayMap.set(formatYMD(day), { hours: 0, projects: new Set(), hasNotes: false });
+        });
+        
+        let todayHours = 0;
         let totalHours = 0, adminHours = 0;
         let duplicateEntries = [], negativeHours = false;
         let invalidProjects = new Set();
         const seen = new Set();
-
+        
         entries.forEach(entry => {
             const entryDate = new Date(entry.date);
             if (entryDate < startDate || entryDate > endDate) return;
@@ -168,11 +156,11 @@
             totalHours += hrs;
             if (entry.category === 'Admin') adminHours += hrs;
             if (hrs < 0 || hrs > 24) negativeHours = true;
-
+            
             const key = `${entry.date}|${entry.start}|${entry.end}|${entry.project}`;
             if (seen.has(key)) duplicateEntries.push(entry);
             else seen.add(key);
-
+            
             if (entryDate < todayStart) {
                 if (dayMap.has(ds)) {
                     const d = dayMap.get(ds);
@@ -182,11 +170,9 @@
                 }
             } else if (entryDate.toDateString() === todayStart.toDateString()) {
                 todayHours += hrs;
-                if (entry.project) todayProjects.add(entry.project);
-                if (entry.notes?.trim()) todayHasNotes = true;
             }
         });
-
+        
         if (window.__timesheetProjectOptions && window.__timesheetProjectOptions.length) {
             entries.forEach(entry => {
                 const entryDate = new Date(entry.date);
@@ -195,11 +181,11 @@
                     invalidProjects.add(entry.project);
             });
         }
-
+        
         let missingDays = 0, missingDates = [];
         let daysBelowTarget = 0, daysOutside759 = 0, daysAbove10 = 0, daysAbove12 = 0;
         let daysManyProjects = 0, overtimeDays = 0, notesMissing = 0, zeroHourDays = 0;
-
+        
         for (let [dateStr, data] of dayMap) {
             const hrs = data.hours;
             const projCount = data.projects.size;
@@ -217,7 +203,7 @@
             if (hrs > 0 && !hasNotes) notesMissing++;
             if (hrs === 0) zeroHourDays++;
         }
-
+        
         const totalProjectsWorked = new Set(Array.from(dayMap.values()).flatMap(d => Array.from(d.projects))).size;
         const adminRatio = totalHours > 0 ? (adminHours / totalHours) * 100 : 0;
         const consecutiveMissing = findConsecutiveMissing(workingDays, dayMap);
@@ -229,16 +215,16 @@
         }).length;
         const weeklyTargetReached = totalHours >= 40;
         const weeklySignificantlyBelow = totalHours < 30;
-
+        
         let redFlags = [], amberFlags = [];
-
+        
         if (filterType === 'week' || filterType === 'day') {
-            if (missingDays >= 2) redFlags.push(`${missingDays} missing working days (excl. weekends & public holidays)`);
+            if (missingDays >= 2) redFlags.push(`${missingDays} missing working days`);
             else if (missingDays === 1) amberFlags.push("One missing working day");
         } else {
             if (missingDays > 15) redFlags.push(`Many missing working days (${missingDays})`);
         }
-
+        
         if (weeklySignificantlyBelow && filterType === 'week') redFlags.push("Weekly hours <30h");
         if (negativeHours) redFlags.push("Negative/Impossible hours");
         if (duplicateEntries.length) redFlags.push(`${duplicateEntries.length} duplicate entries`);
@@ -247,7 +233,7 @@
         if (consecutiveMissing >= 3) redFlags.push("3+ consecutive missing days");
         if (invalidProjects.size) redFlags.push(`Invalid projects: ${[...invalidProjects].join(',')}`);
         if (unallocated) redFlags.push(`${unallocated} unallocated entries`);
-
+        
         if (daysBelowTarget) amberFlags.push(`${daysBelowTarget} day(s) below 7.5h`);
         if (daysAbove10) amberFlags.push(`${daysAbove10} day(s) above 10h`);
         if (filterType === 'week' && !weeklyTargetReached) amberFlags.push("Weekly target <40h");
@@ -256,7 +242,7 @@
         if (daysManyProjects) amberFlags.push(`${daysManyProjects} day(s) >4 projects`);
         if (!trainingThisMonth) amberFlags.push("No training this month");
         if (overtimeDays > 2) amberFlags.push(`${overtimeDays} overtime days (>8h)`);
-
+        
         let specialBadge = null, specialMsg = null;
         if (overtimeDays >= 5 || hasWeekendWork || totalHours >= 50) {
             specialBadge = "burnout";
@@ -282,7 +268,7 @@
             specialBadge = "perfect";
             specialMsg = "🏆 Perfect week!";
         }
-
+        
         let status = "green";
         let reasons = [];
         if (specialBadge === "burnout") status = "red", reasons = redFlags;
@@ -290,7 +276,7 @@
         else if (amberFlags.length) status = "amber", reasons = amberFlags;
         else if (allGreen) reasons = ["All good for past working days."];
         else reasons = ["Check details"];
-
+        
         let score = 100;
         const weights = {
             missingDay: 25, weeklyBelow30: 30, duplicate: 5, invalidProject: 10, unallocated: 8,
@@ -317,8 +303,8 @@
         score = Math.max(0, Math.min(100, score));
         if (specialBadge === "rockstar" || specialBadge === "perfect") score = 100;
         if (specialBadge === "efficiency") score = 95;
-
-        const todayIsWeekday = todayStart.getDay() !== 0 && todayStart.getDay() !== 6;
+        
+        const todayIsWeekday = todayStart.getUTCDay() !== 0 && todayStart.getUTCDay() !== 6;
         const todayIsHoliday = isSouthAfricanPublicHoliday(todayStart);
         let todayMsg = "";
         if (filterType === 'day') {
@@ -336,7 +322,7 @@
                 todayMsg = "Weekend – no expectation.";
             }
         }
-
+        
         return {
             status, reasons, score, specialMsg, todayMsg, missingDates,
             metrics: {
@@ -349,7 +335,7 @@
             }
         };
     }
-
+    
     function updateTrafficLight() {
         const container = document.getElementById("standaloneTrafficLight");
         if (!container) return;
@@ -366,7 +352,7 @@
         const redLit = health.status === "red" ? "lit" : "";
         const amberLit = health.status === "amber" ? "lit" : "";
         const greenLit = health.status === "green" ? "lit" : "";
-
+        
         let tooltip = `${health.status.toUpperCase()} – Score: ${health.score}/100\n`;
         tooltip += `📅 Past missing working days: ${health.metrics.missingDays}`;
         if (health.missingDates.length) {
@@ -378,7 +364,7 @@
         if (health.reasons.length) tooltip += `⚠️ Issues: ${health.reasons.slice(0,2).join(", ")}${health.reasons.length>2?"...":""}\n`;
         tooltip += `📌 ${health.todayMsg}\n`;
         if (health.specialMsg) tooltip += `🏅 ${health.specialMsg}`;
-
+        
         const html = `
             <div class="traffic-light-standalone" title="${tooltip.replace(/"/g, '&quot;')}">
                 <div class="light red ${redLit}"></div>
@@ -388,7 +374,7 @@
         `;
         container.innerHTML = html;
     }
-
+    
     document.addEventListener("timesheetUpdated", updateTrafficLight);
     $(document).ready(function() {
         $("#filterRange, #filterProject, #filterCategory").on("change", updateTrafficLight);
