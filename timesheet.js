@@ -380,11 +380,7 @@
     if (ctxBill) billableChart = new Chart(ctxBill, { type: 'pie', data: { labels: ['Billable', 'Non-billable'], datasets: [{ data: [billable, nonBill], backgroundColor: ['#28a745','#dc3545'] }] }, options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } } } } });
   }
 
-  //=================================================================TRAFFIC============================================
-  window.__timesheetEntries = entries;
-  window.__timesheetProjectOptions = allProjectOptions;
-  document.dispatchEvent(new Event('timesheetUpdated'));
-
+ 
   // ======================== WEEK-BASED COLORING HELPER ========================
   function getWeekNumber(date) {
     const d = new Date(date);
@@ -784,6 +780,11 @@
       updateCharts();
     } catch(err) { if (!err.message.includes("Token expired")) showToast("Refresh failed: " + err.message, "error"); }
     finally { window.hideLoading(); }
+     //=================================================================TRAFFIC=====================================================================================
+    window.__timesheetEntries = entries;
+    window.__timesheetProjectOptions = allProjectOptions;
+    document.dispatchEvent(new Event('timesheetUpdated'));
+
   }
 
   function startAutoRefresh() { if (autoRefreshInterval) clearInterval(autoRefreshInterval); autoRefreshInterval = setInterval(() => { if (!document.hidden) refreshView(); }, 600000); }
