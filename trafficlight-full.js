@@ -1,4 +1,4 @@
-// trafficlight-full.js – COMPLETE (Weighted scoring, all rules, future days ignored)
+// trafficlight-full.js – COMPLETE with fixed "Today" filter logic
 (function() {
     function formatYMD(date) {
         return date.toISOString().split('T')[0];
@@ -85,6 +85,7 @@
             effectiveEnd = todayStart;
         }
 
+        // For week/month, cap at today; for day, we want exactly that day (already capped)
         const weekdays = getWeekdaysUpTo(effectiveStart, effectiveEnd, todayStart, 400);
         const daysMap = new Map();
         weekdays.forEach(day => {
@@ -130,7 +131,7 @@
             });
         }
 
-        // Metrics (only for weekdays that have occurred)
+        // Metrics
         let missingDays = 0, daysBelowTarget = 0, daysOutside759 = 0, daysAbove10 = 0, daysAbove12 = 0;
         let daysWithManyProjects = 0, overtimeDays = 0, notesMissing = 0, zeroHourDays = 0;
 
@@ -171,13 +172,16 @@
         // Flags
         let redFlags = [], amberFlags = [];
 
-        if (filterType === 'week') {
+        // ----- MISSING DAYS LOGIC (fixed for 'day' filter) -----
+        if (filterType === 'week' || filterType === 'day') {
             if (missingDays >= 2) redFlags.push(`Two or more missing working days (past: ${missingDays})`);
             else if (missingDays === 1) amberFlags.push("One missing working day");
         } else {
+            // month / all
             if (missingDays > 15) redFlags.push(`Many missing working days (${missingDays})`);
         }
 
+        // ----- OTHER RED FLAGS (apply to all filters) -----
         if (weeklySignificantlyBelow) redFlags.push("Weekly hours significantly below target (<30h)");
         if (negativeHoursFound) redFlags.push("Negative or impossible hour values");
         if (duplicateEntries.length > 0) redFlags.push(`Duplicate entries detected (${duplicateEntries.length})`);
@@ -187,14 +191,17 @@
         if (invalidProjects.size > 0) redFlags.push(`Invalid project codes: ${[...invalidProjects].join(', ')}`);
         if (unallocated > 0) redFlags.push(`${unallocated} unallocated hour entries`);
 
+        // ----- AMBER FLAGS (some may be filter‑specific) -----
         if (daysBelowTarget > 0) amberFlags.push(`Daily hours below target on ${daysBelowTarget} day(s)`);
         if (daysAbove10 > 0) amberFlags.push(`Daily hours above 10 on ${daysAbove10} day(s)`);
-        if (!weeklyTargetReached) amberFlags.push("Weekly target not yet reached (<40h)");
         if (adminRatio > 15) amberFlags.push(`Admin hours above 15% (${adminRatio.toFixed(1)}%)`);
         if (notesMissing > 0) amberFlags.push(`Missing descriptions on ${notesMissing} day(s)`);
         if (daysWithManyProjects > 0) amberFlags.push(`More than 4 projects worked on ${daysWithManyProjects} day(s)`);
         if (!trainingThisMonth) amberFlags.push("Training not logged this month");
         if (overtimeDays > 2) amberFlags.push(`Overtime worked more than twice this week (${overtimeDays} days)`);
+
+        // For week/day filter, also check weekly target (for week only, but day ignores)
+        if (filterType === 'week' && !weeklyTargetReached) amberFlags.push("Weekly target not yet reached (<40h)");
 
         // Special badges
         let specialBadge = null, specialMessage = null;
@@ -203,7 +210,8 @@
             specialMessage = "⚠️ Burnout Risk: Workload may be unsustainable.";
             redFlags.push("Burnout risk detected");
         }
-        const allGreen = (missingDays === 0 && daysOutside759 === 0 && weeklyTargetReached &&
+        const allGreen = (missingDays === 0 && daysOutside759 === 0 &&
+                          (filterType !== 'week' || weeklyTargetReached) &&
                           unallocated === 0 && invalidProjects.size === 0 && adminRatio <= 15 &&
                           duplicateEntries.length === 0 && notesMissing === 0 && overtimeDays === 0 &&
                           totalProjectsWorked >= 1 && !negativeHoursFound);
@@ -242,7 +250,7 @@
             reasons = ["Some entries need attention (see details)"];
         }
 
-        // Weighted scoring (restored)
+        // Weighted scoring
         let score = 100;
         const weights = {
             missingDay: 25, weeklyBelow30: 30, duplicate: 5, invalidProject: 10, unallocated: 8,
@@ -250,7 +258,7 @@
             trainingMissing: 2, overtimeDay: 3, daysAbove10: 3, daysBelowTarget: 3, manyProjects: 2,
             weeklyTargetNotReached: 5
         };
-        if (filterType === 'week' && missingDays > 0) score -= Math.min(missingDays * weights.missingDay, 50);
+        if ((filterType === 'week' || filterType === 'day') && missingDays > 0) score -= Math.min(missingDays * weights.missingDay, 50);
         if (weeklySignificantlyBelow) score -= weights.weeklyBelow30;
         if (duplicateEntries.length) score -= Math.min(duplicateEntries.length * weights.duplicate, 15);
         if (invalidProjects.size) score -= Math.min(invalidProjects.size * weights.invalidProject, 20);
@@ -265,7 +273,7 @@
         if (daysAbove10) score -= daysAbove10 * weights.daysAbove10;
         if (daysBelowTarget) score -= daysBelowTarget * weights.daysBelowTarget;
         if (daysWithManyProjects) score -= daysWithManyProjects * weights.manyProjects;
-        if (!weeklyTargetReached && totalHours < 40) score -= weights.weeklyTargetNotReached;
+        if (filterType === 'week' && !weeklyTargetReached && totalHours < 40) score -= weights.weeklyTargetNotReached;
         score = Math.max(0, Math.min(100, score));
         if (specialBadge === "rockstar" || specialBadge === "perfect") score = 100;
         if (specialBadge === "efficiency") score = 95;
