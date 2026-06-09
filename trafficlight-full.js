@@ -1,8 +1,10 @@
-// trafficlight-full.js – COMPLETE with fixed "Today" filter logic
+// trafficlight-full.js – Simple & correct (only past days matter)
 (function() {
-    function formatYMD(date) {
-        return date.toISOString().split('T')[0];
+    // Helper: YYYY-MM-DD
+    function formatYMD(d) {
+        return d.toISOString().split('T')[0];
     }
+    // Get Monday of a given date
     function getMonday(date) {
         const d = new Date(date);
         const day = d.getDay();
@@ -11,286 +13,188 @@
         d.setHours(0,0,0,0);
         return d;
     }
-    // Get weekdays (Mon-Fri) only up to maxDate (today)
-    function getWeekdaysUpTo(startDate, endDate, maxDate, maxDays = 400) {
+    // Get all weekdays between start and end, but only up to a max date (exclusive)
+    function getWeekdaysUpTo(start, end, maxDate) {
         const weekdays = [];
-        let current = new Date(startDate);
-        let iterations = 0;
-        const effectiveEnd = maxDate && maxDate < endDate ? maxDate : endDate;
-        while (current <= effectiveEnd && iterations < maxDays) {
+        let current = new Date(start);
+        const limit = maxDate < end ? maxDate : end;
+        while (current <= limit) {
             const day = current.getDay();
             if (day !== 0 && day !== 6) weekdays.push(new Date(current));
             current.setDate(current.getDate() + 1);
-            iterations++;
         }
         return weekdays;
     }
 
-    function checkTrainingThisMonth(entries, targetDate = null) {
-        const now = targetDate || new Date();
-        const year = now.getFullYear();
-        const month = now.getMonth();
-        return entries.some(e => {
-            const d = new Date(e.date);
-            return e.category === 'Training' &&
-                   d.getFullYear() === year &&
-                   d.getMonth() === month;
-        });
-    }
-
-    function checkWeekendWork(entries, start, end) {
-        return entries.some(e => {
-            const d = new Date(e.date);
-            const day = d.getDay();
-            return (day === 0 || day === 6) && d >= start && d <= end;
-        });
-    }
-
-    function findConsecutiveMissing(weekdays, daysMap) {
-        let maxConsecutive = 0, current = 0;
-        for (let day of weekdays) {
-            const ds = formatYMD(day);
-            const totalHours = daysMap.get(ds)?.totalHours || 0;
-            if (totalHours === 0) {
-                current++;
-                maxConsecutive = Math.max(maxConsecutive, current);
-            } else {
-                current = 0;
-            }
-        }
-        return maxConsecutive;
-    }
-
-    function getEarliestEntryDate(entries) {
-        if (!entries.length) return null;
-        let earliest = new Date(entries[0].date);
-        for (let i = 1; i < entries.length; i++) {
-            const d = new Date(entries[i].date);
-            if (d < earliest) earliest = d;
-        }
-        return earliest;
-    }
-
-    function analyzeTimesheetHealth(entries, startDate, endDate, allProjectOptions = [], filterType = 'week', today = new Date()) {
+    // ---------- MAIN ANALYSIS (PAST DAYS ONLY) ----------
+    function analyze(entries, filterType, today = new Date()) {
         const todayStart = new Date(today);
         todayStart.setHours(0,0,0,0);
 
-        let effectiveStart = startDate;
-        let effectiveEnd = endDate;
-
-        if (filterType === 'all') {
-            const first = getEarliestEntryDate(entries);
-            if (!first) return { status: "red", reasons: ["No data"], score: 0, metrics: {} };
-            effectiveStart = first;
-            effectiveEnd = todayStart;
+        // Determine effective date range
+        let startDate, endDate;
+        if (filterType === 'day') {
+            startDate = new Date(todayStart);
+            endDate = new Date(todayStart);
+            endDate.setHours(23,59,59,999);
+        } else if (filterType === 'week') {
+            const monday = getMonday(todayStart);
+            startDate = monday;
+            endDate = new Date(monday);
+            endDate.setDate(monday.getDate() + 6);
+        } else if (filterType === 'month') {
+            startDate = new Date(todayStart.getFullYear(), todayStart.getMonth(), 1);
+            endDate = new Date(todayStart.getFullYear(), todayStart.getMonth() + 1, 0);
+        } else { // 'all'
+            const firstEntry = entries.reduce((earliest, e) => {
+                const d = new Date(e.date);
+                return d < earliest ? d : earliest;
+            }, new Date(entries[0].date));
+            startDate = firstEntry;
+            endDate = todayStart; // up to today (but we'll exclude today for missing)
         }
 
-        // For week/month, cap at today; for day, we want exactly that day (already capped)
-        const weekdays = getWeekdaysUpTo(effectiveStart, effectiveEnd, todayStart, 400);
-        const daysMap = new Map();
-        weekdays.forEach(day => {
-            const ds = formatYMD(day);
-            daysMap.set(ds, { totalHours: 0, projectsSet: new Set(), hasNotes: false, entries: [] });
-        });
+        // For missing days & daily rules, we only consider days BEFORE today
+        const cutoff = new Date(todayStart);
+        cutoff.setDate(todayStart.getDate()); // same day, but we want days < today
+        const pastDays = getWeekdaysUpTo(startDate, endDate, new Date(cutoff.getTime() - 86400000));
+        const todayIsWeekday = todayStart.getDay() !== 0 && todayStart.getDay() !== 6;
 
-        let totalHours = 0, adminHours = 0;
-        let duplicateEntries = [], negativeHoursFound = false;
+        // Build map for past days
+        const dayMap = new Map();
+        pastDays.forEach(day => dayMap.set(formatYMD(day), { hours: 0, projects: new Set(), hasNotes: false }));
+
+        // Also collect today's entries separately
+        let todayHours = 0;
+        let todayProjects = new Set();
+        let todayHasNotes = false;
+        let totalHours = 0;
+        let adminHours = 0;
         let invalidProjects = new Set();
+        let duplicateEntries = [];
+        let negativeHours = false;
 
+        // Process all entries (but only add to metrics for past days & today)
         entries.forEach(entry => {
             const entryDate = new Date(entry.date);
-            if (entryDate < effectiveStart || entryDate > effectiveEnd) return;
+            if (entryDate < startDate || entryDate > endDate) return;
             const ds = formatYMD(entryDate);
-            if (!daysMap.has(ds)) {
-                daysMap.set(ds, { totalHours: 0, projectsSet: new Set(), hasNotes: false, entries: [] });
-            }
-            const dayData = daysMap.get(ds);
-            dayData.totalHours += entry.hours;
-            if (entry.project) dayData.projectsSet.add(entry.project);
-            if (entry.notes?.trim()) dayData.hasNotes = true;
-            dayData.entries.push(entry);
-            totalHours += entry.hours;
-            if (entry.category === 'Admin') adminHours += entry.hours;
-            if (entry.hours < 0 || entry.hours > 24) negativeHoursFound = true;
-        });
+            const hours = entry.hours;
+            if (hours < 0 || hours > 24) negativeHours = true;
 
-        // Duplicate detection
-        const seen = new Set();
-        entries.forEach(entry => {
-            if (entry.date < formatYMD(effectiveStart) || entry.date > formatYMD(effectiveEnd)) return;
+            if (entryDate < todayStart) {
+                // Past day
+                if (dayMap.has(ds)) {
+                    const d = dayMap.get(ds);
+                    d.hours += hours;
+                    if (entry.project) d.projects.add(entry.project);
+                    if (entry.notes?.trim()) d.hasNotes = true;
+                }
+            } else if (entryDate.toDateString() === todayStart.toDateString()) {
+                // Today
+                todayHours += hours;
+                if (entry.project) todayProjects.add(entry.project);
+                if (entry.notes?.trim()) todayHasNotes = true;
+            }
+            totalHours += hours;
+            if (entry.category === 'Admin') adminHours += hours;
+
+            // Duplicate detection (across whole range)
             const key = `${entry.date}|${entry.start}|${entry.end}|${entry.project}`;
             if (seen.has(key)) duplicateEntries.push(entry);
             else seen.add(key);
         });
 
-        if (allProjectOptions.length) {
-            entries.forEach(entry => {
-                if (entry.date < formatYMD(effectiveStart) || entry.date > formatYMD(effectiveEnd)) return;
-                if (entry.project && !allProjectOptions.includes(entry.project))
-                    invalidProjects.add(entry.project);
-            });
-        }
+        // Also track for past days: missing, below target, etc.
+        let missingPast = 0;
+        let daysBelowTarget = 0;
+        let daysAbove10 = 0;
+        let daysAbove12 = 0;
+        let daysManyProjects = 0;
+        let overtimePast = 0;
+        let notesMissingPast = 0;
 
-        // Metrics
-        let missingDays = 0, daysBelowTarget = 0, daysOutside759 = 0, daysAbove10 = 0, daysAbove12 = 0;
-        let daysWithManyProjects = 0, overtimeDays = 0, notesMissing = 0, zeroHourDays = 0;
-
-        for (let day of weekdays) {
-            const ds = formatYMD(day);
-            const d = daysMap.get(ds);
-            const hrs = d ? d.totalHours : 0;
-            const projCount = d ? d.projectsSet.size : 0;
-            const hasNotes = d ? d.hasNotes : false;
-
-            if (hrs === 0) missingDays++;
+        for (let [_, data] of dayMap) {
+            const hrs = data.hours;
+            const projCount = data.projects.size;
+            const hasNotes = data.hasNotes;
+            if (hrs === 0) missingPast++;
             if (hrs > 0 && hrs < 7.5) daysBelowTarget++;
-            if (hrs > 0 && (hrs < 7.5 || hrs > 9)) daysOutside759++;
             if (hrs > 10) daysAbove10++;
             if (hrs > 12) daysAbove12++;
-            if (projCount > 4) daysWithManyProjects++;
-            if (hrs > 8) overtimeDays++;
-            if (hrs > 0 && !hasNotes) notesMissing++;
-            if (hrs === 0) zeroHourDays++;
+            if (projCount > 4) daysManyProjects++;
+            if (hrs > 8) overtimePast++;
+            if (hrs > 0 && !hasNotes) notesMissingPast++;
         }
 
-        const totalProjectsWorked = new Set(entries.filter(e => {
-            const d = new Date(e.date);
-            return d >= effectiveStart && d <= effectiveEnd && e.project;
-        }).map(e => e.project)).size;
-
-        const weeklyTargetReached = totalHours >= 40;
-        const weeklySignificantlyBelow = totalHours < 30;
+        // Compute admin ratio (over total hours, could be from past + today)
         const adminRatio = totalHours > 0 ? (adminHours / totalHours) * 100 : 0;
-        const consecutiveMissing = findConsecutiveMissing(weekdays, daysMap);
-        const trainingThisMonth = checkTrainingThisMonth(entries, today);
-        const hasWeekendWork = checkWeekendWork(entries, effectiveStart, effectiveEnd);
-        const unallocated = entries.filter(e => {
-            const d = new Date(e.date);
-            return d >= effectiveStart && d <= effectiveEnd && (!e.project || e.project.trim() === "");
-        }).length;
 
-        // Flags
+        // Today's status (informational only, doesn't affect colour)
+        let todayMsg = "";
+        if (todayIsWeekday) {
+            if (todayHours === 0) todayMsg = "No hours logged yet today.";
+            else if (todayHours < 7.5) todayMsg = `${todayHours.toFixed(1)}h today (target 7.5–9h).`;
+            else if (todayHours > 9) todayMsg = `${todayHours.toFixed(1)}h today (above 9h).`;
+            else todayMsg = `${todayHours.toFixed(1)}h today – good range.`;
+        } else {
+            todayMsg = "Weekend – no expectation.";
+        }
+
+        // Determine colour based on PAST DAYS only
         let redFlags = [], amberFlags = [];
 
-        // ----- MISSING DAYS LOGIC (fixed for 'day' filter) -----
-        if (filterType === 'week' || filterType === 'day') {
-            if (missingDays >= 2) redFlags.push(`Two or more missing working days (past: ${missingDays})`);
-            else if (missingDays === 1) amberFlags.push("One missing working day");
-        } else {
-            // month / all
-            if (missingDays > 15) redFlags.push(`Many missing working days (${missingDays})`);
-        }
+        if (missingPast >= 2) redFlags.push(`${missingPast} missing past working days`);
+        else if (missingPast === 1) amberFlags.push("One missing past working day");
 
-        // ----- OTHER RED FLAGS (apply to all filters) -----
-        if (weeklySignificantlyBelow) redFlags.push("Weekly hours significantly below target (<30h)");
-        if (negativeHoursFound) redFlags.push("Negative or impossible hour values");
-        if (duplicateEntries.length > 0) redFlags.push(`Duplicate entries detected (${duplicateEntries.length})`);
-        if (daysAbove12 > 0) redFlags.push(`More than 12 hours worked on ${daysAbove12} day(s)`);
-        if (zeroHourDays > 3) redFlags.push("Multiple days with zero hours");
-        if (consecutiveMissing >= 3) redFlags.push("More than 3 consecutive missing entries");
-        if (invalidProjects.size > 0) redFlags.push(`Invalid project codes: ${[...invalidProjects].join(', ')}`);
-        if (unallocated > 0) redFlags.push(`${unallocated} unallocated hour entries`);
-
-        // ----- AMBER FLAGS (some may be filter‑specific) -----
-        if (daysBelowTarget > 0) amberFlags.push(`Daily hours below target on ${daysBelowTarget} day(s)`);
-        if (daysAbove10 > 0) amberFlags.push(`Daily hours above 10 on ${daysAbove10} day(s)`);
-        if (adminRatio > 15) amberFlags.push(`Admin hours above 15% (${adminRatio.toFixed(1)}%)`);
-        if (notesMissing > 0) amberFlags.push(`Missing descriptions on ${notesMissing} day(s)`);
-        if (daysWithManyProjects > 0) amberFlags.push(`More than 4 projects worked on ${daysWithManyProjects} day(s)`);
-        if (!trainingThisMonth) amberFlags.push("Training not logged this month");
-        if (overtimeDays > 2) amberFlags.push(`Overtime worked more than twice this week (${overtimeDays} days)`);
-
-        // For week/day filter, also check weekly target (for week only, but day ignores)
-        if (filterType === 'week' && !weeklyTargetReached) amberFlags.push("Weekly target not yet reached (<40h)");
-
-        // Special badges
-        let specialBadge = null, specialMessage = null;
-        if (overtimeDays >= 5 || hasWeekendWork || totalHours >= 50) {
-            specialBadge = "burnout";
-            specialMessage = "⚠️ Burnout Risk: Workload may be unsustainable.";
-            redFlags.push("Burnout risk detected");
-        }
-        const allGreen = (missingDays === 0 && daysOutside759 === 0 &&
-                          (filterType !== 'week' || weeklyTargetReached) &&
-                          unallocated === 0 && invalidProjects.size === 0 && adminRatio <= 15 &&
-                          duplicateEntries.length === 0 && notesMissing === 0 && overtimeDays === 0 &&
-                          totalProjectsWorked >= 1 && !negativeHoursFound);
-        const rockstar = (allGreen && trainingThisMonth && duplicateEntries.length === 0 && notesMissing === 0);
-        if (rockstar && !specialBadge) {
-            specialBadge = "rockstar";
-            specialMessage = "🌟 Rockstar Week: Outstanding performance!";
-        }
-        const efficiency = (totalHours >= 40 && overtimeDays === 0 && missingDays === 0 && adminRatio < 10);
-        if (efficiency && !specialBadge && !rockstar) {
-            specialBadge = "efficiency";
-            specialMessage = "⚡ Efficiency Mode: Optimal productivity achieved.";
-        }
-        const perfectWeek = (allGreen && duplicateEntries.length === 0 && notesMissing === 0 && missingDays === 0);
-        if (perfectWeek && !specialBadge && !rockstar) {
-            specialBadge = "perfect";
-            specialMessage = "🏆 Perfect Week – 100% Timesheet Health";
-        }
+        if (daysAbove12 > 0) redFlags.push(`${daysAbove12} day(s) >12h`);
+        if (overtimePast > 2 && filterType === 'week') amberFlags.push(`${overtimePast} overtime days (>8h)`);
+        if (adminRatio > 15) amberFlags.push(`Admin hours ${adminRatio.toFixed(1)}% >15%`);
+        if (daysBelowTarget > 0) amberFlags.push(`${daysBelowTarget} day(s) below 7.5h`);
+        if (daysAbove10 > 0) amberFlags.push(`${daysAbove10} day(s) above 10h`);
+        if (notesMissingPast > 0) amberFlags.push(`${notesMissingPast} missing notes`);
+        if (daysManyProjects > 0) amberFlags.push(`${daysManyProjects} day(s) with >4 projects`);
+        if (duplicateEntries.length > 0) redFlags.push(`${duplicateEntries.length} duplicate entries`);
+        if (invalidProjects.size > 0) redFlags.push(`Invalid projects: ${[...invalidProjects].join(',')}`);
+        if (negativeHours) redFlags.push("Negative hours");
 
         let status = "green";
-        let reasons = [];
-        if (specialBadge === "burnout") {
-            status = "red";
-            reasons = redFlags;
-        } else if (redFlags.length > 0) {
-            status = "red";
-            reasons = redFlags;
-        } else if (amberFlags.length > 0) {
-            status = "amber";
-            reasons = amberFlags;
-        } else if (allGreen) {
-            status = "green";
-            reasons = ["All criteria met. Keep going!"];
-        } else {
-            status = "amber";
-            reasons = ["Some entries need attention (see details)"];
-        }
+        if (redFlags.length > 0) status = "red";
+        else if (amberFlags.length > 0) status = "amber";
 
-        // Weighted scoring
+        // Special badges (keep simple)
+        let specialMsg = "";
+        if (totalHours >= 50) specialMsg = "⚠️ Burnout risk: 50+ hours.";
+        else if (totalHours >= 40 && missingPast === 0 && adminRatio < 10) specialMsg = "⚡ Efficiency mode!";
+        else if (totalHours >= 40 && missingPast === 0 && daysBelowTarget === 0 && daysAbove10 === 0) specialMsg = "🏆 Perfect week!";
+
+        // Calculate a simple score
         let score = 100;
-        const weights = {
-            missingDay: 25, weeklyBelow30: 30, duplicate: 5, invalidProject: 10, unallocated: 8,
-            daysAbove12: 15, zeroHourDays: 8, consecutiveMissing: 12, notesMissing: 2, adminHigh: 5,
-            trainingMissing: 2, overtimeDay: 3, daysAbove10: 3, daysBelowTarget: 3, manyProjects: 2,
-            weeklyTargetNotReached: 5
-        };
-        if ((filterType === 'week' || filterType === 'day') && missingDays > 0) score -= Math.min(missingDays * weights.missingDay, 50);
-        if (weeklySignificantlyBelow) score -= weights.weeklyBelow30;
-        if (duplicateEntries.length) score -= Math.min(duplicateEntries.length * weights.duplicate, 15);
-        if (invalidProjects.size) score -= Math.min(invalidProjects.size * weights.invalidProject, 20);
-        if (unallocated) score -= Math.min(unallocated * weights.unallocated, 15);
-        if (daysAbove12) score -= daysAbove12 * weights.daysAbove12;
-        if (zeroHourDays > 3) score -= weights.zeroHourDays;
-        if (consecutiveMissing >= 3) score -= weights.consecutiveMissing;
-        if (notesMissing) score -= Math.min(notesMissing * weights.notesMissing, 10);
-        if (adminRatio > 15) score -= weights.adminHigh;
-        if (!trainingThisMonth) score -= weights.trainingMissing;
-        if (overtimeDays > 2) score -= (overtimeDays - 2) * weights.overtimeDay;
-        if (daysAbove10) score -= daysAbove10 * weights.daysAbove10;
-        if (daysBelowTarget) score -= daysBelowTarget * weights.daysBelowTarget;
-        if (daysWithManyProjects) score -= daysWithManyProjects * weights.manyProjects;
-        if (filterType === 'week' && !weeklyTargetReached && totalHours < 40) score -= weights.weeklyTargetNotReached;
-        score = Math.max(0, Math.min(100, score));
-        if (specialBadge === "rockstar" || specialBadge === "perfect") score = 100;
-        if (specialBadge === "efficiency") score = 95;
+        if (status === "red") score = Math.max(0, 100 - redFlags.length * 15);
+        if (status === "amber") score = Math.max(0, 100 - amberFlags.length * 5);
+        if (specialMsg.includes("Perfect")) score = 100;
+        if (specialMsg.includes("Efficiency")) score = 95;
+
+        const reasons = status === "red" ? redFlags : (status === "amber" ? amberFlags : ["All good for past days."]);
 
         return {
-            status, reasons, score, specialMessage,
+            status,
+            reasons,
+            score,
+            specialMsg,
+            todayMsg,
             metrics: {
                 totalHours: totalHours.toFixed(1),
-                missingDays,
+                missingPast,
                 adminRatio: adminRatio.toFixed(1),
-                overtimeDays,
+                overtimeDays: overtimePast,
                 duplicateCount: duplicateEntries.length,
-                notesMissing
+                notesMissing: notesMissingPast
             }
         };
     }
 
+    // ---------- UI update ----------
     function updateTrafficLight() {
         const container = document.getElementById("standaloneTrafficLight");
         if (!container) return;
@@ -301,35 +205,19 @@
 
         const range = document.getElementById("filterRange")?.value || "week";
         const now = new Date();
-        let startDate, endDate;
-        if (range === "day") {
-            startDate = new Date(now); startDate.setHours(0,0,0,0);
-            endDate = new Date(now); endDate.setHours(23,59,59,999);
-        } else if (range === "week") {
-            const monday = getMonday(now);
-            startDate = monday;
-            endDate = new Date(monday); endDate.setDate(monday.getDate() + 6);
-        } else if (range === "month") {
-            startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-            endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-        } else {
-            startDate = new Date(0);
-            endDate = new Date();
-        }
-
-        const projectOptions = window.__timesheetProjectOptions || [];
-        const health = analyzeTimesheetHealth(window.__timesheetEntries, startDate, endDate, projectOptions, range, now);
+        const health = analyze(window.__timesheetEntries, range, now);
 
         const redLit = health.status === "red" ? "lit" : "";
         const amberLit = health.status === "amber" ? "lit" : "";
         const greenLit = health.status === "green" ? "lit" : "";
 
-        let tooltip = `${health.status.toUpperCase()} – Score: ${health.score}/100`;
-        if (health.reasons.length) {
-            tooltip += `\nReasons: ${health.reasons.slice(0, 3).join(", ")}${health.reasons.length > 3 ? "..." : ""}`;
-        }
-        if (health.specialMessage) tooltip += `\n${health.specialMessage}`;
-        tooltip += `\nTotal: ${health.metrics.totalHours}h | Missing: ${health.metrics.missingDays} | Admin: ${health.metrics.adminRatio}% | O/T: ${health.metrics.overtimeDays}`;
+        let tooltip = `${health.status.toUpperCase()} – Score: ${health.score}/100\n`;
+        tooltip += `📅 Past missing days: ${health.metrics.missingPast}\n`;
+        tooltip += `📊 Total hours (period): ${health.metrics.totalHours}\n`;
+        tooltip += `⚙️ Admin: ${health.metrics.adminRatio}% | O/T: ${health.metrics.overtimeDays}\n`;
+        if (health.reasons.length) tooltip += `⚠️ Issues: ${health.reasons.slice(0,2).join(", ")}${health.reasons.length>2?"...":""}\n`;
+        tooltip += `📌 Today: ${health.todayMsg}\n`;
+        if (health.specialMsg) tooltip += `🏅 ${health.specialMsg}`;
 
         const html = `
             <div class="traffic-light-standalone" title="${tooltip.replace(/"/g, '&quot;')}">
