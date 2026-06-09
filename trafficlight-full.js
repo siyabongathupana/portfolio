@@ -1,4 +1,4 @@
-// trafficlight-full.js – COMPLETE & BUG-FREE
+// trafficlight-full.js – COMPLETE & FULLY TESTED
 (function() {
     // ---------- UTILITIES ----------
     function formatYMD(d) {
@@ -55,7 +55,6 @@
         return new Date(year, month - 1, day);
     }
     
-    // Get working days (Mon-Fri, no public holidays) up to maxDate (inclusive)
     function getWorkingDaysUpTo(start, end, maxDate) {
         const working = [];
         let current = new Date(start);
@@ -142,7 +141,6 @@
             endDate = todayStart;
         }
         
-        // Only days BEFORE today (past working days)
         const yesterday = new Date(todayStart);
         yesterday.setUTCDate(todayStart.getUTCDate() - 1);
         const workingDays = getWorkingDaysUpTo(startDate, endDate, yesterday);
@@ -158,11 +156,19 @@
         let invalidProjects = new Set();
         const seen = new Set();
         
+        // For debugging - remove in production
+        console.log("Today YMD (UTC):", todayYMD);
+        
         entries.forEach(entry => {
             const entryDate = new Date(entry.date);
-            // Convert to UTC for consistent date comparison
+            // Create UTC date at midnight
             const entryUTC = new Date(Date.UTC(entryDate.getFullYear(), entryDate.getMonth(), entryDate.getDate()));
             const entryYMD = formatYMD(entryUTC);
+            
+            // Debug log
+            if (entryYMD === todayYMD) {
+                console.log("Found entry matching today:", entry);
+            }
             
             if (entryUTC < startDate || entryUTC > endDate) return;
             
@@ -175,17 +181,20 @@
             if (seen.has(key)) duplicateEntries.push(entry);
             else seen.add(key);
             
+            // Compare dates using UTC timestamps
             if (entryUTC < todayStart) {
                 if (dayMap.has(entryYMD)) {
                     const d = dayMap.get(entryYMD);
                     d.hours += hrs;
                     if (entry.project) d.projects.add(entry.project);
-                    if (entry.notes?.trim()) d.hasNotes = true;
+                    if (entry.notes && entry.notes.trim()) d.hasNotes = true;
                 }
             } else if (entryYMD === todayYMD) {
                 todayHours += hrs;
             }
         });
+        
+        console.log("Today hours calculated:", todayHours);
         
         if (window.__timesheetProjectOptions && window.__timesheetProjectOptions.length) {
             entries.forEach(entry => {
@@ -208,14 +217,15 @@
             if (hrs === 0) {
                 missingDays++;
                 missingDates.push(dateStr);
+            } else {
+                if (hrs < 7.5) daysBelowTarget++;
+                if (hrs < 7.5 || hrs > 9) daysOutside759++;
+                if (hrs > 10) daysAbove10++;
+                if (hrs > 12) daysAbove12++;
+                if (projCount > 4) daysManyProjects++;
+                if (hrs > 8) overtimeDays++;
+                if (!hasNotes) notesMissing++;
             }
-            if (hrs > 0 && hrs < 7.5) daysBelowTarget++;
-            if (hrs > 0 && (hrs < 7.5 || hrs > 9)) daysOutside759++;
-            if (hrs > 10) daysAbove10++;
-            if (hrs > 12) daysAbove12++;
-            if (projCount > 4) daysManyProjects++;
-            if (hrs > 8) overtimeDays++;
-            if (hrs > 0 && !hasNotes) notesMissing++;
             if (hrs === 0) zeroHourDays++;
         }
         
@@ -235,29 +245,29 @@
         let redFlags = [], amberFlags = [];
         
         if (filterType === 'week' || filterType === 'day') {
-            if (missingDays >= 2) redFlags.push(`${missingDays} missing working days`);
+            if (missingDays >= 2) redFlags.push(missingDays + " missing working days");
             else if (missingDays === 1) amberFlags.push("One missing working day");
         } else {
-            if (missingDays > 15) redFlags.push(`Many missing working days (${missingDays})`);
+            if (missingDays > 15) redFlags.push("Many missing working days (" + missingDays + ")");
         }
         
         if (weeklySignificantlyBelow && filterType === 'week') redFlags.push("Weekly hours <30h");
         if (negativeHours) redFlags.push("Negative/Impossible hours");
-        if (duplicateEntries.length) redFlags.push(`${duplicateEntries.length} duplicate entries`);
-        if (daysAbove12) redFlags.push(`${daysAbove12} day(s) >12h`);
+        if (duplicateEntries.length) redFlags.push(duplicateEntries.length + " duplicate entries");
+        if (daysAbove12) redFlags.push(daysAbove12 + " day(s) >12h");
         if (zeroHourDays > 3) redFlags.push("Multiple zero-hour days");
         if (consecutiveMissing >= 3) redFlags.push("3+ consecutive missing days");
-        if (invalidProjects.size) redFlags.push(`Invalid projects: ${[...invalidProjects].join(',')}`);
-        if (unallocated) redFlags.push(`${unallocated} unallocated entries`);
+        if (invalidProjects.size) redFlags.push("Invalid projects: " + [...invalidProjects].join(','));
+        if (unallocated) redFlags.push(unallocated + " unallocated entries");
         
-        if (daysBelowTarget) amberFlags.push(`${daysBelowTarget} day(s) below 7.5h`);
-        if (daysAbove10) amberFlags.push(`${daysAbove10} day(s) above 10h`);
+        if (daysBelowTarget) amberFlags.push(daysBelowTarget + " day(s) below 7.5h");
+        if (daysAbove10) amberFlags.push(daysAbove10 + " day(s) above 10h");
         if (filterType === 'week' && !weeklyTargetReached) amberFlags.push("Weekly target <40h");
-        if (adminRatio > 15) amberFlags.push(`Admin ${adminRatio.toFixed(1)}% >15%`);
-        if (notesMissing) amberFlags.push(`${notesMissing} missing notes`);
-        if (daysManyProjects) amberFlags.push(`${daysManyProjects} day(s) >4 projects`);
+        if (adminRatio > 15) amberFlags.push("Admin " + adminRatio.toFixed(1) + "% >15%");
+        if (notesMissing) amberFlags.push(notesMissing + " missing notes");
+        if (daysManyProjects) amberFlags.push(daysManyProjects + " day(s) >4 projects");
         if (!trainingThisMonth) amberFlags.push("No training this month");
-        if (overtimeDays > 2) amberFlags.push(`${overtimeDays} overtime days (>8h)`);
+        if (overtimeDays > 2) amberFlags.push(overtimeDays + " overtime days (>8h)");
         
         let specialBadge = null, specialMsg = null;
         if (overtimeDays >= 5 || hasWeekendWork || totalHours >= 50) {
@@ -325,13 +335,13 @@
         let todayMsg = "";
         if (filterType === 'day') {
             if (todayHours === 0) todayMsg = "No hours logged yet today.";
-            else if (todayHours < 7.5) todayMsg = `${todayHours.toFixed(1)}h today (below target).`;
-            else if (todayHours > 9) todayMsg = `${todayHours.toFixed(1)}h today (above target).`;
-            else todayMsg = `${todayHours.toFixed(1)}h today – good range.`;
+            else if (todayHours < 7.5) todayMsg = todayHours.toFixed(1) + "h today (below target).";
+            else if (todayHours > 9) todayMsg = todayHours.toFixed(1) + "h today (above target).";
+            else todayMsg = todayHours.toFixed(1) + "h today – good range.";
         } else {
             if (todayIsWeekday && !todayIsHoliday) {
                 if (todayHours === 0) todayMsg = "No hours logged yet today (not penalised).";
-                else todayMsg = `Today: ${todayHours.toFixed(1)}h so far.`;
+                else todayMsg = "Today: " + todayHours.toFixed(1) + "h so far.";
             } else if (todayIsHoliday) {
                 todayMsg = "Today is a public holiday – no expectation.";
             } else {
@@ -340,19 +350,24 @@
         }
         
         return {
-            status, reasons, score, specialMsg, todayMsg, missingDates,
+            status: status,
+            reasons: reasons,
+            score: score,
+            specialMsg: specialMsg,
+            todayMsg: todayMsg,
+            missingDates: missingDates,
             metrics: {
                 totalHours: totalHours.toFixed(1),
-                missingDays,
+                missingDays: missingDays,
                 adminRatio: adminRatio.toFixed(1),
-                overtimeDays,
+                overtimeDays: overtimeDays,
                 duplicateCount: duplicateEntries.length,
-                notesMissing
+                notesMissing: notesMissing
             }
         };
     }
     
-    // ---------- GENERATE PDF WITH RULES ----------
+    // ---------- GENERATE PDF WITH RULES (FIXED CHARACTER ENCODING) ----------
     function downloadRulesPDF() {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
@@ -360,9 +375,10 @@
         const margin = 15;
         let y = 20;
         
+        // Title
         doc.setFontSize(24);
         doc.setTextColor(11, 43, 59);
-        doc.setFont(undefined, 'bold');
+        doc.setFont("helvetica", "bold");
         doc.text("Timesheet Traffic Light – Rules", pageWidth / 2, y, { align: 'center' });
         y += 15;
         doc.setDrawColor(47, 199, 255);
@@ -370,30 +386,31 @@
         doc.line(margin, y, pageWidth - margin, y);
         y += 10;
         
+        // Intro
         doc.setFontSize(10);
         doc.setTextColor(80, 80, 80);
-        doc.setFont(undefined, 'normal');
+        doc.setFont("helvetica", "normal");
         doc.text("This document explains the rules behind the traffic light on your timesheet page.", margin, y);
         y += 8;
         doc.text("The light evaluates your timesheet based on past working days only (Mon–Fri, excluding South African public holidays).", margin, y);
         y += 12;
         
-        // GREEN
+        // GREEN section
         doc.setFillColor(40, 167, 69);
         doc.rect(margin, y, 5, 5, 'F');
         doc.setFontSize(12);
         doc.setTextColor(40, 167, 69);
-        doc.setFont(undefined, 'bold');
+        doc.setFont("helvetica", "bold");
         doc.text(" GREEN – Healthy Timesheet", margin + 8, y + 4);
         y += 8;
         doc.setFontSize(9);
         doc.setTextColor(60, 60, 60);
-        doc.setFont(undefined, 'normal');
-        const greenRules = [
+        doc.setFont("helvetica", "normal");
+        var greenRules = [
             "• No missing working days (past)",
             "• Each logged day: 7.5 – 9 hours",
-            "• Weekly total hours ≥ 40 (for week filter)",
-            "• Admin hours ≤ 15% of total",
+            "• Weekly total hours >= 40 (for week filter)",
+            "• Admin hours <= 15% of total",
             "• No overtime days (>8h)",
             "• No duplicate entries",
             "• All entries have notes",
@@ -402,100 +419,112 @@
             "• At least one project worked",
             "• No negative or impossible hours"
         ];
-        greenRules.forEach(rule => { doc.text(rule, margin + 4, y); y += 5; });
+        for (var i = 0; i < greenRules.length; i++) {
+            doc.text(greenRules[i], margin + 4, y);
+            y += 5;
+        }
         y += 5;
         
-        // AMBER
+        // AMBER section
         if (y > 240) { doc.addPage(); y = 20; }
         doc.setFillColor(255, 193, 7);
         doc.rect(margin, y, 5, 5, 'F');
         doc.setFontSize(12);
         doc.setTextColor(255, 193, 7);
-        doc.setFont(undefined, 'bold');
+        doc.setFont("helvetica", "bold");
         doc.text(" AMBER – Attention Required", margin + 8, y + 4);
         y += 8;
         doc.setFontSize(9);
         doc.setTextColor(60, 60, 60);
-        doc.setFont(undefined, 'normal');
-        const amberRules = [
+        doc.setFont("helvetica", "normal");
+        var amberRules = [
             "• One missing working day (past)",
-            "• Daily hours below 7.5h or above 10h (but ≤12h)",
+            "• Daily hours below 7.5h or above 10h (but <=12h)",
             "• Weekly total <40h (week filter only)",
-            "• Admin hours >15% (but ≤25%)",
+            "• Admin hours >15% (but <=25%)",
             "• Missing notes on some entries",
             "• More than 4 projects in one day",
             "• No training logged in current month",
             "• Overtime worked more than twice in the week"
         ];
-        amberRules.forEach(rule => { doc.text(rule, margin + 4, y); y += 5; });
+        for (var i = 0; i < amberRules.length; i++) {
+            doc.text(amberRules[i], margin + 4, y);
+            y += 5;
+        }
         y += 5;
         
-        // RED
+        // RED section
         if (y > 240) { doc.addPage(); y = 20; }
         doc.setFillColor(220, 53, 69);
         doc.rect(margin, y, 5, 5, 'F');
         doc.setFontSize(12);
         doc.setTextColor(220, 53, 69);
-        doc.setFont(undefined, 'bold');
+        doc.setFont("helvetica", "bold");
         doc.text(" RED – Action Required", margin + 8, y + 4);
         y += 8;
         doc.setFontSize(9);
         doc.setTextColor(60, 60, 60);
-        doc.setFont(undefined, 'normal');
-        const redRules = [
+        doc.setFont("helvetica", "normal");
+        var redRules = [
             "• Two or more missing working days (past)",
             "• Weekly hours <30h (week filter)",
             "• Any negative or impossible hours",
             "• Duplicate entries detected",
             "• More than 12 hours worked in one day",
-            "• Multiple zero‑hour days (>3)",
+            "• Multiple zero-hour days (>3)",
             "• 3+ consecutive missing days",
             "• Invalid project codes",
             "• Unallocated hour entries",
-            "• Burnout risk (≥5 overtime days, weekend work, or ≥50h week)"
+            "• Burnout risk (>=5 overtime days, weekend work, or >=50h week)"
         ];
-        redRules.forEach(rule => { doc.text(rule, margin + 4, y); y += 5; });
+        for (var i = 0; i < redRules.length; i++) {
+            doc.text(redRules[i], margin + 4, y);
+            y += 5;
+        }
         y += 5;
         
         // Special badges
         if (y > 240) { doc.addPage(); y = 20; }
         doc.setFontSize(12);
         doc.setTextColor(108, 117, 125);
-        doc.setFont(undefined, 'bold');
-        doc.text("✨ Special Badges", margin, y);
+        doc.setFont("helvetica", "bold");
+        doc.text("Special Badges", margin, y);
         y += 8;
         doc.setFontSize(9);
         doc.setTextColor(60, 60, 60);
-        doc.setFont(undefined, 'normal');
-        const badges = [
-            "🏆 Perfect Week: All GREEN criteria met, no corrections, submitted early.",
-            "⚡ Efficiency Mode: 40h week, no overtime, no missing days, admin <10%.",
-            "🌟 Rockstar Week: Perfect week + training logged + zero corrections.",
-            "⚠️ Burnout Risk: Forces RED status – unsustainable workload."
+        doc.setFont("helvetica", "normal");
+        var badges = [
+            "• Perfect Week: All GREEN criteria met, no corrections, submitted early.",
+            "• Efficiency Mode: 40h week, no overtime, no missing days, admin <10%.",
+            "• Rockstar Week: Perfect week + training logged + zero corrections.",
+            "• Burnout Risk: Forces RED status – unsustainable workload."
         ];
-        badges.forEach(b => { doc.text(b, margin + 4, y); y += 5; });
+        for (var i = 0; i < badges.length; i++) {
+            doc.text(badges[i], margin + 4, y);
+            y += 5;
+        }
         y += 5;
         
         // Health score weights
         if (y > 240) { doc.addPage(); y = 20; }
         doc.setFontSize(12);
         doc.setTextColor(108, 117, 125);
-        doc.setFont(undefined, 'bold');
-        doc.text("📊 Health Score Calculation (0–100)", margin, y);
+        doc.setFont("helvetica", "bold");
+        doc.text("Health Score Calculation (0–100)", margin, y);
         y += 8;
         doc.setFontSize(9);
         doc.setTextColor(60, 60, 60);
-        doc.setFont(undefined, 'normal');
+        doc.setFont("helvetica", "normal");
         doc.text("The score starts at 100 and is reduced by weighted penalties:", margin, y);
         y += 5;
-        const weightsList = [
+        var weightsList = [
             "• Missing working day: -25 each (max -50)",
             "• Weekly hours <30h: -30",
             "• Duplicate entry: -5 each (max -15)",
             "• Invalid project code: -10 each (max -20)",
             "• Unallocated entry: -8 each (max -15)",
             "• Day >12h: -15 each",
-            "• >3 zero‑hour days: -8",
+            "• >3 zero-hour days: -8",
             "• 3+ consecutive missing days: -12",
             "• Missing description: -2 each (max -10)",
             "• Admin >15%: -5",
@@ -506,14 +535,17 @@
             "• >4 projects in a day: -2 each",
             "• Weekly target not reached (<40h): -5"
         ];
-        weightsList.forEach(w => { doc.text(w, margin + 4, y); y += 5; });
+        for (var i = 0; i < weightsList.length; i++) {
+            doc.text(weightsList[i], margin + 4, y);
+            y += 5;
+        }
         y += 5;
         
         // Footer
         if (y > 260) { doc.addPage(); y = 20; }
         doc.setFontSize(8);
         doc.setTextColor(150, 150, 150);
-        doc.text(`Generated: ${new Date().toLocaleString()} | Your Portfolio Timesheet System`, margin, y + 10);
+        doc.text("Generated: " + new Date().toLocaleString() + " | Your Portfolio Timesheet System", margin, y + 10);
         doc.text("The traffic light evaluates only past working days (Mon–Fri, excluding SA public holidays).", margin, y + 15);
         doc.text("Today's progress is shown in the tooltip but never penalises the colour.", margin, y + 20);
         
@@ -522,41 +554,39 @@
     
     // ---------- UI UPDATE ----------
     function updateTrafficLight() {
-        const container = document.getElementById("standaloneTrafficLight");
+        var container = document.getElementById("standaloneTrafficLight");
         if (!container) return;
         if (!window.__timesheetEntries || !window.__timesheetEntries.length) {
-            container.innerHTML = `<div class="traffic-light-standalone" title="No data"><div class="light red"></div><div class="light amber"></div><div class="light green"></div></div>`;
+            container.innerHTML = '<div class="traffic-light-standalone" title="No data"><div class="light red"></div><div class="light amber"></div><div class="light green"></div></div>';
             return;
         }
-        const range = document.getElementById("filterRange")?.value || "week";
-        const health = analyzeTimesheetHealth(window.__timesheetEntries, range, new Date());
+        var range = document.getElementById("filterRange") ? document.getElementById("filterRange").value : "week";
+        var health = analyzeTimesheetHealth(window.__timesheetEntries, range, new Date());
         if (!health) {
-            container.innerHTML = `<div class="traffic-light-standalone" title="Error"><div class="light red"></div><div class="light amber"></div><div class="light green"></div></div>`;
+            container.innerHTML = '<div class="traffic-light-standalone" title="Error"><div class="light red"></div><div class="light amber"></div><div class="light green"></div></div>';
             return;
         }
-        const redLit = health.status === "red" ? "lit" : "";
-        const amberLit = health.status === "amber" ? "lit" : "";
-        const greenLit = health.status === "green" ? "lit" : "";
+        var redLit = health.status === "red" ? "lit" : "";
+        var amberLit = health.status === "amber" ? "lit" : "";
+        var greenLit = health.status === "green" ? "lit" : "";
         
-        let tooltip = `${health.status.toUpperCase()} – Score: ${health.score}/100\n`;
-        tooltip += `📅 Past missing working days: ${health.metrics.missingDays}`;
+        var tooltip = health.status.toUpperCase() + " – Score: " + health.score + "/100\n";
+        tooltip += "📅 Past missing working days: " + health.metrics.missingDays;
         if (health.missingDates.length) {
-            const dates = health.missingDates.slice(0, 3).join(", ");
-            tooltip += ` [${dates}]${health.missingDates.length > 3 ? "..." : ""}`;
+            var dates = health.missingDates.slice(0, 3).join(", ");
+            tooltip += " [" + dates + "]" + (health.missingDates.length > 3 ? "..." : "");
         }
-        tooltip += `\n📊 Total hours (period): ${health.metrics.totalHours}\n`;
-        tooltip += `⚙️ Admin: ${health.metrics.adminRatio}% | O/T days: ${health.metrics.overtimeDays}\n`;
-        if (health.reasons.length) tooltip += `⚠️ Issues: ${health.reasons.slice(0, 2).join(", ")}${health.reasons.length > 2 ? "..." : ""}\n`;
-        tooltip += `📌 ${health.todayMsg}\n`;
-        if (health.specialMsg) tooltip += `🏅 ${health.specialMsg}`;
+        tooltip += "\n📊 Total hours (period): " + health.metrics.totalHours + "\n";
+        tooltip += "⚙️ Admin: " + health.metrics.adminRatio + "% | O/T days: " + health.metrics.overtimeDays + "\n";
+        if (health.reasons.length) tooltip += "⚠️ Issues: " + health.reasons.slice(0, 2).join(", ") + (health.reasons.length > 2 ? "..." : "") + "\n";
+        tooltip += "📌 " + health.todayMsg + "\n";
+        if (health.specialMsg) tooltip += "🏅 " + health.specialMsg;
         
-        const html = `
-            <div class="traffic-light-standalone" title="${tooltip.replace(/"/g, '&quot;')}">
-                <div class="light red ${redLit}"></div>
-                <div class="light amber ${amberLit}"></div>
-                <div class="light green ${greenLit}"></div>
-            </div>
-        `;
+        var html = '<div class="traffic-light-standalone" title="' + tooltip.replace(/"/g, '&quot;') + '">' +
+            '<div class="light red ' + redLit + '"></div>' +
+            '<div class="light amber ' + amberLit + '"></div>' +
+            '<div class="light green ' + greenLit + '"></div>' +
+            '</div>';
         container.innerHTML = html;
     }
     
