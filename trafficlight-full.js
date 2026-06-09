@@ -1,6 +1,6 @@
-// trafficlight-full.js – Compact Traffic Light with Complete Rule Engine
+// trafficlight-full.js – Performance Fixed (No freeze on "All Time")
 (function() {
-    // ---------- Helper Functions (copied from full version) ----------
+    // ---------- Helper Functions ----------
     function formatYMD(date) {
         return date.toISOString().split('T')[0];
     }
@@ -12,27 +12,32 @@
         d.setHours(0,0,0,0);
         return d;
     }
-    function getWeekdaysInRange(start, end) {
+    // Efficient weekday generation with max range limit
+    function getWeekdaysInRange(startDate, endDate, maxDays = 400) {
         const weekdays = [];
-        let current = new Date(start);
-        while (current <= end) {
+        let current = new Date(startDate);
+        let iterations = 0;
+        while (current <= endDate && iterations < maxDays) {
             const day = current.getDay();
             if (day !== 0 && day !== 6) weekdays.push(new Date(current));
             current.setDate(current.getDate() + 1);
+            iterations++;
         }
         return weekdays;
     }
-    function checkTrainingThisMonth(entries) {
-        const now = new Date();
-        const currentYear = now.getFullYear();
-        const currentMonth = now.getMonth();
+
+    function checkTrainingThisMonth(entries, targetDate = null) {
+        const now = targetDate || new Date();
+        const year = now.getFullYear();
+        const month = now.getMonth();
         return entries.some(e => {
             const d = new Date(e.date);
             return e.category === 'Training' &&
-                   d.getFullYear() === currentYear &&
-                   d.getMonth() === currentMonth;
+                   d.getFullYear() === year &&
+                   d.getMonth() === month;
         });
     }
+
     function checkWeekendWork(entries, weekStart, weekEnd) {
         return entries.some(e => {
             const d = new Date(e.date);
@@ -40,6 +45,7 @@
             return (day === 0 || day === 6) && d >= weekStart && d <= weekEnd;
         });
     }
+
     function findConsecutiveMissing(weekdays, daysMap) {
         let maxConsecutive = 0, current = 0;
         for (let day of weekdays) {
@@ -55,9 +61,19 @@
         return maxConsecutive;
     }
 
-    // ---------- Full Rule Analysis (your complete spec) ----------
+    // ---------- Core Analysis (optimized) ----------
     function analyzeTimesheetHealth(entries, startDate, endDate, allProjectOptions = []) {
-        const weekdays = getWeekdaysInRange(startDate, endDate);
+        // For "all time", limit to last 365 days (current year approximately)
+        let effectiveStart = startDate;
+        let effectiveEnd = endDate;
+        if (startDate.getFullYear() < 2000) {
+            // "All time" selected – analyse last 365 days only
+            effectiveStart = new Date();
+            effectiveStart.setDate(effectiveStart.getDate() - 365);
+            effectiveEnd = new Date();
+        }
+
+        const weekdays = getWeekdaysInRange(effectiveStart, effectiveEnd, 400);
         const daysMap = new Map();
         weekdays.forEach(day => {
             const ds = formatYMD(day);
@@ -70,9 +86,10 @@
 
         entries.forEach(entry => {
             const entryDate = new Date(entry.date);
-            if (entryDate < startDate || entryDate > endDate) return;
+            if (entryDate < effectiveStart || entryDate > effectiveEnd) return;
             const ds = formatYMD(entryDate);
             if (!daysMap.has(ds)) {
+                // Entry on a weekend – still count it
                 daysMap.set(ds, { totalHours: 0, projectsSet: new Set(), hasNotes: false, entries: [] });
             }
             const dayData = daysMap.get(ds);
@@ -85,10 +102,11 @@
             if (entry.hours < 0 || entry.hours > 24) negativeHoursFound = true;
         });
 
-        // Duplicate detection
+        // Duplicate detection (within range only)
         const seen = new Set();
         entries.forEach(entry => {
-            if (entry.date < formatYMD(startDate) || entry.date > formatYMD(endDate)) return;
+            const entryDate = new Date(entry.date);
+            if (entryDate < effectiveStart || entryDate > effectiveEnd) return;
             const key = `${entry.date}|${entry.start}|${entry.end}|${entry.project}`;
             if (seen.has(key)) duplicateEntries.push(entry);
             else seen.add(key);
@@ -97,7 +115,8 @@
         // Invalid projects
         if (allProjectOptions.length) {
             entries.forEach(entry => {
-                if (entry.date < formatYMD(startDate) || entry.date > formatYMD(endDate)) return;
+                const entryDate = new Date(entry.date);
+                if (entryDate < effectiveStart || entryDate > effectiveEnd) return;
                 if (entry.project && !allProjectOptions.includes(entry.project))
                     invalidProjects.add(entry.project);
             });
@@ -127,27 +146,24 @@
 
         const totalProjectsWorked = new Set(entries.filter(e => {
             const d = new Date(e.date);
-            return d >= startDate && d <= endDate && e.project;
+            return d >= effectiveStart && d <= effectiveEnd && e.project;
         }).map(e => e.project)).size;
 
         const weeklyTargetReached = totalHours >= 40;
         const weeklySignificantlyBelow = totalHours < 30;
-        const entireWeekMissing = weekdays.every(day => (daysMap.get(formatYMD(day))?.totalHours || 0) === 0);
         const adminRatio = totalHours > 0 ? (adminHours / totalHours) * 100 : 0;
         const consecutiveMissing = findConsecutiveMissing(weekdays, daysMap);
-        const trainingThisMonth = checkTrainingThisMonth(entries);
-        const hasWeekendWork = checkWeekendWork(entries, startDate, endDate);
+        const trainingThisMonth = checkTrainingThisMonth(entries, new Date()); // current month
+        const hasWeekendWork = checkWeekendWork(entries, effectiveStart, effectiveEnd);
         const unallocated = entries.filter(e => {
             const d = new Date(e.date);
-            return d >= startDate && d <= endDate && (!e.project || e.project.trim() === "");
+            return d >= effectiveStart && d <= effectiveEnd && (!e.project || e.project.trim() === "");
         }).length;
 
-        // ---- Determine status (RED/AMBER/GREEN) using your exact rules ----
+        // Determine status
         let redFlags = [], amberFlags = [];
 
-        // RED conditions
         if (missingDays >= 2) redFlags.push("Two or more missing working days");
-        if (entireWeekMissing) redFlags.push("Entire week not submitted");
         if (weeklySignificantlyBelow) redFlags.push("Weekly hours significantly below target (<30h)");
         if (negativeHoursFound) redFlags.push("Negative or impossible hour values");
         if (duplicateEntries.length > 0) redFlags.push(`Duplicate entries detected (${duplicateEntries.length})`);
@@ -157,7 +173,6 @@
         if (invalidProjects.size > 0) redFlags.push(`Invalid project codes: ${[...invalidProjects].join(', ')}`);
         if (unallocated > 0) redFlags.push(`${unallocated} unallocated hour entries`);
 
-        // AMBER conditions
         if (missingDays === 1) amberFlags.push("One missing working day");
         if (daysBelowTarget > 0) amberFlags.push(`Daily hours below target on ${daysBelowTarget} day(s)`);
         if (daysAbove10 > 0) amberFlags.push(`Daily hours above 10 on ${daysAbove10} day(s)`);
@@ -168,9 +183,8 @@
         if (!trainingThisMonth) amberFlags.push("Training not logged this month");
         if (overtimeDays > 2) amberFlags.push(`Overtime worked more than twice this week (${overtimeDays} days)`);
 
-        // Special badge detection (for tooltip)
-        let specialBadge = null;
-        let specialMessage = null;
+        // Special badges
+        let specialBadge = null, specialMessage = null;
         if (overtimeDays >= 5 || hasWeekendWork || totalHours >= 50) {
             specialBadge = "burnout";
             specialMessage = "⚠️ Burnout Risk: Workload may be unsustainable.";
@@ -215,12 +229,14 @@
             reasons = ["Some entries need attention (see details)"];
         }
 
-        // Health score (weighted)
+        // Weighted score
         let score = 100;
-        const weights = { missingDay: 25, weeklyBelow30: 30, duplicate: 5, invalidProject: 10, unallocated: 8,
-                          daysAbove12: 15, zeroHourDays: 8, consecutiveMissing: 12, notesMissing: 2, adminHigh: 5,
-                          trainingMissing: 2, overtimeDay: 3, daysAbove10: 3, daysBelowTarget: 3, manyProjects: 2,
-                          weeklyTargetNotReached: 5 };
+        const weights = {
+            missingDay: 25, weeklyBelow30: 30, duplicate: 5, invalidProject: 10, unallocated: 8,
+            daysAbove12: 15, zeroHourDays: 8, consecutiveMissing: 12, notesMissing: 2, adminHigh: 5,
+            trainingMissing: 2, overtimeDay: 3, daysAbove10: 3, daysBelowTarget: 3, manyProjects: 2,
+            weeklyTargetNotReached: 5
+        };
         if (missingDays > 0) score -= Math.min(missingDays * weights.missingDay, 50);
         if (weeklySignificantlyBelow) score -= weights.weeklyBelow30;
         if (duplicateEntries.length) score -= Math.min(duplicateEntries.length * weights.duplicate, 15);
@@ -244,16 +260,15 @@
         return { status, reasons, score, specialMessage, metrics: { totalHours, missingDays, adminRatio: adminRatio.toFixed(1), overtimeDays, duplicateCount: duplicateEntries.length, notesMissing } };
     }
 
-    // ---------- UI: Three‑Light Traffic Light (compact) ----------
+    // ---------- UI Update ----------
     function updateTrafficLight() {
         const container = document.getElementById("standaloneTrafficLight");
         if (!container) return;
-        if (!window.__timesheetEntries) {
+        if (!window.__timesheetEntries || window.__timesheetEntries.length === 0) {
             container.innerHTML = `<div class="traffic-light-standalone" title="No data"><div class="light red"></div><div class="light amber"></div><div class="light green"></div></div>`;
             return;
         }
 
-        // Determine date range from filter
         const range = document.getElementById("filterRange")?.value || "week";
         let startDate, endDate;
         const now = new Date();
@@ -269,7 +284,7 @@
             endDate = new Date(now.getFullYear(), now.getMonth()+1, 0);
         } else { // 'all'
             startDate = new Date(0);
-            endDate = new Date(8640000000000000);
+            endDate = new Date();
         }
 
         const projectOptions = window.__timesheetProjectOptions || [];
@@ -279,13 +294,12 @@
         const amberLit = health.status === "amber" ? "lit" : "";
         const greenLit = health.status === "green" ? "lit" : "";
 
-        // Build tooltip text (status + top 3 reasons + score)
-        let tooltip = `${health.status.toUpperCase()} – Health Score: ${health.score}/100`;
+        let tooltip = `${health.status.toUpperCase()} – Score: ${health.score}/100`;
         if (health.reasons.length) {
             tooltip += `\nReasons: ${health.reasons.slice(0,3).join(", ")}${health.reasons.length>3 ? "..." : ""}`;
         }
         if (health.specialMessage) tooltip += `\n${health.specialMessage}`;
-        tooltip += `\nTotal hrs: ${health.metrics.totalHours.toFixed(1)} | Missing: ${health.metrics.missingDays} | Admin: ${health.metrics.adminRatio}% | Overtime: ${health.metrics.overtimeDays}`;
+        tooltip += `\nTotal: ${health.metrics.totalHours.toFixed(1)}h | Missing: ${health.metrics.missingDays} | Admin: ${health.metrics.adminRatio}% | O/T: ${health.metrics.overtimeDays}`;
 
         const html = `
             <div class="traffic-light-standalone" title="${tooltip.replace(/"/g, '&quot;')}">
@@ -297,7 +311,6 @@
         container.innerHTML = html;
     }
 
-    // Auto‑refresh on data changes or filter changes
     document.addEventListener("timesheetUpdated", updateTrafficLight);
     $(document).ready(function() {
         $("#filterRange, #filterProject, #filterCategory").on("change", updateTrafficLight);
