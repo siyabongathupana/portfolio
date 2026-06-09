@@ -773,19 +773,24 @@
   async function refreshView() {
     window.showLoading("Refreshing timesheet...");
     try {
-      await loadTimesheet();
-      await loadProjectsForTimesheet();
-      renderHistory();
-      updateSummaryAndProgress();
-      updateCharts();
-    } catch(err) { if (!err.message.includes("Token expired")) showToast("Refresh failed: " + err.message, "error"); }
-    finally { window.hideLoading(); }
-     //=================================================================TRAFFIC=====================================================================================
-    window.__timesheetEntries = entries;
-    window.__timesheetProjectOptions = allProjectOptions;
-    document.dispatchEvent(new Event('timesheetUpdated'));
+        await loadTimesheet();
+        await loadProjectsForTimesheet();
+        renderHistory();
+        updateSummaryAndProgress();
+        updateCharts();
 
-  }
+        // ========== ADD THESE THREE LINES ==========
+        window.__timesheetEntries = entries;
+        window.__timesheetProjectOptions = allProjectOptions;
+        document.dispatchEvent(new Event('timesheetUpdated'));
+        // ============================================
+
+    } catch(err) {
+        if (!err.message.includes("Token expired")) showToast("Refresh failed: " + err.message, "error");
+    } finally {
+        window.hideLoading();
+    }
+}
 
   function startAutoRefresh() { if (autoRefreshInterval) clearInterval(autoRefreshInterval); autoRefreshInterval = setInterval(() => { if (!document.hidden) refreshView(); }, 600000); }
 
