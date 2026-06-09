@@ -2,12 +2,11 @@ name: Backup (every 8h, keep 5 releases)
 
 on:
   schedule:
-    # Runs at 00:00, 08:00, 16:00 UTC (every 8 hours)
     - cron: '0 0,8,16 * * *'
-  workflow_dispatch:   # manual trigger
+  workflow_dispatch:
 
 permissions:
-  contents: write      # needed to create releases
+  contents: write
 
 jobs:
   backup:
@@ -23,17 +22,12 @@ jobs:
           TIMESTAMP=$(date +'%Y-%m-%d_%H-%M-%S')
           echo "BACKUP_TIMESTAMP=$TIMESTAMP" >> $GITHUB_ENV
           
-          # Create temporary folder
           mkdir -p backup_temp/data
-          
-          # Copy all user data
           cp -r data/* backup_temp/data/ 2>/dev/null || true
           cp config.js backup_temp/ 2>/dev/null || true
           
-          # Count users
           USER_COUNT=$(ls -1 data/users/ 2>/dev/null | wc -l)
           
-          # Create metadata
           cat > backup_temp/backup_info.json << EOF
           {
             "timestamp": "$TIMESTAMP",
@@ -45,34 +39,34 @@ jobs:
           }
           EOF
           
-          # Compress everything into a plain .tar.gz
           tar -czf "backup_${TIMESTAMP}.tar.gz" -C backup_temp .
           rm -rf backup_temp
 
-      - name: Encrypt the backup archive with OpenSSL
+      - name: Encrypt the backup archive
         run: |
-          # Encrypt using AES-256-CBC, password from GitHub secret
           echo "${{ secrets.BACKUP_PASSWORD }}" > pass.txt
           openssl enc -aes-256-cbc -salt -in "backup_${BACKUP_TIMESTAMP}.tar.gz" \
             -out "backup_${BACKUP_TIMESTAMP}.tar.gz.enc" -pass file:pass.txt
-          rm pass.txt
-          # Remove plain archive to avoid accidental upload
-          rm "backup_${BACKUP_TIMESTAMP}.tar.gz"
+          rm -f pass.txt
+          rm -f "backup_${BACKUP_TIMESTAMP}.tar.gz"
 
-      - name: Create GitHub Release (with encrypted backup)
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
         with:
           tag_name: backup-${{ env.BACKUP_TIMESTAMP }}
-          name: "📦 Backup ${{ env.BACKUP_TIMESTAMP }} (encrypted)"
-          body: |
-            ## 🔐 Encrypted automated backup of portfolio data
-            - **Date:** ${{ env.BACKUP_TIMESTAMP }}
-            - **Users count:** (see `backup_info.json` inside the archive)
-            - **Repository:** ${{ github.repository }}
-            - **Commit:** ${{ github.sha }}
-            
-            ### Decryption instructions
-            To decrypt this backup, use the following command (replace `YOUR_PASSWORD` with the secret password):
-            ```bash
-            openssl enc -aes-256-cbc -d -in backup_*.tar.gz.enc -out backup.tar.gz -pass pass:YOUR_PASSWORD
-            tar -xzf backup.tar.gz
+          name: "📦 Backup ${{ env.BACKUP_TIMESTAMP }}"
+          body: "🔐 Automated encrypted backup"   # No decryption instructions
+          files: backup_*.tar.gz.enc
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Keep only the 5 most recent releases
+        run: |
+          gh release list --limit 100 --json tagName,createdAt --jq 'sort_by(.createdAt) | .[:-5] | .[].tagName' | while read tag; do
+            echo "Deleting old release: $tag"
+            gh release delete "$tag" --yes --cleanup-tag
+          done
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
