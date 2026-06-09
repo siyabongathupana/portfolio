@@ -830,6 +830,11 @@
 
     await loadUserMeta();
     await refreshView();
+
+    //========================================================================================================ADADADADADAAD SIYA=============================
+    window.__timesheetEntries = entries;
+    window.__timesheetProjectOptions = allProjectOptions;
+    document.dispatchEvent(new Event('timesheetUpdated'));
     startAutoRefresh();
   }
 
