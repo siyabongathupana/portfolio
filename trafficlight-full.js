@@ -1,19 +1,18 @@
-// trafficlight-full.js – Weekends ABSOLUTELY excluded
+// trafficlight-full.js – Complete with Download Rules PDF
 (function() {
     // ---------- UTILITIES ----------
     function formatYMD(d) {
         return d.toISOString().split('T')[0];
     }
-    
     function getMonday(date) {
-    const d = new Date(date);
-    d.setUTCHours(0,0,0,0);
-    const day = d.getUTCDay(); // 0=Sun, 6=Sat
-    const diff = (day === 0 ? 6 : day - 1);
-    d.setUTCDate(d.getUTCDate() - diff);
-    return d;
-}
-    // ---------- South African Public Holidays (2026) ----------
+        const d = new Date(date);
+        d.setUTCHours(0,0,0,0);
+        const day = d.getUTCDay();
+        const diff = (day === 0 ? 6 : day - 1);
+        d.setUTCDate(d.getUTCDate() - diff);
+        return d;
+    }
+    // ---------- South African Public Holidays ----------
     function isSouthAfricanPublicHoliday(date) {
         const year = date.getFullYear();
         const month = date.getMonth();
@@ -25,7 +24,6 @@
             `${year}-06-16`, `${year}-08-09`, `${year}-09-24`, `${year}-12-16`,
             `${year}-12-25`, `${year}-12-26`
         ];
-        // Good Friday & Easter Monday
         const easter = getEasterDate(year);
         const goodFriday = new Date(easter); goodFriday.setDate(easter.getDate() - 2);
         const easterMonday = new Date(easter); easterMonday.setDate(easter.getDate() + 1);
@@ -50,17 +48,16 @@
         const day = ((h + l - 7 * m + 114) % 31) + 1;
         return new Date(year, month - 1, day);
     }
-    // ---------- Get working days (Mon-Fri, no public holidays) up to maxDate (exclusive) ----------
+    // Get working days (Mon-Fri, no public holidays) up to maxDate (exclusive)
     function getWorkingDaysUpTo(start, end, maxDate) {
         const working = [];
         let current = new Date(start);
-        // Normalise to UTC midnight to avoid timezone issues
         current.setUTCHours(0,0,0,0);
         const limit = new Date(maxDate < end ? maxDate : end);
         limit.setUTCHours(0,0,0,0);
         
         while (current <= limit) {
-            const utcDay = current.getUTCDay(); // 0=Sun, 6=Sat
+            const utcDay = current.getUTCDay();
             const isWeekend = (utcDay === 0 || utcDay === 6);
             const isHoliday = isSouthAfricanPublicHoliday(current);
             if (!isWeekend && !isHoliday) {
@@ -70,7 +67,6 @@
         }
         return working;
     }
-    // ---------- Other helpers ----------
     function checkTrainingThisMonth(entries, today) {
         const year = today.getFullYear();
         const month = today.getMonth();
@@ -108,7 +104,8 @@
         }
         return earliest;
     }
-    // ---------- Main analysis (only past working days) ----------
+
+    // ---------- MAIN ANALYSIS ----------
     function analyzeTimesheetHealth(entries, filterType, today = new Date()) {
         const todayStart = new Date(today);
         todayStart.setUTCHours(0,0,0,0);
@@ -126,14 +123,13 @@
         } else if (filterType === 'month') {
             startDate = new Date(Date.UTC(todayStart.getFullYear(), todayStart.getMonth(), 1));
             endDate = new Date(Date.UTC(todayStart.getFullYear(), todayStart.getMonth() + 1, 0));
-        } else { // 'all'
+        } else {
             const first = getEarliestEntryDate(entries);
             if (!first) return null;
             startDate = first;
             endDate = todayStart;
         }
         
-        // Only days BEFORE today (past working days)
         const yesterday = new Date(todayStart);
         yesterday.setUTCDate(todayStart.getUTCDate() - 1);
         const workingDays = getWorkingDaysUpTo(startDate, endDate, yesterday);
@@ -336,7 +332,191 @@
             }
         };
     }
-    
+
+    // ---------- GENERATE PDF WITH RULES (Download Button) ----------
+    function downloadRulesPDF() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const margin = 15;
+        let y = 20;
+
+        doc.setFontSize(24);
+        doc.setTextColor(11, 43, 59);
+        doc.setFont(undefined, 'bold');
+        doc.text("Timesheet Traffic Light – Rules", pageWidth / 2, y, { align: 'center' });
+        y += 15;
+        doc.setDrawColor(47, 199, 255);
+        doc.setLineWidth(1);
+        doc.line(margin, y, pageWidth - margin, y);
+        y += 10;
+
+        doc.setFontSize(10);
+        doc.setTextColor(80, 80, 80);
+        doc.setFont(undefined, 'normal');
+        doc.text("This document explains the rules behind the traffic light on your timesheet page.", margin, y);
+        y += 8;
+        doc.text("The light evaluates your timesheet based on past working days only (Mon–Fri, excluding South African public holidays).", margin, y);
+        y += 12;
+
+        // GREEN section
+        doc.setFillColor(40, 167, 69);
+        doc.rect(margin, y, 5, 5, 'F');
+        doc.setFontSize(12);
+        doc.setTextColor(40, 167, 69);
+        doc.setFont(undefined, 'bold');
+        doc.text(" GREEN – Healthy Timesheet", margin + 8, y + 4);
+        y += 8;
+        doc.setFontSize(9);
+        doc.setTextColor(60, 60, 60);
+        doc.setFont(undefined, 'normal');
+        const greenRules = [
+            "• No missing working days (past)",
+            "• Each logged day: 7.5 – 9 hours",
+            "• Weekly total hours ≥ 40 (for week filter)",
+            "• Admin hours ≤ 15% of total",
+            "• No overtime days (>8h)",
+            "• No duplicate entries",
+            "• All entries have notes",
+            "• No invalid project codes",
+            "• No unallocated hours",
+            "• At least one project worked",
+            "• No negative or impossible hours"
+        ];
+        greenRules.forEach(rule => {
+            doc.text(rule, margin + 4, y);
+            y += 5;
+        });
+        y += 5;
+
+        // AMBER section
+        if (y > 240) { doc.addPage(); y = 20; }
+        doc.setFillColor(255, 193, 7);
+        doc.rect(margin, y, 5, 5, 'F');
+        doc.setFontSize(12);
+        doc.setTextColor(255, 193, 7);
+        doc.setFont(undefined, 'bold');
+        doc.text(" AMBER – Attention Required", margin + 8, y + 4);
+        y += 8;
+        doc.setFontSize(9);
+        doc.setTextColor(60, 60, 60);
+        doc.setFont(undefined, 'normal');
+        const amberRules = [
+            "• One missing working day (past)",
+            "• Daily hours below 7.5h or above 10h (but ≤12h)",
+            "• Weekly total <40h (week filter only)",
+            "• Admin hours >15% (but ≤25%)",
+            "• Missing notes on some entries",
+            "• More than 4 projects in one day",
+            "• No training logged in current month",
+            "• Overtime worked more than twice in the week"
+        ];
+        amberRules.forEach(rule => {
+            doc.text(rule, margin + 4, y);
+            y += 5;
+        });
+        y += 5;
+
+        // RED section
+        if (y > 240) { doc.addPage(); y = 20; }
+        doc.setFillColor(220, 53, 69);
+        doc.rect(margin, y, 5, 5, 'F');
+        doc.setFontSize(12);
+        doc.setTextColor(220, 53, 69);
+        doc.setFont(undefined, 'bold');
+        doc.text(" RED – Action Required", margin + 8, y + 4);
+        y += 8;
+        doc.setFontSize(9);
+        doc.setTextColor(60, 60, 60);
+        doc.setFont(undefined, 'normal');
+        const redRules = [
+            "• Two or more missing working days (past)",
+            "• Weekly hours <30h (week filter)",
+            "• Any negative or impossible hours",
+            "• Duplicate entries detected",
+            "• More than 12 hours worked in one day",
+            "• Multiple zero‑hour days (>3)",
+            "• 3+ consecutive missing days",
+            "• Invalid project codes",
+            "• Unallocated hour entries",
+            "• Burnout risk (≥5 overtime days, weekend work, or ≥50h week)"
+        ];
+        redRules.forEach(rule => {
+            doc.text(rule, margin + 4, y);
+            y += 5;
+        });
+        y += 5;
+
+        // Special badges
+        if (y > 240) { doc.addPage(); y = 20; }
+        doc.setFontSize(12);
+        doc.setTextColor(108, 117, 125);
+        doc.setFont(undefined, 'bold');
+        doc.text("✨ Special Badges", margin, y);
+        y += 8;
+        doc.setFontSize(9);
+        doc.setTextColor(60, 60, 60);
+        doc.setFont(undefined, 'normal');
+        const badges = [
+            "🏆 Perfect Week: All GREEN criteria met, no corrections, submitted early.",
+            "⚡ Efficiency Mode: 40h week, no overtime, no missing days, admin <10%.",
+            "🌟 Rockstar Week: Perfect week + training logged + zero corrections.",
+            "⚠️ Burnout Risk: Forces RED status – unsustainable workload."
+        ];
+        badges.forEach(b => {
+            doc.text(b, margin + 4, y);
+            y += 5;
+        });
+        y += 5;
+
+        // Health score weights
+        if (y > 240) { doc.addPage(); y = 20; }
+        doc.setFontSize(12);
+        doc.setTextColor(108, 117, 125);
+        doc.setFont(undefined, 'bold');
+        doc.text("📊 Health Score Calculation (0–100)", margin, y);
+        y += 8;
+        doc.setFontSize(9);
+        doc.setTextColor(60, 60, 60);
+        doc.setFont(undefined, 'normal');
+        doc.text("The score starts at 100 and is reduced by weighted penalties:", margin, y);
+        y += 5;
+        const weightsList = [
+            "• Missing working day: -25 each (max -50)",
+            "• Weekly hours <30h: -30",
+            "• Duplicate entry: -5 each (max -15)",
+            "• Invalid project code: -10 each (max -20)",
+            "• Unallocated entry: -8 each (max -15)",
+            "• Day >12h: -15 each",
+            "• >3 zero‑hour days: -8",
+            "• 3+ consecutive missing days: -12",
+            "• Missing description: -2 each (max -10)",
+            "• Admin >15%: -5",
+            "• No training this month: -2",
+            "• Overtime day (over 2): -3 each extra day",
+            "• Day above 10h: -3 each",
+            "• Day below 7.5h: -3 each",
+            "• >4 projects in a day: -2 each",
+            "• Weekly target not reached (<40h): -5"
+        ];
+        weightsList.forEach(w => {
+            doc.text(w, margin + 4, y);
+            y += 5;
+        });
+        y += 5;
+
+        // Footer
+        if (y > 260) { doc.addPage(); y = 20; }
+        doc.setFontSize(8);
+        doc.setTextColor(150, 150, 150);
+        doc.text(`Generated: ${new Date().toLocaleString()} | Your Portfolio Timesheet System`, margin, y + 10);
+        doc.text("The traffic light evaluates only past working days (Mon–Fri, excluding SA public holidays).", margin, y + 15);
+        doc.text("Today's progress is shown in the tooltip but never penalises the colour.", margin, y + 20);
+
+        doc.save("Timesheet_TrafficLight_Rules.pdf");
+    }
+
+    // ---------- UI UPDATE ----------
     function updateTrafficLight() {
         const container = document.getElementById("standaloneTrafficLight");
         if (!container) return;
@@ -375,10 +555,15 @@
         `;
         container.innerHTML = html;
     }
-    
+
+    // ---------- EVENT LISTENERS ----------
     document.addEventListener("timesheetUpdated", updateTrafficLight);
     $(document).ready(function() {
         $("#filterRange, #filterProject, #filterCategory").on("change", updateTrafficLight);
+        $("#downloadRulesBtn").on("click", function(e) {
+            e.preventDefault();
+            downloadRulesPDF();
+        });
         setTimeout(updateTrafficLight, 500);
     });
     window.refreshStandaloneLight = updateTrafficLight;
