@@ -340,7 +340,7 @@
     return Object.values(dailyHours).reduce((sum, hrs) => sum + (hrs > 8 ? hrs - 8 : 0), 0);
   }
 
-  function updateSummaryAndProgress() {
+ function updateSummaryAndProgress() {
     const filtered = getFilteredEntries();
     const totalHours = filtered.reduce((s,e) => s + e.hours, 0);
     const billable = filtered.filter(e => e.billable === 'yes').reduce((s,e) => s + e.hours, 0);
@@ -352,15 +352,25 @@
     document.getElementById('summaryOvertime').innerText = overtime.toFixed(1);
     document.getElementById('summaryCard').style.display = 'flex';
 
-    const today = formatDate(new Date());
-    const todayHours = entries.filter(e => e.date === today).reduce((s,e) => s + e.hours, 0);
+    // FIXED: Use UTC date to avoid timezone offset
+    const now = new Date();
+    const todayUTC = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+    const todayStr = todayUTC.toISOString().split('T')[0];
+    const todayHours = entries.filter(e => e.date === todayStr).reduce((s,e) => s + e.hours, 0);
+    
     const percent = Math.min(100, (todayHours / 8) * 100);
     const fill = document.getElementById('dailyProgressFill');
     fill.style.width = percent + '%';
     fill.innerText = todayHours.toFixed(1) + 'h';
-    if (todayHours > 8) { fill.classList.add('overtime'); document.getElementById('overtimeWarning').style.display = 'block'; document.getElementById('overtimeWarning').innerHTML = `<i class="fa fa-exclamation-triangle"></i> Overtime: ${(todayHours-8).toFixed(1)}h over 8h today`; }
-    else { fill.classList.remove('overtime'); document.getElementById('overtimeWarning').style.display = 'none'; }
-  }
+    if (todayHours > 8) { 
+        fill.classList.add('overtime'); 
+        document.getElementById('overtimeWarning').style.display = 'block'; 
+        document.getElementById('overtimeWarning').innerHTML = `<i class="fa fa-exclamation-triangle"></i> Overtime: ${(todayHours-8).toFixed(1)}h over 8h today`; 
+    } else { 
+        fill.classList.remove('overtime'); 
+        document.getElementById('overtimeWarning').style.display = 'none'; 
+    }
+}
 
   function updateCharts() {
     const filtered = getFilteredEntries();
