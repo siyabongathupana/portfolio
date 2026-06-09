@@ -1,7 +1,66 @@
-// trafficlight-full.js – FULL FEATURES + correct past‑days‑only logic
+// trafficlight-full.js – Excludes weekends AND South African public holidays
 (function() {
+    // ---------- South African Public Holidays (2026) ----------
+    function isSouthAfricanPublicHoliday(date) {
+        const year = date.getFullYear();
+        const month = date.getMonth();
+        const day = date.getDate();
+        const key = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+        
+        // Static holidays (fixed dates)
+        const fixedHolidays = [
+            `${year}-01-01`, // New Year's Day
+            `${year}-03-21`, // Human Rights Day
+            `${year}-04-27`, // Freedom Day
+            `${year}-05-01`, // Workers' Day
+            `${year}-06-16`, // Youth Day
+            `${year}-08-09`, // National Women's Day
+            `${year}-09-24`, // Heritage Day
+            `${year}-12-16`, // Day of Reconciliation
+            `${year}-12-25`, // Christmas Day
+            `${year}-12-26`, // Day of Goodwill
+        ];
+        
+        // Movable holidays (calculated for the given year)
+        // Good Friday & Easter Monday are based on the Gregorian calculation
+        const easter = getEasterDate(year);
+        const goodFriday = new Date(easter);
+        goodFriday.setDate(easter.getDate() - 2);
+        const easterMonday = new Date(easter);
+        easterMonday.setDate(easter.getDate() + 1);
+        
+        const movableHolidays = [
+            formatYMD(goodFriday),
+            formatYMD(easterMonday),
+        ];
+        
+        // Family Day is 24 December? No, that's not standard. Actually Family Day is 26 Dec? Already covered.
+        // For completeness, add any other public holidays like "Day off for Christmas" etc.
+        
+        return fixedHolidays.includes(key) || movableHolidays.includes(key);
+    }
+    
+    // Calculate Easter Sunday (Anonymous Gregorian algorithm)
+    function getEasterDate(year) {
+        const a = year % 19;
+        const b = Math.floor(year / 100);
+        const c = year % 100;
+        const d = Math.floor(b / 4);
+        const e = b % 4;
+        const f = Math.floor((b + 8) / 25);
+        const g = Math.floor((b - f + 1) / 3);
+        const h = (19 * a + b - d - g + 15) % 30;
+        const i = Math.floor(c / 4);
+        const k = c % 4;
+        const l = (32 + 2 * e + 2 * i - h - k) % 7;
+        const m = Math.floor((a + 11 * h + 22 * l) / 451);
+        const month = Math.floor((h + l - 7 * m + 114) / 31);
+        const day = ((h + l - 7 * m + 114) % 31) + 1;
+        return new Date(year, month - 1, day);
+    }
+    
     function formatYMD(d) {
-        return d.toISOString(). split('T')[0];
+        return d.toISOString().split('T')[0];
     }
     function getMonday(date) {
         const d = new Date(date);
@@ -11,17 +70,21 @@
         d.setHours(0,0,0,0);
         return d;
     }
-    // Get weekdays up to maxDate (exclusive of maxDate itself)
-    function getWeekdaysUpTo(start, end, maxDate) {
-        const weekdays = [];
+    // Get weekdays (Mon-Fri) up to maxDate, excluding public holidays
+    function getWorkingDaysUpTo(start, end, maxDate) {
+        const workingDays = [];
         let current = new Date(start);
         const limit = maxDate < end ? maxDate : end;
         while (current <= limit) {
             const day = current.getDay();
-            if (day !== 0 && day !== 6) weekdays.push(new Date(current));
+            const isWeekend = (day === 0 || day === 6);
+            const isHoliday = isSouthAfricanPublicHoliday(current);
+            if (!isWeekend && !isHoliday) {
+                workingDays.push(new Date(current));
+            }
             current.setDate(current.getDate() + 1);
         }
-        return weekdays;
+        return workingDays;
     }
     function checkTrainingThisMonth(entries, today) {
         const year = today.getFullYear();
@@ -38,9 +101,9 @@
             return (day === 0 || day === 6) && d >= start && d <= end;
         });
     }
-    function findConsecutiveMissing(weekdays, dayMap) {
+    function findConsecutiveMissing(workingDays, dayMap) {
         let max = 0, cur = 0;
-        for (let day of weekdays) {
+        for (let day of workingDays) {
             const hrs = dayMap.get(formatYMD(day))?.hours || 0;
             if (hrs === 0) {
                 cur++;
@@ -65,7 +128,6 @@
         const todayStart = new Date(today);
         todayStart.setHours(0,0,0,0);
 
-        // Define date range for this filter
         let startDate, endDate;
         if (filterType === 'day') {
             startDate = new Date(todayStart);
@@ -79,22 +141,20 @@
         } else if (filterType === 'month') {
             startDate = new Date(todayStart.getFullYear(), todayStart.getMonth(), 1);
             endDate = new Date(todayStart.getFullYear(), todayStart.getMonth() + 1, 0);
-        } else { // 'all'
+        } else {
             const first = getEarliestEntryDate(entries);
             if (!first) return null;
             startDate = first;
             endDate = todayStart;
         }
 
-        // Only past days (strictly before today) are evaluated for missing, daily targets, overtime, etc.
+        // Only working days (Mon-Fri excluding public holidays) that are BEFORE today
         const cutoff = new Date(todayStart);
-        const pastDays = getWeekdaysUpTo(startDate, endDate, new Date(cutoff.getTime() - 86400000));
+        const workingDays = getWorkingDaysUpTo(startDate, endDate, new Date(cutoff.getTime() - 86400000));
         const dayMap = new Map();
-        pastDays.forEach(day => dayMap.set(formatYMD(day), { hours: 0, projects: new Set(), hasNotes: false }));
+        workingDays.forEach(day => dayMap.set(formatYMD(day), { hours: 0, projects: new Set(), hasNotes: false }));
 
-        // Today's data (for info only)
         let todayHours = 0, todayProjects = new Set(), todayHasNotes = false;
-
         let totalHours = 0, adminHours = 0;
         let duplicateEntries = [], negativeHours = false;
         let invalidProjects = new Set();
@@ -109,7 +169,6 @@
             if (entry.category === 'Admin') adminHours += hrs;
             if (hrs < 0 || hrs > 24) negativeHours = true;
 
-            // Duplicate detection
             const key = `${entry.date}|${entry.start}|${entry.end}|${entry.project}`;
             if (seen.has(key)) duplicateEntries.push(entry);
             else seen.add(key);
@@ -128,7 +187,6 @@
             }
         });
 
-        // Validate project codes against options
         if (window.__timesheetProjectOptions && window.__timesheetProjectOptions.length) {
             entries.forEach(entry => {
                 const entryDate = new Date(entry.date);
@@ -138,15 +196,18 @@
             });
         }
 
-        // Metrics from past days only
-        let missingDays = 0, daysBelowTarget = 0, daysOutside759 = 0, daysAbove10 = 0, daysAbove12 = 0;
+        let missingDays = 0, missingDates = [];
+        let daysBelowTarget = 0, daysOutside759 = 0, daysAbove10 = 0, daysAbove12 = 0;
         let daysManyProjects = 0, overtimeDays = 0, notesMissing = 0, zeroHourDays = 0;
 
-        for (let [_, data] of dayMap) {
+        for (let [dateStr, data] of dayMap) {
             const hrs = data.hours;
             const projCount = data.projects.size;
             const hasNotes = data.hasNotes;
-            if (hrs === 0) missingDays++;
+            if (hrs === 0) {
+                missingDays++;
+                missingDates.push(dateStr);
+            }
             if (hrs > 0 && hrs < 7.5) daysBelowTarget++;
             if (hrs > 0 && (hrs < 7.5 || hrs > 9)) daysOutside759++;
             if (hrs > 10) daysAbove10++;
@@ -159,25 +220,23 @@
 
         const totalProjectsWorked = new Set(Array.from(dayMap.values()).flatMap(d => Array.from(d.projects))).size;
         const adminRatio = totalHours > 0 ? (adminHours / totalHours) * 100 : 0;
-        const consecutiveMissing = findConsecutiveMissing(pastDays, dayMap);
+        const consecutiveMissing = findConsecutiveMissing(workingDays, dayMap);
         const trainingThisMonth = checkTrainingThisMonth(entries, todayStart);
         const hasWeekendWork = checkWeekendWork(entries, startDate, endDate);
         const unallocated = entries.filter(e => {
             const d = new Date(e.date);
             return d >= startDate && d <= endDate && (!e.project || e.project.trim() === "");
         }).length;
-
         const weeklyTargetReached = totalHours >= 40;
         const weeklySignificantlyBelow = totalHours < 30;
 
-        // ----- FLAGS (only for past days, and filter-specific) -----
         let redFlags = [], amberFlags = [];
 
         if (filterType === 'week' || filterType === 'day') {
-            if (missingDays >= 2) redFlags.push(`${missingDays} missing past working days`);
-            else if (missingDays === 1) amberFlags.push("One missing past working day");
+            if (missingDays >= 2) redFlags.push(`${missingDays} missing working days (excl. weekends & public holidays)`);
+            else if (missingDays === 1) amberFlags.push("One missing working day");
         } else {
-            if (missingDays > 15) redFlags.push(`Many missing days (${missingDays})`);
+            if (missingDays > 15) redFlags.push(`Many missing working days (${missingDays})`);
         }
 
         if (weeklySignificantlyBelow && filterType === 'week') redFlags.push("Weekly hours <30h");
@@ -198,7 +257,6 @@
         if (!trainingThisMonth) amberFlags.push("No training this month");
         if (overtimeDays > 2) amberFlags.push(`${overtimeDays} overtime days (>8h)`);
 
-        // Special badges
         let specialBadge = null, specialMsg = null;
         if (overtimeDays >= 5 || hasWeekendWork || totalHours >= 50) {
             specialBadge = "burnout";
@@ -230,10 +288,9 @@
         if (specialBadge === "burnout") status = "red", reasons = redFlags;
         else if (redFlags.length) status = "red", reasons = redFlags;
         else if (amberFlags.length) status = "amber", reasons = amberFlags;
-        else if (allGreen) reasons = ["All good for past days."];
+        else if (allGreen) reasons = ["All good for past working days."];
         else reasons = ["Check details"];
 
-        // Weighted score
         let score = 100;
         const weights = {
             missingDay: 25, weeklyBelow30: 30, duplicate: 5, invalidProject: 10, unallocated: 8,
@@ -261,8 +318,8 @@
         if (specialBadge === "rockstar" || specialBadge === "perfect") score = 100;
         if (specialBadge === "efficiency") score = 95;
 
-        // Today info
         const todayIsWeekday = todayStart.getDay() !== 0 && todayStart.getDay() !== 6;
+        const todayIsHoliday = isSouthAfricanPublicHoliday(todayStart);
         let todayMsg = "";
         if (filterType === 'day') {
             if (todayHours === 0) todayMsg = "No hours logged yet today.";
@@ -270,14 +327,18 @@
             else if (todayHours > 9) todayMsg = `${todayHours.toFixed(1)}h today (above target).`;
             else todayMsg = `${todayHours.toFixed(1)}h today – good range.`;
         } else {
-            if (todayIsWeekday) {
+            if (todayIsWeekday && !todayIsHoliday) {
                 if (todayHours === 0) todayMsg = "No hours logged yet today (not penalised).";
                 else todayMsg = `Today: ${todayHours.toFixed(1)}h so far.`;
-            } else todayMsg = "Weekend – no expectation.";
+            } else if (todayIsHoliday) {
+                todayMsg = "Today is a public holiday – no expectation.";
+            } else {
+                todayMsg = "Weekend – no expectation.";
+            }
         }
 
         return {
-            status, reasons, score, specialMsg, todayMsg,
+            status, reasons, score, specialMsg, todayMsg, missingDates,
             metrics: {
                 totalHours: totalHours.toFixed(1),
                 missingDays,
@@ -307,8 +368,12 @@
         const greenLit = health.status === "green" ? "lit" : "";
 
         let tooltip = `${health.status.toUpperCase()} – Score: ${health.score}/100\n`;
-        tooltip += `📅 Past missing days: ${health.metrics.missingDays}\n`;
-        tooltip += `📊 Total hours (period): ${health.metrics.totalHours}\n`;
+        tooltip += `📅 Past missing working days: ${health.metrics.missingDays}`;
+        if (health.missingDates.length) {
+            const dates = health.missingDates.slice(0, 3).join(", ");
+            tooltip += ` [${dates}]${health.missingDates.length > 3 ? "..." : ""}`;
+        }
+        tooltip += `\n📊 Total hours (period): ${health.metrics.totalHours}\n`;
         tooltip += `⚙️ Admin: ${health.metrics.adminRatio}% | O/T days: ${health.metrics.overtimeDays}\n`;
         if (health.reasons.length) tooltip += `⚠️ Issues: ${health.reasons.slice(0,2).join(", ")}${health.reasons.length>2?"...":""}\n`;
         tooltip += `📌 ${health.todayMsg}\n`;
