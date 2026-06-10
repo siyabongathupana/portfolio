@@ -781,7 +781,7 @@
             sort: false, autoFilter: false, pivotTables: false
         });
 
-        // ==================== SUMMARY SHEET (Enlarged Bar Chart with Bigger Fonts) ====================
+        // ==================== SUMMARY SHEET (Bar chart – huge fonts) ====================
         const summarySheet = workbook.addWorksheet("Summary", {
             pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, paperSize: 9 }
         });
@@ -820,7 +820,7 @@
             r++;
         }
 
-        // Bar chart – larger insertion and bigger fonts
+        // Bar chart – with huge fonts (60px legend, 48px axis labels)
         try {
             const projMap = {};
             filtered.forEach(e => { projMap[e.project] = (projMap[e.project] || 0) + e.hours; });
@@ -837,12 +837,12 @@
                     responsive: false,
                     maintainAspectRatio: true,
                     plugins: {
-                        legend: { labels: { font: { size: 26 } } },
-                        tooltip: { bodyFont: { size: 18 } }
+                        legend: { labels: { font: { size: 60 } } },
+                        tooltip: { bodyFont: { size: 30 } }
                     },
                     scales: {
-                        x: { ticks: { font: { size: 20 } }, title: { display: true, text: 'Project', font: { size: 24 } } },
-                        y: { ticks: { font: { size: 20 } }, title: { display: true, text: 'Hours', font: { size: 24 } } }
+                        x: { ticks: { font: { size: 48 } }, title: { display: true, text: 'Project', font: { size: 56 } } },
+                        y: { ticks: { font: { size: 48 } }, title: { display: true, text: 'Hours', font: { size: 56 } } }
                     }
                 }
             });
@@ -850,7 +850,6 @@
             const chartBase64 = canvas.toDataURL('image/png');
             chart.destroy();
             const chartImageId = workbook.addImage({ base64: chartBase64, extension: 'png' });
-            // Slightly larger: width 320mm, height 180mm (was 290x163)
             summarySheet.addImage(chartImageId, {
                 tl: { col: 0, row: 12 },
                 ext: { width: 320, height: 180 },
@@ -862,7 +861,7 @@
         summarySheet.getCell('A35').font = { italic: true, size: 8 };
         summarySheet.mergeCells('A35:C35');
 
-        // ==================== CHARTS SHEET (Bigger Charts, Larger Fonts) ====================
+        // ==================== CHARTS SHEET (All charts – huge fonts) ====================
         const chartsSheet = workbook.addWorksheet("Charts", {
             pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, paperSize: 9 }
         });
@@ -874,7 +873,7 @@
         chartsTitle.alignment = { horizontal: 'center' };
         chartsSheet.getRow(1).height = 28;
 
-        // 1. Pie chart – larger: 280x280 mm (was 250x250)
+        // 1. Pie chart – legend font 48px
         try {
             const catMap = {};
             filtered.forEach(e => { catMap[e.category] = (catMap[e.category] || 0) + e.hours; });
@@ -891,8 +890,8 @@
                     responsive: false,
                     maintainAspectRatio: true,
                     plugins: {
-                        legend: { position: 'right', labels: { font: { size: 20 } } },
-                        tooltip: { bodyFont: { size: 16 } }
+                        legend: { position: 'right', labels: { font: { size: 48 } } },
+                        tooltip: { bodyFont: { size: 30 } }
                     }
                 }
             });
@@ -907,7 +906,7 @@
             });
         } catch(e) { console.warn("Pie chart skipped", e); }
 
-        // 2. Line chart – wider: 330x165 mm (was 290x145)
+        // 2. Line chart – huge fonts
         try {
             const weeklyTotals = {};
             filtered.forEach(e => {
@@ -927,12 +926,12 @@
                     responsive: false,
                     maintainAspectRatio: true,
                     plugins: {
-                        legend: { labels: { font: { size: 24 } } },
-                        tooltip: { bodyFont: { size: 16 } }
+                        legend: { labels: { font: { size: 60 } } },
+                        tooltip: { bodyFont: { size: 30 } }
                     },
                     scales: {
-                        x: { ticks: { font: { size: 18 } }, title: { display: true, text: 'Week', font: { size: 22 } } },
-                        y: { ticks: { font: { size: 18 } }, title: { display: true, text: 'Hours', font: { size: 22 } } }
+                        x: { ticks: { font: { size: 48 } }, title: { display: true, text: 'Week', font: { size: 56 } } },
+                        y: { ticks: { font: { size: 48 } }, title: { display: true, text: 'Hours', font: { size: 56 } } }
                     }
                 }
             });
@@ -947,7 +946,7 @@
             });
         } catch(e) { console.warn("Line chart skipped", e); }
 
-        // 3. Doughnut chart – larger: 280x280 mm (was 250x250)
+        // 3. Doughnut chart – legend 56px
         try {
             const canvas = document.createElement('canvas');
             canvas.width = 1000;
@@ -960,8 +959,8 @@
                     responsive: false,
                     maintainAspectRatio: true,
                     plugins: {
-                        legend: { labels: { font: { size: 22 } } },
-                        tooltip: { bodyFont: { size: 16 } }
+                        legend: { labels: { font: { size: 56 } } },
+                        tooltip: { bodyFont: { size: 30 } }
                     }
                 }
             });
@@ -976,7 +975,7 @@
             });
         } catch(e) { console.warn("Doughnut chart skipped", e); }
 
-        // 4. Stacked bar – wider: 330x198 mm (was 290x174)
+        // 4. Stacked bar – huge fonts
         try {
             const weeklyAdmin = {};
             const weeklyProject = {};
@@ -1005,12 +1004,12 @@
                     responsive: false,
                     maintainAspectRatio: true,
                     scales: {
-                        x: { stacked: true, ticks: { font: { size: 18 } }, title: { display: true, text: 'Week', font: { size: 22 } } },
-                        y: { stacked: true, ticks: { font: { size: 18 } }, title: { display: true, text: 'Hours', font: { size: 22 } } }
+                        x: { stacked: true, ticks: { font: { size: 48 } }, title: { display: true, text: 'Week', font: { size: 56 } } },
+                        y: { stacked: true, ticks: { font: { size: 48 } }, title: { display: true, text: 'Hours', font: { size: 56 } } }
                     },
                     plugins: {
-                        legend: { labels: { font: { size: 20 } } },
-                        tooltip: { bodyFont: { size: 16 } }
+                        legend: { labels: { font: { size: 52 } } },
+                        tooltip: { bodyFont: { size: 30 } }
                     }
                 }
             });
@@ -1029,7 +1028,7 @@
         chartsSheet.getCell('A70').font = { italic: true, size: 8 };
         chartsSheet.mergeCells('A70:C70');
 
-        // ==================== ADVANCED ANALYSIS SHEET (unchanged, beautifully styled) ====================
+        // ==================== ADVANCED ANALYSIS SHEET (unchanged) ====================
         const analysisSheet = workbook.addWorksheet("Advanced Analysis", {
             pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, paperSize: 9 }
         });
@@ -1044,7 +1043,7 @@
         analysisSheet.getRow(1).height = 32;
 
         let rowIdx = 3;
-        // Helper functions (unchanged)
+        // Helper functions (unchanged – they don't affect charts)
         function addSectionHeader(title, startRow) {
             const cell = analysisSheet.getCell(`A${startRow}`);
             cell.value = title;
@@ -1102,7 +1101,7 @@
             return r + 1;
         }
 
-        // Build analysis content (same as original)
+        // Build analysis content (same as before)
         rowIdx = addSectionHeader("📈 KEY METRICS", rowIdx);
         const workingDays = new Set(filtered.map(e => e.date));
         const avgDaily = totalHours / workingDays.size;
@@ -1204,7 +1203,7 @@
         const buffer = await workbook.xlsx.writeBuffer();
         const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
         saveAs(blob, `Timesheet_${startDate}_to_${endDate}_readonly.xlsx`);
-        showToast("Excel report generated – charts enlarged, fonts much bigger!", "success");
+        showToast("Excel report generated – chart fonts are now large and readable!", "success");
     } catch (err) {
         console.error("Excel export error:", err);
         showToast("Excel generation failed: " + err.message, "error");
