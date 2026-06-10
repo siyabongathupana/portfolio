@@ -1,5 +1,17 @@
 [
   {
+    "id": 1781070091310,
+    "date": "2026-06-10",
+    "start": "07:15",
+    "end": "07:41",
+    "hours": 0.43,
+    "project": "Other",
+    "category": "Admin",
+    "billable": "no",
+    "notes": "Discussions on IFAT (OMNIA)",
+    "updatedAt": 1781070091310
+  },
+  {
     "id": 1780947171053,
     "date": "2026-06-09",
     "start": "08:30",
