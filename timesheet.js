@@ -604,7 +604,7 @@
   async function exportStyledExcel(startDate, endDate) {
     window.showLoading("Generating Excel report...");
     try {
-        // Helper fallbacks (in case they are missing from the main script)
+        // Helper fallbacks
         if (typeof getWeekNumber === 'undefined') {
             window.getWeekNumber = function(date) {
                 const d = new Date(date);
@@ -635,14 +635,14 @@
         const weekFills = weeks.map((w, idx) => ({
             week: w,
             fill: idx % 2 === 0 
-                ? { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE6F0FA' } } // light blue
-                : { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF8E7' } } // light cream
+                ? { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE6F0FA' } }
+                : { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF8E7' } }
         }));
         const getRowFill = (entry) => weekFills.find(wf => wf.week === entry.weekKey)?.fill || { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } };
 
         const workbook = new ExcelJS.Workbook();
         
-        // ==================== MAIN DATA SHEET ====================
+        // ==================== MAIN DATA SHEET (unchanged) ====================
         const worksheet = workbook.addWorksheet("Timesheet Data", {
             pageSetup: {
                 orientation: 'landscape',
@@ -675,7 +675,6 @@
         }
         worksheet.columns = colMaxLen.map(w => ({ width: w + 2 }));
 
-        // Header section
         worksheet.mergeCells('A1:H1');
         const titleCell = worksheet.getCell('A1');
         titleCell.value = `TIMESHEET REPORT - ${userFullName || user.username}`;
@@ -704,7 +703,6 @@
         summaryCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9EDF7' } };
         worksheet.getRow(3).height = 24;
 
-        // Headers row
         const headerRow = worksheet.getRow(4);
         headers.forEach((h, idx) => {
             const cell = headerRow.getCell(idx+1);
@@ -716,7 +714,6 @@
         });
         worksheet.getRow(4).height = 22;
 
-        // Data rows
         let currentRow = 5;
         for (const entry of filtered) {
             const row = worksheet.getRow(currentRow);
@@ -750,7 +747,6 @@
             currentRow++;
         }
 
-        // Total row
         const totalRowNum = currentRow;
         const totalRow = worksheet.getRow(totalRowNum);
         totalRow.getCell(4).value = totalHours.toFixed(1);
@@ -762,7 +758,6 @@
             if (i !== 4) cell.value = '';
         }
 
-        // Auto row height for Notes column
         worksheet.eachRow((row, rowNumber) => {
             let maxHeight = 18;
             const noteCell = row.getCell(8);
@@ -820,7 +815,7 @@
             r++;
         }
 
-        // Bar chart (large, clear)
+        // Bar chart (with validation)
         try {
             const projMap = {};
             filtered.forEach(e => { projMap[e.project] = (projMap[e.project] || 0) + e.hours; });
@@ -849,15 +844,17 @@
             await new Promise(r => setTimeout(r, 600));
             const chartBase64 = canvas.toDataURL('image/png');
             chart.destroy();
-            const chartImageId = workbook.addImage({ base64: chartBase64, extension: 'png' });
-            summarySheet.addImage(chartImageId, { x: 10, y: 80, width: 280, height: 157 });
+            if (chartBase64 && chartBase64.length > 1000) {
+                const chartImageId = workbook.addImage({ base64: chartBase64, extension: 'png' });
+                summarySheet.addImage(chartImageId, { x: 10, y: 80, width: 280, height: 157 });
+            }
         } catch(e) { console.warn("Bar chart skipped", e); }
 
         summarySheet.getCell('A35').value = `Generated: ${new Date().toLocaleString()} | Your Portfolio System`;
         summarySheet.getCell('A35').font = { italic: true, size: 8 };
         summarySheet.mergeCells('A35:C35');
 
-        // ==================== CHARTS SHEET (ABSOLUTE POSITIONING, NO OVERLAP) ====================
+        // ==================== CHARTS SHEET (with validation) ====================
         const chartsSheet = workbook.addWorksheet("Charts", {
             pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, paperSize: 9 }
         });
@@ -869,8 +866,21 @@
         chartsTitle.alignment = { horizontal: 'center' };
         chartsSheet.getRow(1).height = 28;
 
-        // 1. Pie chart (top left)
-        try {
+        // Helper to safely add chart image
+        async function addChartImage(workbook, sheet, chartGenerator, x, y, width, height) {
+            try {
+                const base64 = await chartGenerator();
+                if (base64 && base64.length > 1000 && base64.startsWith('data:image/png;base64,')) {
+                    const imageId = workbook.addImage({ base64: base64, extension: 'png' });
+                    sheet.addImage(imageId, { x: x, y: y, width: width, height: height });
+                    return true;
+                }
+            } catch(e) { console.warn("Chart image skipped", e); }
+            return false;
+        }
+
+        // 1. Pie chart
+        await addChartImage(workbook, chartsSheet, async () => {
             const catMap = {};
             filtered.forEach(e => { catMap[e.category] = (catMap[e.category] || 0) + e.hours; });
             const catLabels = Object.keys(catMap);
@@ -885,21 +895,17 @@
                 options: {
                     responsive: false,
                     maintainAspectRatio: true,
-                    plugins: {
-                        legend: { position: 'right', labels: { font: { size: 16 } } },
-                        tooltip: { bodyFont: { size: 14 } }
-                    }
+                    plugins: { legend: { position: 'right', labels: { font: { size: 16 } } }, tooltip: { bodyFont: { size: 14 } } }
                 }
             });
             await new Promise(r => setTimeout(r, 600));
-            const pieBase64 = canvas.toDataURL('image/png');
+            const base64 = canvas.toDataURL('image/png');
             pieChart.destroy();
-            const pieImageId = workbook.addImage({ base64: pieBase64, extension: 'png' });
-            chartsSheet.addImage(pieImageId, { x: 10, y: 30, width: 130, height: 130 });
-        } catch(e) { console.warn("Pie chart skipped", e); }
+            return base64;
+        }, 10, 30, 130, 130);
 
-        // 2. Line chart (top right)
-        try {
+        // 2. Line chart
+        await addChartImage(workbook, chartsSheet, async () => {
             const weeklyTotals = {};
             filtered.forEach(e => {
                 const week = `${new Date(e.date).getFullYear()}-W${getWeekNumber(e.date)}`;
@@ -917,10 +923,7 @@
                 options: {
                     responsive: false,
                     maintainAspectRatio: true,
-                    plugins: {
-                        legend: { labels: { font: { size: 18 } } },
-                        tooltip: { bodyFont: { size: 14 } }
-                    },
+                    plugins: { legend: { labels: { font: { size: 18 } } }, tooltip: { bodyFont: { size: 14 } } },
                     scales: {
                         x: { ticks: { font: { size: 12 } }, title: { display: true, text: 'Week', font: { size: 14 } } },
                         y: { ticks: { font: { size: 12 } }, title: { display: true, text: 'Hours', font: { size: 14 } } }
@@ -928,14 +931,13 @@
                 }
             });
             await new Promise(r => setTimeout(r, 600));
-            const lineBase64 = canvas.toDataURL('image/png');
+            const base64 = canvas.toDataURL('image/png');
             lineChart.destroy();
-            const lineImageId = workbook.addImage({ base64: lineBase64, extension: 'png' });
-            chartsSheet.addImage(lineImageId, { x: 150, y: 30, width: 140, height: 100 });
-        } catch(e) { console.warn("Line chart skipped", e); }
+            return base64;
+        }, 150, 30, 140, 100);
 
-        // 3. Doughnut chart (bottom left)
-        try {
+        // 3. Doughnut chart
+        await addChartImage(workbook, chartsSheet, async () => {
             const canvas = document.createElement('canvas');
             canvas.width = 800;
             canvas.height = 800;
@@ -946,21 +948,17 @@
                 options: {
                     responsive: false,
                     maintainAspectRatio: true,
-                    plugins: {
-                        legend: { labels: { font: { size: 18 } } },
-                        tooltip: { bodyFont: { size: 14 } }
-                    }
+                    plugins: { legend: { labels: { font: { size: 18 } } }, tooltip: { bodyFont: { size: 14 } } }
                 }
             });
             await new Promise(r => setTimeout(r, 600));
-            const doughnutBase64 = canvas.toDataURL('image/png');
+            const base64 = canvas.toDataURL('image/png');
             doughnutChart.destroy();
-            const doughnutImageId = workbook.addImage({ base64: doughnutBase64, extension: 'png' });
-            chartsSheet.addImage(doughnutImageId, { x: 10, y: 150, width: 130, height: 130 });
-        } catch(e) { console.warn("Doughnut chart skipped", e); }
+            return base64;
+        }, 10, 150, 130, 130);
 
-        // 4. Stacked bar chart (bottom right)
-        try {
+        // 4. Stacked bar chart
+        await addChartImage(workbook, chartsSheet, async () => {
             const weeklyAdmin = {};
             const weeklyProject = {};
             filtered.forEach(e => {
@@ -995,17 +993,16 @@
                 }
             });
             await new Promise(r => setTimeout(r, 600));
-            const stackedBase64 = canvas.toDataURL('image/png');
+            const base64 = canvas.toDataURL('image/png');
             stackedChart.destroy();
-            const stackedImageId = workbook.addImage({ base64: stackedBase64, extension: 'png' });
-            chartsSheet.addImage(stackedImageId, { x: 150, y: 150, width: 140, height: 120 });
-        } catch(e) { console.warn("Stacked bar chart skipped", e); }
+            return base64;
+        }, 150, 150, 140, 120);
 
         chartsSheet.getCell('A65').value = `Generated: ${new Date().toLocaleString()} | Your Portfolio System`;
         chartsSheet.getCell('A65').font = { italic: true, size: 8 };
         chartsSheet.mergeCells('A65:C65');
 
-        // ==================== ADVANCED ANALYSIS SHEET (FULLY STYLED) ====================
+        // ==================== ADVANCED ANALYSIS SHEET (same as before) ====================
         const analysisSheet = workbook.addWorksheet("Advanced Analysis", {
             pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, paperSize: 9 }
         });
@@ -1020,7 +1017,6 @@
         analysisSheet.getRow(1).height = 32;
 
         let rowIdx = 3;
-        // Helper functions for styling
         function addSectionHeader(title, startRow) {
             const cell = analysisSheet.getCell(`A${startRow}`);
             cell.value = title;
@@ -1078,7 +1074,6 @@
             return r + 1;
         }
 
-        // Build the analysis content
         rowIdx = addSectionHeader("📈 KEY METRICS", rowIdx);
         const workingDays = new Set(filtered.map(e => e.date));
         const avgDaily = totalHours / workingDays.size;
@@ -1180,7 +1175,7 @@
         const buffer = await workbook.xlsx.writeBuffer();
         const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
         saveAs(blob, `Timesheet_${startDate}_to_${endDate}_readonly.xlsx`);
-        showToast("Excel report generated – fully styled, no overlap, readable fonts!", "success");
+        showToast("Excel report generated – charts now safe from missing image errors.", "success");
     } catch (err) {
         console.error("Excel export error:", err);
         showToast("Excel generation failed: " + err.message, "error");
