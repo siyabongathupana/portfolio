@@ -604,7 +604,7 @@
   async function exportStyledExcel(startDate, endDate) {
     window.showLoading("Generating Excel report...");
     try {
-        // Helper fallbacks
+        // Helper fallbacks (same as before)
         if (typeof getWeekNumber === 'undefined') {
             window.getWeekNumber = function(date) {
                 const d = new Date(date);
@@ -820,15 +820,15 @@
             r++;
         }
 
-        // Bar chart: hours per project (fixed aspect ratio)
+        // Bar chart: hours per project (LARGER)
         try {
             const projMap = {};
             filtered.forEach(e => { projMap[e.project] = (projMap[e.project] || 0) + e.hours; });
             const projLabels = Object.keys(projMap).slice(0, 8);
             const projData = projLabels.map(l => projMap[l]);
             const canvas = document.createElement('canvas');
-            canvas.width = 800;
-            canvas.height = 450;
+            canvas.width = 1200;
+            canvas.height = 700;
             const ctx = canvas.getContext('2d');
             const chart = new Chart(ctx, {
                 type: 'bar',
@@ -839,10 +839,10 @@
             const chartBase64 = canvas.toDataURL('image/png');
             chart.destroy();
             const chartImageId = workbook.addImage({ base64: chartBase64, extension: 'png' });
-            // Place image with correct aspect ratio (800x450 -> width 200mm, height 112.5mm)
+            // Insert larger: width 280mm, height 163mm (keeps 1.71 ratio)
             summarySheet.addImage(chartImageId, {
                 tl: { col: 0, row: 12 },
-                ext: { width: 200, height: 112.5 },
+                ext: { width: 280, height: 163 },
                 editAs: 'oneCell'
             });
         } catch(e) { console.warn("Bar chart skipped", e); }
@@ -851,7 +851,7 @@
         summarySheet.getCell('A35').font = { italic: true, size: 8 };
         summarySheet.mergeCells('A35:C35');
 
-        // ==================== CHARTS SHEET (fixed aspect ratios) ====================
+        // ==================== CHARTS SHEET (larger sizes) ====================
         const chartsSheet = workbook.addWorksheet("Charts", {
             pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, paperSize: 9 }
         });
@@ -864,15 +864,15 @@
         chartsTitle.alignment = { horizontal: 'center' };
         chartsSheet.getRow(1).height = 28;
 
-        // 1. Pie chart: Hours by Category (square)
+        // 1. Pie chart: Hours by Category (square, larger)
         try {
             const catMap = {};
             filtered.forEach(e => { catMap[e.category] = (catMap[e.category] || 0) + e.hours; });
             const catLabels = Object.keys(catMap);
             const catData = catLabels.map(l => catMap[l]);
             const canvas = document.createElement('canvas');
-            canvas.width = 500;
-            canvas.height = 500; // square for pie
+            canvas.width = 800;
+            canvas.height = 800;
             const ctx = canvas.getContext('2d');
             const pieChart = new Chart(ctx, {
                 type: 'pie',
@@ -885,12 +885,12 @@
             const pieImageId = workbook.addImage({ base64: pieBase64, extension: 'png' });
             chartsSheet.addImage(pieImageId, {
                 tl: { col: 0, row: 3 },
-                ext: { width: 150, height: 150 },
+                ext: { width: 220, height: 220 },
                 editAs: 'oneCell'
             });
         } catch(e) { console.warn("Pie chart skipped", e); }
 
-        // 2. Line chart: Weekly Hours Trend (wide)
+        // 2. Line chart: Weekly Hours Trend (wider, larger)
         try {
             const weeklyTotals = {};
             filtered.forEach(e => {
@@ -900,8 +900,8 @@
             const weeksSorted = Object.keys(weeklyTotals).sort();
             const weekData = weeksSorted.map(w => weeklyTotals[w]);
             const canvas = document.createElement('canvas');
-            canvas.width = 800;
-            canvas.height = 400;
+            canvas.width = 1200;
+            canvas.height = 600;
             const ctx = canvas.getContext('2d');
             const lineChart = new Chart(ctx, {
                 type: 'line',
@@ -914,16 +914,16 @@
             const lineImageId = workbook.addImage({ base64: lineBase64, extension: 'png' });
             chartsSheet.addImage(lineImageId, {
                 tl: { col: 6, row: 3 },
-                ext: { width: 200, height: 100 },
+                ext: { width: 280, height: 140 },
                 editAs: 'oneCell'
             });
         } catch(e) { console.warn("Line chart skipped", e); }
 
-        // 3. Doughnut chart: Billable vs Non-Billable (square)
+        // 3. Doughnut chart: Billable vs Non-Billable (square, larger)
         try {
             const canvas = document.createElement('canvas');
-            canvas.width = 500;
-            canvas.height = 500;
+            canvas.width = 800;
+            canvas.height = 800;
             const ctx = canvas.getContext('2d');
             const doughnutChart = new Chart(ctx, {
                 type: 'doughnut',
@@ -935,13 +935,13 @@
             doughnutChart.destroy();
             const doughnutImageId = workbook.addImage({ base64: doughnutBase64, extension: 'png' });
             chartsSheet.addImage(doughnutImageId, {
-                tl: { col: 0, row: 20 },
-                ext: { width: 150, height: 150 },
+                tl: { col: 0, row: 28 },
+                ext: { width: 220, height: 220 },
                 editAs: 'oneCell'
             });
         } catch(e) { console.warn("Doughnut chart skipped", e); }
 
-        // 4. Stacked bar: Admin vs Project Hours per week (square-ish)
+        // 4. Stacked bar: Admin vs Project Hours per week (larger)
         try {
             const weeklyAdmin = {};
             const weeklyProject = {};
@@ -957,8 +957,8 @@
             const adminData = allWeeks.map(w => weeklyAdmin[w] || 0);
             const projectData = allWeeks.map(w => weeklyProject[w] || 0);
             const canvas = document.createElement('canvas');
-            canvas.width = 800;
-            canvas.height = 500;
+            canvas.width = 1200;
+            canvas.height = 700;
             const ctx = canvas.getContext('2d');
             const stackedChart = new Chart(ctx, {
                 type: 'bar',
@@ -973,23 +973,22 @@
             stackedChart.destroy();
             const stackedImageId = workbook.addImage({ base64: stackedBase64, extension: 'png' });
             chartsSheet.addImage(stackedImageId, {
-                tl: { col: 6, row: 20 },
-                ext: { width: 200, height: 125 },
+                tl: { col: 6, row: 28 },
+                ext: { width: 280, height: 163 },
                 editAs: 'oneCell'
             });
         } catch(e) { console.warn("Stacked bar chart skipped", e); }
 
-        chartsSheet.getCell('A58').value = `Generated: ${new Date().toLocaleString()} | Your Portfolio System`;
-        chartsSheet.getCell('A58').font = { italic: true, size: 8 };
-        chartsSheet.mergeCells('A58:C58');
+        chartsSheet.getCell('A65').value = `Generated: ${new Date().toLocaleString()} | Your Portfolio System`;
+        chartsSheet.getCell('A65').font = { italic: true, size: 8 };
+        chartsSheet.mergeCells('A65:C65');
 
-        // ==================== ADVANCED ANALYSIS SHEET (styled) ====================
+        // ==================== ADVANCED ANALYSIS SHEET (styled, same as before) ====================
         const analysisSheet = workbook.addWorksheet("Advanced Analysis", {
             pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, paperSize: 9 }
         });
         analysisSheet.columns = [{ width: 28 }, { width: 22 }, { width: 35 }];
         
-        // Title
         analysisSheet.mergeCells('A1:C1');
         const analysisTitle = analysisSheet.getCell('A1');
         analysisTitle.value = "DEEP DIVE ANALYSIS";
@@ -999,7 +998,7 @@
         analysisSheet.getRow(1).height = 32;
 
         let rowIdx = 3;
-        // Helper to add styled section headers and alternating rows
+        // Helper functions (same as before)
         function addSectionHeader(title, startRow) {
             const cell = analysisSheet.getCell(`A${startRow}`);
             cell.value = title;
@@ -1027,7 +1026,6 @@
         }
 
         function addTwoColumnTable(data, startRow, col1Header, col2Header) {
-            // headers
             let r = startRow;
             const h1 = analysisSheet.getCell(`A${r}`);
             h1.value = col1Header;
@@ -1041,7 +1039,6 @@
             h2.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
             analysisSheet.getRow(r).height = 22;
             r++;
-            // data rows with alternating colors
             for (let i = 0; i < data.length; i++) {
                 const [colA, colB] = data[i];
                 const row = analysisSheet.getRow(r);
@@ -1056,10 +1053,9 @@
                 bCell.alignment = { horizontal: 'right' };
                 r++;
             }
-            return r + 1; // return next free row
+            return r + 1;
         }
 
-        // Section 1: Key Metrics
         rowIdx = addSectionHeader("📈 KEY METRICS", rowIdx);
         const workingDays = new Set(filtered.map(e => e.date));
         const avgDaily = totalHours / workingDays.size;
@@ -1072,7 +1068,6 @@
         rowIdx = addKeyValue("Unique Projects", uniqueProjects, rowIdx);
         rowIdx += 1;
 
-        // Section 2: Admin Ratio by Week
         rowIdx = addSectionHeader("📊 ADMIN RATIO BY WEEK", rowIdx);
         const weeklyAdminTable = [];
         const weeklyAdminMap = new Map();
@@ -1092,7 +1087,6 @@
         rowIdx = addTwoColumnTable(weeklyAdminTable, rowIdx, "Week", "Admin %");
         rowIdx += 1;
 
-        // Section 3: Top 3 Projects
         rowIdx = addSectionHeader("🏆 TOP 3 PROJECTS (HOURS)", rowIdx);
         const projTotals = {};
         filtered.forEach(e => { projTotals[e.project] = (projTotals[e.project] || 0) + e.hours; });
@@ -1100,14 +1094,12 @@
         const topTable = topProjects.map(([proj, hrs]) => [proj, hrs.toFixed(1)]);
         rowIdx = addTwoColumnTable(topTable, rowIdx, "Project", "Hours");
 
-        // Section 4: Overtime Days
         rowIdx = addSectionHeader("⚠️ OVERTIME DAYS (>8h)", rowIdx);
         const overtimeDays = filtered.filter(e => e.hours > 8);
         const overtimeTable = overtimeDays.map(e => [e.date, e.hours.toFixed(2)]);
         if (overtimeTable.length === 0) overtimeTable.push(["None", ""]);
         rowIdx = addTwoColumnTable(overtimeTable, rowIdx, "Date", "Hours");
 
-        // Section 5: Missing Notes
         rowIdx = addSectionHeader("📝 ENTRIES WITHOUT NOTES", rowIdx);
         const missingNotes = filtered.filter(e => !e.notes || e.notes.trim() === "");
         const notesTable = missingNotes.slice(0, 30).map(e => [e.date, e.project]);
@@ -1123,7 +1115,6 @@
         }
         rowIdx += 1;
 
-        // Section 6: Gaps
         rowIdx = addSectionHeader("⏳ CONSISTENCY", rowIdx);
         const sortedDates = [...new Set(filtered.map(e => e.date))].sort();
         let maxGap = 0;
@@ -1137,7 +1128,6 @@
         rowIdx = addKeyValue("Longest gap between entries (days)", maxGap.toString(), rowIdx);
         rowIdx += 1;
 
-        // Section 7: Health Score
         rowIdx = addSectionHeader("💚 PORTFOLIO HEALTH SCORE", rowIdx);
         let healthScore = 100;
         if (adminRatio > 15) healthScore -= 10;
@@ -1157,7 +1147,6 @@
         scoreValCell.alignment = { horizontal: 'right' };
         rowIdx += 2;
 
-        // Footer
         const footerRow = rowIdx;
         analysisSheet.getCell(`A${footerRow}`).value = `Analysis generated: ${new Date().toLocaleString()} | Based on ${filtered.length} entries`;
         analysisSheet.mergeCells(`A${footerRow}:C${footerRow}`);
@@ -1168,7 +1157,7 @@
         const buffer = await workbook.xlsx.writeBuffer();
         const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
         saveAs(blob, `Timesheet_${startDate}_to_${endDate}_readonly.xlsx`);
-        showToast("Excel report generated – charts fixed, analysis sheet beautifully styled!", "success");
+        showToast("Excel report generated – charts now larger and properly proportioned!", "success");
     } catch (err) {
         console.error("Excel export error:", err);
         showToast("Excel generation failed: " + err.message, "error");
