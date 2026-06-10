@@ -360,28 +360,13 @@
     }
     
     // ---------- PDF DOWNLOAD WITH LOGO AND QR CODE ----------
-    async function downloadRulesPDF() {
+        async function downloadRulesPDF() {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
         const pageWidth = doc.internal.pageSize.getWidth();
         const margin = 15;
         let y = 20;
-        
-        // ---- Add Logo (small) ----
-        try {
-            const logoResponse = await fetch('logo.png');
-            if (logoResponse.ok) {
-                const logoBlob = await logoResponse.blob();
-                const logoDataUrl = await new Promise((resolve) => {
-                    const reader = new FileReader();
-                    reader.onloadend = () => resolve(reader.result);
-                    reader.readAsDataURL(logoBlob);
-                });
-                // Place logo at top right, 15x15 mm
-                doc.addImage(logoDataUrl, 'PNG', pageWidth - 30, 10, 15, 15);
-            }
-        } catch(e) { console.warn("Logo not loaded", e); }
-        
+
         // Title
         doc.setFontSize(24);
         doc.setTextColor(11, 43, 59);
@@ -392,7 +377,8 @@
         doc.setLineWidth(1);
         doc.line(margin, y, pageWidth - margin, y);
         y += 10;
-        
+
+        // Intro
         doc.setFontSize(10);
         doc.setTextColor(80, 80, 80);
         doc.setFont("helvetica", "normal");
@@ -400,8 +386,8 @@
         y += 8;
         doc.text("The light evaluates your timesheet based on past working days only (Mon–Fri, excluding South African public holidays).", margin, y);
         y += 12;
-        
-        // GREEN
+
+        // GREEN section
         doc.setFillColor(40, 167, 69);
         doc.rect(margin, y, 5, 5, 'F');
         doc.setFontSize(12);
@@ -430,8 +416,8 @@
             y += 5;
         }
         y += 5;
-        
-        // AMBER
+
+        // AMBER section
         if (y > 240) { doc.addPage(); y = 20; }
         doc.setFillColor(255, 193, 7);
         doc.rect(margin, y, 5, 5, 'F');
@@ -458,8 +444,8 @@
             y += 5;
         }
         y += 5;
-        
-        // RED
+
+        // RED section
         if (y > 240) { doc.addPage(); y = 20; }
         doc.setFillColor(220, 53, 69);
         doc.rect(margin, y, 5, 5, 'F');
@@ -488,8 +474,8 @@
             y += 5;
         }
         y += 5;
-        
-        // Special Badges
+
+        // Special badges
         if (y > 240) { doc.addPage(); y = 20; }
         doc.setFontSize(12);
         doc.setTextColor(108, 117, 125);
@@ -510,8 +496,8 @@
             y += 5;
         }
         y += 5;
-        
-        // Health Score Weights
+
+        // Health score weights
         if (y > 240) { doc.addPage(); y = 20; }
         doc.setFontSize(12);
         doc.setTextColor(108, 117, 125);
@@ -546,30 +532,15 @@
             y += 5;
         }
         y += 5;
-        
-        // ---- Footer with QR Code ----
-        const repoUrl = "https://github.com/siyabongathupana/portfolio";
-        try {
-            // Generate QR code using the QRCode.js library (already loaded on page)
-            if (typeof QRCode !== 'undefined') {
-                const qrContainer = document.createElement('div');
-                new QRCode(qrContainer, { text: repoUrl, width: 40, height: 40, colorDark: "#000000", colorLight: "#ffffff", correctLevel: QRCode.CorrectLevel.L });
-                await new Promise(r => setTimeout(r, 200));
-                const qrCanvas = qrContainer.querySelector('canvas');
-                if (qrCanvas) {
-                    const qrDataUrl = qrCanvas.toDataURL('image/png');
-                    doc.addImage(qrDataUrl, 'PNG', pageWidth - 25, y + 5, 12, 12);
-                }
-            }
-        } catch(e) { console.warn("QR generation failed", e); }
-        
+
+        // Footer
+        if (y > 260) { doc.addPage(); y = 20; }
         doc.setFontSize(8);
         doc.setTextColor(150, 150, 150);
         doc.text("Generated: " + new Date().toLocaleString() + " | Your Portfolio Timesheet System", margin, y + 10);
         doc.text("The traffic light evaluates only past working days (Mon–Fri, excluding SA public holidays).", margin, y + 15);
         doc.text("Today's progress is shown in the tooltip but never penalises the colour.", margin, y + 20);
-        doc.text("Repo: " + repoUrl, margin, y + 25);
-        
+
         doc.save("Timesheet_TrafficLight_Rules.pdf");
     }
     
