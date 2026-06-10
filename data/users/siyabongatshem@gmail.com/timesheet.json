@@ -1,5 +1,17 @@
 [
   {
+    "id": 1781082175733,
+    "date": "2026-06-10",
+    "start": "10:33",
+    "end": "10:38",
+    "hours": 0.08,
+    "project": "Other",
+    "category": "Admin",
+    "billable": "no",
+    "notes": "Coffee Break",
+    "updatedAt": 1781082175733
+  },
+  {
     "id": 1781080421330,
     "date": "2026-06-10",
     "start": "07:41",
