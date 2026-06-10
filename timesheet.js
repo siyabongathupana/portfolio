@@ -781,7 +781,7 @@
             sort: false, autoFilter: false, pivotTables: false
         });
 
-        // ==================== SUMMARY SHEET (KPIs + bar chart) ====================
+        // ==================== SUMMARY SHEET ====================
         const summarySheet = workbook.addWorksheet("Summary", {
             pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, paperSize: 9 }
         });
@@ -820,15 +820,15 @@
             r++;
         }
 
-        // Bar chart: hours per project (LARGER)
+        // Bar chart – full width (290mm)
         try {
             const projMap = {};
             filtered.forEach(e => { projMap[e.project] = (projMap[e.project] || 0) + e.hours; });
             const projLabels = Object.keys(projMap).slice(0, 8);
             const projData = projLabels.map(l => projMap[l]);
             const canvas = document.createElement('canvas');
-            canvas.width = 1200;
-            canvas.height = 700;
+            canvas.width = 2000;
+            canvas.height = 1125; // 16:9 ratio
             const ctx = canvas.getContext('2d');
             const chart = new Chart(ctx, {
                 type: 'bar',
@@ -839,10 +839,9 @@
             const chartBase64 = canvas.toDataURL('image/png');
             chart.destroy();
             const chartImageId = workbook.addImage({ base64: chartBase64, extension: 'png' });
-            // Insert larger: width 280mm, height 163mm (keeps 1.71 ratio)
             summarySheet.addImage(chartImageId, {
                 tl: { col: 0, row: 12 },
-                ext: { width: 280, height: 163 },
+                ext: { width: 290, height: 163 },
                 editAs: 'oneCell'
             });
         } catch(e) { console.warn("Bar chart skipped", e); }
@@ -851,12 +850,12 @@
         summarySheet.getCell('A35').font = { italic: true, size: 8 };
         summarySheet.mergeCells('A35:C35');
 
-        // ==================== CHARTS SHEET (larger sizes) ====================
+        // ==================== CHARTS SHEET (MAXIMUM SIZE) ====================
         const chartsSheet = workbook.addWorksheet("Charts", {
             pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, paperSize: 9 }
         });
-        chartsSheet.columns = [{ width: 15 }, { width: 15 }, { width: 15 }];
         
+        // Title row
         chartsSheet.mergeCells('A1:C1');
         const chartsTitle = chartsSheet.getCell('A1');
         chartsTitle.value = "VISUAL ANALYTICS";
@@ -864,15 +863,15 @@
         chartsTitle.alignment = { horizontal: 'center' };
         chartsSheet.getRow(1).height = 28;
 
-        // 1. Pie chart: Hours by Category (square, larger)
+        // 1. Pie chart – large square (220x220 mm, but we can increase to 250x250)
         try {
             const catMap = {};
             filtered.forEach(e => { catMap[e.category] = (catMap[e.category] || 0) + e.hours; });
             const catLabels = Object.keys(catMap);
             const catData = catLabels.map(l => catMap[l]);
             const canvas = document.createElement('canvas');
-            canvas.width = 800;
-            canvas.height = 800;
+            canvas.width = 1000;
+            canvas.height = 1000;
             const ctx = canvas.getContext('2d');
             const pieChart = new Chart(ctx, {
                 type: 'pie',
@@ -885,12 +884,12 @@
             const pieImageId = workbook.addImage({ base64: pieBase64, extension: 'png' });
             chartsSheet.addImage(pieImageId, {
                 tl: { col: 0, row: 3 },
-                ext: { width: 220, height: 220 },
+                ext: { width: 250, height: 250 },
                 editAs: 'oneCell'
             });
         } catch(e) { console.warn("Pie chart skipped", e); }
 
-        // 2. Line chart: Weekly Hours Trend (wider, larger)
+        // 2. Line chart – very wide (290mm)
         try {
             const weeklyTotals = {};
             filtered.forEach(e => {
@@ -900,8 +899,8 @@
             const weeksSorted = Object.keys(weeklyTotals).sort();
             const weekData = weeksSorted.map(w => weeklyTotals[w]);
             const canvas = document.createElement('canvas');
-            canvas.width = 1200;
-            canvas.height = 600;
+            canvas.width = 2000;
+            canvas.height = 1000;
             const ctx = canvas.getContext('2d');
             const lineChart = new Chart(ctx, {
                 type: 'line',
@@ -914,16 +913,16 @@
             const lineImageId = workbook.addImage({ base64: lineBase64, extension: 'png' });
             chartsSheet.addImage(lineImageId, {
                 tl: { col: 6, row: 3 },
-                ext: { width: 280, height: 140 },
+                ext: { width: 290, height: 145 },
                 editAs: 'oneCell'
             });
         } catch(e) { console.warn("Line chart skipped", e); }
 
-        // 3. Doughnut chart: Billable vs Non-Billable (square, larger)
+        // 3. Doughnut chart – large square (250x250 mm)
         try {
             const canvas = document.createElement('canvas');
-            canvas.width = 800;
-            canvas.height = 800;
+            canvas.width = 1000;
+            canvas.height = 1000;
             const ctx = canvas.getContext('2d');
             const doughnutChart = new Chart(ctx, {
                 type: 'doughnut',
@@ -935,13 +934,13 @@
             doughnutChart.destroy();
             const doughnutImageId = workbook.addImage({ base64: doughnutBase64, extension: 'png' });
             chartsSheet.addImage(doughnutImageId, {
-                tl: { col: 0, row: 28 },
-                ext: { width: 220, height: 220 },
+                tl: { col: 0, row: 32 },
+                ext: { width: 250, height: 250 },
                 editAs: 'oneCell'
             });
         } catch(e) { console.warn("Doughnut chart skipped", e); }
 
-        // 4. Stacked bar: Admin vs Project Hours per week (larger)
+        // 4. Stacked bar – very wide (290mm)
         try {
             const weeklyAdmin = {};
             const weeklyProject = {};
@@ -957,8 +956,8 @@
             const adminData = allWeeks.map(w => weeklyAdmin[w] || 0);
             const projectData = allWeeks.map(w => weeklyProject[w] || 0);
             const canvas = document.createElement('canvas');
-            canvas.width = 1200;
-            canvas.height = 700;
+            canvas.width = 2000;
+            canvas.height = 1200;
             const ctx = canvas.getContext('2d');
             const stackedChart = new Chart(ctx, {
                 type: 'bar',
@@ -973,17 +972,17 @@
             stackedChart.destroy();
             const stackedImageId = workbook.addImage({ base64: stackedBase64, extension: 'png' });
             chartsSheet.addImage(stackedImageId, {
-                tl: { col: 6, row: 28 },
-                ext: { width: 280, height: 163 },
+                tl: { col: 6, row: 32 },
+                ext: { width: 290, height: 174 },
                 editAs: 'oneCell'
             });
         } catch(e) { console.warn("Stacked bar chart skipped", e); }
 
-        chartsSheet.getCell('A65').value = `Generated: ${new Date().toLocaleString()} | Your Portfolio System`;
-        chartsSheet.getCell('A65').font = { italic: true, size: 8 };
-        chartsSheet.mergeCells('A65:C65');
+        chartsSheet.getCell('A70').value = `Generated: ${new Date().toLocaleString()} | Your Portfolio System`;
+        chartsSheet.getCell('A70').font = { italic: true, size: 8 };
+        chartsSheet.mergeCells('A70:C70');
 
-        // ==================== ADVANCED ANALYSIS SHEET (styled, same as before) ====================
+        // ==================== ADVANCED ANALYSIS SHEET ====================
         const analysisSheet = workbook.addWorksheet("Advanced Analysis", {
             pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, paperSize: 9 }
         });
@@ -998,7 +997,6 @@
         analysisSheet.getRow(1).height = 32;
 
         let rowIdx = 3;
-        // Helper functions (same as before)
         function addSectionHeader(title, startRow) {
             const cell = analysisSheet.getCell(`A${startRow}`);
             cell.value = title;
@@ -1157,7 +1155,7 @@
         const buffer = await workbook.xlsx.writeBuffer();
         const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
         saveAs(blob, `Timesheet_${startDate}_to_${endDate}_readonly.xlsx`);
-        showToast("Excel report generated – charts now larger and properly proportioned!", "success");
+        showToast("Excel report generated – charts are now maximum size and crystal clear!", "success");
     } catch (err) {
         console.error("Excel export error:", err);
         showToast("Excel generation failed: " + err.message, "error");
