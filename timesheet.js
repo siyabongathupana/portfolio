@@ -602,9 +602,9 @@
 
   // ======================== EXCEL EXPORT (protected worksheet, week coloring) ========================
   async function exportStyledExcel(startDate, endDate) {
-    window.showLoading("Generating Excel report...");
+    window.showLoading("Generating Excel report with enhanced charts...");
     try {
-        // --- Ensure helpers exist (fallback) ---
+        // Helper fallbacks
         if (typeof getWeekNumber === 'undefined') {
             window.getWeekNumber = function(date) {
                 const d = new Date(date);
@@ -629,7 +629,7 @@
             return;
         }
 
-        // --- Week grouping for alternating rows (more vibrant colors) ---
+        // Week grouping for alternating row colors (more vibrant)
         filtered.forEach(e => { e.weekKey = `${new Date(e.date).getFullYear()}-W${getWeekNumber(e.date)}`; });
         const weeks = [...new Map(filtered.map(e => [e.weekKey, e.weekKey])).values()];
         const weekFills = weeks.map((w, idx) => ({
@@ -655,7 +655,7 @@
             }
         });
 
-        // Dynamic column widths (auto-fit)
+        // Dynamic column widths
         const headers = ['Date','Start','End','Hours','Project','Category','Billable','Notes'];
         const colMaxLen = [10, 8, 8, 8, 20, 15, 12, 40];
         for (const row of filtered) {
@@ -675,7 +675,7 @@
         }
         worksheet.columns = colMaxLen.map(w => ({ width: w + 2 }));
 
-        // Header section
+        // Header
         worksheet.mergeCells('A1:H1');
         const titleCell = worksheet.getCell('A1');
         titleCell.value = `TIMESHEET REPORT - ${userFullName || user.username}`;
@@ -773,7 +773,6 @@
             row.height = maxHeight;
         });
 
-        // Freeze header row, print area, protect
         worksheet.views = [{ state: 'frozen', ySplit: 4 }];
         worksheet.pageSetup.printArea = `A1:H${totalRowNum}`;
         worksheet.protect('Siya', {
@@ -782,7 +781,7 @@
             sort: false, autoFilter: false, pivotTables: false
         });
 
-        // ==================== SUMMARY SHEET (with chart) ====================
+        // ==================== SUMMARY SHEET (original KPIs + bar chart) ====================
         const summarySheet = workbook.addWorksheet("Summary", {
             pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, paperSize: 9 }
         });
@@ -819,7 +818,7 @@
             r++;
         }
 
-        // --- Generate bar chart (hours per project) ---
+        // Original bar chart (hours per project)
         try {
             const projMap = {};
             filtered.forEach(e => { projMap[e.project] = (projMap[e.project] || 0) + e.hours; });
@@ -839,13 +838,129 @@
             chart.destroy();
             const chartImageId = workbook.addImage({ base64: chartBase64, extension: 'png' });
             summarySheet.addImage(chartImageId, { tl: { col: 0, row: 12 }, br: { col: 8, row: 32 }, editAs: 'oneCell' });
-        } catch(e) { console.warn("Chart generation skipped", e); }
+        } catch(e) { console.warn("Bar chart generation skipped", e); }
 
         summarySheet.getCell('A35').value = `Generated: ${new Date().toLocaleString()} | Your Portfolio System`;
         summarySheet.getCell('A35').font = { italic: true, size: 8 };
         summarySheet.mergeCells('A35:C35');
 
-        // ==================== ADVANCED ANALYSIS SHEET ====================
+        // ==================== NEW CHARTS SHEET ====================
+        const chartsSheet = workbook.addWorksheet("Charts", {
+            pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, paperSize: 9 }
+        });
+        chartsSheet.columns = [{ width: 15 }, { width: 15 }, { width: 15 }];
+        
+        chartsSheet.mergeCells('A1:C1');
+        const chartsTitle = chartsSheet.getCell('A1');
+        chartsTitle.value = "VISUAL ANALYTICS";
+        chartsTitle.font = { size: 16, bold: true, color: { argb: 'FF0B2B3B' } };
+        chartsTitle.alignment = { horizontal: 'center' };
+        chartsSheet.getRow(1).height = 28;
+
+        // 1. Pie chart: Hours by Category
+        try {
+            const catMap = {};
+            filtered.forEach(e => { catMap[e.category] = (catMap[e.category] || 0) + e.hours; });
+            const catLabels = Object.keys(catMap);
+            const catData = catLabels.map(l => catMap[l]);
+            const canvas = document.createElement('canvas');
+            canvas.width = 500;
+            canvas.height = 400;
+            const ctx = canvas.getContext('2d');
+            const pieChart = new Chart(ctx, {
+                type: 'pie',
+                data: { labels: catLabels, datasets: [{ data: catData, backgroundColor: ['#2fc7ff', '#ffc107', '#28a745', '#dc3545', '#6f42c1', '#fd7e14', '#17a2b8', '#e83e8c'] }] },
+                options: { responsive: false, maintainAspectRatio: true, plugins: { legend: { position: 'right' } } }
+            });
+            await new Promise(r => setTimeout(r, 600));
+            const pieBase64 = canvas.toDataURL('image/png');
+            pieChart.destroy();
+            const pieImageId = workbook.addImage({ base64: pieBase64, extension: 'png' });
+            chartsSheet.addImage(pieImageId, { tl: { col: 0, row: 3 }, br: { col: 6, row: 28 }, editAs: 'oneCell' });
+        } catch(e) { console.warn("Pie chart skipped", e); }
+
+        // 2. Line chart: Weekly Hours Trend
+        try {
+            const weeklyTotals = {};
+            filtered.forEach(e => {
+                const week = `${new Date(e.date).getFullYear()}-W${getWeekNumber(e.date)}`;
+                weeklyTotals[week] = (weeklyTotals[week] || 0) + e.hours;
+            });
+            const weeksSorted = Object.keys(weeklyTotals).sort();
+            const weekData = weeksSorted.map(w => weeklyTotals[w]);
+            const canvas = document.createElement('canvas');
+            canvas.width = 800;
+            canvas.height = 400;
+            const ctx = canvas.getContext('2d');
+            const lineChart = new Chart(ctx, {
+                type: 'line',
+                data: { labels: weeksSorted, datasets: [{ label: 'Total Hours', data: weekData, borderColor: '#2fc7ff', backgroundColor: 'rgba(47,199,255,0.1)', fill: true, tension: 0.3 }] },
+                options: { responsive: false, maintainAspectRatio: true }
+            });
+            await new Promise(r => setTimeout(r, 600));
+            const lineBase64 = canvas.toDataURL('image/png');
+            lineChart.destroy();
+            const lineImageId = workbook.addImage({ base64: lineBase64, extension: 'png' });
+            chartsSheet.addImage(lineImageId, { tl: { col: 6, row: 3 }, br: { col: 12, row: 28 }, editAs: 'oneCell' });
+        } catch(e) { console.warn("Line chart skipped", e); }
+
+        // 3. Doughnut chart: Billable vs Non-Billable
+        try {
+            const canvas = document.createElement('canvas');
+            canvas.width = 400;
+            canvas.height = 400;
+            const ctx = canvas.getContext('2d');
+            const doughnutChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: { labels: ['Billable', 'Non-Billable'], datasets: [{ data: [billableHours, nonBillable], backgroundColor: ['#28a745', '#dc3545'] }] },
+                options: { responsive: false, maintainAspectRatio: true }
+            });
+            await new Promise(r => setTimeout(r, 600));
+            const doughnutBase64 = canvas.toDataURL('image/png');
+            doughnutChart.destroy();
+            const doughnutImageId = workbook.addImage({ base64: doughnutBase64, extension: 'png' });
+            chartsSheet.addImage(doughnutImageId, { tl: { col: 0, row: 30 }, br: { col: 6, row: 55 }, editAs: 'oneCell' });
+        } catch(e) { console.warn("Doughnut chart skipped", e); }
+
+        // 4. Stacked bar: Admin vs Project Hours per week
+        try {
+            const weeklyAdmin = {};
+            const weeklyProject = {};
+            filtered.forEach(e => {
+                const week = `${new Date(e.date).getFullYear()}-W${getWeekNumber(e.date)}`;
+                if (e.category === 'Admin') {
+                    weeklyAdmin[week] = (weeklyAdmin[week] || 0) + e.hours;
+                } else {
+                    weeklyProject[week] = (weeklyProject[week] || 0) + e.hours;
+                }
+            });
+            const allWeeks = [...new Set([...Object.keys(weeklyAdmin), ...Object.keys(weeklyProject)])].sort();
+            const adminData = allWeeks.map(w => weeklyAdmin[w] || 0);
+            const projectData = allWeeks.map(w => weeklyProject[w] || 0);
+            const canvas = document.createElement('canvas');
+            canvas.width = 800;
+            canvas.height = 400;
+            const ctx = canvas.getContext('2d');
+            const stackedChart = new Chart(ctx, {
+                type: 'bar',
+                data: { labels: allWeeks, datasets: [
+                    { label: 'Admin Hours', data: adminData, backgroundColor: '#ffc107' },
+                    { label: 'Project Hours', data: projectData, backgroundColor: '#2fc7ff' }
+                ] },
+                options: { responsive: false, maintainAspectRatio: true, scales: { x: { stacked: true }, y: { stacked: true } } }
+            });
+            await new Promise(r => setTimeout(r, 600));
+            const stackedBase64 = canvas.toDataURL('image/png');
+            stackedChart.destroy();
+            const stackedImageId = workbook.addImage({ base64: stackedBase64, extension: 'png' });
+            chartsSheet.addImage(stackedImageId, { tl: { col: 6, row: 30 }, br: { col: 12, row: 55 }, editAs: 'oneCell' });
+        } catch(e) { console.warn("Stacked bar chart skipped", e); }
+
+        chartsSheet.getCell('A58').value = `Generated: ${new Date().toLocaleString()} | Your Portfolio System`;
+        chartsSheet.getCell('A58').font = { italic: true, size: 8 };
+        chartsSheet.mergeCells('A58:C58');
+
+        // ==================== ADVANCED ANALYSIS SHEET (unchanged) ====================
         const analysisSheet = workbook.addWorksheet("Advanced Analysis", {
             pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, paperSize: 9 }
         });
@@ -859,8 +974,6 @@
         analysisSheet.getRow(1).height = 28;
 
         let rowIdx = 3;
-
-        // 1. Daily average (working days only)
         const workingDays = new Set(filtered.map(e => e.date));
         const avgDaily = totalHours / workingDays.size;
         analysisSheet.getCell(`A${rowIdx}`).value = "Average Daily Hours";
@@ -869,22 +982,20 @@
         analysisSheet.getCell(`B${rowIdx}`).font = { bold: true };
         rowIdx += 2;
 
-        // 2. Admin ratio per week
-        const weeklyAdmin = [];
-        const weeksMap = new Map();
+        const weeklyAdminMap = new Map();
         filtered.forEach(e => {
             const week = getWeekNumber(e.date);
             const year = new Date(e.date).getFullYear();
             const key = `${year}-W${week}`;
-            if (!weeksMap.has(key)) weeksMap.set(key, { total: 0, admin: 0 });
-            const w = weeksMap.get(key);
+            if (!weeklyAdminMap.has(key)) weeklyAdminMap.set(key, { total: 0, admin: 0 });
+            const w = weeklyAdminMap.get(key);
             w.total += e.hours;
             if (e.category === 'Admin') w.admin += e.hours;
         });
         analysisSheet.getCell(`A${rowIdx}`).value = "Admin Ratio by Week";
         analysisSheet.getCell(`A${rowIdx}`).font = { bold: true };
         rowIdx++;
-        for (let [week, data] of weeksMap) {
+        for (let [week, data] of weeklyAdminMap) {
             const ratio = data.total > 0 ? (data.admin / data.total) * 100 : 0;
             analysisSheet.getCell(`A${rowIdx}`).value = week;
             analysisSheet.getCell(`B${rowIdx}`).value = ratio.toFixed(1) + "%";
@@ -892,7 +1003,6 @@
         }
         rowIdx += 1;
 
-        // 3. Top 3 projects by hours
         const projTotals = {};
         filtered.forEach(e => { projTotals[e.project] = (projTotals[e.project] || 0) + e.hours; });
         const topProjects = Object.entries(projTotals).sort((a,b) => b[1] - a[1]).slice(0,3);
@@ -906,7 +1016,6 @@
         }
         rowIdx += 1;
 
-        // 4. Overtime days list
         const overtimeDays = filtered.filter(e => e.hours > 8);
         analysisSheet.getCell(`A${rowIdx}`).value = "Overtime Days (>8h)";
         analysisSheet.getCell(`A${rowIdx}`).font = { bold: true };
@@ -923,13 +1032,12 @@
         }
         rowIdx += 1;
 
-        // 5. Missing descriptions
         const missingNotes = filtered.filter(e => !e.notes || e.notes.trim() === "");
         analysisSheet.getCell(`A${rowIdx}`).value = "Entries Without Notes";
         analysisSheet.getCell(`A${rowIdx}`).font = { bold: true };
         rowIdx++;
         if (missingNotes.length) {
-            for (let e of missingNotes.slice(0, 20)) { // limit to 20
+            for (let e of missingNotes.slice(0, 20)) {
                 analysisSheet.getCell(`A${rowIdx}`).value = e.date;
                 analysisSheet.getCell(`B${rowIdx}`).value = e.project;
                 rowIdx++;
@@ -944,10 +1052,8 @@
         }
         rowIdx += 1;
 
-        // 6. Consecutive missing days (using getWeekNumber? Actually we need working days)
-        // Simplified: look for gaps of >1 day in dates
         const sortedDates = [...new Set(filtered.map(e => e.date))].sort();
-        let maxGap = 0, gapStart = null;
+        let maxGap = 0;
         for (let i = 1; i < sortedDates.length; i++) {
             const diff = (new Date(sortedDates[i]) - new Date(sortedDates[i-1])) / (1000*3600*24);
             if (diff > 1) {
@@ -960,7 +1066,6 @@
         analysisSheet.getCell(`B${rowIdx}`).value = maxGap;
         rowIdx += 2;
 
-        // 7. Health score (reuse traffic light logic? For simplicity, a basic score)
         let healthScore = 100;
         if (adminRatio > 15) healthScore -= 10;
         if (overtimeDays.length > 3) healthScore -= 15;
@@ -972,7 +1077,6 @@
         analysisSheet.getCell(`B${rowIdx}`).value = healthScore;
         analysisSheet.getCell(`B${rowIdx}`).font = { size: 14, bold: true, color: { argb: healthScore >= 80 ? 'FF28A745' : (healthScore >= 50 ? 'FFFFC107' : 'FFDC3545') } };
 
-        // Footer
         analysisSheet.getCell(`A${rowIdx+3}`).value = `Analysis generated: ${new Date().toLocaleString()} | Based on ${filtered.length} entries`;
         analysisSheet.mergeCells(`A${rowIdx+3}:C${rowIdx+3}`);
         analysisSheet.getCell(`A${rowIdx+3}`).font = { italic: true, size: 8 };
@@ -981,7 +1085,7 @@
         const buffer = await workbook.xlsx.writeBuffer();
         const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
         saveAs(blob, `Timesheet_${startDate}_to_${endDate}_readonly.xlsx`);
-        showToast("Excel report generated – full width, chart restored, advanced analysis added.", "success");
+        showToast("Excel report generated – added 4 new charts!", "success");
     } catch (err) {
         console.error("Excel export error:", err);
         showToast("Excel generation failed: " + err.message, "error");
