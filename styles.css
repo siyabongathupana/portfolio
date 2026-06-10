@@ -134,34 +134,37 @@ footer { background:#051f29; color:#bdd3e0; text-align:center; padding:24px; }
 /* Firefly glow animation */
 @keyframes firefly-glow {
     0% {
-        box-shadow: 0 0 4px currentColor, 0 0 8px currentColor, inset 0 0 2px rgba(255,255,255,0.5);
-        opacity: 0.85;
+        box-shadow: 0 0 8px currentColor, 0 0 16px currentColor, inset 0 0 4px rgba(255,255,255,0.7);
+        opacity: 0.9;
     }
     50% {
-        box-shadow: 0 0 20px currentColor, 0 0 35px currentColor, 0 0 50px currentColor, inset 0 0 6px rgba(255,255,255,0.8);
+        box-shadow: 0 0 40px currentColor, 0 0 60px currentColor, 0 0 90px currentColor, inset 0 0 15px rgba(255,255,255,0.9);
         opacity: 1;
     }
     100% {
-        box-shadow: 0 0 4px currentColor, 0 0 8px currentColor, inset 0 0 2px rgba(255,255,255,0.5);
-        opacity: 0.85;
+        box-shadow: 0 0 8px currentColor, 0 0 16px currentColor, inset 0 0 4px rgba(255,255,255,0.7);
+        opacity: 0.9;
     }
 }
+
 .traffic-light-standalone .light.lit {
-    animation: firefly-glow 1.2s ease-in-out infinite;
+    animation: firefly-glow 0.8s ease-in-out infinite;
 }
-/* Optional: add a white core for extra brightness */
+
+/* Brighter white core – larger and more opaque */
 .traffic-light-standalone .light.lit::after {
     content: '';
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 30%;
-    height: 30%;
-    background: rgba(255,255,255,0.6);
+    width: 50%;
+    height: 50%;
+    background: rgba(255, 255, 255, 0.9);
     border-radius: 50%;
+    pointer-events: none; /* so it doesn't block clicks */
 }
-/* Make the light position relative for the pseudo-element */
+
 .traffic-light-standalone .light {
     position: relative;
 }
