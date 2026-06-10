@@ -1,5 +1,17 @@
 [
   {
+    "id": 1781096580299,
+    "date": "2026-06-10",
+    "start": "12:58",
+    "end": "15:02",
+    "hours": 2.07,
+    "project": "Omnia Phase 3",
+    "category": "Back-Punching",
+    "billable": "yes",
+    "notes": "Back-Punching IFAT",
+    "updatedAt": 1781096580299
+  },
+  {
     "id": 1781089102599,
     "date": "2026-06-10",
     "start": "10:38",
@@ -9,8 +21,7 @@
     "category": "Back-Punching",
     "billable": "yes",
     "notes": "BackPunching IFAT",
-    "updatedAt": 1781089102599,
-    "weekKey": "2026-W24"
+    "updatedAt": 1781089102599
   },
   {
     "id": 1781082175733,
@@ -22,8 +33,7 @@
     "category": "Admin",
     "billable": "no",
     "notes": "Coffee Break",
-    "updatedAt": 1781082175733,
-    "weekKey": "2026-W24"
+    "updatedAt": 1781082175733
   },
   {
     "id": 1781080421330,
@@ -35,8 +45,7 @@
     "category": "Back-Punching",
     "billable": "yes",
     "notes": "Back punching IFAT",
-    "updatedAt": 1781080421330,
-    "weekKey": "2026-W24"
+    "updatedAt": 1781080421330
   },
   {
     "id": 1781070091310,
@@ -48,8 +57,7 @@
     "category": "Admin",
     "billable": "no",
     "notes": "Discussions on IFAT (OMNIA)",
-    "updatedAt": 1781070091310,
-    "weekKey": "2026-W24"
+    "updatedAt": 1781070091310
   },
   {
     "id": 1780947171053,
@@ -61,8 +69,7 @@
     "category": "Admin",
     "billable": "no",
     "notes": "Exam (BSC102)",
-    "updatedAt": 1780952233632,
-    "weekKey": "2026-W24"
+    "updatedAt": 1780952233632
   },
   {
     "id": 1780947133484,
@@ -74,8 +81,7 @@
     "category": "Admin",
     "billable": "no",
     "notes": "Exam (BSC101)",
-    "updatedAt": 1781095877313,
-    "weekKey": "2026-W24"
+    "updatedAt": 1780952217237
   },
   {
     "id": 1780663455762,
@@ -87,8 +93,7 @@
     "category": "Training",
     "billable": "no",
     "notes": "Upgrade Training",
-    "updatedAt": 1780663455762,
-    "weekKey": "2026-W23"
+    "updatedAt": 1780663455762
   },
   {
     "id": 1780663378882,
@@ -100,8 +105,7 @@
     "category": "Admin",
     "billable": "no",
     "notes": "Lunch",
-    "updatedAt": 1780663378882,
-    "weekKey": "2026-W23"
+    "updatedAt": 1780663378882
   },
   {
     "id": 1780663327927,
@@ -113,8 +117,7 @@
     "category": "IFAT",
     "billable": "yes",
     "notes": "Software IFAT",
-    "updatedAt": 1780663327927,
-    "weekKey": "2026-W23"
+    "updatedAt": 1780663327927
   },
   {
     "id": 1780663180818,
@@ -126,8 +129,7 @@
     "category": "IFAT",
     "billable": "yes",
     "notes": "Software IFAT",
-    "updatedAt": 1780663180818,
-    "weekKey": "2026-W23"
+    "updatedAt": 1780663180818
   },
   {
     "id": 1780582569124,
@@ -139,8 +141,7 @@
     "category": "Training",
     "billable": "no",
     "notes": "Upgrades Training",
-    "updatedAt": 1780583677300,
-    "weekKey": "2026-W23"
+    "updatedAt": 1780583677300
   },
   {
     "id": 1780581471956,
@@ -152,8 +153,7 @@
     "category": "IFAT",
     "billable": "yes",
     "notes": "Software IFAT (BPCS)",
-    "updatedAt": 1780581471956,
-    "weekKey": "2026-W23"
+    "updatedAt": 1780581471956
   },
   {
     "id": 1780579836671,
@@ -165,8 +165,7 @@
     "category": "Admin",
     "billable": "no",
     "notes": "Break",
-    "updatedAt": 1780579836671,
-    "weekKey": "2026-W23"
+    "updatedAt": 1780579836671
   },
   {
     "id": 1780578836894,
@@ -178,8 +177,7 @@
     "category": "IFAT",
     "billable": "yes",
     "notes": "Software IFAT (BPCS)",
-    "updatedAt": 1780581489500,
-    "weekKey": "2026-W23"
+    "updatedAt": 1780581489500
   },
   {
     "id": 1780572116778,
@@ -191,8 +189,7 @@
     "category": "Training",
     "billable": "no",
     "notes": "Upgrade Training",
-    "updatedAt": 1780572116778,
-    "weekKey": "2026-W23"
+    "updatedAt": 1780572116778
   },
   {
     "id": 1780569973914,
@@ -204,8 +201,7 @@
     "category": "Admin",
     "billable": "no",
     "notes": "Lunch",
-    "updatedAt": 1780569973914,
-    "weekKey": "2026-W23"
+    "updatedAt": 1780569973914
   },
   {
     "id": 1780567574903,
@@ -217,8 +213,7 @@
     "category": "IFAT",
     "billable": "yes",
     "notes": "Software IFAT (BPCS)",
-    "updatedAt": 1780581504628,
-    "weekKey": "2026-W23"
+    "updatedAt": 1780581504628
   },
   {
     "id": 1780557837464,
@@ -230,8 +225,7 @@
     "category": "Admin",
     "billable": "no",
     "notes": "Coffee, Discussions",
-    "updatedAt": 1780557837464,
-    "weekKey": "2026-W23"
+    "updatedAt": 1780557837464
   },
   {
     "id": 1780556501005,
@@ -243,8 +237,7 @@
     "category": "IFAT",
     "billable": "yes",
     "notes": "Software IFAT (BPCS)",
-    "updatedAt": 1780581525201,
-    "weekKey": "2026-W23"
+    "updatedAt": 1780581525201
   },
   {
     "id": 1780484844562,
@@ -256,8 +249,7 @@
     "category": "Admin",
     "billable": "no",
     "notes": "Lunch",
-    "updatedAt": 1780484844562,
-    "weekKey": "2026-W23"
+    "updatedAt": 1780484844562
   },
   {
     "id": 1780481310038,
@@ -269,8 +261,7 @@
     "category": "IFAT",
     "billable": "yes",
     "notes": "Software IFAT (BPCS)",
-    "updatedAt": 1780581550733,
-    "weekKey": "2026-W23"
+    "updatedAt": 1780581550733
   },
   {
     "id": 1780476882104,
@@ -282,8 +273,7 @@
     "category": "Other",
     "billable": "no",
     "notes": "Break",
-    "updatedAt": 1780570263806,
-    "weekKey": "2026-W23"
+    "updatedAt": 1780570263806
   },
   {
     "id": 1780475950579,
@@ -295,8 +285,7 @@
     "category": "IFAT",
     "billable": "yes",
     "notes": "Software IFAT",
-    "updatedAt": 1780475950579,
-    "weekKey": "2026-W23"
+    "updatedAt": 1780475950579
   },
   {
     "id": 1780467137271,
@@ -308,8 +297,7 @@
     "category": "Admin",
     "billable": "no",
     "notes": "Coffee, Discussions",
-    "updatedAt": 1780467137271,
-    "weekKey": "2026-W23"
+    "updatedAt": 1780467137271
   },
   {
     "id": 1780321198895,
@@ -321,8 +309,7 @@
     "category": "Site",
     "billable": "yes",
     "notes": "Configuring Historization For Boiler 7",
-    "updatedAt": 1780464573899,
-    "weekKey": "2026-W23"
+    "updatedAt": 1780464573899
   },
   {
     "id": 1780320606692,
@@ -334,8 +321,7 @@
     "category": "Documentation",
     "billable": "yes",
     "notes": "Reviewing New I/O",
-    "updatedAt": 1780320606692,
-    "weekKey": "2026-W23"
+    "updatedAt": 1780320606692
   },
   {
     "id": 1780318100547,
@@ -347,8 +333,7 @@
     "category": "Admin",
     "billable": "no",
     "notes": "Discussions (MIBK, OMNIA, BOILER 6)",
-    "updatedAt": 1780318100547,
-    "weekKey": "2026-W23"
+    "updatedAt": 1780318100547
   },
   {
     "id": 1780315041840,
@@ -360,8 +345,7 @@
     "category": "Other",
     "billable": "no",
     "notes": "Lunch",
-    "updatedAt": 1780315041840,
-    "weekKey": "2026-W23"
+    "updatedAt": 1780315041840
   },
   {
     "id": 1780315006347,
@@ -373,8 +357,7 @@
     "category": "Software",
     "billable": "yes",
     "notes": "Sorting out Historization list for Boiler 7",
-    "updatedAt": 1780315006347,
-    "weekKey": "2026-W23"
+    "updatedAt": 1780315006347
   },
   {
     "id": 1780305907467,
@@ -386,8 +369,7 @@
     "category": "Admin",
     "billable": "no",
     "notes": "Coffee break",
-    "updatedAt": 1780305907467,
-    "weekKey": "2026-W23"
+    "updatedAt": 1780305907467
   },
   {
     "id": 1780305121065,
