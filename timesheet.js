@@ -601,10 +601,10 @@
   }
 
   // ======================== EXCEL EXPORT (protected worksheet, week coloring) ========================
-   async function exportStyledExcel(startDate, endDate) {
+  async function exportStyledExcel(startDate, endDate) {
     window.showLoading("Generating Excel report...");
     try {
-        // Ensure helpers exist (fallback)
+        // --- Ensure helpers exist (fallback) ---
         if (typeof getWeekNumber === 'undefined') {
             window.getWeekNumber = function(date) {
                 const d = new Date(date);
@@ -629,17 +629,20 @@
             return;
         }
 
-        // Week grouping for alternating rows
+        // --- Week grouping for alternating rows (more vibrant colors) ---
         filtered.forEach(e => { e.weekKey = `${new Date(e.date).getFullYear()}-W${getWeekNumber(e.date)}`; });
         const weeks = [...new Map(filtered.map(e => [e.weekKey, e.weekKey])).values()];
         const weekFills = weeks.map((w, idx) => ({
             week: w,
-            fill: idx % 2 === 0 ? { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } }
-                                : { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF4E6' } }
+            fill: idx % 2 === 0 
+                ? { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE6F0FA' } } // light blue
+                : { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF8E7' } } // light cream
         }));
         const getRowFill = (entry) => weekFills.find(wf => wf.week === entry.weekKey)?.fill || { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } };
 
         const workbook = new ExcelJS.Workbook();
+        
+        // ==================== MAIN DATA SHEET ====================
         const worksheet = workbook.addWorksheet("Timesheet Data", {
             pageSetup: {
                 orientation: 'landscape',
@@ -652,7 +655,7 @@
             }
         });
 
-        // Dynamic column widths
+        // Dynamic column widths (auto-fit)
         const headers = ['Date','Start','End','Hours','Project','Category','Billable','Notes'];
         const colMaxLen = [10, 8, 8, 8, 20, 15, 12, 40];
         for (const row of filtered) {
@@ -672,7 +675,7 @@
         }
         worksheet.columns = colMaxLen.map(w => ({ width: w + 2 }));
 
-        // Header
+        // Header section
         worksheet.mergeCells('A1:H1');
         const titleCell = worksheet.getCell('A1');
         titleCell.value = `TIMESHEET REPORT - ${userFullName || user.username}`;
@@ -759,7 +762,7 @@
             if (i !== 4) cell.value = '';
         }
 
-        // Auto row height for Notes
+        // Auto row height for Notes column
         worksheet.eachRow((row, rowNumber) => {
             let maxHeight = 18;
             const noteCell = row.getCell(8);
@@ -770,7 +773,7 @@
             row.height = maxHeight;
         });
 
-        // Freeze, print area, protect
+        // Freeze header row, print area, protect
         worksheet.views = [{ state: 'frozen', ySplit: 4 }];
         worksheet.pageSetup.printArea = `A1:H${totalRowNum}`;
         worksheet.protect('Siya', {
@@ -779,11 +782,206 @@
             sort: false, autoFilter: false, pivotTables: false
         });
 
-        // Generate and download
+        // ==================== SUMMARY SHEET (with chart) ====================
+        const summarySheet = workbook.addWorksheet("Summary", {
+            pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, paperSize: 9 }
+        });
+        summarySheet.columns = [{ width: 25 }, { width: 20 }, { width: 20 }];
+        
+        summarySheet.mergeCells('A1:C1');
+        const sumTitle = summarySheet.getCell('A1');
+        sumTitle.value = "TIMESHEET SUMMARY";
+        sumTitle.font = { size: 16, bold: true, color: { argb: 'FF0B2B3B' } };
+        sumTitle.alignment = { horizontal: 'center' };
+        summarySheet.getRow(1).height = 28;
+
+        const adminHours = filtered.filter(e => e.category === 'Admin').reduce((s,e) => s + e.hours, 0);
+        const adminRatio = totalHours > 0 ? (adminHours / totalHours) * 100 : 0;
+        const uniqueProjects = new Set(filtered.map(e => e.project)).size;
+        const kpiRows = [
+            ["Total Hours", totalHours.toFixed(1)],
+            ["Billable Hours", billableHours.toFixed(1)],
+            ["Non-Billable Hours", nonBillable.toFixed(1)],
+            ["Overtime Hours", overtime.toFixed(1)],
+            ["Unique Projects", uniqueProjects],
+            ["Admin Ratio (%)", adminRatio.toFixed(1) + "%"]
+        ];
+        let r = 3;
+        for (const [label, val] of kpiRows) {
+            const labelCell = summarySheet.getCell(`A${r}`);
+            labelCell.value = label;
+            labelCell.font = { bold: true };
+            labelCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE6F4FA' } };
+            const valCell = summarySheet.getCell(`B${r}`);
+            valCell.value = val;
+            valCell.font = { size: 12, bold: true };
+            valCell.alignment = { horizontal: 'right' };
+            r++;
+        }
+
+        // --- Generate bar chart (hours per project) ---
+        try {
+            const projMap = {};
+            filtered.forEach(e => { projMap[e.project] = (projMap[e.project] || 0) + e.hours; });
+            const projLabels = Object.keys(projMap).slice(0, 8);
+            const projData = projLabels.map(l => projMap[l]);
+            const canvas = document.createElement('canvas');
+            canvas.width = 800;
+            canvas.height = 400;
+            const ctx = canvas.getContext('2d');
+            const chart = new Chart(ctx, {
+                type: 'bar',
+                data: { labels: projLabels, datasets: [{ label: 'Hours', data: projData, backgroundColor: '#2fc7ff' }] },
+                options: { responsive: false, maintainAspectRatio: true }
+            });
+            await new Promise(r => setTimeout(r, 600));
+            const chartBase64 = canvas.toDataURL('image/png');
+            chart.destroy();
+            const chartImageId = workbook.addImage({ base64: chartBase64, extension: 'png' });
+            summarySheet.addImage(chartImageId, { tl: { col: 0, row: 12 }, br: { col: 8, row: 32 }, editAs: 'oneCell' });
+        } catch(e) { console.warn("Chart generation skipped", e); }
+
+        summarySheet.getCell('A35').value = `Generated: ${new Date().toLocaleString()} | Your Portfolio System`;
+        summarySheet.getCell('A35').font = { italic: true, size: 8 };
+        summarySheet.mergeCells('A35:C35');
+
+        // ==================== ADVANCED ANALYSIS SHEET ====================
+        const analysisSheet = workbook.addWorksheet("Advanced Analysis", {
+            pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, paperSize: 9 }
+        });
+        analysisSheet.columns = [{ width: 25 }, { width: 20 }, { width: 30 }];
+        
+        analysisSheet.mergeCells('A1:C1');
+        const analysisTitle = analysisSheet.getCell('A1');
+        analysisTitle.value = "DEEP DIVE ANALYSIS";
+        analysisTitle.font = { size: 16, bold: true, color: { argb: 'FF0B2B3B' } };
+        analysisTitle.alignment = { horizontal: 'center' };
+        analysisSheet.getRow(1).height = 28;
+
+        let rowIdx = 3;
+
+        // 1. Daily average (working days only)
+        const workingDays = new Set(filtered.map(e => e.date));
+        const avgDaily = totalHours / workingDays.size;
+        analysisSheet.getCell(`A${rowIdx}`).value = "Average Daily Hours";
+        analysisSheet.getCell(`A${rowIdx}`).font = { bold: true };
+        analysisSheet.getCell(`B${rowIdx}`).value = avgDaily.toFixed(2);
+        analysisSheet.getCell(`B${rowIdx}`).font = { bold: true };
+        rowIdx += 2;
+
+        // 2. Admin ratio per week
+        const weeklyAdmin = [];
+        const weeksMap = new Map();
+        filtered.forEach(e => {
+            const week = getWeekNumber(e.date);
+            const year = new Date(e.date).getFullYear();
+            const key = `${year}-W${week}`;
+            if (!weeksMap.has(key)) weeksMap.set(key, { total: 0, admin: 0 });
+            const w = weeksMap.get(key);
+            w.total += e.hours;
+            if (e.category === 'Admin') w.admin += e.hours;
+        });
+        analysisSheet.getCell(`A${rowIdx}`).value = "Admin Ratio by Week";
+        analysisSheet.getCell(`A${rowIdx}`).font = { bold: true };
+        rowIdx++;
+        for (let [week, data] of weeksMap) {
+            const ratio = data.total > 0 ? (data.admin / data.total) * 100 : 0;
+            analysisSheet.getCell(`A${rowIdx}`).value = week;
+            analysisSheet.getCell(`B${rowIdx}`).value = ratio.toFixed(1) + "%";
+            rowIdx++;
+        }
+        rowIdx += 1;
+
+        // 3. Top 3 projects by hours
+        const projTotals = {};
+        filtered.forEach(e => { projTotals[e.project] = (projTotals[e.project] || 0) + e.hours; });
+        const topProjects = Object.entries(projTotals).sort((a,b) => b[1] - a[1]).slice(0,3);
+        analysisSheet.getCell(`A${rowIdx}`).value = "Top 3 Projects (hours)";
+        analysisSheet.getCell(`A${rowIdx}`).font = { bold: true };
+        rowIdx++;
+        for (let [proj, hrs] of topProjects) {
+            analysisSheet.getCell(`A${rowIdx}`).value = proj;
+            analysisSheet.getCell(`B${rowIdx}`).value = hrs.toFixed(1);
+            rowIdx++;
+        }
+        rowIdx += 1;
+
+        // 4. Overtime days list
+        const overtimeDays = filtered.filter(e => e.hours > 8);
+        analysisSheet.getCell(`A${rowIdx}`).value = "Overtime Days (>8h)";
+        analysisSheet.getCell(`A${rowIdx}`).font = { bold: true };
+        rowIdx++;
+        if (overtimeDays.length) {
+            for (let e of overtimeDays) {
+                analysisSheet.getCell(`A${rowIdx}`).value = e.date;
+                analysisSheet.getCell(`B${rowIdx}`).value = e.hours.toFixed(2);
+                rowIdx++;
+            }
+        } else {
+            analysisSheet.getCell(`A${rowIdx}`).value = "None";
+            rowIdx++;
+        }
+        rowIdx += 1;
+
+        // 5. Missing descriptions
+        const missingNotes = filtered.filter(e => !e.notes || e.notes.trim() === "");
+        analysisSheet.getCell(`A${rowIdx}`).value = "Entries Without Notes";
+        analysisSheet.getCell(`A${rowIdx}`).font = { bold: true };
+        rowIdx++;
+        if (missingNotes.length) {
+            for (let e of missingNotes.slice(0, 20)) { // limit to 20
+                analysisSheet.getCell(`A${rowIdx}`).value = e.date;
+                analysisSheet.getCell(`B${rowIdx}`).value = e.project;
+                rowIdx++;
+            }
+            if (missingNotes.length > 20) {
+                analysisSheet.getCell(`A${rowIdx}`).value = `... and ${missingNotes.length - 20} more`;
+                rowIdx++;
+            }
+        } else {
+            analysisSheet.getCell(`A${rowIdx}`).value = "All entries have notes";
+            rowIdx++;
+        }
+        rowIdx += 1;
+
+        // 6. Consecutive missing days (using getWeekNumber? Actually we need working days)
+        // Simplified: look for gaps of >1 day in dates
+        const sortedDates = [...new Set(filtered.map(e => e.date))].sort();
+        let maxGap = 0, gapStart = null;
+        for (let i = 1; i < sortedDates.length; i++) {
+            const diff = (new Date(sortedDates[i]) - new Date(sortedDates[i-1])) / (1000*3600*24);
+            if (diff > 1) {
+                const gap = diff - 1;
+                if (gap > maxGap) maxGap = gap;
+            }
+        }
+        analysisSheet.getCell(`A${rowIdx}`).value = "Longest gap between entries (days)";
+        analysisSheet.getCell(`A${rowIdx}`).font = { bold: true };
+        analysisSheet.getCell(`B${rowIdx}`).value = maxGap;
+        rowIdx += 2;
+
+        // 7. Health score (reuse traffic light logic? For simplicity, a basic score)
+        let healthScore = 100;
+        if (adminRatio > 15) healthScore -= 10;
+        if (overtimeDays.length > 3) healthScore -= 15;
+        if (missingNotes.length > 0) healthScore -= Math.min(missingNotes.length, 20);
+        if (uniqueProjects === 0) healthScore -= 50;
+        healthScore = Math.max(0, healthScore);
+        analysisSheet.getCell(`A${rowIdx}`).value = "Portfolio Health Score (0-100)";
+        analysisSheet.getCell(`A${rowIdx}`).font = { bold: true };
+        analysisSheet.getCell(`B${rowIdx}`).value = healthScore;
+        analysisSheet.getCell(`B${rowIdx}`).font = { size: 14, bold: true, color: { argb: healthScore >= 80 ? 'FF28A745' : (healthScore >= 50 ? 'FFFFC107' : 'FFDC3545') } };
+
+        // Footer
+        analysisSheet.getCell(`A${rowIdx+3}`).value = `Analysis generated: ${new Date().toLocaleString()} | Based on ${filtered.length} entries`;
+        analysisSheet.mergeCells(`A${rowIdx+3}:C${rowIdx+3}`);
+        analysisSheet.getCell(`A${rowIdx+3}`).font = { italic: true, size: 8 };
+
+        // ==================== SAVE ====================
         const buffer = await workbook.xlsx.writeBuffer();
         const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
         saveAs(blob, `Timesheet_${startDate}_to_${endDate}_readonly.xlsx`);
-        showToast("Excel report generated – clean, full‑page, auto‑fitted columns.", "success");
+        showToast("Excel report generated – full width, chart restored, advanced analysis added.", "success");
     } catch (err) {
         console.error("Excel export error:", err);
         showToast("Excel generation failed: " + err.message, "error");
