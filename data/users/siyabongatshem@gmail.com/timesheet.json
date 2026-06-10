@@ -1,5 +1,17 @@
 [
   {
+    "id": 1781049940458,
+    "date": "2026-06-10",
+    "start": "08:30",
+    "end": "16:50",
+    "hours": 8.33,
+    "project": "KOGAS",
+    "category": "IFAT",
+    "billable": "yes",
+    "notes": "",
+    "updatedAt": 1781049940458
+  },
+  {
     "id": 1780947171053,
     "date": "2026-06-09",
     "start": "08:30",
