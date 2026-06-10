@@ -1,4 +1,4 @@
-// trafficlight-full.js – COMPLETE (Full rule engine + PDF download + UTC fix)
+// trafficlight-full.js – COMPLETE with Weekly Hours Fix, Logo & QR in PDF
 (function() {
     // ---------- GET TODAY'S DATE IN UTC ----------
     function getTodayUTC() {
@@ -124,6 +124,9 @@
     // ---------- MAIN ANALYSIS ----------
     function analyzeTimesheetHealth(entries, filterType, todayYMD) {
         const todayDate = new Date(todayYMD + "T00:00:00Z");
+        // Determine if we are late in the week (Friday or later) – used for weekly hour rules
+        const todayDayOfWeek = todayDate.getUTCDay(); // Monday=1, Friday=5, Sunday=0
+        const isLateWeek = (todayDayOfWeek >= 5); // Friday, Saturday, or Sunday
         
         let startDate, endDate;
         if (filterType === 'day') {
@@ -239,7 +242,8 @@
             if (missingDays > 15) redFlags.push("Many missing working days (" + missingDays + ")");
         }
         
-        if (weeklySignificantlyBelow && filterType === 'week') redFlags.push("Weekly hours <30h");
+        // *** FIX: Only apply weekly hour rules on Friday or later ***
+        if (weeklySignificantlyBelow && filterType === 'week' && isLateWeek) redFlags.push("Weekly hours <30h");
         if (negativeHours) redFlags.push("Negative/Impossible hours");
         if (duplicateEntries.length) redFlags.push(duplicateEntries.length + " duplicate entries");
         if (daysAbove12) redFlags.push(daysAbove12 + " day(s) >12h");
@@ -250,7 +254,7 @@
         
         if (daysBelowTarget) amberFlags.push(daysBelowTarget + " day(s) below 7.5h");
         if (daysAbove10) amberFlags.push(daysAbove10 + " day(s) above 10h");
-        if (filterType === 'week' && !weeklyTargetReached) amberFlags.push("Weekly target <40h");
+        if (filterType === 'week' && !weeklyTargetReached && isLateWeek) amberFlags.push("Weekly target <40h");
         if (adminRatio > 15) amberFlags.push("Admin " + adminRatio.toFixed(1) + "% >15%");
         if (notesMissing) amberFlags.push(notesMissing + " missing notes");
         if (daysManyProjects) amberFlags.push(daysManyProjects + " day(s) >4 projects");
@@ -313,7 +317,7 @@
         if (daysAbove10) score -= daysAbove10 * weights.daysAbove10;
         if (daysBelowTarget) score -= daysBelowTarget * weights.daysBelowTarget;
         if (daysManyProjects) score -= daysManyProjects * weights.manyProjects;
-        if (filterType === 'week' && !weeklyTargetReached && totalHours < 40) score -= weights.weeklyTargetNotReached;
+        if (filterType === 'week' && !weeklyTargetReached && totalHours < 40 && isLateWeek) score -= weights.weeklyTargetNotReached;
         score = Math.max(0, Math.min(100, score));
         if (specialBadge === "rockstar" || specialBadge === "perfect") score = 100;
         if (specialBadge === "efficiency") score = 95;
@@ -355,14 +359,30 @@
         };
     }
     
-    // ---------- PDF DOWNLOAD (FULL VERSION) ----------
-    function downloadRulesPDF() {
+    // ---------- PDF DOWNLOAD WITH LOGO AND QR CODE ----------
+    async function downloadRulesPDF() {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
         const pageWidth = doc.internal.pageSize.getWidth();
         const margin = 15;
         let y = 20;
         
+        // ---- Add Logo (small) ----
+        try {
+            const logoResponse = await fetch('logo.png');
+            if (logoResponse.ok) {
+                const logoBlob = await logoResponse.blob();
+                const logoDataUrl = await new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result);
+                    reader.readAsDataURL(logoBlob);
+                });
+                // Place logo at top right, 15x15 mm
+                doc.addImage(logoDataUrl, 'PNG', pageWidth - 30, 10, 15, 15);
+            }
+        } catch(e) { console.warn("Logo not loaded", e); }
+        
+        // Title
         doc.setFontSize(24);
         doc.setTextColor(11, 43, 59);
         doc.setFont("helvetica", "bold");
@@ -395,7 +415,7 @@
         var greenRules = [
             "• No missing working days (past)",
             "• Each logged day: 7.5 – 9 hours",
-            "• Weekly total hours >= 40 (for week filter)",
+            "• Weekly total hours >= 40 (checked only on Friday or later)",
             "• Admin hours <= 15% of total",
             "• No overtime days (>8h)",
             "• No duplicate entries",
@@ -426,7 +446,7 @@
         var amberRules = [
             "• One missing working day (past)",
             "• Daily hours below 7.5h or above 10h (but <=12h)",
-            "• Weekly total <40h (week filter only)",
+            "• Weekly total <40h (only checked on Friday or later)",
             "• Admin hours >15% (but <=25%)",
             "• Missing notes on some entries",
             "• More than 4 projects in one day",
@@ -453,7 +473,7 @@
         doc.setFont("helvetica", "normal");
         var redRules = [
             "• Two or more missing working days (past)",
-            "• Weekly hours <30h (week filter)",
+            "• Weekly hours <30h (only checked on Friday or later)",
             "• Any negative or impossible hours",
             "• Duplicate entries detected",
             "• More than 12 hours worked in one day",
@@ -527,13 +547,28 @@
         }
         y += 5;
         
-        // Footer
-        if (y > 260) { doc.addPage(); y = 20; }
+        // ---- Footer with QR Code ----
+        const repoUrl = "https://github.com/siyabongathupana/portfolio";
+        try {
+            // Generate QR code using the QRCode.js library (already loaded on page)
+            if (typeof QRCode !== 'undefined') {
+                const qrContainer = document.createElement('div');
+                new QRCode(qrContainer, { text: repoUrl, width: 40, height: 40, colorDark: "#000000", colorLight: "#ffffff", correctLevel: QRCode.CorrectLevel.L });
+                await new Promise(r => setTimeout(r, 200));
+                const qrCanvas = qrContainer.querySelector('canvas');
+                if (qrCanvas) {
+                    const qrDataUrl = qrCanvas.toDataURL('image/png');
+                    doc.addImage(qrDataUrl, 'PNG', pageWidth - 25, y + 5, 12, 12);
+                }
+            }
+        } catch(e) { console.warn("QR generation failed", e); }
+        
         doc.setFontSize(8);
         doc.setTextColor(150, 150, 150);
         doc.text("Generated: " + new Date().toLocaleString() + " | Your Portfolio Timesheet System", margin, y + 10);
         doc.text("The traffic light evaluates only past working days (Mon–Fri, excluding SA public holidays).", margin, y + 15);
         doc.text("Today's progress is shown in the tooltip but never penalises the colour.", margin, y + 20);
+        doc.text("Repo: " + repoUrl, margin, y + 25);
         
         doc.save("Timesheet_TrafficLight_Rules.pdf");
     }
