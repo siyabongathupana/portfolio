@@ -1,6 +1,12 @@
-// trafficlight-full.js – COMPLETE & FULLY TESTED
+// trafficlight-full.js – COMPLETE (Full rule engine + PDF download + UTC fix)
 (function() {
-    // ---------- UTILITIES ----------
+    // ---------- GET TODAY'S DATE IN UTC ----------
+    function getTodayUTC() {
+        const d = new Date();
+        d.setUTCHours(0, 0, 0, 0);
+        return d.toISOString().split('T')[0];
+    }
+    
     function formatYMD(d) {
         return d.toISOString().split('T')[0];
     }
@@ -74,9 +80,9 @@
         return working;
     }
     
-    function checkTrainingThisMonth(entries, today) {
-        const year = today.getFullYear();
-        const month = today.getMonth();
+    function checkTrainingThisMonth(entries, todayYMD) {
+        const year = parseInt(todayYMD.substring(0, 4));
+        const month = parseInt(todayYMD.substring(5, 7)) - 1;
         return entries.some(e => {
             const d = new Date(e.date);
             return e.category === 'Training' && d.getFullYear() === year && d.getMonth() === month;
@@ -115,34 +121,31 @@
         return earliest;
     }
     
-    // ---------- MAIN ANALYSIS (FIXED UTC DATE COMPARISON) ----------
-    function analyzeTimesheetHealth(entries, filterType, today = new Date()) {
-        const todayStart = new Date(today);
-        todayStart.setUTCHours(0, 0, 0, 0);
-        const todayYMD = formatYMD(todayStart);
+    // ---------- MAIN ANALYSIS ----------
+    function analyzeTimesheetHealth(entries, filterType, todayYMD) {
+        const todayDate = new Date(todayYMD + "T00:00:00Z");
         
         let startDate, endDate;
         if (filterType === 'day') {
-            startDate = new Date(todayStart);
-            endDate = new Date(todayStart);
-            endDate.setUTCHours(23, 59, 59, 999);
+            startDate = todayDate;
+            endDate = todayDate;
         } else if (filterType === 'week') {
-            const monday = getMonday(todayStart);
+            const monday = getMonday(todayDate);
             startDate = monday;
             endDate = new Date(monday);
             endDate.setUTCDate(monday.getUTCDate() + 6);
         } else if (filterType === 'month') {
-            startDate = new Date(Date.UTC(todayStart.getFullYear(), todayStart.getMonth(), 1));
-            endDate = new Date(Date.UTC(todayStart.getFullYear(), todayStart.getMonth() + 1, 0));
+            startDate = new Date(Date.UTC(parseInt(todayYMD.substring(0,4)), parseInt(todayYMD.substring(5,7))-1, 1));
+            endDate = new Date(Date.UTC(parseInt(todayYMD.substring(0,4)), parseInt(todayYMD.substring(5,7)), 0));
         } else {
             const first = getEarliestEntryDate(entries);
             if (!first) return null;
             startDate = first;
-            endDate = todayStart;
+            endDate = todayDate;
         }
         
-        const yesterday = new Date(todayStart);
-        yesterday.setUTCDate(todayStart.getUTCDate() - 1);
+        const yesterday = new Date(todayDate);
+        yesterday.setUTCDate(todayDate.getUTCDate() - 1);
         const workingDays = getWorkingDaysUpTo(startDate, endDate, yesterday);
         
         const dayMap = new Map();
@@ -156,21 +159,11 @@
         let invalidProjects = new Set();
         const seen = new Set();
         
-        // For debugging - remove in production
-        console.log("Today YMD (UTC):", todayYMD);
-        
         entries.forEach(entry => {
-            const entryDate = new Date(entry.date);
-            // Create UTC date at midnight
-            const entryUTC = new Date(Date.UTC(entryDate.getFullYear(), entryDate.getMonth(), entryDate.getDate()));
-            const entryYMD = formatYMD(entryUTC);
+            const entryDate = new Date(entry.date + "T00:00:00Z");
+            const entryYMD = formatYMD(entryDate);
             
-            // Debug log
-            if (entryYMD === todayYMD) {
-                console.log("Found entry matching today:", entry);
-            }
-            
-            if (entryUTC < startDate || entryUTC > endDate) return;
+            if (entryDate < startDate || entryDate > endDate) return;
             
             const hrs = entry.hours;
             totalHours += hrs;
@@ -181,8 +174,7 @@
             if (seen.has(key)) duplicateEntries.push(entry);
             else seen.add(key);
             
-            // Compare dates using UTC timestamps
-            if (entryUTC < todayStart) {
+            if (entryDate < todayDate) {
                 if (dayMap.has(entryYMD)) {
                     const d = dayMap.get(entryYMD);
                     d.hours += hrs;
@@ -194,13 +186,10 @@
             }
         });
         
-        console.log("Today hours calculated:", todayHours);
-        
         if (window.__timesheetProjectOptions && window.__timesheetProjectOptions.length) {
             entries.forEach(entry => {
-                const entryDate = new Date(entry.date);
-                const entryUTC = new Date(Date.UTC(entryDate.getFullYear(), entryDate.getMonth(), entryDate.getDate()));
-                if (entryUTC < startDate || entryUTC > endDate) return;
+                const entryDate = new Date(entry.date + "T00:00:00Z");
+                if (entryDate < startDate || entryDate > endDate) return;
                 if (entry.project && !window.__timesheetProjectOptions.includes(entry.project))
                     invalidProjects.add(entry.project);
             });
@@ -232,12 +221,11 @@
         const totalProjectsWorked = new Set(Array.from(dayMap.values()).flatMap(d => Array.from(d.projects))).size;
         const adminRatio = totalHours > 0 ? (adminHours / totalHours) * 100 : 0;
         const consecutiveMissing = findConsecutiveMissing(workingDays, dayMap);
-        const trainingThisMonth = checkTrainingThisMonth(entries, todayStart);
+        const trainingThisMonth = checkTrainingThisMonth(entries, todayYMD);
         const hasWeekendWork = checkWeekendWork(entries, startDate, endDate);
         const unallocated = entries.filter(e => {
-            const d = new Date(e.date);
-            const dUTC = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-            return dUTC >= startDate && dUTC <= endDate && (!e.project || e.project.trim() === "");
+            const d = new Date(e.date + "T00:00:00Z");
+            return d >= startDate && d <= endDate && (!e.project || e.project.trim() === "");
         }).length;
         const weeklyTargetReached = totalHours >= 40;
         const weeklySignificantlyBelow = totalHours < 30;
@@ -330,8 +318,8 @@
         if (specialBadge === "rockstar" || specialBadge === "perfect") score = 100;
         if (specialBadge === "efficiency") score = 95;
         
-        const todayIsWeekday = todayStart.getUTCDay() !== 0 && todayStart.getUTCDay() !== 6;
-        const todayIsHoliday = isSouthAfricanPublicHoliday(todayStart);
+        const todayIsWeekday = todayDate.getUTCDay() !== 0 && todayDate.getUTCDay() !== 6;
+        const todayIsHoliday = isSouthAfricanPublicHoliday(todayDate);
         let todayMsg = "";
         if (filterType === 'day') {
             if (todayHours === 0) todayMsg = "No hours logged yet today.";
@@ -367,7 +355,7 @@
         };
     }
     
-    // ---------- GENERATE PDF WITH RULES (FIXED CHARACTER ENCODING) ----------
+    // ---------- PDF DOWNLOAD (FULL VERSION) ----------
     function downloadRulesPDF() {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
@@ -375,7 +363,6 @@
         const margin = 15;
         let y = 20;
         
-        // Title
         doc.setFontSize(24);
         doc.setTextColor(11, 43, 59);
         doc.setFont("helvetica", "bold");
@@ -386,7 +373,6 @@
         doc.line(margin, y, pageWidth - margin, y);
         y += 10;
         
-        // Intro
         doc.setFontSize(10);
         doc.setTextColor(80, 80, 80);
         doc.setFont("helvetica", "normal");
@@ -395,7 +381,7 @@
         doc.text("The light evaluates your timesheet based on past working days only (Mon–Fri, excluding South African public holidays).", margin, y);
         y += 12;
         
-        // GREEN section
+        // GREEN
         doc.setFillColor(40, 167, 69);
         doc.rect(margin, y, 5, 5, 'F');
         doc.setFontSize(12);
@@ -425,7 +411,7 @@
         }
         y += 5;
         
-        // AMBER section
+        // AMBER
         if (y > 240) { doc.addPage(); y = 20; }
         doc.setFillColor(255, 193, 7);
         doc.rect(margin, y, 5, 5, 'F');
@@ -453,7 +439,7 @@
         }
         y += 5;
         
-        // RED section
+        // RED
         if (y > 240) { doc.addPage(); y = 20; }
         doc.setFillColor(220, 53, 69);
         doc.rect(margin, y, 5, 5, 'F');
@@ -483,12 +469,12 @@
         }
         y += 5;
         
-        // Special badges
+        // Special Badges
         if (y > 240) { doc.addPage(); y = 20; }
         doc.setFontSize(12);
         doc.setTextColor(108, 117, 125);
         doc.setFont("helvetica", "bold");
-        doc.text("Special Badges", margin, y);
+        doc.text("✨ Special Badges", margin, y);
         y += 8;
         doc.setFontSize(9);
         doc.setTextColor(60, 60, 60);
@@ -505,12 +491,12 @@
         }
         y += 5;
         
-        // Health score weights
+        // Health Score Weights
         if (y > 240) { doc.addPage(); y = 20; }
         doc.setFontSize(12);
         doc.setTextColor(108, 117, 125);
         doc.setFont("helvetica", "bold");
-        doc.text("Health Score Calculation (0–100)", margin, y);
+        doc.text("📊 Health Score Calculation (0–100)", margin, y);
         y += 8;
         doc.setFontSize(9);
         doc.setTextColor(60, 60, 60);
@@ -560,12 +546,16 @@
             container.innerHTML = '<div class="traffic-light-standalone" title="No data"><div class="light red"></div><div class="light amber"></div><div class="light green"></div></div>';
             return;
         }
+        
         var range = document.getElementById("filterRange") ? document.getElementById("filterRange").value : "week";
-        var health = analyzeTimesheetHealth(window.__timesheetEntries, range, new Date());
+        var todayYMD = getTodayUTC();
+        var health = analyzeTimesheetHealth(window.__timesheetEntries, range, todayYMD);
+        
         if (!health) {
             container.innerHTML = '<div class="traffic-light-standalone" title="Error"><div class="light red"></div><div class="light amber"></div><div class="light green"></div></div>';
             return;
         }
+        
         var redLit = health.status === "red" ? "lit" : "";
         var amberLit = health.status === "amber" ? "lit" : "";
         var greenLit = health.status === "green" ? "lit" : "";
@@ -573,8 +563,7 @@
         var tooltip = health.status.toUpperCase() + " – Score: " + health.score + "/100\n";
         tooltip += "📅 Past missing working days: " + health.metrics.missingDays;
         if (health.missingDates.length) {
-            var dates = health.missingDates.slice(0, 3).join(", ");
-            tooltip += " [" + dates + "]" + (health.missingDates.length > 3 ? "..." : "");
+            tooltip += " [" + health.missingDates.slice(0, 3).join(", ") + (health.missingDates.length > 3 ? "..." : "") + "]";
         }
         tooltip += "\n📊 Total hours (period): " + health.metrics.totalHours + "\n";
         tooltip += "⚙️ Admin: " + health.metrics.adminRatio + "% | O/T days: " + health.metrics.overtimeDays + "\n";
