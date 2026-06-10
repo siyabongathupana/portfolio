@@ -602,138 +602,277 @@
 
   // ======================== EXCEL EXPORT (protected worksheet, week coloring) ========================
   async function exportStyledExcel(startDate, endDate) {
-    window.showLoading("Generating protected Excel report...");
+    window.showLoading("Generating professional Excel report...");
     try {
-      const filtered = entries.filter(e => e.date >= startDate && e.date <= endDate);
-      if (!filtered.length) { showToast("No entries in selected range.", "error"); window.hideLoading(); return; }
+        const filtered = entries.filter(e => e.date >= startDate && e.date <= endDate);
+        if (!filtered.length) { showToast("No entries in selected range.", "error"); window.hideLoading(); return; }
 
-      filtered.forEach(e => { e.weekKey = `${new Date(e.date).getFullYear()}-W${getWeekNumber(e.date)}`; });
-      const weeks = [...new Map(filtered.map(e => [e.weekKey, e.weekKey])).values()];
-      const weekFills = weeks.map((w, idx) => ({
-        week: w,
-        fill: idx % 2 === 0 ? { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } }
-                            : { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF4E6' } }
-      }));
-      const getRowFill = (entry) => weekFills.find(wf => wf.week === entry.weekKey)?.fill || { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } };
+        // --- Load logo image ---
+        let logoBase64 = null;
+        try {
+            const resp = await fetch('logo.png');
+            if (resp.ok) {
+                const blob = await resp.blob();
+                logoBase64 = await new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result);
+                    reader.readAsDataURL(blob);
+                });
+            }
+        } catch(e) { console.warn("Logo not loaded", e); }
 
-      const workbook = new ExcelJS.Workbook();
-      const worksheet = workbook.addWorksheet("Timesheet Report", { pageSetup: { orientation: 'landscape', fitToPage: true } });
+        // --- Prepare week grouping for alternating row colors ---
+        filtered.forEach(e => { e.weekKey = `${new Date(e.date).getFullYear()}-W${getWeekNumber(e.date)}`; });
+        const weeks = [...new Map(filtered.map(e => [e.weekKey, e.weekKey])).values()];
+        const weekFills = weeks.map((w, idx) => ({
+            week: w,
+            fill: idx % 2 === 0 ? { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } }
+                                : { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF4E6' } }
+        }));
+        const getRowFill = (entry) => weekFills.find(wf => wf.week === entry.weekKey)?.fill || { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } };
 
-      worksheet.mergeCells('A1:H1');
-      const titleCell = worksheet.getCell('A1');
-      titleCell.value = `TIMESHEET REPORT - ${userFullName || user.username}`;
-      titleCell.font = { size: 18, bold: true, color: { argb: 'FFFFFFFF' } };
-      titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
-      titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
-      worksheet.getRow(1).height = 32;
-
-      worksheet.mergeCells('A2:H2');
-      const periodCell = worksheet.getCell('A2');
-      periodCell.value = `Period: ${startDate} to ${endDate}  |  Generated: ${new Date().toLocaleString()}`;
-      periodCell.font = { size: 11, italic: true };
-      periodCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE6F4FA' } };
-      periodCell.alignment = { horizontal: 'center' };
-      worksheet.getRow(2).height = 22;
-
-      const totalHours = filtered.reduce((s,e) => s + e.hours, 0);
-      const billableHours = filtered.filter(e => e.billable === 'yes').reduce((s,e) => s + e.hours, 0);
-      const nonBillable = totalHours - billableHours;
-      const overtime = calculateOvertimeForPeriod(filtered);
-      const summaryText = `📊 Total: ${totalHours.toFixed(1)} hrs  |  Billable: ${billableHours.toFixed(1)}  |  Non-billable: ${nonBillable.toFixed(1)}  |  Overtime: ${overtime.toFixed(1)}`;
-      worksheet.mergeCells('A3:H3');
-      const summaryCell = worksheet.getCell('A3');
-      summaryCell.value = summaryText;
-      summaryCell.font = { bold: true, size: 10 };
-      summaryCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9EDF7' } };
-      worksheet.getRow(3).height = 24;
-
-      const headers = ['Date','Start','End','Hours','Project','Category','Billable','Notes'];
-      const headerRow = worksheet.addRow(headers);
-      headerRow.eachCell(cell => {
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
-        cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 };
-        cell.alignment = { horizontal: 'center', vertical: 'middle' };
-        cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
-      });
-      worksheet.getRow(4).height = 22;
-
-      for (const entry of filtered) {
-        const row = worksheet.addRow([
-          entry.date, entry.start, entry.end, entry.hours.toFixed(2),
-          entry.project, entry.category,
-          entry.billable === 'yes' ? 'Billable' : 'Non-billable',
-          entry.notes || ''
-        ]);
-        row.eachCell(cell => {
-          cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
-          cell.alignment = { vertical: 'middle' };
+        const workbook = new ExcelJS.Workbook();
+        // --- Main Data Sheet ---
+        const worksheet = workbook.addWorksheet("Timesheet Data", {
+            pageSetup: {
+                orientation: 'landscape',
+                fitToPage: true,
+                fitToWidth: 1,
+                fitToHeight: 0,
+                paperSize: 9,
+                horizontalCentered: true,
+                verticalCentered: true
+            }
         });
-        const rowFill = getRowFill(entry);
-        row.eachCell(cell => { cell.fill = rowFill; });
-        const billableCell = row.getCell(7);
-        if (entry.billable === 'yes') {
-          billableCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC6EFCE' } };
-          billableCell.font = { color: { argb: 'FF006400' }, bold: true };
-        } else {
-          billableCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFC7CE' } };
-          billableCell.font = { color: { argb: 'FF8B0000' } };
+
+        // ---- HELPER: Calculate optimal column widths ----
+        const colWidths = [12, 8, 8, 8, 25, 18, 12, 50]; // defaults
+        const dataRows = filtered;
+        const headers = ['Date','Start','End','Hours','Project','Category','Billable','Notes'];
+        for (let i = 0; i < headers.length; i++) {
+            let maxLen = headers[i].length;
+            for (const row of dataRows) {
+                let val = '';
+                switch(i) {
+                    case 0: val = row.date; break;
+                    case 1: val = row.start; break;
+                    case 2: val = row.end; break;
+                    case 3: val = row.hours.toFixed(2); break;
+                    case 4: val = row.project; break;
+                    case 5: val = row.category; break;
+                    case 6: val = row.billable === 'yes' ? 'Billable' : 'Non-billable'; break;
+                    case 7: val = row.notes || ''; break;
+                }
+                if (val && val.length > maxLen) maxLen = Math.min(val.length, 50);
+            }
+            colWidths[i] = Math.max(colWidths[i], maxLen + 2);
         }
-      }
+        worksheet.columns = colWidths.map(w => ({ width: w }));
 
-      const totalRow = worksheet.addRow(['','','', totalHours.toFixed(1),'','','','']);
-      totalRow.getCell(4).font = { bold: true, size: 11 };
-      totalRow.eachCell(cell => {
-        cell.border = { top: { style: 'thin' }, bottom: { style: 'double' }, left: { style: 'thin' }, right: { style: 'thin' } };
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF0F0F0' } };
-      });
+        // --- Insert Logo (if available) at A1 ---
+        let startRow = 1;
+        if (logoBase64) {
+            const logoId = workbook.addImage({ base64: logoBase64, extension: 'png' });
+            worksheet.addImage(logoId, { tl: { col: 0, row: 0 }, ext: { width: 60, height: 25 }, editAs: 'oneCell' });
+            startRow = 3; // shift title down
+        }
 
-      worksheet.columns = [ { width:12 },{ width:8 },{ width:8 },{ width:8 },{ width:25 },{ width:18 },{ width:12 },{ width:35 } ];
-      worksheet.getRow(1).height = 32; worksheet.getRow(2).height = 22; worksheet.getRow(3).height = 24; worksheet.getRow(4).height = 22;
-      worksheet.views = [{ state: 'frozen', ySplit: 4 }];
+        // --- Title ---
+        const titleRow = startRow;
+        worksheet.mergeCells(`A${titleRow}:H${titleRow}`);
+        const titleCell = worksheet.getCell(`A${titleRow}`);
+        titleCell.value = `TIMESHEET REPORT - ${userFullName || user.username}`;
+        titleCell.font = { size: 18, bold: true, color: { argb: 'FFFFFFFF' } };
+        titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
+        titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+        worksheet.getRow(titleRow).height = 32;
 
-      // Add chart
-      try {
-        const projMap = {};
-        filtered.forEach(e => { projMap[e.project] = (projMap[e.project] || 0) + e.hours; });
-        const canvas = document.createElement('canvas');
-        canvas.width = 800; canvas.height = 400;
-        const ctx = canvas.getContext('2d');
-        const chart = new Chart(ctx, {
-          type: 'bar',
-          data: { labels: Object.keys(projMap), datasets: [{ label: 'Hours', data: Object.values(projMap), backgroundColor: '#2fc7ff' }] },
-          options: { responsive: false }
+        // --- Period ---
+        const periodRow = titleRow + 1;
+        worksheet.mergeCells(`A${periodRow}:H${periodRow}`);
+        const periodCell = worksheet.getCell(`A${periodRow}`);
+        periodCell.value = `Period: ${startDate} to ${endDate}  |  Generated: ${new Date().toLocaleString()}`;
+        periodCell.font = { size: 11, italic: true };
+        periodCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE6F4FA' } };
+        periodCell.alignment = { horizontal: 'center' };
+        worksheet.getRow(periodRow).height = 22;
+
+        // --- Summary KPIs ---
+        const summaryRow = periodRow + 1;
+        const totalHours = filtered.reduce((s,e) => s + e.hours, 0);
+        const billableHours = filtered.filter(e => e.billable === 'yes').reduce((s,e) => s + e.hours, 0);
+        const nonBillable = totalHours - billableHours;
+        const overtime = calculateOvertimeForPeriod(filtered);
+        const summaryText = `📊 Total: ${totalHours.toFixed(1)} hrs  |  Billable: ${billableHours.toFixed(1)}  |  Non-billable: ${nonBillable.toFixed(1)}  |  Overtime: ${overtime.toFixed(1)}`;
+        worksheet.mergeCells(`A${summaryRow}:H${summaryRow}`);
+        const summaryCell = worksheet.getCell(`A${summaryRow}`);
+        summaryCell.value = summaryText;
+        summaryCell.font = { bold: true, size: 10 };
+        summaryCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9EDF7' } };
+        worksheet.getRow(summaryRow).height = 24;
+
+        // --- Header row ---
+        const headerRowNum = summaryRow + 1;
+        const headerRow = worksheet.getRow(headerRowNum);
+        headers.forEach((h, idx) => {
+            const cell = headerRow.getCell(idx+1);
+            cell.value = h;
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
+            cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 };
+            cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+            cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
         });
-        await new Promise(r => setTimeout(r, 600));
-        const chartBase64 = canvas.toDataURL('image/png');
-        chart.destroy();
-        const chartImage = workbook.addImage({ base64: chartBase64, extension: 'png' });
-        const startRow = filtered.length + 6;
-        worksheet.addImage(chartImage, { tl: { col: 0, row: startRow }, br: { col: 6, row: startRow + 18 }, editAs: 'oneCell' });
-      } catch(e) { console.warn("Excel chart failed", e); }
+        worksheet.getRow(headerRowNum).height = 22;
 
-      const footerRowIdx = filtered.length + 26;
-      worksheet.getCell(`A${footerRowIdx}`).value = "This document is protected.";
-      worksheet.getCell(`A${footerRowIdx}`).font = { italic: true, size: 9 };
-      worksheet.mergeCells(`A${footerRowIdx}:H${footerRowIdx}`);
-      worksheet.getCell(`A${footerRowIdx+1}`).value = `© Your Portfolio – Generated on ${new Date().toLocaleString()}`;
-      worksheet.mergeCells(`A${footerRowIdx+1}:H${footerRowIdx+1}`);
+        // --- Data rows ---
+        let currentRowNum = headerRowNum + 1;
+        for (const entry of filtered) {
+            const row = worksheet.getRow(currentRowNum);
+            row.getCell(1).value = entry.date;
+            row.getCell(2).value = entry.start;
+            row.getCell(3).value = entry.end;
+            row.getCell(4).value = entry.hours.toFixed(2);
+            row.getCell(5).value = entry.project;
+            row.getCell(6).value = entry.category;
+            row.getCell(7).value = entry.billable === 'yes' ? 'Billable' : 'Non-billable';
+            row.getCell(8).value = entry.notes || '';
 
-      worksheet.protect('Siya', {
-        selectLockedCells: false, selectUnlockedCells: false, formatCells: false, formatColumns: false,
-        formatRows: false, insertRows: false, deleteRows: false, insertColumns: false, deleteColumns: false,
-        sort: false, autoFilter: false, pivotTables: false
-      });
+            // Apply borders and alignment
+            for (let i = 1; i <= 8; i++) {
+                const cell = row.getCell(i);
+                cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+                cell.alignment = { vertical: 'middle', wrapText: (i === 8) };
+                if (i !== 8 && i !== 4) cell.alignment.horizontal = 'left';
+                if (i === 4) cell.alignment.horizontal = 'right';
+            }
+            // Week-based background
+            const rowFill = getRowFill(entry);
+            for (let i = 1; i <= 8; i++) row.getCell(i).fill = rowFill;
 
-      const buffer = await workbook.xlsx.writeBuffer();
-      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-      saveAs(blob, `Timesheet_${startDate}_to_${endDate}_readonly.xlsx`);
-      showToast("Excel saved – opens without password, cells locked.", "success");
+            // Billable cell formatting
+            const billCell = row.getCell(7);
+            if (entry.billable === 'yes') {
+                billCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC6EFCE' } };
+                billCell.font = { color: { argb: 'FF006400' }, bold: true };
+            } else {
+                billCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFC7CE' } };
+                billCell.font = { color: { argb: 'FF8B0000' } };
+            }
+            currentRowNum++;
+        }
+
+        // --- Total row ---
+        const totalRowNum = currentRowNum;
+        const totalRow = worksheet.getRow(totalRowNum);
+        totalRow.getCell(4).value = totalHours.toFixed(1);
+        totalRow.getCell(4).font = { bold: true, size: 11 };
+        for (let i = 1; i <= 8; i++) {
+            const cell = totalRow.getCell(i);
+            cell.border = { top: { style: 'thin' }, bottom: { style: 'double' }, left: { style: 'thin' }, right: { style: 'thin' } };
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF0F0F0' } };
+            if (i !== 4) cell.value = '';
+        }
+
+        // --- Auto row height for Notes column ---
+        worksheet.eachRow((row, rowNumber) => {
+            let maxHeight = 18;
+            const noteCell = row.getCell(8);
+            if (noteCell.value && noteCell.value.toString().length > 30) {
+                const lines = Math.ceil(noteCell.value.toString().length / 45);
+                maxHeight = Math.max(maxHeight, 15 * lines);
+            }
+            row.height = maxHeight;
+        });
+
+        // --- Freeze header ---
+        worksheet.views = [{ state: 'frozen', ySplit: headerRowNum }];
+        worksheet.pageSetup.printArea = `A1:H${totalRowNum}`;
+
+        // --- Protect data sheet ---
+        worksheet.protect('Siya', {
+            selectLockedCells: false, selectUnlockedCells: false, formatCells: false, formatColumns: false,
+            formatRows: false, insertRows: false, deleteRows: false, insertColumns: false, deleteColumns: false,
+            sort: false, autoFilter: false, pivotTables: false
+        });
+
+        // ==================== 2. SUMMARY SHEET with Chart ====================
+        const summarySheet = workbook.addWorksheet("Summary", {
+            pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, paperSize: 9 }
+        });
+        summarySheet.columns = [{ width: 20 }, { width: 20 }, { width: 20 }];
+
+        // Title
+        summarySheet.mergeCells('A1:C1');
+        const sumTitle = summarySheet.getCell('A1');
+        sumTitle.value = "TIMESHEET SUMMARY";
+        sumTitle.font = { size: 16, bold: true, color: { argb: 'FF0B2B3B' } };
+        sumTitle.alignment = { horizontal: 'center' };
+        summarySheet.getRow(1).height = 28;
+
+        // KPIs
+        summarySheet.getCell('A3').value = "Total Hours";
+        summarySheet.getCell('B3').value = totalHours.toFixed(1);
+        summarySheet.getCell('A4').value = "Billable Hours";
+        summarySheet.getCell('B4').value = billableHours.toFixed(1);
+        summarySheet.getCell('A5').value = "Non-Billable Hours";
+        summarySheet.getCell('B5').value = nonBillable.toFixed(1);
+        summarySheet.getCell('A6').value = "Overtime Hours";
+        summarySheet.getCell('B6').value = overtime.toFixed(1);
+        summarySheet.getCell('A7').value = "Unique Projects";
+        summarySheet.getCell('B7').value = new Set(filtered.map(e => e.project)).size;
+        summarySheet.getCell('A8').value = "Admin Ratio (%)";
+        const adminHours = filtered.filter(e => e.category === 'Admin').reduce((s,e) => s + e.hours, 0);
+        const adminRatio = totalHours > 0 ? (adminHours / totalHours) * 100 : 0;
+        summarySheet.getCell('B8').value = adminRatio.toFixed(1) + "%";
+
+        // Style KPIs
+        for (let i = 3; i <= 8; i++) {
+            const labelCell = summarySheet.getCell(`A${i}`);
+            labelCell.font = { bold: true };
+            labelCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE6F4FA' } };
+            const valueCell = summarySheet.getCell(`B${i}`);
+            valueCell.font = { size: 12, bold: true };
+            valueCell.alignment = { horizontal: 'right' };
+        }
+
+        // --- Add bar chart (hours by project) ---
+        try {
+            const projMap = {};
+            filtered.forEach(e => { projMap[e.project] = (projMap[e.project] || 0) + e.hours; });
+            const projLabels = Object.keys(projMap).slice(0, 8); // max 8 projects
+            const projData = projLabels.map(l => projMap[l]);
+            // Create a temporary canvas to generate chart image
+            const canvas = document.createElement('canvas');
+            canvas.width = 800;
+            canvas.height = 400;
+            const ctx = canvas.getContext('2d');
+            const chart = new Chart(ctx, {
+                type: 'bar',
+                data: { labels: projLabels, datasets: [{ label: 'Hours', data: projData, backgroundColor: '#2fc7ff' }] },
+                options: { responsive: false, maintainAspectRatio: true }
+            });
+            await new Promise(r => setTimeout(r, 600));
+            const chartBase64 = canvas.toDataURL('image/png');
+            chart.destroy();
+            const chartImageId = workbook.addImage({ base64: chartBase64, extension: 'png' });
+            summarySheet.addImage(chartImageId, { tl: { col: 0, row: 10 }, br: { col: 8, row: 30 }, editAs: 'oneCell' });
+        } catch(e) { console.warn("Chart generation failed", e); }
+
+        // --- Footer on summary sheet ---
+        summarySheet.getCell('A35').value = `Generated: ${new Date().toLocaleString()} | Your Portfolio System`;
+        summarySheet.getCell('A35').font = { italic: true, size: 8 };
+        summarySheet.mergeCells('A35:C35');
+
+        // --- Generate and download ---
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        saveAs(blob, `Timesheet_${startDate}_to_${endDate}_readonly.xlsx`);
+        showToast("Excel report generated with summary and chart!", "success");
     } catch (err) {
-      console.error(err);
-      showToast("Excel generation failed: " + err.message, "error");
+        console.error(err);
+        showToast("Excel generation failed: " + err.message, "error");
     } finally { window.hideLoading(); }
-  }
-
+}
   // ======================== USER META & NOTIFICATIONS ========================
   async function loadUserMeta() {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
