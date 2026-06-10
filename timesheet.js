@@ -841,7 +841,7 @@
             const chartImageId = workbook.addImage({ base64: chartBase64, extension: 'png' });
             summarySheet.addImage(chartImageId, {
                 tl: { col: 0, row: 12 },
-                ext: { width: 290, height: 163 },
+                ext: { width: 310, height: 183 },
                 editAs: 'oneCell'
             });
         } catch(e) { console.warn("Bar chart skipped", e); }
@@ -884,7 +884,7 @@
             const pieImageId = workbook.addImage({ base64: pieBase64, extension: 'png' });
             chartsSheet.addImage(pieImageId, {
                 tl: { col: 0, row: 3 },
-                ext: { width: 250, height: 250 },
+                ext: { width: 270, height: 270 },
                 editAs: 'oneCell'
             });
         } catch(e) { console.warn("Pie chart skipped", e); }
@@ -913,7 +913,7 @@
             const lineImageId = workbook.addImage({ base64: lineBase64, extension: 'png' });
             chartsSheet.addImage(lineImageId, {
                 tl: { col: 6, row: 3 },
-                ext: { width: 290, height: 145 },
+                ext: { width: 310, height: 165 },
                 editAs: 'oneCell'
             });
         } catch(e) { console.warn("Line chart skipped", e); }
@@ -935,7 +935,7 @@
             const doughnutImageId = workbook.addImage({ base64: doughnutBase64, extension: 'png' });
             chartsSheet.addImage(doughnutImageId, {
                 tl: { col: 0, row: 32 },
-                ext: { width: 250, height: 250 },
+                ext: { width: 270, height: 270 },
                 editAs: 'oneCell'
             });
         } catch(e) { console.warn("Doughnut chart skipped", e); }
@@ -973,7 +973,7 @@
             const stackedImageId = workbook.addImage({ base64: stackedBase64, extension: 'png' });
             chartsSheet.addImage(stackedImageId, {
                 tl: { col: 6, row: 32 },
-                ext: { width: 290, height: 174 },
+                ext: { width: 310, height: 194 },
                 editAs: 'oneCell'
             });
         } catch(e) { console.warn("Stacked bar chart skipped", e); }
