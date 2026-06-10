@@ -3,12 +3,12 @@
     "id": 1781082497906,
     "date": "2026-06-10",
     "start": "11:08",
-    "end": "12:09",
-    "hours": 1.02,
+    "end": "16:08",
+    "hours": 5,
     "project": "Sasol",
     "category": "Training",
     "billable": "yes",
     "notes": "",
-    "updatedAt": 1781084288097
+    "updatedAt": 1781084309249
   }
 ]
