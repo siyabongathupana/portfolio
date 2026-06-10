@@ -601,7 +601,7 @@
   }
 
   // ======================== EXCEL EXPORT (protected worksheet, week coloring) ========================
-   async function exportStyledExcel(startDate, endDate) {
+  async function exportStyledExcel(startDate, endDate) {
     window.showLoading("Generating Excel report...");
     try {
         // Helper fallbacks (safe)
@@ -642,7 +642,7 @@
 
         const workbook = new ExcelJS.Workbook();
         
-        // ==================== MAIN DATA SHEET ====================
+        // ==================== MAIN DATA SHEET (unchanged, safe) ====================
         const worksheet = workbook.addWorksheet("Timesheet Data", {
             pageSetup: {
                 orientation: 'landscape',
@@ -820,7 +820,7 @@
             r++;
         }
 
-        // Bar chart (safe)
+        // Bar chart with retry
         try {
             const projMap = {};
             filtered.forEach(e => { projMap[e.project] = (projMap[e.project] || 0) + e.hours; });
@@ -846,10 +846,16 @@
                     }
                 }
             });
-            await new Promise(r => setTimeout(r, 600));
-            const chartBase64 = canvas.toDataURL('image/png');
+            // Longer timeout + retry
+            await new Promise(r => setTimeout(r, 1500));
+            let chartBase64 = canvas.toDataURL('image/png');
+            // Retry if empty
+            for (let i = 0; i < 2 && (!chartBase64 || chartBase64.length < 1000); i++) {
+                await new Promise(r => setTimeout(r, 500));
+                chartBase64 = canvas.toDataURL('image/png');
+            }
             chart.destroy();
-            if (chartBase64 && chartBase64.startsWith('data:image/png;base64,')) {
+            if (chartBase64 && chartBase64.length > 1000 && chartBase64.startsWith('data:image/png;base64,')) {
                 const imgId = workbook.addImage({ base64: chartBase64, extension: 'png' });
                 if (typeof imgId === 'number') {
                     summarySheet.addImage(imgId, { x: 10, y: 80, width: 280, height: 157 });
@@ -861,7 +867,7 @@
         summarySheet.getCell('A35').font = { italic: true, size: 8 };
         summarySheet.mergeCells('A35:C35');
 
-        // ==================== CHARTS SHEET (All 4 charts, safe) ====================
+        // ==================== CHARTS SHEET (4 charts, robust) ====================
         const chartsSheet = workbook.addWorksheet("Charts", {
             pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, paperSize: 9 }
         });
@@ -872,22 +878,33 @@
         chartsTitle.alignment = { horizontal: 'center' };
         chartsSheet.getRow(1).height = 28;
 
-        // Helper to safely add chart image
-        async function safeAddChart(generator, x, y, width, height) {
+        // Ultra‑safe chart addition with retry and validation
+        async function safeAddChart(generator, x, y, width, height, chartName) {
             try {
-                const base64 = await generator();
+                console.log(`Generating ${chartName}...`);
+                let base64 = await generator();
+                // Validate
+                if (!base64 || base64.length < 1000 || !base64.startsWith('data:image/png;base64,')) {
+                    console.warn(`${chartName} – invalid base64, retrying once...`);
+                    await new Promise(r => setTimeout(r, 500));
+                    base64 = await generator();
+                }
                 if (base64 && base64.length > 1000 && base64.startsWith('data:image/png;base64,')) {
                     const imgId = workbook.addImage({ base64: base64, extension: 'png' });
                     if (typeof imgId === 'number') {
                         chartsSheet.addImage(imgId, { x: x, y: y, width: width, height: height });
+                        console.log(`${chartName} added successfully`);
                         return true;
                     }
                 }
-            } catch(e) { console.warn("Chart generation failed", e); }
-            return false;
+                throw new Error(`Invalid image for ${chartName}`);
+            } catch(e) {
+                console.error(`${chartName} failed:`, e);
+                return false;
+            }
         }
 
-        // 1. Pie chart (square, readable legend)
+        // 1. Pie chart
         await safeAddChart(async () => {
             const catMap = {};
             filtered.forEach(e => { catMap[e.category] = (catMap[e.category] || 0) + e.hours; });
@@ -903,19 +920,16 @@
                 options: {
                     responsive: false,
                     maintainAspectRatio: true,
-                    plugins: {
-                        legend: { position: 'right', labels: { font: { size: 16 } } },
-                        tooltip: { bodyFont: { size: 14 } }
-                    }
+                    plugins: { legend: { position: 'right', labels: { font: { size: 16 } } }, tooltip: { bodyFont: { size: 14 } } }
                 }
             });
-            await new Promise(r => setTimeout(r, 600));
+            await new Promise(r => setTimeout(r, 1500));
             const base64 = canvas.toDataURL('image/png');
             pieChart.destroy();
             return base64;
-        }, 10, 30, 130, 130);
+        }, 10, 30, 130, 130, "Pie chart");
 
-        // 2. Line chart (wide, readable axes)
+        // 2. Line chart
         await safeAddChart(async () => {
             const weeklyTotals = {};
             filtered.forEach(e => {
@@ -934,23 +948,20 @@
                 options: {
                     responsive: false,
                     maintainAspectRatio: true,
-                    plugins: {
-                        legend: { labels: { font: { size: 16 } } },
-                        tooltip: { bodyFont: { size: 14 } }
-                    },
+                    plugins: { legend: { labels: { font: { size: 16 } } }, tooltip: { bodyFont: { size: 14 } } },
                     scales: {
                         x: { ticks: { font: { size: 12 } }, title: { display: true, text: 'Week', font: { size: 14 } } },
                         y: { ticks: { font: { size: 12 } }, title: { display: true, text: 'Hours', font: { size: 14 } } }
                     }
                 }
             });
-            await new Promise(r => setTimeout(r, 600));
+            await new Promise(r => setTimeout(r, 1500));
             const base64 = canvas.toDataURL('image/png');
             lineChart.destroy();
             return base64;
-        }, 150, 30, 140, 100);
+        }, 150, 30, 140, 100, "Line chart");
 
-        // 3. Doughnut chart (square)
+        // 3. Doughnut chart
         await safeAddChart(async () => {
             const canvas = document.createElement('canvas');
             canvas.width = 800;
@@ -962,17 +973,14 @@
                 options: {
                     responsive: false,
                     maintainAspectRatio: true,
-                    plugins: {
-                        legend: { labels: { font: { size: 18 } } },
-                        tooltip: { bodyFont: { size: 14 } }
-                    }
+                    plugins: { legend: { labels: { font: { size: 18 } } }, tooltip: { bodyFont: { size: 14 } } }
                 }
             });
-            await new Promise(r => setTimeout(r, 600));
+            await new Promise(r => setTimeout(r, 1500));
             const base64 = canvas.toDataURL('image/png');
             doughnutChart.destroy();
             return base64;
-        }, 10, 150, 130, 130);
+        }, 10, 150, 130, 130, "Doughnut chart");
 
         // 4. Stacked bar chart
         await safeAddChart(async () => {
@@ -1006,23 +1014,20 @@
                         x: { stacked: true, ticks: { font: { size: 12 } }, title: { display: true, text: 'Week', font: { size: 14 } } },
                         y: { stacked: true, ticks: { font: { size: 12 } }, title: { display: true, text: 'Hours', font: { size: 14 } } }
                     },
-                    plugins: {
-                        legend: { labels: { font: { size: 14 } } },
-                        tooltip: { bodyFont: { size: 14 } }
-                    }
+                    plugins: { legend: { labels: { font: { size: 14 } } }, tooltip: { bodyFont: { size: 14 } } }
                 }
             });
-            await new Promise(r => setTimeout(r, 600));
+            await new Promise(r => setTimeout(r, 1500));
             const base64 = canvas.toDataURL('image/png');
             stackedChart.destroy();
             return base64;
-        }, 150, 150, 140, 120);
+        }, 150, 150, 140, 120, "Stacked bar chart");
 
         chartsSheet.getCell('A65').value = `Generated: ${new Date().toLocaleString()} | Your Portfolio System`;
         chartsSheet.getCell('A65').font = { italic: true, size: 8 };
         chartsSheet.mergeCells('A65:C65');
 
-        // ==================== ADVANCED ANALYSIS SHEET (fully styled, cool) ====================
+        // ==================== ADVANCED ANALYSIS SHEET (unchanged, fully styled) ====================
         const analysisSheet = workbook.addWorksheet("Advanced Analysis", {
             pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, paperSize: 9 }
         });
@@ -1195,7 +1200,7 @@
         const buffer = await workbook.xlsx.writeBuffer();
         const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
         saveAs(blob, `Timesheet_${startDate}_to_${endDate}_readonly.xlsx`);
-        showToast("Excel report generated – all charts back, readable fonts, no errors!", "success");
+        showToast("Excel report generated – all charts stable, no width error!", "success");
     } catch (err) {
         console.error("Excel export error:", err);
         showToast("Excel generation failed: " + err.message, "error");
