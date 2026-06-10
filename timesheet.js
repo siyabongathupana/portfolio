@@ -601,10 +601,10 @@
   }
 
   // ======================== EXCEL EXPORT (protected worksheet, week coloring) ========================
-  async function exportStyledExcel(startDate, endDate) {
+    async function exportStyledExcel(startDate, endDate) {
     window.showLoading("Generating Excel report...");
     try {
-        // Helper fallbacks
+        // Fallbacks for missing helpers (safe)
         if (typeof getWeekNumber === 'undefined') {
             window.getWeekNumber = function(date) {
                 const d = new Date(date);
@@ -642,7 +642,7 @@
 
         const workbook = new ExcelJS.Workbook();
         
-        // ==================== MAIN DATA SHEET (unchanged) ====================
+        // ==================== MAIN DATA SHEET (unchanged, safe) ====================
         const worksheet = workbook.addWorksheet("Timesheet Data", {
             pageSetup: {
                 orientation: 'landscape',
@@ -781,7 +781,6 @@
             pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, paperSize: 9 }
         });
         summarySheet.columns = [{ width: 25 }, { width: 20 }, { width: 20 }];
-        
         summarySheet.mergeCells('A1:C1');
         const sumTitle = summarySheet.getCell('A1');
         sumTitle.value = "TIMESHEET SUMMARY";
@@ -815,7 +814,7 @@
             r++;
         }
 
-        // Bar chart (with validation)
+        // Bar chart – ultra-safe
         try {
             const projMap = {};
             filtered.forEach(e => { projMap[e.project] = (projMap[e.project] || 0) + e.hours; });
@@ -844,9 +843,11 @@
             await new Promise(r => setTimeout(r, 600));
             const chartBase64 = canvas.toDataURL('image/png');
             chart.destroy();
-            if (chartBase64 && chartBase64.length > 1000) {
-                const chartImageId = workbook.addImage({ base64: chartBase64, extension: 'png' });
-                summarySheet.addImage(chartImageId, { x: 10, y: 80, width: 280, height: 157 });
+            if (chartBase64 && chartBase64.length > 1000 && chartBase64.startsWith('data:image/png;base64,')) {
+                const imgId = workbook.addImage({ base64: chartBase64, extension: 'png' });
+                if (typeof imgId === 'number') {
+                    summarySheet.addImage(imgId, { x: 10, y: 80, width: 280, height: 157 });
+                }
             }
         } catch(e) { console.warn("Bar chart skipped", e); }
 
@@ -854,11 +855,10 @@
         summarySheet.getCell('A35').font = { italic: true, size: 8 };
         summarySheet.mergeCells('A35:C35');
 
-        // ==================== CHARTS SHEET (with validation) ====================
+        // ==================== CHARTS SHEET (ultra-safe absolute positioning) ====================
         const chartsSheet = workbook.addWorksheet("Charts", {
             pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, paperSize: 9 }
         });
-        
         chartsSheet.mergeCells('A1:C1');
         const chartsTitle = chartsSheet.getCell('A1');
         chartsTitle.value = "VISUAL ANALYTICS";
@@ -866,21 +866,21 @@
         chartsTitle.alignment = { horizontal: 'center' };
         chartsSheet.getRow(1).height = 28;
 
-        // Helper to safely add chart image
-        async function addChartImage(workbook, sheet, chartGenerator, x, y, width, height) {
+        // Helper to safely add a chart image
+        async function safeAddChart(generator, x, y, width, height) {
             try {
-                const base64 = await chartGenerator();
+                const base64 = await generator();
                 if (base64 && base64.length > 1000 && base64.startsWith('data:image/png;base64,')) {
-                    const imageId = workbook.addImage({ base64: base64, extension: 'png' });
-                    sheet.addImage(imageId, { x: x, y: y, width: width, height: height });
-                    return true;
+                    const imgId = workbook.addImage({ base64: base64, extension: 'png' });
+                    if (typeof imgId === 'number') {
+                        chartsSheet.addImage(imgId, { x: x, y: y, width: width, height: height });
+                    }
                 }
-            } catch(e) { console.warn("Chart image skipped", e); }
-            return false;
+            } catch(e) { console.warn("Chart generation failed", e); }
         }
 
         // 1. Pie chart
-        await addChartImage(workbook, chartsSheet, async () => {
+        await safeAddChart(async () => {
             const catMap = {};
             filtered.forEach(e => { catMap[e.category] = (catMap[e.category] || 0) + e.hours; });
             const catLabels = Object.keys(catMap);
@@ -905,7 +905,7 @@
         }, 10, 30, 130, 130);
 
         // 2. Line chart
-        await addChartImage(workbook, chartsSheet, async () => {
+        await safeAddChart(async () => {
             const weeklyTotals = {};
             filtered.forEach(e => {
                 const week = `${new Date(e.date).getFullYear()}-W${getWeekNumber(e.date)}`;
@@ -937,7 +937,7 @@
         }, 150, 30, 140, 100);
 
         // 3. Doughnut chart
-        await addChartImage(workbook, chartsSheet, async () => {
+        await safeAddChart(async () => {
             const canvas = document.createElement('canvas');
             canvas.width = 800;
             canvas.height = 800;
@@ -958,7 +958,7 @@
         }, 10, 150, 130, 130);
 
         // 4. Stacked bar chart
-        await addChartImage(workbook, chartsSheet, async () => {
+        await safeAddChart(async () => {
             const weeklyAdmin = {};
             const weeklyProject = {};
             filtered.forEach(e => {
@@ -1002,7 +1002,7 @@
         chartsSheet.getCell('A65').font = { italic: true, size: 8 };
         chartsSheet.mergeCells('A65:C65');
 
-        // ==================== ADVANCED ANALYSIS SHEET (same as before) ====================
+        // ==================== ADVANCED ANALYSIS SHEET (unchanged, safe) ====================
         const analysisSheet = workbook.addWorksheet("Advanced Analysis", {
             pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, paperSize: 9 }
         });
@@ -1175,7 +1175,7 @@
         const buffer = await workbook.xlsx.writeBuffer();
         const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
         saveAs(blob, `Timesheet_${startDate}_to_${endDate}_readonly.xlsx`);
-        showToast("Excel report generated – charts now safe from missing image errors.", "success");
+        showToast("Excel report generated – fully safe, no image errors.", "success");
     } catch (err) {
         console.error("Excel export error:", err);
         showToast("Excel generation failed: " + err.message, "error");
