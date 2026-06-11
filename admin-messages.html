@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Messaging | Your Portfolio</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <script src="config.js"></script>
+    <script src="crypto.js"></script>
+    <script src="api.js"></script>
+    <script src="shared.js"></script>
+    <style>
+        .admin-msg-container {
+            max-width: 800px;
+            margin: 40px auto;
+            background: white;
+            border-radius: 24px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        }
+        .user-selector {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 12px;
+            background: #f8fafc;
+        }
+        .user-checkbox {
+            margin-right: 10px;
+        }
+        .select-all-row {
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .progress-status {
+            font-size: 0.9rem;
+        }
+        .warning-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 10px;
+            margin-bottom: 20px;
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body style="background:#eef3fc;">
+
+<nav class="navbar navbar-expand-lg custom_nav-container pt-3" style="background:#0b2b3b; padding:15px 0;">
+    <div class="container">
+        <a class="navbar-brand" href="index.html"><span>Your</span> Portfolio</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navMsg">
+            <span class="fa fa-bars text-white"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navMsg">
+            <ul class="navbar-nav ml-auto">
+                <li class="nav-item"><a class="nav-link" href="admin.html"><i class="fa fa-dashboard"></i> Dashboard</a></li>
+                <li class="nav-item active"><a class="nav-link" href="admin-messages.html"><i class="fa fa-envelope"></i> Send Message</a></li>
+                <li class="nav-item"><a class="nav-link" href="index.html">View Site</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container admin-msg-container">
+    <h2><i class="fa fa-paper-plane"></i> Send Message to Users</h2>
+    <p class="text-muted">Compose a message and send it to all users or selected individuals.</p>
+    
+    <div class="warning-box">
+        <i class="fa fa-lock"></i> <strong>Privacy note:</strong> Messages are encrypted using a site‑wide key. For true security, make your GitHub repository private.
+    </div>
+
+    <form id="sendMessageForm">
+        <div class="form-group">
+            <label><input type="radio" name="recipientType" value="all" checked> All Users</label>
+            <label class="ml-3"><input type="radio" name="recipientType" value="selected"> Selected Users</label>
+        </div>
+
+        <div id="selectedUsersContainer" style="display: none;">
+            <label>Select Users:</label>
+            <div class="user-selector" id="usersListContainer">
+                <div class="select-all-row">
+                    <label><input type="checkbox" id="selectAllUsers"> Select All</label>
+                </div>
+                <div id="userCheckboxes"></div>
+            </div>
+        </div>
+
+        <div class="form-group mt-3">
+            <label>Subject</label>
+            <input type="text" id="msgSubject" class="form-control" placeholder="Message subject" required>
+        </div>
+
+        <div class="form-group">
+            <label>Message Body</label>
+            <textarea id="msgBody" rows="6" class="form-control" placeholder="Write your message here..." required></textarea>
+        </div>
+
+        <div id="progressStatus" class="progress-status mt-2"></div>
+
+        <button type="submit" class="btn btn-delta btn-block"><i class="fa fa-send"></i> Send Message</button>
+    </form>
+    <div class="mt-4 text-center">
+        <a href="admin.html" class="btn btn-outline-secondary">← Back to Dashboard</a>
+    </div>
+</div>
+
+<footer class="mt-5">
+    <p>© 2026 Your Portfolio</p>
+</footer>
+
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+<script>
+    (function() {
+        const user = window.SessionManager?.getCurrentUser();
+        const isAdmin = user && window.APP_CONFIG.adminUsers && window.APP_CONFIG.adminUsers.includes(user.username);
+        if (!user) {
+            window.location.href = 'login.html?redirect=admin-messages';
+            return;
+        }
+        if (!isAdmin) {
+            document.body.innerHTML = '<div class="container text-center mt-5"><h3>Access Denied</h3><p>Admin privileges required.</p><a href="index.html" class="btn btn-delta">Go Home</a></div>';
+            return;
+        }
+
+        let allUsers = [];
+        let blockedUsers = [];
+
+        // === Encryption helpers using the same secret ===
+        async function getEncryptionKey() {
+            const keyMaterial = await crypto.subtle.importKey(
+                'raw',
+                new TextEncoder().encode(window.APP_CONFIG.dogsname),
+                'PBKDF2',
+                false,
+                ['deriveKey']
+            );
+            return crypto.subtle.deriveKey(
+                {
+                    name: 'PBKDF2',
+                    salt: new TextEncoder().encode('messages-salt'),
+                    iterations: 100000,
+                    hash: 'SHA-256'
+                },
+                keyMaterial,
+                { name: 'AES-GCM', length: 256 },
+                false,
+                ['encrypt', 'decrypt']
+            );
+        }
+
+        async function encryptMessages(messages) {
+            const key = await getEncryptionKey();
+            const iv = crypto.getRandomValues(new Uint8Array(12));
+            const encoded = new TextEncoder().encode(JSON.stringify(messages));
+            const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, encoded);
+            return {
+                iv: Array.from(iv),
+                data: Array.from(new Uint8Array(encrypted))
+            };
+        }
+
+        async function decryptMessages(encryptedObj) {
+            const key = await getEncryptionKey();
+            const iv = new Uint8Array(encryptedObj.iv);
+            const data = new Uint8Array(encryptedObj.data);
+            const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, data);
+            return JSON.parse(new TextDecoder().decode(decrypted));
+        }
+
+        async function fetchWithRetry(fn, retries = 3, delay = 1000) {
+            for (let i = 0; i < retries; i++) {
+                try {
+                    return await fn();
+                } catch (err) {
+                    if (i === retries - 1) throw err;
+                    await new Promise(r => setTimeout(r, delay * (i + 1)));
+                }
+            }
+        }
+
+        async function loadUsers() {
+            try {
+                const users = await window.AccountManager.listUsers(user.pat);
+                blockedUsers = await window.AccountManager.getBlockedUsers();
+                allUsers = users.filter(u => !blockedUsers.includes(u));
+                const container = document.getElementById('userCheckboxes');
+                container.innerHTML = '';
+                if (allUsers.length === 0) {
+                    container.innerHTML = '<div class="text-muted">No active users found.</div>';
+                    return;
+                }
+                for (const u of allUsers) {
+                    const div = document.createElement('div');
+                    div.className = 'form-check';
+                    div.innerHTML = `
+                        <input type="checkbox" class="form-check-input user-checkbox" value="${u.replace(/"/g, '&quot;')}" id="user_${u.replace(/[^a-z0-9]/gi, '_')}">
+                        <label class="form-check-label" for="user_${u.replace(/[^a-z0-9]/gi, '_')}">${window.escapeHtml(u)}</label>
+                    `;
+                    container.appendChild(div);
+                }
+                const selectAllCheckbox = document.getElementById('selectAllUsers');
+                if (selectAllCheckbox) {
+                    selectAllCheckbox.addEventListener('change', (e) => {
+                        document.querySelectorAll('.user-checkbox').forEach(cb => cb.checked = e.target.checked);
+                    });
+                }
+            } catch(err) {
+                console.error(err);
+                document.getElementById('userCheckboxes').innerHTML = '<div class="alert alert-danger">Failed to load users.</div>';
+            }
+        }
+
+        function getSelectedUsers() {
+            const recipientType = document.querySelector('input[name="recipientType"]:checked').value;
+            if (recipientType === 'all') return allUsers;
+            const selected = [];
+            document.querySelectorAll('.user-checkbox:checked').forEach(cb => selected.push(cb.value));
+            return selected;
+        }
+
+        // Send to one user with encryption
+        async function sendMessageToUser(targetEmail, messageObj) {
+            const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+            const encUser = encodeURIComponent(targetEmail);
+            const path = `${dataPath}/users/${encUser}/messages.enc`;
+            
+            return fetchWithRetry(async () => {
+                let messages = [], sha = null;
+                let encrypted = null;
+                try {
+                    const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
+                    if (file && file.content) {
+                        encrypted = JSON.parse(file.content);
+                        messages = await decryptMessages(encrypted);
+                        sha = file.sha;
+                    }
+                } catch(e) {}
+                messages.unshift(messageObj);
+                const newEncrypted = await encryptMessages(messages);
+                await GitHubAPI.updateFile(owner, repo, path, newEncrypted, `New message: ${messageObj.subject}`, branch, user.pat, sha);
+                return true;
+            });
+        }
+
+        async function sendBulkMessages(recipients, messageObj, onProgress) {
+            const results = { success: [], fail: [] };
+            let index = 0;
+            const concurrency = 5;
+            
+            async function worker() {
+                while (index < recipients.length) {
+                    const i = index++;
+                    const recipient = recipients[i];
+                    try {
+                        await sendMessageToUser(recipient, messageObj);
+                        results.success.push(recipient);
+                    } catch (err) {
+                        console.error(`Failed to send to ${recipient}`, err);
+                        results.fail.push(recipient);
+                    }
+                    if (onProgress) onProgress(results.success.length, results.fail.length, recipients.length);
+                }
+            }
+            
+            const workers = Array(concurrency).fill().map(() => worker());
+            await Promise.all(workers);
+            return results;
+        }
+
+        document.getElementById('sendMessageForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const subject = document.getElementById('msgSubject').value.trim();
+            const body = document.getElementById('msgBody').value.trim();
+            if (!subject || !body) {
+                alert("Please fill subject and body.");
+                return;
+            }
+            const recipients = getSelectedUsers();
+            if (recipients.length === 0) {
+                alert("No users selected.");
+                return;
+            }
+            if (!confirm(`Send message to ${recipients.length} user(s)?`)) return;
+
+            const messageObj = {
+                id: Date.now(),
+                from: user.username,
+                subject: subject,
+                body: body,
+                timestamp: new Date().toISOString(),
+                read: false
+            };
+
+            const progressDiv = document.getElementById('progressStatus');
+            progressDiv.innerHTML = `<div class="alert alert-info">Sending to ${recipients.length} users...</div>`;
+            
+            const updateProgress = (sent, failed, total) => {
+                progressDiv.innerHTML = `<div class="alert alert-info">Sent: ${sent}, Failed: ${failed}, Remaining: ${total - sent - failed}</div>`;
+            };
+            
+            try {
+                const results = await sendBulkMessages(recipients, messageObj, updateProgress);
+                if (results.fail.length === 0) {
+                    progressDiv.innerHTML = `<div class="alert alert-success">✅ Message sent to ${results.success.length} user(s).</div>`;
+                    document.getElementById('msgSubject').value = '';
+                    document.getElementById('msgBody').value = '';
+                } else {
+                    progressDiv.innerHTML = `<div class="alert alert-warning">⚠️ Sent to ${results.success.length}, failed to ${results.fail.length}. Check console for details.</div>`;
+                }
+            } catch (err) {
+                progressDiv.innerHTML = `<div class="alert alert-danger">Error: ${err.message}</div>`;
+            }
+            setTimeout(() => { progressDiv.innerHTML = ''; }, 8000);
+        });
+
+        document.querySelectorAll('input[name="recipientType"]').forEach(radio => {
+            radio.addEventListener('change', () => {
+                const showSelected = document.querySelector('input[name="recipientType"]:checked').value === 'selected';
+                document.getElementById('selectedUsersContainer').style.display = showSelected ? 'block' : 'none';
+            });
+        });
+
+        loadUsers();
+    })();
+</script>
+</body>
+</html>
