@@ -1,5 +1,17 @@
 [
   {
+    "id": 1781175130971,
+    "date": "2026-06-11",
+    "start": "07:40",
+    "end": "12:00",
+    "hours": 4.33,
+    "project": "Omnia Phase 3",
+    "category": "Back-Punching",
+    "billable": "yes",
+    "notes": "Backpunching IFAT",
+    "updatedAt": 1781175130971
+  },
+  {
     "id": 1781156448303,
     "date": "2026-06-11",
     "start": "07:15",
