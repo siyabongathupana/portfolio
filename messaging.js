@@ -1,4 +1,4 @@
-// messaging.js – Final fixed version
+// messaging.js – FINAL WORKING VERSION
 (function() {
     let currentMessages = [];
     let modalElement = null;
@@ -75,7 +75,7 @@
             if (file && file.content) {
                 const encrypted = JSON.parse(file.content);
                 currentMessages = await decryptMessages(encrypted);
-                console.log(`✅ Loaded ${currentMessages.length} messages`, currentMessages);
+                console.log(`📥 Loaded ${currentMessages.length} messages`, currentMessages);
                 return currentMessages;
             }
         } catch(e) { console.error("Load messages error:", e); }
@@ -160,8 +160,7 @@
     function renderInbox() {
         const listContainer = document.getElementById('msgListContainer');
         if (!listContainer) {
-            console.error("msgListContainer not found – retrying in 100ms");
-            setTimeout(renderInbox, 100);
+            console.error("❌ msgListContainer not found");
             return;
         }
         
@@ -230,7 +229,7 @@
             });
         });
         
-        console.log(`Rendered ${sorted.length} messages`);
+        console.log(`✅ Rendered ${sorted.length} messages in inbox`);
     }
 
     function openInbox() {
@@ -258,12 +257,15 @@
             `;
             document.body.appendChild(modalElement);
             
-            // Use 'shown.bs.modal' to ensure DOM is ready
-            modalElement.addEventListener('shown.bs.modal', async () => {
+            // Use both events to ensure rendering
+            modalElement.addEventListener('show.bs.modal', async () => {
                 isInboxOpen = true;
                 await loadMessages();
-                renderInbox();
-                updateBadge();
+                // Small delay to ensure DOM is ready
+                setTimeout(() => {
+                    renderInbox();
+                    updateBadge();
+                }, 200);
                 if (inboxRefreshInterval) clearInterval(inboxRefreshInterval);
                 inboxRefreshInterval = setInterval(refreshInbox, 30000);
             });
@@ -273,7 +275,11 @@
             });
             
             const refreshBtn = document.getElementById('refreshInboxBtn');
-            if (refreshBtn) refreshBtn.addEventListener('click', refreshInbox);
+            if (refreshBtn) refreshBtn.addEventListener('click', async () => {
+                await loadMessages();
+                renderInbox();
+                updateBadge();
+            });
         }
         $(modalElement).modal('show');
     }
