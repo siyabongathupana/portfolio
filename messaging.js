@@ -82,10 +82,11 @@
             if (file && file.content) {
                 const encrypted = JSON.parse(file.content);
                 currentMessages = await decryptMessages(encrypted);
+                console.log(`Loaded ${currentMessages.length} messages`);
                 return currentMessages;
             }
         } catch(e) {
-            console.debug("No messages file yet or error:", e);
+            console.error("Failed to load messages:", e);
         }
         currentMessages = [];
         return [];
@@ -173,7 +174,10 @@
 
     function renderInbox() {
         const listContainer = document.getElementById('msgListContainer');
-        if (!listContainer) return;
+        if (!listContainer) {
+            console.error("msgListContainer not found in DOM");
+            return;
+        }
         
         if (currentMessages.length === 0) {
             listContainer.innerHTML = '<div class="text-center text-muted py-4"><i class="fa fa-envelope-o"></i> No messages</div>';
@@ -239,6 +243,8 @@
                 await deleteMessage(id);
             });
         });
+        
+        console.log(`Rendered ${sorted.length} messages in inbox`);
     }
 
     function openInbox() {
