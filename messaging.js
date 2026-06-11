@@ -1,10 +1,9 @@
-// messaging.js – FINAL WORKING VERSION
+// messaging.js – Ultimate fix with forced rendering
 (function() {
     let currentMessages = [];
     let modalElement = null;
     let refreshInterval = null;
     let inboxRefreshInterval = null;
-    let isInboxOpen = false;
 
     function getUser() {
         return window.SessionManager?.getCurrentUser();
@@ -75,10 +74,10 @@
             if (file && file.content) {
                 const encrypted = JSON.parse(file.content);
                 currentMessages = await decryptMessages(encrypted);
-                console.log(`📥 Loaded ${currentMessages.length} messages`, currentMessages);
+                console.log('Loaded messages:', currentMessages);
                 return currentMessages;
             }
-        } catch(e) { console.error("Load messages error:", e); }
+        } catch(e) { console.error("Load error:", e); }
         currentMessages = [];
         return [];
     }
@@ -106,7 +105,7 @@
             msg.read = true;
             await saveMessages(currentMessages);
             updateBadge();
-            if (isInboxOpen) renderInbox();
+            renderInbox();
         }
     }
 
@@ -116,7 +115,7 @@
         if (changed) {
             await saveMessages(currentMessages);
             updateBadge();
-            if (isInboxOpen) renderInbox();
+            renderInbox();
         }
     }
 
@@ -125,7 +124,7 @@
             currentMessages = currentMessages.filter(m => m.id !== messageId);
             await saveMessages(currentMessages);
             updateBadge();
-            if (isInboxOpen) renderInbox();
+            renderInbox();
         }
     }
 
@@ -150,70 +149,48 @@
         return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
     }
 
-    async function refreshInbox() {
-        if (!isInboxOpen) return;
-        await loadMessages();
-        renderInbox();
-        updateBadge();
-    }
-
     function renderInbox() {
-        const listContainer = document.getElementById('msgListContainer');
-        if (!listContainer) {
-            console.error("❌ msgListContainer not found");
+        const container = document.getElementById('msgListContainer');
+        if (!container) {
+            console.error("msgListContainer not found");
             return;
         }
         
-        if (currentMessages.length === 0) {
-            listContainer.innerHTML = '<div class="text-center text-muted py-4"><i class="fa fa-envelope-o"></i> No messages</div>';
+        if (!currentMessages.length) {
+            container.innerHTML = '<div class="text-center text-muted py-4"><i class="fa fa-envelope-o"></i> No messages</div>';
             return;
         }
         
         const sorted = [...currentMessages].sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
-        listContainer.innerHTML = '';
+        let html = '';
         
-        // Mark all as read button
-        const markAllDiv = document.createElement('div');
-        markAllDiv.className = 'p-2 border-bottom';
-        markAllDiv.innerHTML = `<button class="btn btn-sm btn-outline-secondary" id="markAllReadBtn"><i class="fa fa-check-circle"></i> Mark all as read</button>`;
-        listContainer.appendChild(markAllDiv);
-        document.getElementById('markAllReadBtn')?.addEventListener('click', markAllAsRead);
+        // Mark all read button
+        html += `<div class="p-2 border-bottom"><button class="btn btn-sm btn-outline-secondary" id="markAllReadBtn"><i class="fa fa-check-circle"></i> Mark all as read</button></div>`;
         
         sorted.forEach(msg => {
             const isUnread = !msg.read;
-            const item = document.createElement('div');
-            item.className = `list-group-item list-group-item-action ${isUnread ? 'list-group-item-primary' : ''}`;
-            item.style.cursor = 'pointer';
-            item.innerHTML = `
-                <div class="d-flex justify-content-between align-items-start">
-                    <div class="flex-grow-1">
-                        <strong>${window.escapeHtml(msg.subject)}</strong>
-                        <div class="text-muted small">From: ${window.escapeHtml(msg.from)} · ${formatDate(msg.timestamp)}</div>
-                        <div class="mt-1" id="msgBody-${msg.id}" style="display:none;">${window.escapeHtml(msg.body).replace(/\n/g, '<br>')}</div>
-                        <div class="mt-1" id="msgPreview-${msg.id}">${window.escapeHtml(msg.body.substring(0, 100))}${msg.body.length > 100 ? '…' : ''}</div>
-                    </div>
-                    <div>
-                        ${!msg.read ? `<button class="btn btn-sm btn-outline-primary mark-read-btn" data-id="${msg.id}" title="Mark as read"><i class="fa fa-check"></i></button>` : ''}
-                        <button class="btn btn-sm btn-outline-danger delete-msg-btn" data-id="${msg.id}" title="Delete"><i class="fa fa-trash"></i></button>
+            const msgId = msg.id;
+            html += `
+                <div class="list-group-item list-group-item-action ${isUnread ? 'list-group-item-primary' : ''}" style="cursor:pointer;" data-msg-id="${msgId}">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1">
+                            <strong>${window.escapeHtml(msg.subject)}</strong>
+                            <div class="text-muted small">From: ${window.escapeHtml(msg.from)} · ${formatDate(msg.timestamp)}</div>
+                            <div class="mt-1 msg-body-${msgId}" style="display:none;">${window.escapeHtml(msg.body).replace(/\n/g, '<br>')}</div>
+                            <div class="mt-1 msg-preview-${msgId}">${window.escapeHtml(msg.body.substring(0, 100))}${msg.body.length > 100 ? '…' : ''}</div>
+                        </div>
+                        <div>
+                            ${!msg.read ? `<button class="btn btn-sm btn-outline-primary mark-read-btn" data-id="${msgId}" title="Mark as read"><i class="fa fa-check"></i></button>` : ''}
+                            <button class="btn btn-sm btn-outline-danger delete-msg-btn" data-id="${msgId}" title="Delete"><i class="fa fa-trash"></i></button>
+                        </div>
                     </div>
                 </div>
             `;
-            item.addEventListener('click', (e) => {
-                if (e.target.closest('.mark-read-btn') || e.target.closest('.delete-msg-btn')) return;
-                const previewDiv = document.getElementById(`msgPreview-${msg.id}`);
-                const bodyDiv = document.getElementById(`msgBody-${msg.id}`);
-                if (previewDiv.style.display !== 'none') {
-                    previewDiv.style.display = 'none';
-                    bodyDiv.style.display = 'block';
-                    if (!msg.read) markAsRead(msg.id);
-                } else {
-                    previewDiv.style.display = 'block';
-                    bodyDiv.style.display = 'none';
-                }
-            });
-            listContainer.appendChild(item);
         });
         
+        container.innerHTML = html;
+        
+        // Attach event listeners
         document.querySelectorAll('.mark-read-btn').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 e.stopPropagation();
@@ -228,11 +205,30 @@
                 await deleteMessage(id);
             });
         });
+        document.querySelectorAll('.list-group-item-action').forEach(item => {
+            item.addEventListener('click', (e) => {
+                if (e.target.closest('.mark-read-btn') || e.target.closest('.delete-msg-btn')) return;
+                const msgId = item.dataset.msgId;
+                const previewDiv = item.querySelector(`.msg-preview-${msgId}`);
+                const bodyDiv = item.querySelector(`.msg-body-${msgId}`);
+                if (previewDiv.style.display !== 'none') {
+                    previewDiv.style.display = 'none';
+                    bodyDiv.style.display = 'block';
+                    const msg = currentMessages.find(m => m.id == msgId);
+                    if (msg && !msg.read) markAsRead(msgId);
+                } else {
+                    previewDiv.style.display = 'block';
+                    bodyDiv.style.display = 'none';
+                }
+            });
+        });
+        const markAllBtn = document.getElementById('markAllReadBtn');
+        if (markAllBtn) markAllBtn.addEventListener('click', markAllAsRead);
         
-        console.log(`✅ Rendered ${sorted.length} messages in inbox`);
+        console.log(`Rendered ${sorted.length} messages`);
     }
 
-    function openInbox() {
+    async function openInbox() {
         if (!modalElement) {
             modalElement = document.createElement('div');
             modalElement.className = 'modal fade';
@@ -257,31 +253,37 @@
             `;
             document.body.appendChild(modalElement);
             
-            // Use both events to ensure rendering
-            modalElement.addEventListener('show.bs.modal', async () => {
-                isInboxOpen = true;
+            modalElement.addEventListener('shown.bs.modal', async () => {
                 await loadMessages();
-                // Small delay to ensure DOM is ready
-                setTimeout(() => {
+                renderInbox();
+                updateBadge();
+                if (inboxRefreshInterval) clearInterval(inboxRefreshInterval);
+                inboxRefreshInterval = setInterval(async () => {
+                    await loadMessages();
                     renderInbox();
                     updateBadge();
-                }, 200);
-                if (inboxRefreshInterval) clearInterval(inboxRefreshInterval);
-                inboxRefreshInterval = setInterval(refreshInbox, 30000);
+                }, 30000);
             });
             modalElement.addEventListener('hide.bs.modal', () => {
-                isInboxOpen = false;
                 if (inboxRefreshInterval) clearInterval(inboxRefreshInterval);
             });
             
             const refreshBtn = document.getElementById('refreshInboxBtn');
-            if (refreshBtn) refreshBtn.addEventListener('click', async () => {
-                await loadMessages();
-                renderInbox();
-                updateBadge();
-            });
+            if (refreshBtn) {
+                refreshBtn.addEventListener('click', async () => {
+                    await loadMessages();
+                    renderInbox();
+                    updateBadge();
+                });
+            }
         }
         $(modalElement).modal('show');
+        // Fallback: if modal doesn't show, try again after 100ms
+        setTimeout(() => {
+            if (modalElement && !$(modalElement).hasClass('show')) {
+                $(modalElement).modal('show');
+            }
+        }, 100);
     }
 
     function addNotificationIcon() {
@@ -315,7 +317,6 @@
         }
     }
 
-    // Expose for manual debugging
     window.debugInbox = {
         loadMessages,
         currentMessages: () => currentMessages,
