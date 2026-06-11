@@ -1,4 +1,4 @@
-// messaging.js – Debug version with extra logging
+// messaging.js – Final fixed version
 (function() {
     let currentMessages = [];
     let modalElement = null;
@@ -140,11 +140,9 @@
         if (count > 0) {
             badge.textContent = count;
             badge.style.display = 'inline-block';
-            badge.setAttribute('title', `${count} unread message${count !== 1 ? 's' : ''}`);
         } else {
             badge.style.display = 'none';
         }
-        console.log("Badge updated, unread:", count);
     }
 
     function formatDate(isoString) {
@@ -161,15 +159,14 @@
 
     function renderInbox() {
         const listContainer = document.getElementById('msgListContainer');
-        console.log("renderInbox called, container found:", !!listContainer);
         if (!listContainer) {
-            console.error("❌ msgListContainer not found in DOM");
+            console.error("msgListContainer not found – retrying in 100ms");
+            setTimeout(renderInbox, 100);
             return;
         }
         
         if (currentMessages.length === 0) {
             listContainer.innerHTML = '<div class="text-center text-muted py-4"><i class="fa fa-envelope-o"></i> No messages</div>';
-            console.log("No messages, showing empty state");
             return;
         }
         
@@ -233,12 +230,11 @@
             });
         });
         
-        console.log(`✅ Rendered ${sorted.length} messages in inbox`);
+        console.log(`Rendered ${sorted.length} messages`);
     }
 
     function openInbox() {
         if (!modalElement) {
-            console.log("Creating inbox modal");
             modalElement = document.createElement('div');
             modalElement.className = 'modal fade';
             modalElement.id = 'inboxModal';
@@ -262,8 +258,8 @@
             `;
             document.body.appendChild(modalElement);
             
-            modalElement.addEventListener('show.bs.modal', async () => {
-                console.log("Modal show event – loading messages");
+            // Use 'shown.bs.modal' to ensure DOM is ready
+            modalElement.addEventListener('shown.bs.modal', async () => {
                 isInboxOpen = true;
                 await loadMessages();
                 renderInbox();
