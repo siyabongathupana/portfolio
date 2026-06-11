@@ -5,11 +5,11 @@
     "start": "12:30",
     "end": "13:08",
     "hours": 0.63,
-    "project": "Omnia Phase 3",
-    "category": "IFAT",
-    "billable": "yes",
-    "notes": "SIS Graphics IFAT",
-    "updatedAt": 1781176204568
+    "project": "Other",
+    "category": "Training",
+    "billable": "no",
+    "notes": "Upgrade Video and Quiz (Completed)",
+    "updatedAt": 1781177011562
   },
   {
     "id": 1781175755892,
