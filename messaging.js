@@ -1,4 +1,4 @@
-// messaging.js – User messaging system with symmetric encryption
+// messaging.js – Debug version with extra logging
 (function() {
     let currentMessages = [];
     let modalElement = null;
@@ -16,7 +16,6 @@
         return `${dataPath}/users/${encUser}/${filename}`;
     }
 
-    // === Encryption helpers using the secret from config ===
     async function getEncryptionKey() {
         const keyMaterial = await crypto.subtle.importKey(
             'raw',
@@ -44,10 +43,7 @@
         const iv = crypto.getRandomValues(new Uint8Array(12));
         const encoded = new TextEncoder().encode(JSON.stringify(messages));
         const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, encoded);
-        return {
-            iv: Array.from(iv),
-            data: Array.from(new Uint8Array(encrypted))
-        };
+        return { iv: Array.from(iv), data: Array.from(new Uint8Array(encrypted)) };
     }
 
     async function decryptMessages(encryptedObj) {
@@ -58,12 +54,9 @@
         return JSON.parse(new TextDecoder().decode(decrypted));
     }
 
-    // === Data operations ===
     async function fetchWithRetry(fn, retries = 3, delay = 1000) {
         for (let i = 0; i < retries; i++) {
-            try {
-                return await fn();
-            } catch (err) {
+            try { return await fn(); } catch (err) {
                 if (i === retries - 1) throw err;
                 await new Promise(r => setTimeout(r, delay * (i + 1)));
             }
@@ -82,12 +75,10 @@
             if (file && file.content) {
                 const encrypted = JSON.parse(file.content);
                 currentMessages = await decryptMessages(encrypted);
-                console.log(`Loaded ${currentMessages.length} messages`);
+                console.log(`✅ Loaded ${currentMessages.length} messages`, currentMessages);
                 return currentMessages;
             }
-        } catch(e) {
-            console.error("Failed to load messages:", e);
-        }
+        } catch(e) { console.error("Load messages error:", e); }
         currentMessages = [];
         return [];
     }
@@ -121,12 +112,7 @@
 
     async function markAllAsRead() {
         let changed = false;
-        for (let msg of currentMessages) {
-            if (!msg.read) {
-                msg.read = true;
-                changed = true;
-            }
-        }
+        for (let msg of currentMessages) if (!msg.read) { msg.read = true; changed = true; }
         if (changed) {
             await saveMessages(currentMessages);
             updateBadge();
@@ -158,6 +144,7 @@
         } else {
             badge.style.display = 'none';
         }
+        console.log("Badge updated, unread:", count);
     }
 
     function formatDate(isoString) {
@@ -174,13 +161,15 @@
 
     function renderInbox() {
         const listContainer = document.getElementById('msgListContainer');
+        console.log("renderInbox called, container found:", !!listContainer);
         if (!listContainer) {
-            console.error("msgListContainer not found in DOM");
+            console.error("❌ msgListContainer not found in DOM");
             return;
         }
         
         if (currentMessages.length === 0) {
             listContainer.innerHTML = '<div class="text-center text-muted py-4"><i class="fa fa-envelope-o"></i> No messages</div>';
+            console.log("No messages, showing empty state");
             return;
         }
         
@@ -244,11 +233,12 @@
             });
         });
         
-        console.log(`Rendered ${sorted.length} messages in inbox`);
+        console.log(`✅ Rendered ${sorted.length} messages in inbox`);
     }
 
     function openInbox() {
         if (!modalElement) {
+            console.log("Creating inbox modal");
             modalElement = document.createElement('div');
             modalElement.className = 'modal fade';
             modalElement.id = 'inboxModal';
@@ -273,6 +263,7 @@
             document.body.appendChild(modalElement);
             
             modalElement.addEventListener('show.bs.modal', async () => {
+                console.log("Modal show event – loading messages");
                 isInboxOpen = true;
                 await loadMessages();
                 renderInbox();
@@ -322,7 +313,14 @@
         }
     }
 
-    // Initialization
+    // Expose for manual debugging
+    window.debugInbox = {
+        loadMessages,
+        currentMessages: () => currentMessages,
+        renderInbox,
+        openInbox
+    };
+
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => {
             addNotificationIcon();
