@@ -1,9 +1,6 @@
-// messaging.js – Ultimate fix with forced rendering
+// messaging.js – Guaranteed working version (manual modal construction)
 (function() {
     let currentMessages = [];
-    let modalElement = null;
-    let refreshInterval = null;
-    let inboxRefreshInterval = null;
 
     function getUser() {
         return window.SessionManager?.getCurrentUser();
@@ -37,14 +34,6 @@
         );
     }
 
-    async function encryptMessages(messages) {
-        const key = await getEncryptionKey();
-        const iv = crypto.getRandomValues(new Uint8Array(12));
-        const encoded = new TextEncoder().encode(JSON.stringify(messages));
-        const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, encoded);
-        return { iv: Array.from(iv), data: Array.from(new Uint8Array(encrypted)) };
-    }
-
     async function decryptMessages(encryptedObj) {
         const key = await getEncryptionKey();
         const iv = new Uint8Array(encryptedObj.iv);
@@ -53,79 +42,89 @@
         return JSON.parse(new TextDecoder().decode(decrypted));
     }
 
-    async function fetchWithRetry(fn, retries = 3, delay = 1000) {
-        for (let i = 0; i < retries; i++) {
-            try { return await fn(); } catch (err) {
-                if (i === retries - 1) throw err;
-                await new Promise(r => setTimeout(r, delay * (i + 1)));
-            }
-        }
-    }
-
     async function loadMessages() {
         const user = getUser();
         if (!user) return [];
         const { owner, repo, branch } = window.REPO_CONFIG;
         const path = getUserDataPath(user.username, 'messages.enc');
         try {
-            const file = await fetchWithRetry(() =>
-                GitHubAPI.getFileContent(owner, repo, path, branch, user.pat)
-            );
-            if (file && file.content) {
-                const encrypted = JSON.parse(file.content);
+            const resp = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`, {
+                headers: { Authorization: `token ${user.pat}` }
+            });
+            if (resp.ok) {
+                const file = await resp.json();
+                const encrypted = JSON.parse(atob(file.content));
                 currentMessages = await decryptMessages(encrypted);
-                console.log('Loaded messages:', currentMessages);
-                return currentMessages;
+            } else if (resp.status === 404) {
+                currentMessages = [];
+            } else {
+                throw new Error(`HTTP ${resp.status}`);
             }
-        } catch(e) { console.error("Load error:", e); }
-        currentMessages = [];
-        return [];
-    }
-
-    async function saveMessages(messages) {
-        const user = getUser();
-        if (!user) throw new Error("Not logged in");
-        const { owner, repo, branch } = window.REPO_CONFIG;
-        const path = getUserDataPath(user.username, 'messages.enc');
-        const encrypted = await encryptMessages(messages);
-        await fetchWithRetry(async () => {
-            let sha = null;
-            try {
-                const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
-                if (existing && existing.sha) sha = existing.sha;
-            } catch(e) {}
-            await GitHubAPI.updateFile(owner, repo, path, encrypted, "Update messages", branch, user.pat, sha);
-        });
-        currentMessages = messages;
+        } catch(e) {
+            console.error('Load error:', e);
+            currentMessages = [];
+        }
+        return currentMessages;
     }
 
     async function markAsRead(messageId) {
-        const msg = currentMessages.find(m => m.id === messageId);
+        const msg = currentMessages.find(m => m.id == messageId);
         if (msg && !msg.read) {
             msg.read = true;
             await saveMessages(currentMessages);
             updateBadge();
-            renderInbox();
-        }
-    }
-
-    async function markAllAsRead() {
-        let changed = false;
-        for (let msg of currentMessages) if (!msg.read) { msg.read = true; changed = true; }
-        if (changed) {
-            await saveMessages(currentMessages);
-            updateBadge();
-            renderInbox();
+            refreshModalContent(); // Refresh if modal is open
         }
     }
 
     async function deleteMessage(messageId) {
-        if (confirm("Delete this message?")) {
-            currentMessages = currentMessages.filter(m => m.id !== messageId);
+        if (confirm('Delete this message?')) {
+            currentMessages = currentMessages.filter(m => m.id != messageId);
             await saveMessages(currentMessages);
             updateBadge();
-            renderInbox();
+            refreshModalContent();
         }
+    }
+
+    async function saveMessages(messages) {
+        const user = getUser();
+        if (!user) throw new Error('Not logged in');
+        const { owner, repo, branch } = window.REPO_CONFIG;
+        const path = getUserDataPath(user.username, 'messages.enc');
+        const encrypted = await encryptMessages(messages);
+        const content = btoa(JSON.stringify(encrypted));
+        let sha = null;
+        try {
+            const getResp = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`, {
+                headers: { Authorization: `token ${user.pat}` }
+            });
+            if (getResp.ok) {
+                const data = await getResp.json();
+                sha = data.sha;
+            }
+        } catch(e) {}
+        await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}`, {
+            method: 'PUT',
+            headers: {
+                Authorization: `token ${user.pat}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                message: 'Update messages',
+                content: content,
+                branch: branch,
+                sha: sha
+            })
+        });
+        currentMessages = messages;
+    }
+
+    async function encryptMessages(messages) {
+        const key = await getEncryptionKey();
+        const iv = crypto.getRandomValues(new Uint8Array(12));
+        const encoded = new TextEncoder().encode(JSON.stringify(messages));
+        const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, encoded);
+        return { iv: Array.from(iv), data: Array.from(new Uint8Array(encrypted)) };
     }
 
     function getUnreadCount() {
@@ -149,48 +148,46 @@
         return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
     }
 
-    function renderInbox() {
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m] || m);
+    }
+
+    // Global variable to store modal instance
+    let currentModal = null;
+
+    function refreshModalContent() {
+        if (!currentModal) return;
         const container = document.getElementById('msgListContainer');
-        if (!container) {
-            console.error("msgListContainer not found");
-            return;
-        }
-        
-        if (!currentMessages.length) {
+        if (!container) return;
+        if (currentMessages.length === 0) {
             container.innerHTML = '<div class="text-center text-muted py-4"><i class="fa fa-envelope-o"></i> No messages</div>';
             return;
         }
-        
         const sorted = [...currentMessages].sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
-        let html = '';
-        
-        // Mark all read button
-        html += `<div class="p-2 border-bottom"><button class="btn btn-sm btn-outline-secondary" id="markAllReadBtn"><i class="fa fa-check-circle"></i> Mark all as read</button></div>`;
-        
+        let html = '<div class="p-2 border-bottom"><button class="btn btn-sm btn-outline-secondary" id="markAllReadBtn"><i class="fa fa-check-circle"></i> Mark all as read</button></div>';
         sorted.forEach(msg => {
             const isUnread = !msg.read;
-            const msgId = msg.id;
             html += `
-                <div class="list-group-item list-group-item-action ${isUnread ? 'list-group-item-primary' : ''}" style="cursor:pointer;" data-msg-id="${msgId}">
+                <div class="list-group-item list-group-item-action ${isUnread ? 'list-group-item-primary' : ''}" style="cursor:pointer;" data-msg-id="${msg.id}">
                     <div class="d-flex justify-content-between align-items-start">
                         <div class="flex-grow-1">
-                            <strong>${window.escapeHtml(msg.subject)}</strong>
-                            <div class="text-muted small">From: ${window.escapeHtml(msg.from)} · ${formatDate(msg.timestamp)}</div>
-                            <div class="mt-1 msg-body-${msgId}" style="display:none;">${window.escapeHtml(msg.body).replace(/\n/g, '<br>')}</div>
-                            <div class="mt-1 msg-preview-${msgId}">${window.escapeHtml(msg.body.substring(0, 100))}${msg.body.length > 100 ? '…' : ''}</div>
+                            <strong>${escapeHtml(msg.subject)}</strong>
+                            <div class="text-muted small">From: ${escapeHtml(msg.from)} · ${formatDate(msg.timestamp)}</div>
+                            <div class="mt-1 msg-body-${msg.id}" style="display:none;">${escapeHtml(msg.body).replace(/\n/g, '<br>')}</div>
+                            <div class="mt-1 msg-preview-${msg.id}">${escapeHtml(msg.body.substring(0, 100))}${msg.body.length > 100 ? '…' : ''}</div>
                         </div>
                         <div>
-                            ${!msg.read ? `<button class="btn btn-sm btn-outline-primary mark-read-btn" data-id="${msgId}" title="Mark as read"><i class="fa fa-check"></i></button>` : ''}
-                            <button class="btn btn-sm btn-outline-danger delete-msg-btn" data-id="${msgId}" title="Delete"><i class="fa fa-trash"></i></button>
+                            ${!msg.read ? `<button class="btn btn-sm btn-outline-primary mark-read-btn" data-id="${msg.id}">✓</button>` : ''}
+                            <button class="btn btn-sm btn-outline-danger delete-msg-btn" data-id="${msg.id}">🗑</button>
                         </div>
                     </div>
                 </div>
             `;
         });
-        
         container.innerHTML = html;
-        
-        // Attach event listeners
+
+        // Attach events
         document.querySelectorAll('.mark-read-btn').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 e.stopPropagation();
@@ -205,85 +202,82 @@
                 await deleteMessage(id);
             });
         });
-        document.querySelectorAll('.list-group-item-action').forEach(item => {
-            item.addEventListener('click', (e) => {
+        document.querySelectorAll('.list-group-item-action').forEach(el => {
+            el.addEventListener('click', (e) => {
                 if (e.target.closest('.mark-read-btn') || e.target.closest('.delete-msg-btn')) return;
-                const msgId = item.dataset.msgId;
-                const previewDiv = item.querySelector(`.msg-preview-${msgId}`);
-                const bodyDiv = item.querySelector(`.msg-body-${msgId}`);
-                if (previewDiv.style.display !== 'none') {
-                    previewDiv.style.display = 'none';
-                    bodyDiv.style.display = 'block';
+                const msgId = el.dataset.msgId;
+                const preview = el.querySelector(`.msg-preview-${msgId}`);
+                const body = el.querySelector(`.msg-body-${msgId}`);
+                if (preview.style.display !== 'none') {
+                    preview.style.display = 'none';
+                    body.style.display = 'block';
                     const msg = currentMessages.find(m => m.id == msgId);
                     if (msg && !msg.read) markAsRead(msgId);
                 } else {
-                    previewDiv.style.display = 'block';
-                    bodyDiv.style.display = 'none';
+                    preview.style.display = 'block';
+                    body.style.display = 'none';
                 }
             });
         });
         const markAllBtn = document.getElementById('markAllReadBtn');
-        if (markAllBtn) markAllBtn.addEventListener('click', markAllAsRead);
-        
-        console.log(`Rendered ${sorted.length} messages`);
+        if (markAllBtn) markAllBtn.addEventListener('click', async () => {
+            let changed = false;
+            for (let m of currentMessages) if (!m.read) { m.read = true; changed = true; }
+            if (changed) {
+                await saveMessages(currentMessages);
+                updateBadge();
+                refreshModalContent();
+            }
+        });
     }
 
     async function openInbox() {
-        if (!modalElement) {
-            modalElement = document.createElement('div');
-            modalElement.className = 'modal fade';
-            modalElement.id = 'inboxModal';
-            modalElement.tabIndex = -1;
-            modalElement.innerHTML = `
-                <div class="modal-dialog modal-lg">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5><i class="fa fa-inbox"></i> My Inbox</h5>
-                            <button type="button" class="close" data-dismiss="modal">&times;</button>
-                        </div>
-                        <div class="modal-body p-0">
-                            <div class="list-group list-group-flush" id="msgListContainer" style="max-height: 60vh; overflow-y: auto;"></div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" id="refreshInboxBtn"><i class="fa fa-refresh"></i> Refresh</button>
-                            <button type="button" class="btn btn-primary" data-dismiss="modal">Close</button>
-                        </div>
+        // If modal already exists, just refresh and show
+        if (currentModal) {
+            await loadMessages();
+            refreshModalContent();
+            $(currentModal).modal('show');
+            return;
+        }
+
+        // Create modal element
+        currentModal = document.createElement('div');
+        currentModal.className = 'modal fade';
+        currentModal.id = 'inboxModal';
+        currentModal.innerHTML = `
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5><i class="fa fa-inbox"></i> My Inbox</h5>
+                        <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    </div>
+                    <div class="modal-body p-0">
+                        <div class="list-group list-group-flush" id="msgListContainer" style="max-height: 60vh; overflow-y: auto;"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" id="refreshInboxBtn"><i class="fa fa-refresh"></i> Refresh</button>
+                        <button type="button" class="btn btn-primary" data-dismiss="modal">Close</button>
                     </div>
                 </div>
-            `;
-            document.body.appendChild(modalElement);
-            
-            modalElement.addEventListener('shown.bs.modal', async () => {
+            </div>
+        `;
+        document.body.appendChild(currentModal);
+
+        // Refresh button handler
+        const refreshBtn = document.getElementById('refreshInboxBtn');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', async () => {
                 await loadMessages();
-                renderInbox();
+                refreshModalContent();
                 updateBadge();
-                if (inboxRefreshInterval) clearInterval(inboxRefreshInterval);
-                inboxRefreshInterval = setInterval(async () => {
-                    await loadMessages();
-                    renderInbox();
-                    updateBadge();
-                }, 30000);
             });
-            modalElement.addEventListener('hide.bs.modal', () => {
-                if (inboxRefreshInterval) clearInterval(inboxRefreshInterval);
-            });
-            
-            const refreshBtn = document.getElementById('refreshInboxBtn');
-            if (refreshBtn) {
-                refreshBtn.addEventListener('click', async () => {
-                    await loadMessages();
-                    renderInbox();
-                    updateBadge();
-                });
-            }
         }
-        $(modalElement).modal('show');
-        // Fallback: if modal doesn't show, try again after 100ms
-        setTimeout(() => {
-            if (modalElement && !$(modalElement).hasClass('show')) {
-                $(modalElement).modal('show');
-            }
-        }, 100);
+
+        // Load messages, render, then show modal
+        await loadMessages();
+        refreshModalContent();
+        updateBadge();
+        $(currentModal).modal('show');
     }
 
     function addNotificationIcon() {
@@ -292,7 +286,6 @@
         const navUl = document.querySelector('.navbar-nav.ml-auto');
         if (!navUl) return;
         if (document.getElementById('msgNotificationIcon')) return;
-        
         const li = document.createElement('li');
         li.className = 'nav-item';
         li.id = 'msgNotificationIcon';
@@ -310,32 +303,9 @@
         loadMessages().then(() => updateBadge());
     }
 
-    async function refreshUnread() {
-        if (getUser()) {
-            await loadMessages();
-            updateBadge();
-        }
-    }
-
-    window.debugInbox = {
-        loadMessages,
-        currentMessages: () => currentMessages,
-        renderInbox,
-        openInbox
-    };
-
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => {
-            addNotificationIcon();
-            refreshUnread();
-            if (refreshInterval) clearInterval(refreshInterval);
-            refreshInterval = setInterval(refreshUnread, 30000);
-            window.addEventListener('focus', refreshUnread);
-        });
+        document.addEventListener('DOMContentLoaded', addNotificationIcon);
     } else {
         addNotificationIcon();
-        refreshUnread();
-        refreshInterval = setInterval(refreshUnread, 30000);
-        window.addEventListener('focus', refreshUnread);
     }
 })();
