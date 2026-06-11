@@ -1,15 +1,15 @@
 [
   {
-    "id": 1781170746492,
+    "id": 1781177590539,
     "date": "2026-06-08",
-    "start": "08:00",
-    "end": "15:00",
-    "hours": 7,
+    "start": "12:55",
+    "end": "13:32",
+    "hours": 0.62,
     "project": "MIBK 1&2",
-    "category": "Back-Punching",
+    "category": "Meetings",
     "billable": "yes",
-    "notes": "",
-    "updatedAt": 1781170746492
+    "notes": "Discussion with Mashilo about the tag naming conversion",
+    "updatedAt": 1781177590539
   },
   {
     "id": 1781170363902,
@@ -118,6 +118,18 @@
     "billable": "yes",
     "notes": "Sick Leave",
     "updatedAt": 1781170553412
+  },
+  {
+    "id": 1781170746492,
+    "date": "2026-06-08",
+    "start": "08:00",
+    "end": "15:00",
+    "hours": 7,
+    "project": "MIBK 1&2",
+    "category": "Back-Punching",
+    "billable": "yes",
+    "notes": "",
+    "updatedAt": 1781170746492
   },
   {
     "id": 1780495223345,
