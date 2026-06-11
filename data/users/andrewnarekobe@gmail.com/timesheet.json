@@ -1,15 +1,15 @@
 [
   {
-    "id": 1781179305642,
+    "id": 1781185905186,
     "date": "2026-06-08",
-    "start": "13:35",
-    "end": "14:02",
-    "hours": 0.45,
-    "project": "Others",
-    "category": "Admin",
-    "billable": "no",
-    "notes": "",
-    "updatedAt": 1781179305642
+    "start": "13:32",
+    "end": "15:51",
+    "hours": 2.32,
+    "project": "Omnia PH3",
+    "category": "IFAT",
+    "billable": "yes",
+    "notes": "SIS SOFTWARE IFAT",
+    "updatedAt": 1781185905186
   },
   {
     "id": 1781170363902,
@@ -130,6 +130,18 @@
     "billable": "yes",
     "notes": "Sick Leave",
     "updatedAt": 1781170553412
+  },
+  {
+    "id": 1781179305642,
+    "date": "2026-06-08",
+    "start": "13:35",
+    "end": "14:02",
+    "hours": 0.45,
+    "project": "Others",
+    "category": "Admin",
+    "billable": "no",
+    "notes": "",
+    "updatedAt": 1781179305642
   },
   {
     "id": 1781170746492,
