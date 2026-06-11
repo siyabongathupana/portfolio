@@ -1,5 +1,17 @@
 [
   {
+    "id": 1781179305642,
+    "date": "2026-06-08",
+    "start": "13:35",
+    "end": "14:02",
+    "hours": 0.45,
+    "project": "Others",
+    "category": "Admin",
+    "billable": "no",
+    "notes": "",
+    "updatedAt": 1781179305642
+  },
+  {
     "id": 1781170363902,
     "date": "2026-06-11",
     "start": "11:20",
@@ -22,6 +34,18 @@
     "billable": "yes",
     "notes": "",
     "updatedAt": 1781170334330
+  },
+  {
+    "id": 1781177590539,
+    "date": "2026-06-11",
+    "start": "12:55",
+    "end": "13:32",
+    "hours": 0.62,
+    "project": "MIBK 1&2",
+    "category": "Meetings",
+    "billable": "yes",
+    "notes": "Discussion with Mashilo about the tag naming conversion",
+    "updatedAt": 1781177618123
   },
   {
     "id": 1781099396216,
@@ -106,18 +130,6 @@
     "billable": "yes",
     "notes": "Sick Leave",
     "updatedAt": 1781170553412
-  },
-  {
-    "id": 1781177590539,
-    "date": "2026-06-11",
-    "start": "12:55",
-    "end": "13:32",
-    "hours": 0.62,
-    "project": "MIBK 1&2",
-    "category": "Meetings",
-    "billable": "yes",
-    "notes": "Discussion with Mashilo about the tag naming conversion",
-    "updatedAt": 1781177618123
   },
   {
     "id": 1781170746492,
