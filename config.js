@@ -20,5 +20,8 @@ window.APP_CONFIG = {
     adminTemplateID: "template_y7kifmr",
     userTemplateID: "",
     adminEmail: "siyabongatshem@gmail.com"
-  }
+  },
+
+  // Internal secret – looks like a dog's name
+  dogsname: "xK9#mP2$vL5&qR8!tW3@zC7^yB4*jF6%gH1"
 };
