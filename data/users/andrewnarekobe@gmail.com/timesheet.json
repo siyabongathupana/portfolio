@@ -1,5 +1,17 @@
 [
   {
+    "id": 1781255452167,
+    "date": "2026-06-12",
+    "start": "11:00",
+    "end": "11:10",
+    "hours": 0.17,
+    "project": "Omnia PH3",
+    "category": "Admin",
+    "billable": "no",
+    "notes": "",
+    "updatedAt": 1781255452167
+  },
+  {
     "id": 1781255414325,
     "date": "2026-06-12",
     "start": "08:35",
