@@ -26,7 +26,7 @@
 
 | Projects | Certifications | Users | Hours | Billable | Daily Avg |
 |:--------:|:--------------:|:-----:|:-----:|:--------:|:---------:|
-| 0 | 18 | 5 | 237.5 | 183.5 | 7.9h |
+| 0 | 0 | 1 | 0 | 0 | 0h |
 
 ---
 
@@ -34,9 +34,9 @@
 
 | Category | Value |
 |----------|-------|
-| Top Category | IFAT |
-| Top Project | Omnia Phase 3 |
-| Active Days | 30 |
+| Top Category | N/A |
+| Top Project | N/A |
+| Active Days | 0 |
 
 ---
 
@@ -48,14 +48,6 @@
 
 ## 🎓 Recent Certifications
 
-
-- **7018 DeltaV Hardware and Troubleshooting** - Emerson  (2024-11)
-
-- **Service Ready Core** - Korn Ferry (2025-04)
-
-- **DeltaV Field Service Supervised** - Emerson  (2025-05)
-
-- **NDG Linux Unhatched** - NDG (2024-01)
 
 
 ---
@@ -86,6 +78,6 @@
 
 <div align="center">
 
-*Last updated: June 12, 2026 at 13:09:41 UTC*
+*Last updated: June 12, 2026 at 23:58:03 UTC*
 
 </div>
