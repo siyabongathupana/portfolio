@@ -7,9 +7,9 @@
     "hours": 0.5,
     "project": "Other",
     "category": "Admin",
-    "billable": "yes",
+    "billable": "no",
     "notes": "",
-    "updatedAt": 1781267766853
+    "updatedAt": 1781267779474
   },
   {
     "id": 1781267742730,
