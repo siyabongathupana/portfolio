@@ -1,10 +1,10 @@
-// config.js – Repository & app settings
+// config.js – Repository & app settings (PRIVATE data repo)
 window.REPO_CONFIG = {
   owner: "siyabongathupana",
-  repo: "portfolio",
+  repo: "portfolio-data",      // <-- private repo name
   branch: "main",
-  dataPath: "data",
-  remoteBase: "https://raw.githubusercontent.com/siyabongathupana/portfolio/main/data/"
+  dataPath: "",                // data files are at the root of the private repo
+  remoteBase: "https://raw.githubusercontent.com/siyabongathupana/portfolio-data/main/"  // raw URL (only works with token for private repos)
 };
 
 window.APP_CONFIG = {
@@ -22,6 +22,6 @@ window.APP_CONFIG = {
     adminEmail: "siyabongatshem@gmail.com"
   },
 
-  // Internal secret – looks like a dog's name
+  // Internal secret – looks like a dog's name (used for message encryption)
   dogsname: "xK9#mP2$vL5&qR8!tW3@zC7^yB4*jF6%gH1"
 };
