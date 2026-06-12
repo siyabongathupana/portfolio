@@ -1,5 +1,17 @@
 [
   {
+    "id": 1781267640833,
+    "date": "2026-06-10",
+    "start": "12:45",
+    "end": "16:00",
+    "hours": 3.25,
+    "project": "Steam Station 2 DCS Replacement",
+    "category": "CFAT",
+    "billable": "yes",
+    "notes": "",
+    "updatedAt": 1781267640833
+  },
+  {
     "id": 1781267622501,
     "date": "2026-06-10",
     "start": "07:00",
