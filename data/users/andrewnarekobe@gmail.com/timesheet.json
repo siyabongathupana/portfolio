@@ -1,5 +1,17 @@
 [
   {
+    "id": 1781268804586,
+    "date": "2026-06-12",
+    "start": "12:50",
+    "end": "15:00",
+    "hours": 2.17,
+    "project": "Omnia PH3",
+    "category": "IFAT",
+    "billable": "yes",
+    "notes": "",
+    "updatedAt": 1781268804586
+  },
+  {
     "id": 1781258221895,
     "date": "2026-06-12",
     "start": "11:10",
