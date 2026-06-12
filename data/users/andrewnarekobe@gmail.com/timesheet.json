@@ -1,5 +1,17 @@
 [
   {
+    "id": 1781246099647,
+    "date": "2026-06-12",
+    "start": "08:00",
+    "end": "08:34",
+    "hours": 0.57,
+    "project": "Others",
+    "category": "Admin",
+    "billable": "no",
+    "notes": "",
+    "updatedAt": 1781246099647
+  },
+  {
     "id": 1781170363902,
     "date": "2026-06-11",
     "start": "11:20",
@@ -34,6 +46,18 @@
     "billable": "yes",
     "notes": "Discussion with Mashilo about the tag naming conversion",
     "updatedAt": 1781177618123
+  },
+  {
+    "id": 1781185905186,
+    "date": "2026-06-11",
+    "start": "13:32",
+    "end": "15:51",
+    "hours": 2.32,
+    "project": "Omnia PH3",
+    "category": "IFAT",
+    "billable": "yes",
+    "notes": "SIS SOFTWARE IFAT",
+    "updatedAt": 1781185923569
   },
   {
     "id": 1781099396216,
@@ -118,18 +142,6 @@
     "billable": "yes",
     "notes": "Sick Leave",
     "updatedAt": 1781170553412
-  },
-  {
-    "id": 1781185905186,
-    "date": "2026-06-11",
-    "start": "13:32",
-    "end": "15:51",
-    "hours": 2.32,
-    "project": "Omnia PH3",
-    "category": "IFAT",
-    "billable": "yes",
-    "notes": "SIS SOFTWARE IFAT",
-    "updatedAt": 1781185923569
   },
   {
     "id": 1781179305642,
