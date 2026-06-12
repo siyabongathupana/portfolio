@@ -1,3 +1,0 @@
-[2026-05-23 18:45:16] [INFO] [logout] User logged out
-[2026-05-23 18:36:08] [INFO] [save_certificates] Saved 1 certificates
-[2026-05-23 18:30:36] [INFO] [login] User logged in as thupanasiyabonga@gmail.com
