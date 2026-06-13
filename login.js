@@ -1,4 +1,5 @@
-// login.js – Improved with rate limiting, password strength, UX, email verification, and token update
+// login.js – Improved with rate limiting, password strength, UX, email verification, token update,
+// and stores passphrase in sessionStorage for seamless encryption access.
 
 document.addEventListener('DOMContentLoaded', () => {
   // Rate limiting: store failed attempts in memory (resets on page refresh)
@@ -290,7 +291,7 @@ document.addEventListener('DOMContentLoaded', () => {
     console.warn('Confirm update token button not found');
   }
 
-  // ======================== LOGIN / REGISTER FUNCTIONS ========================
+  // ======================== LOGIN FUNCTION (with passphrase storage) ========================
   async function handleLogin() {
     clearMessages();
     const username = document.getElementById('loginUsername').value.trim();
@@ -321,6 +322,10 @@ document.addEventListener('DOMContentLoaded', () => {
       
       const pat = await window.AccountManager.login(username, passphrase);
       resetRateLimit();
+      
+      // 🔐 STORE THE PASSPHRASE IN SESSIONSTORAGE FOR ENCRYPTION
+      sessionStorage.setItem('portfolioPassphrase', btoa(passphrase));
+      
       window.SessionManager.setCurrentUser(username, pat);
       showSuccess('Login successful! Redirecting...');
       setTimeout(() => { window.location.href = 'admin.html'; }, 1000);
