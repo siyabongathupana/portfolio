@@ -1,4 +1,6 @@
-// timesheet.js – Complete, with fixed PDF week‑based row coloring
+// timesheet.js – Complete with encryption for timesheet.json, timesheet_projects.json, user_meta.json, preferences.json
+// All existing functionality is preserved; plaintext files are auto-converted on first save.
+
 (function() {
   const user = window.SessionManager?.getCurrentUser();
   if (!user) {
@@ -51,24 +53,25 @@
     toastEl.addEventListener("hidden.bs.toast", () => toastEl.remove());
   }
 
-  // ======================== DATA LOAD & SAVE ========================
+  // ======================== ENCRYPTED LOAD/SAVE ========================
   async function loadTimesheet() {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(user.username);
     const path = `${dataPath}/users/${encUser}/${TIMESHEET_FILE}`;
-    const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`;
     try {
-      const resp = await githubFetchWithAuth(url, { headers: { Authorization: `token ${user.pat}`, Accept: 'application/vnd.github.v3+json' } });
-      if (resp.ok) {
-        const data = await resp.json();
-        const content = atob(data.content.replace(/\n/g, ''));
-        const parsed = JSON.parse(content);
-        entries = Array.isArray(parsed) ? parsed : [];
+      const passphrase = await window.getUserPassphrase();
+      const data = await loadEncryptedJSON(owner, repo, path, branch, user.pat, passphrase);
+      if (data !== null) {
+        entries = Array.isArray(data) ? data : [];
         entries = entries.map(e => ({ ...e, updatedAt: e.updatedAt || e.id }));
         entries.sort((a, b) => new Date(b.date) - new Date(a.date));
-      } else if (resp.status === 404) entries = [];
-      else throw new Error(`HTTP ${resp.status}`);
-    } catch(e) { if (!e.message.includes("Token expired")) console.error(e); entries = []; }
+      } else {
+        entries = [];
+      }
+    } catch(e) {
+      if (!e.message.includes("Token expired")) console.error(e);
+      entries = [];
+    }
   }
 
   async function saveTimesheet(dataToSave) {
@@ -76,29 +79,18 @@
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(user.username);
     const path = `${dataPath}/users/${encUser}/${TIMESHEET_FILE}`;
-    const content = JSON.stringify(dataToSave, null, 2);
-    const encodedContent = btoa(unescape(encodeURIComponent(content)));
-
     let sha = null;
-    const getUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`;
     try {
+      const getUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`;
       const getResp = await githubFetchWithAuth(getUrl, { headers: { Authorization: `token ${user.pat}` } });
-      if (getResp.ok) { const data = await getResp.json(); sha = data.sha; }
+      if (getResp.ok) {
+        const data = await getResp.json();
+        sha = data.sha;
+      }
     } catch(e) {}
-
-    const putUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
-    const body = { message: `Update timesheet – ${new Date().toISOString()} – ${dataToSave.length} entries`, content: encodedContent, branch };
-    if (sha) body.sha = sha;
-
-    let retries = 3;
-    while (retries > 0) {
-      try {
-        const putResp = await githubFetchWithAuth(putUrl, { method: 'PUT', headers: { Authorization: `token ${user.pat}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-        if (!putResp.ok) throw new Error(`GitHub API error: ${putResp.status}`);
-        entries = [...dataToSave];
-        return true;
-      } catch (err) { retries--; if (retries === 0) throw err; await new Promise(r => setTimeout(r, 1000)); }
-    }
+    const passphrase = await window.getUserPassphrase();
+    await saveEncryptedJSON(owner, repo, path, dataToSave, `Update timesheet – ${new Date().toISOString()} – ${dataToSave.length} entries`, branch, user.pat, passphrase, sha);
+    entries = [...dataToSave];
   }
 
   async function loadTimesheetProjects() {
@@ -106,30 +98,98 @@
     const encUser = encodeURIComponent(user.username);
     const path = `${dataPath}/users/${encUser}/${TIMESHEET_PROJECTS_FILE}`;
     try {
-      const resp = await githubFetchWithAuth(`https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`, { headers: { Authorization: `token ${user.pat}` } });
-      if (resp.ok) { const data = await resp.json(); timesheetProjects = JSON.parse(atob(data.content.replace(/\n/g, ''))); }
-      else if (resp.status === 404) timesheetProjects = [];
-    } catch(e) { timesheetProjects = []; }
+      const passphrase = await window.getUserPassphrase();
+      const data = await loadEncryptedJSON(owner, repo, path, branch, user.pat, passphrase);
+      if (data !== null) {
+        timesheetProjects = Array.isArray(data) ? data : [];
+      } else {
+        timesheetProjects = [];
+      }
+    } catch(e) {
+      timesheetProjects = [];
+    }
   }
 
   async function saveTimesheetProjects(projectsArray) {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(user.username);
     const path = `${dataPath}/users/${encUser}/${TIMESHEET_PROJECTS_FILE}`;
-    const content = JSON.stringify(projectsArray, null, 2);
     let sha = null;
     try {
       const getResp = await githubFetchWithAuth(`https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`, { headers: { Authorization: `token ${user.pat}` } });
       if (getResp.ok) sha = (await getResp.json()).sha;
     } catch(e) {}
-    const putResp = await githubFetchWithAuth(`https://api.github.com/repos/${owner}/${repo}/contents/${path}`, {
-      method: 'PUT', headers: { Authorization: `token ${user.pat}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: 'Update timesheet projects', content: btoa(unescape(encodeURIComponent(content))), branch, ...(sha && { sha }) })
-    });
-    if (!putResp.ok) throw new Error('Failed to save timesheet projects');
+    const passphrase = await window.getUserPassphrase();
+    await saveEncryptedJSON(owner, repo, path, projectsArray, 'Update timesheet projects', branch, user.pat, passphrase, sha);
     timesheetProjects = projectsArray;
   }
 
+  async function loadUserMeta() {
+    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+    const encUser = encodeURIComponent(user.username);
+    const path = `${dataPath}/users/${encUser}/${USER_META_FILE}`;
+    try {
+      const passphrase = await window.getUserPassphrase();
+      const data = await loadEncryptedJSON(owner, repo, path, branch, user.pat, passphrase);
+      if (data && typeof data === 'object') {
+        userFullName = data.fullName || "";
+      } else {
+        userFullName = "";
+      }
+    } catch(e) {
+      userFullName = "";
+    }
+    document.getElementById('userFullName').value = userFullName;
+    document.getElementById('reportName').value = userFullName;
+  }
+
+  async function saveUserMeta(fullName) {
+    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+    const encUser = encodeURIComponent(user.username);
+    const path = `${dataPath}/users/${encUser}/${USER_META_FILE}`;
+    let sha = null;
+    try {
+      const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
+      if (existing) sha = existing.sha;
+    } catch(e) {}
+    const passphrase = await window.getUserPassphrase();
+    await saveEncryptedJSON(owner, repo, path, { fullName }, "Update user name", branch, user.pat, passphrase, sha);
+    userFullName = fullName;
+  }
+
+  async function loadNotificationPreference() {
+    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+    const encUser = encodeURIComponent(user.username);
+    const path = `${dataPath}/users/${encUser}/${PREFS_FILE}`;
+    try {
+      const passphrase = await window.getUserPassphrase();
+      const data = await loadEncryptedJSON(owner, repo, path, branch, user.pat, passphrase);
+      if (data && typeof data === 'object') {
+        notificationsEnabled = data.notifications === true;
+      } else {
+        notificationsEnabled = false;
+      }
+    } catch(e) {
+      notificationsEnabled = false;
+    }
+    document.getElementById('notificationsToggle').checked = notificationsEnabled;
+  }
+
+  async function saveNotificationPreference(enabled) {
+    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+    const encUser = encodeURIComponent(user.username);
+    const path = `${dataPath}/users/${encUser}/${PREFS_FILE}`;
+    let sha = null;
+    try {
+      const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
+      if (existing) sha = existing.sha;
+    } catch(e) {}
+    const passphrase = await window.getUserPassphrase();
+    await saveEncryptedJSON(owner, repo, path, { notifications: enabled }, "Update notification preference", branch, user.pat, passphrase, sha);
+    notificationsEnabled = enabled;
+  }
+
+  // ======================== REST OF ORIGINAL FUNCTIONS ========================
   async function loadPortfolioProjects() {
     try {
       const projectsData = await window.portfolioData.loadProjects();
@@ -174,7 +234,6 @@
     return true;
   }
 
-  // ======================== UI HELPERS ========================
   function formatDate(date) { return new Date(date).toISOString().split('T')[0]; }
   function calcHours(start, end) {
     if (!start || !end) return 0;
@@ -276,7 +335,6 @@
     $('#editModal').modal('show');
   }
 
-  // ======================== FILTERS & RENDERING ========================
   function getFilteredEntries() {
     const range = document.getElementById('filterRange').value;
     const project = document.getElementById('filterProject').value;
@@ -307,7 +365,7 @@
     const tbody = document.getElementById('historyBody');
     const tfoot = document.getElementById('historyFoot');
     if (filtered.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="9" class="text-center">No entries found.  </td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" class="text-center">No entries found.</td></tr>';
       tfoot.style.display = 'none';
       return;
     }
@@ -340,7 +398,7 @@
     return Object.values(dailyHours).reduce((sum, hrs) => sum + (hrs > 8 ? hrs - 8 : 0), 0);
   }
 
- function updateSummaryAndProgress() {
+  function updateSummaryAndProgress() {
     const filtered = getFilteredEntries();
     const totalHours = filtered.reduce((s,e) => s + e.hours, 0);
     const billable = filtered.filter(e => e.billable === 'yes').reduce((s,e) => s + e.hours, 0);
@@ -352,7 +410,6 @@
     document.getElementById('summaryOvertime').innerText = overtime.toFixed(1);
     document.getElementById('summaryCard').style.display = 'flex';
 
-    // FIXED: Use UTC date to avoid timezone offset
     const now = new Date();
     const todayUTC = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
     const todayStr = todayUTC.toISOString().split('T')[0];
@@ -370,7 +427,7 @@
         fill.classList.remove('overtime'); 
         document.getElementById('overtimeWarning').style.display = 'none'; 
     }
-}
+  }
 
   function updateCharts() {
     const filtered = getFilteredEntries();
@@ -390,8 +447,6 @@
     if (ctxBill) billableChart = new Chart(ctxBill, { type: 'pie', data: { labels: ['Billable', 'Non-billable'], datasets: [{ data: [billable, nonBill], backgroundColor: ['#28a745','#dc3545'] }] }, options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } } } } });
   }
 
- 
-  // ======================== WEEK-BASED COLORING HELPER ========================
   function getWeekNumber(date) {
     const d = new Date(date);
     d.setHours(0,0,0,0);
@@ -400,7 +455,6 @@
     return 1 + Math.round(((d - week1) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
   }
 
-  // ======================== ROBUST CHART IMAGE GENERATION ========================
   async function captureChartImage(chartBuilder, width = 500, height = 400) {
     return new Promise(async (resolve, reject) => {
       const canvas = document.createElement('canvas');
@@ -422,23 +476,20 @@
     });
   }
 
-  // ======================== PDF REPORT (with fixed week coloring) ========================
   async function generatePDFReport(startDate, endDate) {
     window.showLoading("Generating professional PDF report...");
     try {
       const filtered = entries.filter(e => e.date >= startDate && e.date <= endDate);
       if (!filtered.length) { showToast("No entries in selected range.", "error"); window.hideLoading(); return; }
 
-      // Assign week keys and prepare row colors
       filtered.forEach(e => {
         e.weekKey = `${new Date(e.date).getFullYear()}-W${getWeekNumber(e.date)}`;
       });
       const weeks = [...new Map(filtered.map(e => [e.weekKey, e.weekKey])).values()];
       const weekColors = weeks.map((w, idx) => ({
         week: w,
-        color: idx % 2 === 0 ? [245, 247, 250] : [255, 248, 225]  // light gray / light cream
+        color: idx % 2 === 0 ? [245, 247, 250] : [255, 248, 225]
       }));
-      // Map each filtered entry to its background color
       const rowColors = filtered.map(entry => {
         const match = weekColors.find(wc => wc.week === entry.weekKey);
         return match ? match.color : [255, 255, 255];
@@ -452,7 +503,6 @@
       const contentWidth = pageWidth - margin * 2;
       const primary = [11,43,59], accent = [47,199,255];
 
-      // Header
       doc.setFillColor(primary[0], primary[1], primary[2]); doc.rect(0,0,pageWidth,28,'F');
       doc.setFillColor(accent[0], accent[1], accent[2]); doc.rect(0,28,pageWidth,4,'F');
       doc.setTextColor(255,255,255); doc.setFontSize(18); doc.setFont(undefined,'bold');
@@ -487,7 +537,6 @@
       doc.text(`Report ID: ${Date.now()}`, pageWidth - margin - 30, yPos);
       yPos += 8;
 
-      // Generate charts (as before)
       let chart1Img = null, chart2Img = null, chart3Img = null;
       try {
         const projMap = {}; filtered.forEach(e=>{ projMap[e.project]=(projMap[e.project]||0)+e.hours; });
@@ -511,10 +560,7 @@
       else { doc.setFontSize(10); doc.text("Chart unavailable", pageWidth/2, yPos+30, { align:'center' }); }
       yPos += 66;
 
-      // Data table with week-based row coloring
       const tableData = filtered.map(e=>[e.date, e.start, e.end, e.hours.toFixed(2), e.project, e.category, e.billable==='yes'?'✓ Billable':'✗ Non-billable', e.notes||'-']);
-      
-      // Scale column widths to fit contentWidth
       const baseWidths = [22, 14, 14, 14, 30, 25, 20, 55];
       const totalBase = baseWidths.reduce((a,b)=>a+b,0);
       const scaledWidths = baseWidths.map(w => (w / totalBase) * contentWidth);
@@ -528,7 +574,6 @@
         headStyles: { fillColor: primary, textColor: 255, fontStyle: 'bold', halign: 'center', fontSize: 9 },
         footStyles: { fillColor: [248,250,252], textColor: primary, fontStyle: 'bold', halign: 'center', fontSize: 9 },
         bodyStyles: { fontSize: 8, cellPadding: 2, valign: 'middle' },
-        // KEY FIX: rowBackground uses rowColors array
         rowBackground: (row) => rowColors[row] || [255,255,255],
         columnStyles: {
           0: { cellWidth: scaledWidths[0] },
@@ -559,7 +604,6 @@
       doc.text("CONFIDENTIAL", pageWidth/2, pageHeight/2, { align:'center', angle:45 });
       doc.setGState(new doc.GState({ opacity: 1 }));
 
-      // PDF encryption with fallback
       try {
         if (typeof PDFLib !== 'undefined' && PDFLib.PDFDocument) {
           const pdfBlob = doc.output('blob');
@@ -600,11 +644,9 @@
     } finally { window.hideLoading(); }
   }
 
-  // ======================== EXCEL EXPORT (protected worksheet, week coloring) ========================
-   async function exportStyledExcel(startDate, endDate) {
+  async function exportStyledExcel(startDate, endDate) {
     window.showLoading("Generating Excel report...");
     try {
-        // Helper fallbacks (same as before)
         if (typeof getWeekNumber === 'undefined') {
             window.getWeekNumber = function(date) {
                 const d = new Date(date);
@@ -629,7 +671,6 @@
             return;
         }
 
-        // Week grouping for alternating row colors
         filtered.forEach(e => { e.weekKey = `${new Date(e.date).getFullYear()}-W${getWeekNumber(e.date)}`; });
         const weeks = [...new Map(filtered.map(e => [e.weekKey, e.weekKey])).values()];
         const weekFills = weeks.map((w, idx) => ({
@@ -642,7 +683,6 @@
 
         const workbook = new ExcelJS.Workbook();
         
-        // ==================== MAIN DATA SHEET (unchanged) ====================
         const worksheet = workbook.addWorksheet("Timesheet Data", {
             pageSetup: {
                 orientation: 'landscape',
@@ -655,7 +695,6 @@
             }
         });
 
-        // Dynamic column widths
         const headers = ['Date','Start','End','Hours','Project','Category','Billable','Notes'];
         const colMaxLen = [10, 8, 8, 8, 20, 15, 12, 40];
         for (const row of filtered) {
@@ -675,7 +714,6 @@
         }
         worksheet.columns = colMaxLen.map(w => ({ width: w + 2 }));
 
-        // Header section (unchanged)
         worksheet.mergeCells('A1:H1');
         const titleCell = worksheet.getCell('A1');
         titleCell.value = `TIMESHEET REPORT - ${userFullName || user.username}`;
@@ -704,7 +742,6 @@
         summaryCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9EDF7' } };
         worksheet.getRow(3).height = 24;
 
-        // Headers row
         const headerRow = worksheet.getRow(4);
         headers.forEach((h, idx) => {
             const cell = headerRow.getCell(idx+1);
@@ -716,7 +753,6 @@
         });
         worksheet.getRow(4).height = 22;
 
-        // Data rows
         let currentRow = 5;
         for (const entry of filtered) {
             const row = worksheet.getRow(currentRow);
@@ -750,7 +786,6 @@
             currentRow++;
         }
 
-        // Total row
         const totalRowNum = currentRow;
         const totalRow = worksheet.getRow(totalRowNum);
         totalRow.getCell(4).value = totalHours.toFixed(1);
@@ -762,7 +797,6 @@
             if (i !== 4) cell.value = '';
         }
 
-        // Auto row height for Notes column
         worksheet.eachRow((row, rowNumber) => {
             let maxHeight = 18;
             const noteCell = row.getCell(8);
@@ -781,7 +815,6 @@
             sort: false, autoFilter: false, pivotTables: false
         });
 
-        // ==================== SUMMARY SHEET (Bar chart – larger) ====================
         const summarySheet = workbook.addWorksheet("Summary", {
             pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, paperSize: 9 }
         });
@@ -820,7 +853,6 @@
             r++;
         }
 
-        // Bar chart – larger and bigger fonts
         try {
             const projMap = {};
             filtered.forEach(e => { projMap[e.project] = (projMap[e.project] || 0) + e.hours; });
@@ -861,7 +893,6 @@
         summarySheet.getCell('A35').font = { italic: true, size: 8 };
         summarySheet.mergeCells('A35:C35');
 
-        // ==================== CHARTS SHEET (All charts – larger & uniform sizes) ====================
         const chartsSheet = workbook.addWorksheet("Charts", {
             pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, paperSize: 9 }
         });
@@ -873,7 +904,6 @@
         chartsTitle.alignment = { horizontal: 'center' };
         chartsSheet.getRow(1).height = 28;
 
-        // 1. Pie chart – larger square
         try {
             const catMap = {};
             filtered.forEach(e => { catMap[e.category] = (catMap[e.category] || 0) + e.hours; });
@@ -906,7 +936,6 @@
             });
         } catch(e) { console.warn("Pie chart skipped", e); }
 
-        // 2. Line chart – larger width
         try {
             const weeklyTotals = {};
             filtered.forEach(e => {
@@ -946,7 +975,6 @@
             });
         } catch(e) { console.warn("Line chart skipped", e); }
 
-        // 3. Doughnut chart – larger square
         try {
             const canvas = document.createElement('canvas');
             canvas.width = 1000;
@@ -975,7 +1003,6 @@
             });
         } catch(e) { console.warn("Doughnut chart skipped", e); }
 
-        // 4. Stacked bar – larger width
         try {
             const weeklyAdmin = {};
             const weeklyProject = {};
@@ -1028,7 +1055,6 @@
         chartsSheet.getCell('A70').font = { italic: true, size: 8 };
         chartsSheet.mergeCells('A70:C70');
 
-        // ==================== ADVANCED ANALYSIS SHEET (unchanged) ====================
         const analysisSheet = workbook.addWorksheet("Advanced Analysis", {
             pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, paperSize: 9 }
         });
@@ -1043,7 +1069,6 @@
         analysisSheet.getRow(1).height = 32;
 
         let rowIdx = 3;
-        // Helper functions (unchanged – they don't affect charts)
         function addSectionHeader(title, startRow) {
             const cell = analysisSheet.getCell(`A${startRow}`);
             cell.value = title;
@@ -1101,7 +1126,6 @@
             return r + 1;
         }
 
-        // Build analysis content (same as before)
         rowIdx = addSectionHeader("📈 KEY METRICS", rowIdx);
         const workingDays = new Set(filtered.map(e => e.date));
         const avgDaily = totalHours / workingDays.size;
@@ -1199,7 +1223,6 @@
         analysisSheet.getCell(`A${footerRow}`).font = { italic: true, size: 8 };
         analysisSheet.getCell(`A${footerRow}`).alignment = { horizontal: 'center' };
 
-        // ==================== SAVE ====================
         const buffer = await workbook.xlsx.writeBuffer();
         const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
         saveAs(blob, `Timesheet_${startDate}_to_${endDate}_readonly.xlsx`);
@@ -1210,53 +1233,8 @@
     } finally {
         window.hideLoading();
     }
-}
-  // ======================== USER META & NOTIFICATIONS ========================
-  async function loadUserMeta() {
-    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const encUser = encodeURIComponent(user.username);
-    const path = `${dataPath}/users/${encUser}/${USER_META_FILE}`;
-    try {
-      const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
-      if (file && file.content) userFullName = JSON.parse(file.content).fullName || "";
-    } catch(e) { userFullName = ""; }
-    document.getElementById('userFullName').value = userFullName;
-    document.getElementById('reportName').value = userFullName;
   }
 
-  async function saveUserMeta(fullName) {
-    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const encUser = encodeURIComponent(user.username);
-    const path = `${dataPath}/users/${encUser}/${USER_META_FILE}`;
-    let sha = null;
-    try { const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat); if (existing) sha = existing.sha; } catch(e) {}
-    await GitHubAPI.updateFile(owner, repo, path, { fullName }, "Update user name", branch, user.pat, sha);
-    userFullName = fullName;
-  }
-
-  async function loadNotificationPreference() {
-    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const encUser = encodeURIComponent(user.username);
-    const path = `${dataPath}/users/${encUser}/${PREFS_FILE}`;
-    try {
-      const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
-      if (file && file.content) notificationsEnabled = JSON.parse(file.content).notifications === true;
-      else notificationsEnabled = false;
-    } catch(e) { notificationsEnabled = false; }
-    document.getElementById('notificationsToggle').checked = notificationsEnabled;
-  }
-
-  async function saveNotificationPreference(enabled) {
-    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const encUser = encodeURIComponent(user.username);
-    const path = `${dataPath}/users/${encUser}/${PREFS_FILE}`;
-    let sha = null;
-    try { const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat); if (existing) sha = existing.sha; } catch(e) {}
-    await GitHubAPI.updateFile(owner, repo, path, { notifications: enabled }, "Update notification preference", branch, user.pat, sha);
-    notificationsEnabled = enabled;
-  }
-
-  // ======================== REFRESH & AUTO REFRESH ========================
   async function refreshView() {
     window.showLoading("Refreshing timesheet...");
     try {
@@ -1266,64 +1244,17 @@
         updateSummaryAndProgress();
         updateCharts();
 
-        // ========== ADD THESE THREE LINES ==========
         window.__timesheetEntries = entries;
         window.__timesheetProjectOptions = allProjectOptions;
         document.dispatchEvent(new Event('timesheetUpdated'));
-        // ============================================
-
     } catch(err) {
         if (!err.message.includes("Token expired")) showToast("Refresh failed: " + err.message, "error");
     } finally {
         window.hideLoading();
     }
-}
+  }
 
   function startAutoRefresh() { if (autoRefreshInterval) clearInterval(autoRefreshInterval); autoRefreshInterval = setInterval(() => { if (!document.hidden) refreshView(); }, 600000); }
-
-  // ======================== INITIALISATION ========================
-  async function init() {
-    document.getElementById('logDate').value = formatDate(new Date());
-    document.getElementById('startTime')?.addEventListener('change', updateHoursAuto);
-    document.getElementById('endTime')?.addEventListener('change', updateHoursAuto);
-    document.getElementById('nowStartBtn').onclick = () => { document.getElementById('startTime').value = new Date().toTimeString().slice(0,5); updateHoursAuto(); };
-    document.getElementById('nowEndBtn').onclick = () => { document.getElementById('endTime').value = new Date().toTimeString().slice(0,5); updateHoursAuto(); };
-    document.getElementById('addEntryBtn').onclick = () => addEntry();
-    document.getElementById('refreshHistoryBtn').onclick = () => refreshView();
-    document.getElementById('exportExcelBtn').onclick = () => { const end = new Date(); const start = new Date(); start.setDate(start.getDate() - 30); document.getElementById('reportStartDate').value = formatDate(start); document.getElementById('reportEndDate').value = formatDate(end); document.getElementById('reportType').value = 'excel'; $('#reportModal').modal('show'); };
-    document.getElementById('printBtn').onclick = () => window.print();
-    document.getElementById('filterRange').onchange = () => { renderHistory(); updateSummaryAndProgress(); updateCharts(); };
-    document.getElementById('filterProject').onchange = () => { renderHistory(); updateSummaryAndProgress(); updateCharts(); };
-    document.getElementById('filterCategory').onchange = () => { renderHistory(); updateSummaryAndProgress(); updateCharts(); };
-    document.getElementById('saveNameBtn').onclick = async () => { const newName = document.getElementById('userFullName')?.value.trim(); if(!newName) return; window.showLoading("Saving name..."); try { await saveUserMeta(newName); showToast("Name saved."); } catch(err){ showToast("Failed: "+err.message,"error"); } finally{ window.hideLoading(); } };
-
-    // Manage Projects button
-    const manageProjectsBtn = document.createElement('button');
-    manageProjectsBtn.type = 'button';
-    manageProjectsBtn.className = 'btn btn-sm btn-outline-secondary ml-2';
-    manageProjectsBtn.innerHTML = '<i class="fa fa-cog"></i> Manage Projects';
-    manageProjectsBtn.onclick = () => showManageProjectsModal();
-    const projectSelectParent = document.getElementById('taskProject').parentNode;
-    projectSelectParent.appendChild(manageProjectsBtn);
-
-    document.getElementById('addProjectBtn').onclick = () => { document.getElementById('newProjectName').value = ''; $('#newProjectModal').modal('show'); };
-    document.getElementById('confirmNewProjectBtn').onclick = async () => { const newProj = document.getElementById('newProjectName')?.value.trim(); if(!newProj) return; window.showLoading(`Creating project "${newProj}"...`); try { await createTimesheetOnlyProject(newProj); showToast(`Project "${newProj}" created.`); } catch(err){ showToast("Failed: "+err.message,"error"); } finally{ window.hideLoading(); $('#newProjectModal').modal('hide'); } };
-    document.getElementById('generateReportBtn').onclick = () => { document.getElementById('reportName').value = userFullName; const end = new Date(); const start = new Date(); start.setDate(start.getDate()-30); document.getElementById('reportStartDate').value = formatDate(start); document.getElementById('reportEndDate').value = formatDate(end); $('#reportModal').modal('show'); };
-    document.getElementById('generateReportConfirmBtn').onclick = () => { const start = document.getElementById('reportStartDate')?.value; const end = document.getElementById('reportEndDate')?.value; if(!start||!end) return; const type = document.getElementById('reportType')?.value; $('#reportModal').modal('hide'); if(type==='pdf') generatePDFReport(start,end); else exportStyledExcel(start,end); };
-    document.getElementById('saveEditBtn').onclick = saveEdit;
-
-    await loadNotificationPreference();
-    document.getElementById('notificationsToggle').addEventListener('change', async (e) => { window.showLoading("Saving preference..."); try { await saveNotificationPreference(e.target.checked); showToast(e.target.checked ? "Notifications enabled" : "Notifications disabled"); } catch(err){ if(err.message.includes("401")){ showToast("Token expired. Please login again.","error"); window.SessionManager.logout(); setTimeout(()=>window.location.href="login.html",2000); } else showToast("Failed: "+err.message,"error"); e.target.checked = !e.target.checked; } finally{ window.hideLoading(); } });
-
-    await loadUserMeta();
-    await refreshView();
-
-    //========================================================================================================ADADADADADAAD SIYA=============================
-    window.__timesheetEntries = entries;
-    window.__timesheetProjectOptions = allProjectOptions;
-    document.dispatchEvent(new Event('timesheetUpdated'));
-    startAutoRefresh();
-  }
 
   function showManageProjectsModal() {
     let modal = document.getElementById('manageProjectsModal');
@@ -1374,6 +1305,47 @@
   }
 
   function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m] || m); }
+
+  async function init() {
+    document.getElementById('logDate').value = formatDate(new Date());
+    document.getElementById('startTime')?.addEventListener('change', updateHoursAuto);
+    document.getElementById('endTime')?.addEventListener('change', updateHoursAuto);
+    document.getElementById('nowStartBtn').onclick = () => { document.getElementById('startTime').value = new Date().toTimeString().slice(0,5); updateHoursAuto(); };
+    document.getElementById('nowEndBtn').onclick = () => { document.getElementById('endTime').value = new Date().toTimeString().slice(0,5); updateHoursAuto(); };
+    document.getElementById('addEntryBtn').onclick = () => addEntry();
+    document.getElementById('refreshHistoryBtn').onclick = () => refreshView();
+    document.getElementById('exportExcelBtn').onclick = () => { const end = new Date(); const start = new Date(); start.setDate(start.getDate() - 30); document.getElementById('reportStartDate').value = formatDate(start); document.getElementById('reportEndDate').value = formatDate(end); document.getElementById('reportType').value = 'excel'; $('#reportModal').modal('show'); };
+    document.getElementById('printBtn').onclick = () => window.print();
+    document.getElementById('filterRange').onchange = () => { renderHistory(); updateSummaryAndProgress(); updateCharts(); };
+    document.getElementById('filterProject').onchange = () => { renderHistory(); updateSummaryAndProgress(); updateCharts(); };
+    document.getElementById('filterCategory').onchange = () => { renderHistory(); updateSummaryAndProgress(); updateCharts(); };
+    document.getElementById('saveNameBtn').onclick = async () => { const newName = document.getElementById('userFullName')?.value.trim(); if(!newName) return; window.showLoading("Saving name..."); try { await saveUserMeta(newName); showToast("Name saved."); } catch(err){ showToast("Failed: "+err.message,"error"); } finally{ window.hideLoading(); } };
+
+    const manageProjectsBtn = document.createElement('button');
+    manageProjectsBtn.type = 'button';
+    manageProjectsBtn.className = 'btn btn-sm btn-outline-secondary ml-2';
+    manageProjectsBtn.innerHTML = '<i class="fa fa-cog"></i> Manage Projects';
+    manageProjectsBtn.onclick = () => showManageProjectsModal();
+    const projectSelectParent = document.getElementById('taskProject').parentNode;
+    projectSelectParent.appendChild(manageProjectsBtn);
+
+    document.getElementById('addProjectBtn').onclick = () => { document.getElementById('newProjectName').value = ''; $('#newProjectModal').modal('show'); };
+    document.getElementById('confirmNewProjectBtn').onclick = async () => { const newProj = document.getElementById('newProjectName')?.value.trim(); if(!newProj) return; window.showLoading(`Creating project "${newProj}"...`); try { await createTimesheetOnlyProject(newProj); showToast(`Project "${newProj}" created.`); } catch(err){ showToast("Failed: "+err.message,"error"); } finally{ window.hideLoading(); $('#newProjectModal').modal('hide'); } };
+    document.getElementById('generateReportBtn').onclick = () => { document.getElementById('reportName').value = userFullName; const end = new Date(); const start = new Date(); start.setDate(start.getDate()-30); document.getElementById('reportStartDate').value = formatDate(start); document.getElementById('reportEndDate').value = formatDate(end); $('#reportModal').modal('show'); };
+    document.getElementById('generateReportConfirmBtn').onclick = () => { const start = document.getElementById('reportStartDate')?.value; const end = document.getElementById('reportEndDate')?.value; if(!start||!end) return; const type = document.getElementById('reportType')?.value; $('#reportModal').modal('hide'); if(type==='pdf') generatePDFReport(start,end); else exportStyledExcel(start,end); };
+    document.getElementById('saveEditBtn').onclick = saveEdit;
+
+    await loadNotificationPreference();
+    document.getElementById('notificationsToggle').addEventListener('change', async (e) => { window.showLoading("Saving preference..."); try { await saveNotificationPreference(e.target.checked); showToast(e.target.checked ? "Notifications enabled" : "Notifications disabled"); } catch(err){ if(err.message.includes("401")){ showToast("Token expired. Please login again.","error"); window.SessionManager.logout(); setTimeout(()=>window.location.href="login.html",2000); } else showToast("Failed: "+err.message,"error"); e.target.checked = !e.target.checked; } finally{ window.hideLoading(); } });
+
+    await loadUserMeta();
+    await refreshView();
+
+    window.__timesheetEntries = entries;
+    window.__timesheetProjectOptions = allProjectOptions;
+    document.dispatchEvent(new Event('timesheetUpdated'));
+    startAutoRefresh();
+  }
 
   init().catch(err => console.error("Timesheet init error", err));
 })();
