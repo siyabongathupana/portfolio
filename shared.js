@@ -1,4 +1,5 @@
-// shared.js – Complete version with fixed project deletion, enhanced logging, full PDF generation (no analytics, no dark mode)
+// shared.js – Complete version with seamless encryption upgrade for all user data
+// Includes: SessionManager, Logger, image handling, portfolioData encryption, etc.
 
 window.showLoading = function (msg = 'Processing...') {
   let loader = document.getElementById('globalLoader');
@@ -27,8 +28,131 @@ window.escapeHtml = function (str) {
   return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m] || m);
 };
 
+// ======================== ENCRYPTION HELPERS ========================
+async function deriveKeyFromPassphrase(passphrase, salt) {
+  const encoder = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(passphrase),
+    'PBKDF2',
+    false,
+    ['deriveKey']
+  );
+  return crypto.subtle.deriveKey(
+    {
+      name: 'PBKDF2',
+      salt: salt,
+      iterations: 100000,
+      hash: 'SHA-256'
+    },
+    keyMaterial,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt', 'decrypt']
+  );
+}
+
+async function encryptData(plainObject, passphrase) {
+  const salt = new TextEncoder().encode("portfolio-data-salt");
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const key = await deriveKeyFromPassphrase(passphrase, salt);
+  const encoded = new TextEncoder().encode(JSON.stringify(plainObject));
+  const encrypted = await crypto.subtle.encrypt(
+    { name: 'AES-GCM', iv: iv },
+    key,
+    encoded
+  );
+  return {
+    iv: Array.from(iv),
+    data: Array.from(new Uint8Array(encrypted))
+  };
+}
+
+async function decryptData(encryptedBlob, passphrase) {
+  const salt = new TextEncoder().encode("portfolio-data-salt");
+  const iv = new Uint8Array(encryptedBlob.iv);
+  const key = await deriveKeyFromPassphrase(passphrase, salt);
+  const encryptedData = new Uint8Array(encryptedBlob.data);
+  const decrypted = await crypto.subtle.decrypt(
+    { name: 'AES-GCM', iv: iv },
+    key,
+    encryptedData
+  );
+  return JSON.parse(new TextDecoder().decode(decrypted));
+}
+
+async function loadEncryptedJSON(owner, repo, path, branch, token, passphrase) {
+  try {
+    const file = await GitHubAPI.getFileContent(owner, repo, path, branch, token);
+    if (!file || !file.content) return null;
+    let parsed;
+    try {
+      parsed = JSON.parse(file.content);
+    } catch(e) {
+      throw new Error('Invalid JSON file');
+    }
+    if (parsed && typeof parsed === 'object' && parsed.iv && parsed.data) {
+      return await decryptData(parsed, passphrase);
+    } else {
+      console.log('Detected plaintext file, will upgrade on next save:', path);
+      return parsed;
+    }
+  } catch (err) {
+    if (err.message && err.message.includes('404')) return null;
+    throw err;
+  }
+}
+
+async function saveEncryptedJSON(owner, repo, path, data, commitMsg, branch, token, passphrase, sha = null) {
+  const encrypted = await encryptData(data, passphrase);
+  const content = JSON.stringify(encrypted, null, 2);
+  const encodedContent = btoa(unescape(encodeURIComponent(content)));
+  const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
+  const body = {
+    message: commitMsg,
+    content: encodedContent,
+    branch: branch
+  };
+  if (sha) body.sha = sha;
+  const resp = await fetch(url, {
+    method: 'PUT',
+    headers: {
+      Authorization: `token ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(body)
+  });
+  if (!resp.ok) {
+    const err = await resp.json();
+    throw new Error(`Save failed: ${err.message}`);
+  }
+  return resp.json();
+}
+
+window.getUserPassphrase = async function(forcePrompt = false) {
+  let passphrase = sessionStorage.getItem('portfolioPassphrase');
+  if (passphrase) {
+    try {
+      passphrase = atob(passphrase);
+      return passphrase;
+    } catch(e) {}
+  }
+  if (forcePrompt || !passphrase) {
+    passphrase = prompt("🔐 Enter your passphrase to access your data:", "");
+    if (!passphrase) throw new Error('Passphrase required');
+    sessionStorage.setItem('portfolioPassphrase', btoa(passphrase));
+  }
+  return passphrase;
+};
+
+// ======================== SESSION MANAGER ========================
 window.SessionManager = (() => {
   let current = null;
+  const originalLogout = function() {
+    current = null;
+    sessionStorage.removeItem('portfolioUser');
+    sessionStorage.removeItem('portfolioPassphrase');
+  };
   return {
     getCurrentUser: () => {
       if (current) return current;
@@ -50,8 +174,7 @@ window.SessionManager = (() => {
       window.Logger.log('login', `User logged in as ${username}`, 'INFO');
     },
     logout: () => {
-      current = null;
-      sessionStorage.removeItem('portfolioUser');
+      originalLogout();
     },
     isAdmin: () => {
       const user = window.SessionManager.getCurrentUser();
@@ -60,7 +183,7 @@ window.SessionManager = (() => {
   };
 })();
 
-// Enhanced Logger
+// ======================== LOGGER ========================
 window.Logger = {
   async _writeTextFile(path, content, commitMsg, branch, token, sha = null) {
     const { owner, repo } = window.REPO_CONFIG;
@@ -164,6 +287,7 @@ window.Logger = {
   }
 };
 
+// ======================== FOOTER UPDATE ========================
 window.updateUserFooter = function () {
   const user = window.SessionManager.getCurrentUser();
   const el = document.getElementById('userFooterStatus');
@@ -184,6 +308,7 @@ window.updateUserFooter = function () {
   }
 };
 
+// ======================== IMAGE UPLOAD / DELETE ========================
 window.uploadImageToGitHub = async function(file, user, folder = 'images') {
   const compressedDataUrl = await window.compressImage(file, 1600, 1600, 0.85);
   const blob = await (await fetch(compressedDataUrl)).blob();
@@ -267,6 +392,7 @@ window.compressImage = function(file, maxW = 1600, maxH = 1600, quality = 0.85) 
   });
 };
 
+// ======================== ACCOUNT MANAGER ========================
 window.AccountManager = {
   async _ensureEmailJS() {
     if (typeof emailjs === 'undefined') {
@@ -425,37 +551,40 @@ window.AccountManager = {
     try {
       const projFile = await GitHubAPI.getFileContent(owner, repo, `${base}/projects.json`, branch, adminToken);
       if (projFile && projFile.content) {
-        const data = JSON.parse(projFile.content);
-        projectCount = Object.keys(data).length;
-      }
-      if (projectCount === 0 && username === window.APP_CONFIG.publicProfileEmail) {
-        const publicUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${base}/projects.json`;
-        const resp = await fetch(publicUrl);
-        if (resp.ok) {
-          const data = await resp.json();
-          projectCount = Object.keys(data).length;
-        }
+        let projData;
+        try {
+          const parsed = JSON.parse(projFile.content);
+          if (parsed.iv && parsed.data) {
+            const passphrase = await window.getUserPassphrase();
+            projData = await decryptData(parsed, passphrase);
+          } else {
+            projData = parsed;
+          }
+        } catch(e) { projData = {}; }
+        projectCount = Object.keys(projData).length;
       }
     } catch (e) {}
     try {
       const certFile = await GitHubAPI.getFileContent(owner, repo, `${base}/certificates.json`, branch, adminToken);
       if (certFile && certFile.content) {
-        const data = JSON.parse(certFile.content);
-        certCount = data.length;
-      }
-      if (certCount === 0 && username === window.APP_CONFIG.publicProfileEmail) {
-        const publicUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${base}/certificates.json`;
-        const resp = await fetch(publicUrl);
-        if (resp.ok) {
-          const data = await resp.json();
-          certCount = data.length;
-        }
+        let certData;
+        try {
+          const parsed = JSON.parse(certFile.content);
+          if (parsed.iv && parsed.data) {
+            const passphrase = await window.getUserPassphrase();
+            certData = await decryptData(parsed, passphrase);
+          } else {
+            certData = parsed;
+          }
+        } catch(e) { certData = []; }
+        certCount = certData.length;
       }
     } catch (e) {}
     return { projects: projectCount, certificates: certCount };
   }
 };
 
+// ======================== PORTFOLIO DATA ========================
 window.portfolioData = (() => {
   const PROJECTS_KEY = 'portfolioProjects';
   const CERTS_KEY = 'portfolioCertificates';
@@ -494,15 +623,10 @@ window.portfolioData = (() => {
         const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
         const encUser = encodeURIComponent(user.username);
         const path = `${dataPath}/users/${encUser}/projects.json`;
-        const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
-        if (file && file.content) {
-          return JSON.parse(file.content);
-        } else {
-          if (user.username === window.APP_CONFIG.publicProfileEmail) {
-            return await fetchPublicData(user.username, 'projects');
-          }
-          return {};
-        }
+        const passphrase = await window.getUserPassphrase();
+        const data = await loadEncryptedJSON(owner, repo, path, branch, user.pat, passphrase);
+        if (data !== null) return data;
+        else return {};
       } catch (e) { return {}; }
     }
     const publicEmail = window.APP_CONFIG.publicProfileEmail;
@@ -518,15 +642,10 @@ window.portfolioData = (() => {
         const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
         const encUser = encodeURIComponent(user.username);
         const path = `${dataPath}/users/${encUser}/certificates.json`;
-        const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
-        if (file && file.content) {
-          return JSON.parse(file.content);
-        } else {
-          if (user.username === window.APP_CONFIG.publicProfileEmail) {
-            return await fetchPublicData(user.username, 'certificates');
-          }
-          return [];
-        }
+        const passphrase = await window.getUserPassphrase();
+        const data = await loadEncryptedJSON(owner, repo, path, branch, user.pat, passphrase);
+        if (data !== null) return data;
+        else return [];
       } catch (e) { return []; }
     }
     const publicEmail = window.APP_CONFIG.publicProfileEmail;
@@ -542,19 +661,12 @@ window.portfolioData = (() => {
         const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
         const encUser = encodeURIComponent(user.username);
         const path = `${dataPath}/users/${encUser}/projects.json`;
-        const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
-        if (file && file.content) {
-          const data = JSON.parse(file.content);
+        const passphrase = await window.getUserPassphrase();
+        const data = await loadEncryptedJSON(owner, repo, path, branch, user.pat, passphrase);
+        if (data !== null) {
           localStorage.setItem(PROJECTS_KEY, JSON.stringify(data));
           return data;
         } else {
-          if (user.username === window.APP_CONFIG.publicProfileEmail) {
-            const publicData = await fetchPublicData(user.username, 'projects');
-            if (Object.keys(publicData).length > 0) {
-              localStorage.setItem(PROJECTS_KEY, JSON.stringify(publicData));
-              return publicData;
-            }
-          }
           const empty = {};
           localStorage.setItem(PROJECTS_KEY, JSON.stringify(empty));
           return empty;
@@ -569,48 +681,10 @@ window.portfolioData = (() => {
     return JSON.parse(localStorage.getItem(PROJECTS_KEY) || '{}');
   }
 
-  async function loadCertificates() {
-    const user = window.SessionManager.getCurrentUser();
-    if (user && user.pat) {
-      await verifyNotBlocked();
-      try {
-        const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-        const encUser = encodeURIComponent(user.username);
-        const path = `${dataPath}/users/${encUser}/certificates.json`;
-        const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
-        if (file && file.content) {
-          const data = JSON.parse(file.content);
-          localStorage.setItem(CERTS_KEY, JSON.stringify(data));
-          return data;
-        } else {
-          if (user.username === window.APP_CONFIG.publicProfileEmail) {
-            const publicCerts = await fetchPublicData(user.username, 'certificates');
-            if (publicCerts.length > 0) {
-              localStorage.setItem(CERTS_KEY, JSON.stringify(publicCerts));
-              return publicCerts;
-            }
-          }
-          const empty = [];
-          localStorage.setItem(CERTS_KEY, JSON.stringify(empty));
-          return empty;
-        }
-      } catch (e) {
-        if (e.message === 'Blocked') throw e;
-        return JSON.parse(localStorage.getItem(CERTS_KEY) || '[]');
-      }
-    }
-    if (!user && window.APP_CONFIG.publicProfileEmail) return await fetchPublicData(window.APP_CONFIG.publicProfileEmail, 'certificates');
-    return JSON.parse(localStorage.getItem(CERTS_KEY) || '[]');
-  }
-
-  // Fixed saveProjects with proper SHA retry
   async function saveProjects(data, forceEmpty = false) {
     const prev = localStorage.getItem(PROJECTS_KEY);
-    if (!forceEmpty && prev) {
-      const previous = JSON.parse(prev);
-      if (Object.keys(previous).length > 0 && Object.keys(data).length === 0) {
-        throw new Error('Cannot delete all projects this way. Use "Delete All" button.');
-      }
+    if (!forceEmpty && prev && Object.keys(JSON.parse(prev)).length > 0 && Object.keys(data).length === 0) {
+      throw new Error('Cannot delete all projects this way. Use "Delete All" button.');
     }
     for (const id in data) {
       if (!data[id].updatedAt) data[id].updatedAt = Date.now();
@@ -632,7 +706,15 @@ window.portfolioData = (() => {
           const remoteFile = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
           if (remoteFile && remoteFile.sha) {
             sha = remoteFile.sha;
-            if (remoteFile.content) remoteData = JSON.parse(remoteFile.content);
+            if (remoteFile.content) {
+              const parsed = JSON.parse(remoteFile.content);
+              if (parsed.iv && parsed.data) {
+                const passphrase = await window.getUserPassphrase();
+                remoteData = await decryptData(parsed, passphrase);
+              } else {
+                remoteData = parsed;
+              }
+            }
           }
         } catch(e) {}
         const merged = { ...remoteData };
@@ -649,7 +731,8 @@ window.portfolioData = (() => {
         }
         let finalData = merged;
         if (forceEmpty && Object.keys(data).length === 0) finalData = {};
-        await GitHubAPI.updateFile(owner, repo, path, finalData, 'Update projects', branch, user.pat, sha);
+        const passphrase = await window.getUserPassphrase();
+        await saveEncryptedJSON(owner, repo, path, finalData, 'Update projects', branch, user.pat, passphrase, sha);
         await window.Logger.logActivity('project', 'save', `Saved ${Object.keys(finalData).length} projects`);
         return;
       } catch (err) {
@@ -664,13 +747,38 @@ window.portfolioData = (() => {
     }
   }
 
+  async function loadCertificates() {
+    const user = window.SessionManager.getCurrentUser();
+    if (user && user.pat) {
+      await verifyNotBlocked();
+      try {
+        const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+        const encUser = encodeURIComponent(user.username);
+        const path = `${dataPath}/users/${encUser}/certificates.json`;
+        const passphrase = await window.getUserPassphrase();
+        const data = await loadEncryptedJSON(owner, repo, path, branch, user.pat, passphrase);
+        if (data !== null) {
+          localStorage.setItem(CERTS_KEY, JSON.stringify(data));
+          return data;
+        } else {
+          const empty = [];
+          localStorage.setItem(CERTS_KEY, JSON.stringify(empty));
+          return empty;
+        }
+      } catch (e) {
+        if (e.message === 'Blocked') throw e;
+        return JSON.parse(localStorage.getItem(CERTS_KEY) || '[]');
+      }
+    }
+    const publicEmail = window.APP_CONFIG.publicProfileEmail;
+    if (!user && publicEmail) return await fetchPublicData(publicEmail, 'certificates');
+    return JSON.parse(localStorage.getItem(CERTS_KEY) || '[]');
+  }
+
   async function saveCertificates(data, forceEmpty = false) {
     const prev = localStorage.getItem(CERTS_KEY);
-    if (!forceEmpty && prev) {
-      const previous = JSON.parse(prev);
-      if (previous.length > 0 && data.length === 0) {
-        throw new Error('Cannot delete all certificates this way. Use "Delete All" button.');
-      }
+    if (!forceEmpty && prev && JSON.parse(prev).length > 0 && data.length === 0) {
+      throw new Error('Cannot delete all certificates this way. Use "Delete All" button.');
     }
     data = data.map(cert => { if (!cert.updatedAt) cert.updatedAt = Date.now(); return cert; });
     localStorage.setItem(CERTS_KEY, JSON.stringify(data));
@@ -689,7 +797,15 @@ window.portfolioData = (() => {
           const remoteFile = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
           if (remoteFile && remoteFile.sha) {
             sha = remoteFile.sha;
-            if (remoteFile.content) remoteData = JSON.parse(remoteFile.content);
+            if (remoteFile.content) {
+              const parsed = JSON.parse(remoteFile.content);
+              if (parsed.iv && parsed.data) {
+                const passphrase = await window.getUserPassphrase();
+                remoteData = await decryptData(parsed, passphrase);
+              } else {
+                remoteData = parsed;
+              }
+            }
           }
         } catch(e) {}
         const mergedMap = new Map();
@@ -701,7 +817,8 @@ window.portfolioData = (() => {
         const merged = Array.from(mergedMap.values());
         let finalData = merged;
         if (forceEmpty && data.length === 0) finalData = [];
-        await GitHubAPI.updateFile(owner, repo, path, finalData, 'Update certificates', branch, user.pat, sha);
+        const passphrase = await window.getUserPassphrase();
+        await saveEncryptedJSON(owner, repo, path, finalData, 'Update certificates', branch, user.pat, passphrase, sha);
         await window.Logger.logActivity('certificate', 'save', `Saved ${finalData.length} certificates`);
         return;
       } catch (err) {
@@ -748,6 +865,7 @@ window.portfolioData = (() => {
   };
 })();
 
+// ======================== LAZY LOADING, IMAGE PROTECTION, TOAST ========================
 window.lazyLoadImages = function() {
   if ('IntersectionObserver' in window) {
     const imgObserver = new IntersectionObserver((entries, observer) => {
