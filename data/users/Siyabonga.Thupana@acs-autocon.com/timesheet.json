@@ -1,0 +1,38 @@
+[
+  {
+    "id": 1781082497906,
+    "date": "2026-06-10",
+    "start": "11:08",
+    "end": "16:08",
+    "hours": 5,
+    "project": "Sasol",
+    "category": "Training",
+    "billable": "yes",
+    "notes": "test",
+    "updatedAt": 1781084408918
+  },
+  {
+    "id": 1781084347793,
+    "date": "2026-06-09",
+    "start": "08:30",
+    "end": "16:30",
+    "hours": 8,
+    "project": "Sasol",
+    "category": "Training",
+    "billable": "yes",
+    "notes": "test",
+    "updatedAt": 1781084419099
+  },
+  {
+    "id": 1781084387191,
+    "date": "2026-06-08",
+    "start": "08:30",
+    "end": "16:30",
+    "hours": 8,
+    "project": "Testing",
+    "category": "IFAT",
+    "billable": "yes",
+    "notes": "test",
+    "updatedAt": 1781084434769
+  }
+]
