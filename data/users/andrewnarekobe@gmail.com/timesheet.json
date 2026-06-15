@@ -1,5 +1,17 @@
 [
   {
+    "id": 1781528698222,
+    "date": "2026-06-15",
+    "start": "13:00",
+    "end": "14:00",
+    "hours": 1,
+    "project": "Omnia PH3",
+    "category": "Training",
+    "billable": "no",
+    "notes": "training for fail open/close Valves and apply into",
+    "updatedAt": 1781528698222
+  },
+  {
     "id": 1781517074330,
     "date": "2026-06-15",
     "start": "07:52",
