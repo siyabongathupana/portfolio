@@ -1,5 +1,17 @@
 [
   {
+    "id": 1781517074330,
+    "date": "2026-06-15",
+    "start": "07:52",
+    "end": "11:50",
+    "hours": 3.97,
+    "project": "Omnia PH3",
+    "category": "IFAT",
+    "billable": "yes",
+    "notes": "SIS SOFTWARE IFAT",
+    "updatedAt": 1781517074330
+  },
+  {
     "id": 1781268804586,
     "date": "2026-06-12",
     "start": "12:50",
