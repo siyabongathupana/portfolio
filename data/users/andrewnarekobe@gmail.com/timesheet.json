@@ -1,5 +1,17 @@
 [
   {
+    "id": 1781703469722,
+    "date": "2026-06-17",
+    "start": "12:00",
+    "end": "13:00",
+    "hours": 1,
+    "project": "Entitled Time",
+    "category": "Other",
+    "billable": "no",
+    "notes": "",
+    "updatedAt": 1781703469722
+  },
+  {
     "id": 1781703390041,
     "date": "2026-06-17",
     "start": "09:00",
