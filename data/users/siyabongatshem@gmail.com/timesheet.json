@@ -151,9 +151,9 @@
     "hours": 0.5,
     "project": "Other",
     "category": "Admin",
-    "billable": "no",
+    "billable": "yes",
     "notes": "Lunch",
-    "updatedAt": 1781175755892
+    "updatedAt": 1781687399954
   },
   {
     "id": 1781175130971,
