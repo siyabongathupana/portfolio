@@ -1,5 +1,17 @@
 [
   {
+    "id": 1781703390041,
+    "date": "2026-06-17",
+    "start": "09:00",
+    "end": "12:00",
+    "hours": 3,
+    "project": "Omnia PH3",
+    "category": "Software",
+    "billable": "yes",
+    "notes": "SIS Alarms",
+    "updatedAt": 1781703390041
+  },
+  {
     "id": 1781703238277,
     "date": "2026-06-17",
     "start": "08:00",
