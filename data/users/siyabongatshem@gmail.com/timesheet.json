@@ -563,9 +563,9 @@
     "hours": 1,
     "project": "Other",
     "category": "Other",
-    "billable": "no",
+    "billable": "yes",
     "notes": "Lunch",
-    "updatedAt": 1780315041840,
+    "updatedAt": 1781687273803,
     "weekKey": "2026-W23"
   },
   {
