@@ -1,15 +1,15 @@
 [
   {
-    "id": 1781847864600,
+    "id": 1781847876225,
     "date": "2026-06-05",
-    "start": "06:30",
-    "end": "12:00",
-    "hours": 5.5,
+    "start": "13:00",
+    "end": "15:00",
+    "hours": 2,
     "project": "Steam Station 2 DCS Replacement",
     "category": "IFAT",
     "billable": "yes",
     "notes": "",
-    "updatedAt": 1781847864600
+    "updatedAt": 1781847876225
   },
   {
     "id": 1781847651736,
@@ -238,6 +238,18 @@
     "billable": "yes",
     "notes": "",
     "updatedAt": 1780926188599
+  },
+  {
+    "id": 1781847864600,
+    "date": "2026-06-05",
+    "start": "06:30",
+    "end": "12:00",
+    "hours": 5.5,
+    "project": "Steam Station 2 DCS Replacement",
+    "category": "IFAT",
+    "billable": "yes",
+    "notes": "",
+    "updatedAt": 1781847864600
   },
   {
     "id": 1781847828662,
