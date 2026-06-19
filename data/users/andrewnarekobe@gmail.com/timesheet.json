@@ -1,5 +1,17 @@
 [
   {
+    "id": 1781870667271,
+    "date": "2026-06-19",
+    "start": "08:12",
+    "end": "10:35",
+    "hours": 2.38,
+    "project": "Others",
+    "category": "Training",
+    "billable": "no",
+    "notes": "emerson safety",
+    "updatedAt": 1781870667271
+  },
+  {
     "id": 1781870513499,
     "date": "2026-06-19",
     "start": "10:30",
@@ -15,13 +27,13 @@
     "id": 1781849568564,
     "date": "2026-06-19",
     "start": "08:00",
-    "end": "10:34",
-    "hours": 2.57,
+    "end": "08:12",
+    "hours": 0.2,
     "project": "Others",
     "category": "Admin",
     "billable": "no",
     "notes": "Upadaing hours",
-    "updatedAt": 1781870544431
+    "updatedAt": 1781849568564
   },
   {
     "id": 1781849491566,
