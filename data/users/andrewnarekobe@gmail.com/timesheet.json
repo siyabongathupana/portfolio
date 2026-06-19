@@ -1,5 +1,17 @@
 [
   {
+    "id": 1781870765902,
+    "date": "2026-06-19",
+    "start": "10:46",
+    "end": "11:00",
+    "hours": 0.23,
+    "project": "Omnia PH3",
+    "category": "Software",
+    "billable": "yes",
+    "notes": "CHECKING SIS MODULES",
+    "updatedAt": 1781870765902
+  },
+  {
     "id": 1781870667271,
     "date": "2026-06-19",
     "start": "08:12",
