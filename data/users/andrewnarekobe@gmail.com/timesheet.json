@@ -1,5 +1,17 @@
 [
   {
+    "id": 1781849329710,
+    "date": "2026-06-18",
+    "start": "08:00",
+    "end": "10:35",
+    "hours": 2.58,
+    "project": "Others",
+    "category": "Training",
+    "billable": "no",
+    "notes": "Emerson Safety Training",
+    "updatedAt": 1781849329710
+  },
+  {
     "id": 1781849268527,
     "date": "2026-06-18",
     "start": "08:00",
