@@ -1,5 +1,17 @@
 [
   {
+    "id": 1781849268527,
+    "date": "2026-06-18",
+    "start": "08:00",
+    "end": "10:35",
+    "hours": 2.58,
+    "project": "Entitled Time",
+    "category": "Training",
+    "billable": "yes",
+    "notes": "",
+    "updatedAt": 1781849268527
+  },
+  {
     "id": 1781703556270,
     "date": "2026-06-17",
     "start": "13:00",
