@@ -15,13 +15,13 @@
     "id": 1781849568564,
     "date": "2026-06-19",
     "start": "08:00",
-    "end": "08:12",
-    "hours": 0.2,
+    "end": "10:34",
+    "hours": 2.57,
     "project": "Others",
     "category": "Admin",
     "billable": "no",
     "notes": "Upadaing hours",
-    "updatedAt": 1781849568564
+    "updatedAt": 1781870544431
   },
   {
     "id": 1781849491566,
