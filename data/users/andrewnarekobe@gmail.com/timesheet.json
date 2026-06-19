@@ -1,15 +1,15 @@
 [
   {
-    "id": 1781870457829,
+    "id": 1781870513499,
     "date": "2026-06-19",
-    "start": "08:12",
-    "end": "10:30",
-    "hours": 2.3,
-    "project": "Others",
-    "category": "Training",
+    "start": "10:30",
+    "end": "10:46",
+    "hours": 0.27,
+    "project": "Entitled Time",
+    "category": "Other",
     "billable": "no",
-    "notes": "emerson safety",
-    "updatedAt": 1781870457829
+    "notes": "tea trime",
+    "updatedAt": 1781870513499
   },
   {
     "id": 1781849568564,
