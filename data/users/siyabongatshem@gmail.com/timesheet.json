@@ -1,7 +1,7 @@
 [
   {
     "id": 1782196691513,
-    "date": "2026-06-23",
+    "date": "2026-06-22",
     "start": "08:30",
     "end": "12:00",
     "hours": 3.5,
@@ -9,7 +9,7 @@
     "category": "CFAT",
     "billable": "yes",
     "notes": "Software CFAT (Valves)",
-    "updatedAt": 1782196691513
+    "updatedAt": 1782196747115
   },
   {
     "id": 1781687171791,
