@@ -26,7 +26,7 @@
 
 | Projects | Certifications | Users | Hours | Billable | Daily Avg |
 |:--------:|:--------------:|:-----:|:-----:|:--------:|:---------:|
-| 0 | 18 | 4 | 294.0 | 223.7 | 7.9h |
+| 0 | 18 | 5 | 302.0 | 231.7 | 7.9h |
 
 ---
 
@@ -36,7 +36,7 @@
 |----------|-------|
 | Top Category | CFAT |
 | Top Project | Omnia Phase 3 |
-| Active Days | 37 |
+| Active Days | 38 |
 
 ---
 
@@ -80,12 +80,12 @@
 
 [![View Projects](https://img.shields.io/badge/View_Projects-2fc7ff?style=for-the-badge)](https://github.com/siyabongathupana/portfolio)
 [![Download CV](https://img.shields.io/badge/Download_CV-28a745?style=for-the-badge)](https://siyabongathupana.github.io/portfolio/generated/Siyabonga_Thupana_CV.pdf)
-[![Live Portfolio](https://img.shields.io/badge/Live_Portfolio-0b2b3b?style=for-the-badge)](https://yourportfol.netlify.app/)
+[![Live Portfolio](https://img.shields.io/badge/Live_Portfolio-0b2b3b?style=for-the-badge)](https://siyabongathupana.github.io/portfolio/)
 
 ---
 
 <div align="center">
 
-*Last updated: June 23, 2026 at 08:32:16 UTC*
+*Last updated: June 23, 2026 at 10:22:51 UTC*
 
 </div>
