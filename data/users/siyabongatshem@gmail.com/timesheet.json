@@ -1,15 +1,15 @@
 [
   {
-    "id": 1782198545943,
-    "date": "2026-06-22",
-    "start": "12:00",
+    "id": 1782210107453,
+    "date": "2026-06-24",
+    "start": "08:30",
     "end": "16:30",
-    "hours": 4.5,
-    "project": "Other",
-    "category": "Other",
-    "billable": "no",
-    "notes": "Home Affairs (Passport)",
-    "updatedAt": 1782198545943
+    "hours": 8,
+    "project": "Omnia Phase 3",
+    "category": "CFAT",
+    "billable": "yes",
+    "notes": "Software CFAT",
+    "updatedAt": 1782210107453
   },
   {
     "id": 1782198266934,
@@ -22,6 +22,18 @@
     "billable": "yes",
     "notes": "Software CFAT (Valves)",
     "updatedAt": 1782198266934
+  },
+  {
+    "id": 1782198545943,
+    "date": "2026-06-22",
+    "start": "12:00",
+    "end": "16:30",
+    "hours": 4.5,
+    "project": "Other",
+    "category": "Other",
+    "billable": "no",
+    "notes": "Home Affairs (Passport)",
+    "updatedAt": 1782198545943
   },
   {
     "id": 1782196691513,
