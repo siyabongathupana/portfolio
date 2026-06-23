@@ -901,7 +901,7 @@
             const pieImageId = workbook.addImage({ base64: pieBase64, extension: 'png' });
             chartsSheet.addImage(pieImageId, {
                 tl: { col: 0, row: 3 },
-                ext: { width: 380, height: 380 },
+                ext: { width: 360, height: 360 },
                 editAs: 'oneCell'
             });
         } catch(e) { console.warn("Pie chart skipped", e); }
@@ -941,7 +941,7 @@
             const lineImageId = workbook.addImage({ base64: lineBase64, extension: 'png' });
             chartsSheet.addImage(lineImageId, {
                 tl: { col: 6, row: 3 },
-                ext: { width: 420, height: 210 },
+                ext: { width: 450, height: 240 },
                 editAs: 'oneCell'
             });
         } catch(e) { console.warn("Line chart skipped", e); }
@@ -970,7 +970,7 @@
             const doughnutImageId = workbook.addImage({ base64: doughnutBase64, extension: 'png' });
             chartsSheet.addImage(doughnutImageId, {
                 tl: { col: 0, row: 30 },
-                ext: { width: 380, height: 380 },
+                ext: { width: 360, height: 360 },
                 editAs: 'oneCell'
             });
         } catch(e) { console.warn("Doughnut chart skipped", e); }
@@ -1019,7 +1019,7 @@
             const stackedImageId = workbook.addImage({ base64: stackedBase64, extension: 'png' });
             chartsSheet.addImage(stackedImageId, {
                 tl: { col: 6, row: 30 },
-                ext: { width: 420, height: 252 },
+                ext: { width: 440, height: 272 },
                 editAs: 'oneCell'
             });
         } catch(e) { console.warn("Stacked bar chart skipped", e); }
