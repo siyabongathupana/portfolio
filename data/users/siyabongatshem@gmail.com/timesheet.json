@@ -1,5 +1,17 @@
 [
   {
+    "id": 1782196691513,
+    "date": "2026-06-23",
+    "start": "08:30",
+    "end": "12:00",
+    "hours": 3.5,
+    "project": "Omnia Phase 3",
+    "category": "CFAT",
+    "billable": "yes",
+    "notes": "Software CFAT (Valves)",
+    "updatedAt": 1782196691513
+  },
+  {
     "id": 1781687171791,
     "date": "2026-06-19",
     "start": "08:30",
