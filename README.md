@@ -80,7 +80,7 @@
 
 [![View Projects](https://img.shields.io/badge/View_Projects-2fc7ff?style=for-the-badge)](https://github.com/siyabongathupana/portfolio)
 [![Download CV](https://img.shields.io/badge/Download_CV-28a745?style=for-the-badge)](https://siyabongathupana.github.io/portfolio/generated/Siyabonga_Thupana_CV.pdf)
-[![Live Portfolio](https://img.shields.io/badge/Live_Portfolio-0b2b3b?style=for-the-badge)](yourportfol.netlify.app)
+[![Live Portfolio](https://img.shields.io/badge/Live_Portfolio-0b2b3b?style=for-the-badge)](https://yourportfol.netlify.app/)
 
 ---
 
