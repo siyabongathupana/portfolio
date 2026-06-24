@@ -2,14 +2,14 @@
   {
     "id": 1782210107453,
     "date": "2026-06-24",
-    "start": "08:30",
+    "start": "07:40",
     "end": "16:30",
-    "hours": 8,
+    "hours": 8.83,
     "project": "Omnia Phase 3",
     "category": "CFAT",
     "billable": "yes",
     "notes": "Software CFAT (Built new Graphics)",
-    "updatedAt": 1782284619582
+    "updatedAt": 1782290657347
   },
   {
     "id": 1782198266934,
