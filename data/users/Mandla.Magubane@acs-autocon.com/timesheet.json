@@ -1,7 +1,7 @@
 [
   {
     "id": 1782366295342,
-    "date": "2026-06-25",
+    "date": "2026-06-24",
     "start": "13:00",
     "end": "15:00",
     "hours": 2,
@@ -9,11 +9,11 @@
     "category": "Documentation",
     "billable": "yes",
     "notes": "",
-    "updatedAt": 1782366342618
+    "updatedAt": 1782366295342
   },
   {
     "id": 1782366285926,
-    "date": "2026-06-24",
+    "date": "2026-06-25",
     "start": "06:45",
     "end": "12:00",
     "hours": 5.25,
@@ -21,7 +21,7 @@
     "category": "Documentation",
     "billable": "yes",
     "notes": "",
-    "updatedAt": 1782366285926
+    "updatedAt": 1782366358938
   },
   {
     "id": 1782366171122,
