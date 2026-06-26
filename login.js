@@ -1,4 +1,4 @@
-// login.js – Improved with rate limiting, password strength, UX, email verification, and token update
+// login.js – Complete with passphrase passed to SessionManager
 
 document.addEventListener('DOMContentLoaded', () => {
   // Rate limiting: store failed attempts in memory (resets on page refresh)
@@ -94,7 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
     showError('Your account has been blocked. Contact the administrator.');
   }
   if (params.get('unverified') === '1') {
-    showError('Please verify your email address before logging in. Check your inbox for the verification link.');
+    showError('Your account is pending admin approval. Please wait for the administrator to verify your account.');
   }
   if (params.get('reason') === 'token_expired') {
     showError('Your GitHub token has expired. Please update it using the "Update GitHub Token" link below.');
@@ -133,7 +133,6 @@ document.addEventListener('DOMContentLoaded', () => {
   if (updateTokenLink) {
     updateTokenLink.addEventListener('click', (e) => {
       e.preventDefault();
-      // Clear previous values
       const emailInput = document.getElementById('updateTokenEmail');
       const passphraseInput = document.getElementById('updateTokenPassphrase');
       const tokenInput = document.getElementById('updateTokenNewToken');
@@ -144,7 +143,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const successDiv = document.getElementById('updateTokenSuccess');
       if (errorDiv) errorDiv.style.display = 'none';
       if (successDiv) successDiv.style.display = 'none';
-      // Show modal using jQuery (Bootstrap 4)
       if (typeof $ !== 'undefined' && $('#updateTokenModal').length) {
         $('#updateTokenModal').modal('show');
       } else {
@@ -195,7 +193,6 @@ document.addEventListener('DOMContentLoaded', () => {
       confirmBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Updating...';
 
       try {
-        // 1. Fetch the existing encrypted account file
         const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
         const encUser = encodeURIComponent(email);
         const accountPath = `${dataPath}/users/${encUser}/account.json`;
@@ -204,7 +201,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!resp.ok) throw new Error('Account not found. Please register first.');
         const encryptedBlob = await resp.json();
 
-        // 2. Decrypt with passphrase
         let decrypted;
         try {
           decrypted = await window.CryptoUtil.decrypt(encryptedBlob, passphrase);
@@ -214,7 +210,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const accountData = JSON.parse(decrypted);
         if (accountData.test !== 'VALID') throw new Error('Corrupted account data.');
 
-        // 3. Validate the new token with GitHub
         const testResp = await fetch('https://api.github.com/user', {
           headers: { Authorization: `token ${newToken}` }
         });
@@ -225,11 +220,9 @@ document.addEventListener('DOMContentLoaded', () => {
           throw new Error(`GitHub token validation failed (${testResp.status})`);
         }
 
-        // 4. Replace token and re-encrypt
         accountData.token = newToken;
         const newEncrypted = await window.CryptoUtil.encrypt(JSON.stringify(accountData), passphrase);
 
-        // 5. Get current SHA of the account.json file
         let sha = null;
         const getUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${accountPath}?ref=${branch}`;
         const getResp = await fetch(getUrl, {
@@ -242,7 +235,6 @@ document.addEventListener('DOMContentLoaded', () => {
           throw new Error(`Failed to get file info: ${getResp.status}`);
         }
 
-        // 6. Update the file on GitHub
         const putUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${accountPath}`;
         const putBody = {
           message: `Update token for ${email}`,
@@ -269,10 +261,8 @@ document.addEventListener('DOMContentLoaded', () => {
           successDiv.textContent = 'Token updated successfully! You can now log in.';
           successDiv.style.display = 'block';
         }
-        // Clear form and close modal after 2 seconds
         setTimeout(() => {
           if (typeof $ !== 'undefined') $('#updateTokenModal').modal('hide');
-          // Pre-fill the login email for convenience
           const loginEmail = document.getElementById('loginUsername');
           if (loginEmail) loginEmail.value = email;
         }, 2000);
@@ -308,7 +298,6 @@ document.addEventListener('DOMContentLoaded', () => {
       await enforceRateLimit();
       setButtonLoading(loginBtn, true);
       
-      // Skip verification for admin email (optional - remove if you want all users to verify)
       const isAdminEmail = username === 'siyabongatshem@gmail.com';
       
       if (!isAdminEmail) {
@@ -321,7 +310,8 @@ document.addEventListener('DOMContentLoaded', () => {
       
       const pat = await window.AccountManager.login(username, passphrase);
       resetRateLimit();
-      window.SessionManager.setCurrentUser(username, pat);
+      // UPDATED: Pass passphrase to SessionManager
+      window.SessionManager.setCurrentUser(username, pat, passphrase);
       showSuccess('Login successful! Redirecting...');
       setTimeout(() => { window.location.href = 'admin.html'; }, 1000);
     } catch (err) {
@@ -354,7 +344,6 @@ document.addEventListener('DOMContentLoaded', () => {
       showError('Passphrase must be at least 8 characters.');
       return;
     }
-    // Check strength (optional warning)
     let strength = 0;
     if (passphrase.length >= 8) strength++;
     if (passphrase.match(/[a-z]/) && passphrase.match(/[A-Z]/)) strength++;
@@ -373,7 +362,7 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       setButtonLoading(registerBtn, true);
       await window.AccountManager.register(username, passphrase, token);
-      showSuccess('Account created! A verification email has been sent to your inbox. Please verify your email before logging in.');
+      showSuccess('Account created! The administrator has been notified. You will be able to log in once your account is verified.');
       document.getElementById('registerForm').style.display = 'none';
       document.getElementById('loginForm').style.display = 'block';
       document.getElementById('formSubtext').innerText = 'Sign in to manage your portfolio';
@@ -390,7 +379,6 @@ document.addEventListener('DOMContentLoaded', () => {
     el.textContent = msg;
     el.style.display = 'block';
     document.getElementById('successMsg').style.display = 'none';
-    // Auto-hide after 5 seconds
     setTimeout(() => { if (el.style.display === 'block') el.style.display = 'none'; }, 5000);
   }
 
@@ -407,6 +395,5 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('successMsg').style.display = 'none';
   }
 
-  // Auto-focus on email field
   document.getElementById('loginUsername').focus();
 });
