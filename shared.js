@@ -1,4 +1,4 @@
-// shared.js – Complete with Admin Verification + Encryption (with graceful fallback)
+// shared.js – Complete with cache‑proof verification + polling support
 
 window.showLoading = function (msg = 'Processing...') {
   let loader = document.getElementById('globalLoader');
@@ -290,7 +290,6 @@ window.loadUserPreferences = async function(username, token) {
       return JSON.parse(file.content);
     }
   } catch(e) {}
-  // Default for existing users: encryption disabled
   return { encryptionEnabled: false };
 };
 
@@ -328,7 +327,6 @@ window.AccountManager = {
   },
   async _notifyAdminNewUser(userEmail) {
     const cfg = window.APP_CONFIG.emailjs;
-    // Always log to console so you see the registration even if email fails
     console.log(`🔔 [Admin Notification] New user registered: ${userEmail}`);
     console.log(`   → Go to Admin → Users tab to verify them.`);
     
@@ -359,25 +357,63 @@ window.AccountManager = {
     } catch { return null; }
   },
   
-  async isEmailVerified(email) {
+  // ============================================================
+  // FIXED: isEmailVerified – uses GitHub API + random cache buster
+  // ============================================================
+  async isEmailVerified(email, forceCheck = false) {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(email);
-    const globalUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/data/verified_users.json`;
+    
+    // Use random cache buster to force fresh data from GitHub API
+    const cb = Math.random().toString(36).substring(2, 10);
+    
+    // 1. Check global verified_users.json via GitHub API (not CDN)
+    const globalUrl = `https://api.github.com/repos/${owner}/${repo}/contents/data/verified_users.json?ref=${branch}&cb=${cb}`;
     try {
-      const resp = await fetch(globalUrl);
+      const resp = await fetch(globalUrl, {
+        headers: {
+          'Accept': 'application/vnd.github.v3+json',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        }
+      });
       if (resp.ok) {
         const data = await resp.json();
-        if (data.verified && data.verified.includes(email)) return true;
+        const content = atob(data.content.replace(/\n/g, ''));
+        const json = JSON.parse(content);
+        if (json.verified && json.verified.includes(email)) {
+          console.log(`✅ Verified via global list for ${email}`);
+          return true;
+        }
       }
-    } catch (err) {}
-    const userUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${dataPath}/users/${encUser}/verified.json`;
+    } catch (err) {
+      console.warn('Global verification check failed:', err);
+    }
+    
+    // 2. Check individual verified.json via GitHub API
+    const userUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${dataPath}/users/${encUser}/verified.json?ref=${branch}&cb=${cb}`;
     try {
-      const resp = await fetch(userUrl);
+      const resp = await fetch(userUrl, {
+        headers: {
+          'Accept': 'application/vnd.github.v3+json',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        }
+      });
       if (resp.ok) {
         const data = await resp.json();
-        if (data.verified === true) return true;
+        const content = atob(data.content.replace(/\n/g, ''));
+        const json = JSON.parse(content);
+        if (json.verified === true) {
+          console.log(`✅ Verified via individual file for ${email}`);
+          return true;
+        }
       }
-    } catch (err) {}
+    } catch (err) {
+      console.warn('Individual verification check failed:', err);
+    }
+    
+    console.log(`❌ Not verified for ${email}`);
     return false;
   },
   
@@ -391,7 +427,6 @@ window.AccountManager = {
     if (existing && existing.sha) throw new Error('An account with this email already exists on GitHub.');
     await GitHubAPI.updateFile(owner, repo, path, encrypted, `Register ${username}`, branch, pat, existing?.sha);
     
-    // Create verified.json with verified: false (pending admin approval)
     const verificationStatus = { verified: false, createdAt: Date.now() };
     const verificationPath = `${dataPath}/users/${encUser}/verified.json`;
     try {
@@ -400,13 +435,11 @@ window.AccountManager = {
       console.warn('⚠️ Could not create verified.json:', err.message);
     }
     
-    // Enable encryption for new users – but never fail registration
     try {
       await window.saveUserPreferences(username, { encryptionEnabled: true }, pat);
       console.log(`🔐 Encryption enabled for ${username}`);
     } catch (e) {
       console.warn(`⚠️ Could not save preferences for ${username}:`, e.message);
-      // Continue – registration still succeeds
     }
     
     await this._notifyAdminNewUser(username);
@@ -516,7 +549,6 @@ window.AccountManager = {
     return { projects: projectCount, certificates: certCount };
   },
 
-  // NEW: Admin manual verification
   async verifyUser(username, adminToken) {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(username);
@@ -533,7 +565,8 @@ window.AccountManager = {
       verifiedAt: Date.now(),
       email: username
     };
-    await GitHubAPI.updateFile(owner, repo, path, newContent, `Verify user ${username}`, branch, adminToken, sha);
+    const result = await GitHubAPI.updateFile(owner, repo, path, newContent, `Verify user ${username}`, branch, adminToken, sha);
+    console.log(`✅ Updated individual verified.json for ${username}`);
 
     const globalPath = `data/verified_users.json`;
     let globalData = { verified: [] };
@@ -549,15 +582,16 @@ window.AccountManager = {
     if (!globalData.verified.includes(username)) {
       globalData.verified.push(username);
       await GitHubAPI.updateFile(owner, repo, globalPath, globalData, `Add ${username} to verified list`, branch, adminToken, globalSha);
+      console.log(`✅ Added ${username} to global verified list`);
     }
 
     await window.Logger.logActivity('admin', 'verify_user', `Verified user ${username}`);
-    return true;
+    return result;
   }
 };
 
 // ================================
-// PORTFOLIO DATA (with auto‑detect encryption)
+// PORTFOLIO DATA (with auto‑detect encryption) – unchanged
 // ================================
 window.portfolioData = (() => {
   const PROJECTS_KEY = 'portfolioProjects';
