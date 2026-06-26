@@ -1140,6 +1140,7 @@
     if (downloadAllLogsBtn) downloadAllLogsBtn.addEventListener('click', downloadAllLogs);
     await populateUserSelect();
 
+    // --- UPDATED loadUsers function with Verify button ---
     async function loadUsers() {
       window.showLoading('Loading users...');
       const container = document.getElementById('usersList');
@@ -1147,12 +1148,20 @@
       try {
         const usernames = await window.AccountManager.listUsers(user.pat);
         const blocked = await window.AccountManager.getBlockedUsers();
+        // Get verification status for each user
+        const verificationStatus = {};
+        for (const username of usernames) {
+          const isVerified = await window.AccountManager.isEmailVerified(username);
+          verificationStatus[username] = isVerified;
+        }
+
         container.innerHTML = '';
         if (usernames.length === 0) {
           container.innerHTML = '<div class="empty-state"><i class="fa fa-users"></i><h5>No registered users yet.</h5></div>';
         } else {
           for (const username of usernames) {
             const isBlocked = blocked.includes(username);
+            const isVerified = verificationStatus[username] || false;
             let stats = { projects: 0, certificates: 0 };
             try { stats = await window.AccountManager.getUserStats(username, user.pat); } catch(e) {}
             const card = document.createElement('div');
@@ -1163,9 +1172,11 @@
                   <div>
                     <strong>${window.escapeHtml(username)}</strong>
                     ${isBlocked ? '<span class="badge badge-danger ml-2">Blocked</span>' : '<span class="badge badge-success ml-2">Active</span>'}
+                    ${isVerified ? '<span class="badge badge-success ml-2">Verified</span>' : '<span class="badge badge-warning ml-2">Unverified</span>'}
                     <div class="small text-muted">Projects: ${stats.projects} | Certificates: ${stats.certificates}</div>
                   </div>
                   <div class="mt-2 mt-sm-0">
+                    ${!isVerified && !isBlocked ? `<button class="btn btn-sm btn-success verify-user-btn" data-username="${username}">Verify</button>` : ''}
                     <button class="btn btn-sm ${isBlocked ? 'btn-success' : 'btn-warning'} toggle-block-btn" data-username="${username}">${isBlocked ? 'Unblock' : 'Block'}</button>
                     <button class="btn btn-sm btn-danger delete-user-btn" data-username="${username}">Delete</button>
                   </div>
@@ -1173,6 +1184,25 @@
               </div>`;
             container.appendChild(card);
           }
+
+          // Attach events for Verify buttons
+          document.querySelectorAll('.verify-user-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+              const username = btn.dataset.username;
+              if (!confirm(`Verify user "${username}"? They will be able to log in.`)) return;
+              window.showLoading('Verifying user...');
+              try {
+                await window.AccountManager.verifyUser(username, user.pat);
+                await loadUsers(); // refresh list
+                showToast(`User ${username} verified successfully.`);
+              } catch(err) {
+                showToast('Verification failed: ' + err.message, 'error');
+              } finally {
+                window.hideLoading();
+              }
+            });
+          });
+
           document.querySelectorAll('.toggle-block-btn').forEach(btn => {
             btn.addEventListener('click', async () => {
               const username = btn.dataset.username;
