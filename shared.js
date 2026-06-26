@@ -1,4 +1,5 @@
-// shared.js – Complete version with fixed project deletion, enhanced logging, full PDF generation (no analytics, no dark mode)
+// shared.js – Complete version with Admin Verification + Auto‑Detect Encryption for New Users
+// (Existing users continue with plain JSON, no migration needed)
 
 window.showLoading = function (msg = 'Processing...') {
   let loader = document.getElementById('globalLoader');
@@ -44,14 +45,27 @@ window.SessionManager = (() => {
       }
       return current;
     },
-    setCurrentUser: (username, pat) => {
+    // UPDATED: Accept passphrase and store it in sessionStorage
+    setCurrentUser: (username, pat, passphrase) => {
       current = { username, pat, timestamp: Date.now() };
       sessionStorage.setItem('portfolioUser', JSON.stringify(current));
+      if (passphrase) {
+        sessionStorage.setItem('portfolioPassphrase', btoa(passphrase));
+      }
       window.Logger.log('login', `User logged in as ${username}`, 'INFO');
+    },
+    // NEW: Retrieve stored passphrase
+    getPassphrase: () => {
+      const stored = sessionStorage.getItem('portfolioPassphrase');
+      if (stored) {
+        try { return atob(stored); } catch(e) {}
+      }
+      return null;
     },
     logout: () => {
       current = null;
       sessionStorage.removeItem('portfolioUser');
+      sessionStorage.removeItem('portfolioPassphrase');
     },
     isAdmin: () => {
       const user = window.SessionManager.getCurrentUser();
@@ -267,6 +281,38 @@ window.compressImage = function(file, maxW = 1600, maxH = 1600, quality = 0.85) 
   });
 };
 
+// ================================
+// USER PREFERENCES (for encryption flag)
+// ================================
+window.loadUserPreferences = async function(username, token) {
+  const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+  const encUser = encodeURIComponent(username);
+  const path = `${dataPath}/users/${encUser}/preferences.json`;
+  try {
+    const file = await GitHubAPI.getFileContent(owner, repo, path, branch, token);
+    if (file && file.content) {
+      return JSON.parse(file.content);
+    }
+  } catch(e) {}
+  // Default for existing users: encryption disabled
+  return { encryptionEnabled: false };
+};
+
+window.saveUserPreferences = async function(username, prefs, token) {
+  const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+  const encUser = encodeURIComponent(username);
+  const path = `${dataPath}/users/${encUser}/preferences.json`;
+  let sha = null;
+  try {
+    const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, token);
+    if (existing && existing.sha) sha = existing.sha;
+  } catch(e) {}
+  await GitHubAPI.updateFile(owner, repo, path, prefs, 'Update preferences', branch, token, sha);
+};
+
+// ================================
+// ACCOUNT MANAGER
+// ================================
 window.AccountManager = {
   async _ensureEmailJS() {
     if (typeof emailjs === 'undefined') {
@@ -290,22 +336,13 @@ window.AccountManager = {
     try {
       await this._sendEmail(cfg.adminTemplateID, {
         to_email: cfg.adminEmail,
-        subject: `New user: ${userEmail}`,
-        message: `New account created: ${userEmail}`
+        subject: `New user registration: ${userEmail}`,
+        message: `A new user (${userEmail}) has created an account. Please verify them from the admin panel.`
       });
     } catch (e) { console.warn('Admin email failed', e); }
   },
-  async _notifyUserConfirmation(userEmail) {
-    const cfg = window.APP_CONFIG.emailjs;
-    if (!cfg || !cfg.publicKey || !cfg.userTemplateID) return;
-    try {
-      await this._sendEmail(cfg.userTemplateID, {
-        to_email: userEmail,
-        subject: 'Welcome to Your Portfolio',
-        message: `Your account (${userEmail}) has been created. You can now log in and manage your portfolio.`
-      });
-    } catch (e) { console.warn('User email failed', e); }
-  },
+  // Removed _notifyUserConfirmation – no welcome email on registration
+
   async fetchAccount(username) {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(username);
@@ -348,16 +385,22 @@ window.AccountManager = {
     const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, pat).catch(() => null);
     if (existing && existing.sha) throw new Error('An account with this email already exists on GitHub.');
     await GitHubAPI.updateFile(owner, repo, path, encrypted, `Register ${username}`, branch, pat, existing?.sha);
+    
+    // Create verified.json with verified: false (pending admin approval)
     const verificationStatus = { verified: false, createdAt: Date.now() };
     const verificationPath = `${dataPath}/users/${encUser}/verified.json`;
     try {
       await GitHubAPI.updateFile(owner, repo, verificationPath, verificationStatus, `Create verification status for ${username}`, branch, pat);
     } catch (err) {}
+    
+    // NEW: Enable encryption for new users by default
+    await window.saveUserPreferences(username, { encryptionEnabled: true }, pat);
+    
     this._notifyAdminNewUser(username);
-    this._notifyUserConfirmation(username);
     await window.Logger.logActivity('account', 'register', `New user registered: ${username}`, { email: username });
     return true;
   },
+  
   async login(username, passphrase) {
     const blocked = await this.getBlockedUsers();
     if (blocked.includes(username)) throw new Error('Your account has been blocked. Contact the administrator.');
@@ -369,6 +412,7 @@ window.AccountManager = {
     await window.Logger.logActivity('account', 'login', `User logged in: ${username}`);
     return data.token;
   },
+  
   async getBlockedUsers() {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const url = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${dataPath}/blocked_users.json`;
@@ -378,6 +422,7 @@ window.AccountManager = {
       return await resp.json();
     } catch { return []; }
   },
+  
   async toggleBlock(username, block, adminToken) {
     const blocked = await this.getBlockedUsers();
     if (block) { if (!blocked.includes(username)) blocked.push(username); }
@@ -391,6 +436,7 @@ window.AccountManager = {
     await window.Logger.logActivity('admin', 'toggle_block', `${block ? 'Blocked' : 'Unblocked'} user ${username}`);
     return true;
   },
+  
   async listUsers(adminToken) {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const url = `https://api.github.com/repos/${owner}/${repo}/contents/${dataPath}/users?ref=${branch}`;
@@ -401,6 +447,7 @@ window.AccountManager = {
     const items = await resp.json();
     return items.filter(i => i.type === 'dir').map(i => i.name);
   },
+  
   async deleteUser(username, adminToken) {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(username);
@@ -417,6 +464,7 @@ window.AccountManager = {
     await window.Logger.logActivity('admin', 'delete_user', `Deleted user ${username}`);
     return true;
   },
+  
   async getUserStats(username, adminToken) {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(username);
@@ -453,9 +501,51 @@ window.AccountManager = {
       }
     } catch (e) {}
     return { projects: projectCount, certificates: certCount };
+  },
+
+  // NEW: Admin manual verification
+  async verifyUser(username, adminToken) {
+    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+    const encUser = encodeURIComponent(username);
+    const path = `${dataPath}/users/${encUser}/verified.json`;
+
+    let sha = null;
+    try {
+      const file = await GitHubAPI.getFileContent(owner, repo, path, branch, adminToken);
+      if (file && file.sha) sha = file.sha;
+    } catch(e) {}
+
+    const newContent = {
+      verified: true,
+      verifiedAt: Date.now(),
+      email: username
+    };
+    await GitHubAPI.updateFile(owner, repo, path, newContent, `Verify user ${username}`, branch, adminToken, sha);
+
+    const globalPath = `data/verified_users.json`;
+    let globalData = { verified: [] };
+    let globalSha = null;
+    try {
+      const globalFile = await GitHubAPI.getFileContent(owner, repo, globalPath, branch, adminToken);
+      if (globalFile && globalFile.content) {
+        globalData = JSON.parse(globalFile.content);
+        globalSha = globalFile.sha;
+      }
+    } catch(e) {}
+    if (!globalData.verified) globalData.verified = [];
+    if (!globalData.verified.includes(username)) {
+      globalData.verified.push(username);
+      await GitHubAPI.updateFile(owner, repo, globalPath, globalData, `Add ${username} to verified list`, branch, adminToken, globalSha);
+    }
+
+    await window.Logger.logActivity('admin', 'verify_user', `Verified user ${username}`);
+    return true;
   }
 };
 
+// ================================
+// PORTFOLIO DATA (with auto‑detect encryption)
+// ================================
 window.portfolioData = (() => {
   const PROJECTS_KEY = 'portfolioProjects';
   const CERTS_KEY = 'portfolioCertificates';
@@ -496,7 +586,15 @@ window.portfolioData = (() => {
         const path = `${dataPath}/users/${encUser}/projects.json`;
         const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
         if (file && file.content) {
-          return JSON.parse(file.content);
+          let data = JSON.parse(file.content);
+          // Auto‑detect encryption
+          if (data.salt && data.iv && data.ciphertext) {
+            const passphrase = window.SessionManager.getPassphrase();
+            if (!passphrase) throw new Error('Passphrase required to decrypt projects');
+            const decryptedStr = await window.CryptoUtil.decrypt(data, passphrase);
+            data = JSON.parse(decryptedStr);
+          }
+          return data;
         } else {
           if (user.username === window.APP_CONFIG.publicProfileEmail) {
             return await fetchPublicData(user.username, 'projects');
@@ -520,7 +618,14 @@ window.portfolioData = (() => {
         const path = `${dataPath}/users/${encUser}/certificates.json`;
         const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
         if (file && file.content) {
-          return JSON.parse(file.content);
+          let data = JSON.parse(file.content);
+          if (data.salt && data.iv && data.ciphertext) {
+            const passphrase = window.SessionManager.getPassphrase();
+            if (!passphrase) throw new Error('Passphrase required to decrypt certificates');
+            const decryptedStr = await window.CryptoUtil.decrypt(data, passphrase);
+            data = JSON.parse(decryptedStr);
+          }
+          return data;
         } else {
           if (user.username === window.APP_CONFIG.publicProfileEmail) {
             return await fetchPublicData(user.username, 'certificates');
@@ -544,7 +649,13 @@ window.portfolioData = (() => {
         const path = `${dataPath}/users/${encUser}/projects.json`;
         const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
         if (file && file.content) {
-          const data = JSON.parse(file.content);
+          let data = JSON.parse(file.content);
+          if (data.salt && data.iv && data.ciphertext) {
+            const passphrase = window.SessionManager.getPassphrase();
+            if (!passphrase) throw new Error('Passphrase required to decrypt projects');
+            const decryptedStr = await window.CryptoUtil.decrypt(data, passphrase);
+            data = JSON.parse(decryptedStr);
+          }
           localStorage.setItem(PROJECTS_KEY, JSON.stringify(data));
           return data;
         } else {
@@ -579,7 +690,13 @@ window.portfolioData = (() => {
         const path = `${dataPath}/users/${encUser}/certificates.json`;
         const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
         if (file && file.content) {
-          const data = JSON.parse(file.content);
+          let data = JSON.parse(file.content);
+          if (data.salt && data.iv && data.ciphertext) {
+            const passphrase = window.SessionManager.getPassphrase();
+            if (!passphrase) throw new Error('Passphrase required to decrypt certificates');
+            const decryptedStr = await window.CryptoUtil.decrypt(data, passphrase);
+            data = JSON.parse(decryptedStr);
+          }
           localStorage.setItem(CERTS_KEY, JSON.stringify(data));
           return data;
         } else {
@@ -603,7 +720,6 @@ window.portfolioData = (() => {
     return JSON.parse(localStorage.getItem(CERTS_KEY) || '[]');
   }
 
-  // Fixed saveProjects with proper SHA retry
   async function saveProjects(data, forceEmpty = false) {
     const prev = localStorage.getItem(PROJECTS_KEY);
     if (!forceEmpty && prev) {
@@ -620,9 +736,20 @@ window.portfolioData = (() => {
     const user = window.SessionManager.getCurrentUser();
     if (!user || !user.pat) return;
     await verifyNotBlocked();
+    
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(user.username);
     const path = `${dataPath}/users/${encUser}/projects.json`;
+    
+    // NEW: Check if encryption is enabled for this user
+    const prefs = await window.loadUserPreferences(user.username, user.pat);
+    let contentToSave = data;
+    if (prefs.encryptionEnabled) {
+      const passphrase = window.SessionManager.getPassphrase();
+      if (!passphrase) throw new Error('Passphrase required to encrypt projects');
+      contentToSave = await window.CryptoUtil.encrypt(JSON.stringify(data), passphrase);
+    }
+    
     let retries = 3;
     while (retries > 0) {
       try {
@@ -635,20 +762,27 @@ window.portfolioData = (() => {
             if (remoteFile.content) remoteData = JSON.parse(remoteFile.content);
           }
         } catch(e) {}
-        const merged = { ...remoteData };
-        for (const [id, proj] of Object.entries(data)) {
-          if (!merged[id] || proj.updatedAt > (merged[id].updatedAt || 0)) {
-            merged[id] = proj;
+        
+        // For encrypted files, we can't merge easily, so we overwrite if encryption is enabled.
+        // For plain JSON, we merge.
+        let finalData = contentToSave;
+        if (!prefs.encryptionEnabled) {
+          const merged = { ...remoteData };
+          for (const [id, proj] of Object.entries(data)) {
+            if (!merged[id] || proj.updatedAt > (merged[id].updatedAt || 0)) {
+              merged[id] = proj;
+            }
           }
-        }
-        for (const id of Object.keys(remoteData)) {
-          if (!data.hasOwnProperty(id)) {
-            delete merged[id];
-            await window.Logger.logActivity('project', 'delete_remote', `Deleted project ${id} from remote`);
+          for (const id of Object.keys(remoteData)) {
+            if (!data.hasOwnProperty(id)) {
+              delete merged[id];
+              await window.Logger.logActivity('project', 'delete_remote', `Deleted project ${id} from remote`);
+            }
           }
+          finalData = merged;
+          if (forceEmpty && Object.keys(data).length === 0) finalData = {};
         }
-        let finalData = merged;
-        if (forceEmpty && Object.keys(data).length === 0) finalData = {};
+        
         await GitHubAPI.updateFile(owner, repo, path, finalData, 'Update projects', branch, user.pat, sha);
         await window.Logger.logActivity('project', 'save', `Saved ${Object.keys(finalData).length} projects`);
         return;
@@ -677,9 +811,20 @@ window.portfolioData = (() => {
     const user = window.SessionManager.getCurrentUser();
     if (!user || !user.pat) return;
     await verifyNotBlocked();
+    
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(user.username);
     const path = `${dataPath}/users/${encUser}/certificates.json`;
+    
+    // NEW: Check if encryption is enabled for this user
+    const prefs = await window.loadUserPreferences(user.username, user.pat);
+    let contentToSave = data;
+    if (prefs.encryptionEnabled) {
+      const passphrase = window.SessionManager.getPassphrase();
+      if (!passphrase) throw new Error('Passphrase required to encrypt certificates');
+      contentToSave = await window.CryptoUtil.encrypt(JSON.stringify(data), passphrase);
+    }
+    
     let retries = 3;
     while (retries > 0) {
       try {
@@ -692,15 +837,20 @@ window.portfolioData = (() => {
             if (remoteFile.content) remoteData = JSON.parse(remoteFile.content);
           }
         } catch(e) {}
-        const mergedMap = new Map();
-        for (const cert of remoteData) mergedMap.set(cert.id, cert);
-        for (const cert of data) {
-          const existing = mergedMap.get(cert.id);
-          if (!existing || cert.updatedAt > existing.updatedAt) mergedMap.set(cert.id, cert);
+        
+        let finalData = contentToSave;
+        if (!prefs.encryptionEnabled) {
+          const mergedMap = new Map();
+          for (const cert of remoteData) mergedMap.set(cert.id, cert);
+          for (const cert of data) {
+            const existing = mergedMap.get(cert.id);
+            if (!existing || cert.updatedAt > existing.updatedAt) mergedMap.set(cert.id, cert);
+          }
+          const merged = Array.from(mergedMap.values());
+          finalData = merged;
+          if (forceEmpty && data.length === 0) finalData = [];
         }
-        const merged = Array.from(mergedMap.values());
-        let finalData = merged;
-        if (forceEmpty && data.length === 0) finalData = [];
+        
         await GitHubAPI.updateFile(owner, repo, path, finalData, 'Update certificates', branch, user.pat, sha);
         await window.Logger.logActivity('certificate', 'save', `Saved ${finalData.length} certificates`);
         return;
