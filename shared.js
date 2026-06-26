@@ -1,5 +1,4 @@
-// shared.js – Complete version with Admin Verification + Auto‑Detect Encryption for New Users
-// (Existing users continue with plain JSON, no migration needed)
+// shared.js – Complete with Admin Verification + Encryption (with graceful fallback)
 
 window.showLoading = function (msg = 'Processing...') {
   let loader = document.getElementById('globalLoader');
@@ -45,7 +44,6 @@ window.SessionManager = (() => {
       }
       return current;
     },
-    // UPDATED: Accept passphrase and store it in sessionStorage
     setCurrentUser: (username, pat, passphrase) => {
       current = { username, pat, timestamp: Date.now() };
       sessionStorage.setItem('portfolioUser', JSON.stringify(current));
@@ -54,7 +52,6 @@ window.SessionManager = (() => {
       }
       window.Logger.log('login', `User logged in as ${username}`, 'INFO');
     },
-    // NEW: Retrieve stored passphrase
     getPassphrase: () => {
       const stored = sessionStorage.getItem('portfolioPassphrase');
       if (stored) {
@@ -74,7 +71,6 @@ window.SessionManager = (() => {
   };
 })();
 
-// Enhanced Logger
 window.Logger = {
   async _writeTextFile(path, content, commitMsg, branch, token, sha = null) {
     const { owner, repo } = window.REPO_CONFIG;
@@ -332,16 +328,25 @@ window.AccountManager = {
   },
   async _notifyAdminNewUser(userEmail) {
     const cfg = window.APP_CONFIG.emailjs;
-    if (!cfg || !cfg.publicKey || !cfg.adminTemplateID) return;
+    // Always log to console so you see the registration even if email fails
+    console.log(`🔔 [Admin Notification] New user registered: ${userEmail}`);
+    console.log(`   → Go to Admin → Users tab to verify them.`);
+    
+    if (!cfg || !cfg.publicKey || cfg.publicKey === 'YOUR_EMAILJS_PUBLIC_KEY') {
+      console.warn('⚠️ EmailJS not configured – check config.js');
+      return;
+    }
     try {
       await this._sendEmail(cfg.adminTemplateID, {
         to_email: cfg.adminEmail,
         subject: `New user registration: ${userEmail}`,
         message: `A new user (${userEmail}) has created an account. Please verify them from the admin panel.`
       });
-    } catch (e) { console.warn('Admin email failed', e); }
+      console.log(`📧 Admin notification email sent to ${cfg.adminEmail}`);
+    } catch (e) {
+      console.warn('⚠️ Admin email failed (ignored):', e.message);
+    }
   },
-  // Removed _notifyUserConfirmation – no welcome email on registration
 
   async fetchAccount(username) {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
@@ -391,12 +396,20 @@ window.AccountManager = {
     const verificationPath = `${dataPath}/users/${encUser}/verified.json`;
     try {
       await GitHubAPI.updateFile(owner, repo, verificationPath, verificationStatus, `Create verification status for ${username}`, branch, pat);
-    } catch (err) {}
+    } catch (err) {
+      console.warn('⚠️ Could not create verified.json:', err.message);
+    }
     
-    // NEW: Enable encryption for new users by default
-    await window.saveUserPreferences(username, { encryptionEnabled: true }, pat);
+    // Enable encryption for new users – but never fail registration
+    try {
+      await window.saveUserPreferences(username, { encryptionEnabled: true }, pat);
+      console.log(`🔐 Encryption enabled for ${username}`);
+    } catch (e) {
+      console.warn(`⚠️ Could not save preferences for ${username}:`, e.message);
+      // Continue – registration still succeeds
+    }
     
-    this._notifyAdminNewUser(username);
+    await this._notifyAdminNewUser(username);
     await window.Logger.logActivity('account', 'register', `New user registered: ${username}`, { email: username });
     return true;
   },
@@ -587,7 +600,6 @@ window.portfolioData = (() => {
         const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
         if (file && file.content) {
           let data = JSON.parse(file.content);
-          // Auto‑detect encryption
           if (data.salt && data.iv && data.ciphertext) {
             const passphrase = window.SessionManager.getPassphrase();
             if (!passphrase) throw new Error('Passphrase required to decrypt projects');
@@ -741,7 +753,6 @@ window.portfolioData = (() => {
     const encUser = encodeURIComponent(user.username);
     const path = `${dataPath}/users/${encUser}/projects.json`;
     
-    // NEW: Check if encryption is enabled for this user
     const prefs = await window.loadUserPreferences(user.username, user.pat);
     let contentToSave = data;
     if (prefs.encryptionEnabled) {
@@ -763,8 +774,6 @@ window.portfolioData = (() => {
           }
         } catch(e) {}
         
-        // For encrypted files, we can't merge easily, so we overwrite if encryption is enabled.
-        // For plain JSON, we merge.
         let finalData = contentToSave;
         if (!prefs.encryptionEnabled) {
           const merged = { ...remoteData };
@@ -816,7 +825,6 @@ window.portfolioData = (() => {
     const encUser = encodeURIComponent(user.username);
     const path = `${dataPath}/users/${encUser}/certificates.json`;
     
-    // NEW: Check if encryption is enabled for this user
     const prefs = await window.loadUserPreferences(user.username, user.pat);
     let contentToSave = data;
     if (prefs.encryptionEnabled) {
