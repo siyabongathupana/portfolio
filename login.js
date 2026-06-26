@@ -1,13 +1,12 @@
-// login.js – Complete with passphrase passed to SessionManager
+// login.js – with automatic polling for verification status
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Rate limiting: store failed attempts in memory (resets on page refresh)
+  // Rate limiting: store failed attempts in memory
   let failedAttempts = 0;
   let lastAttemptTime = 0;
-  const BASE_DELAY = 1000; // 1 second
+  const BASE_DELAY = 1000;
   const MAX_ATTEMPTS = 5;
 
-  // Helper to enforce delay
   async function enforceRateLimit() {
     const now = Date.now();
     if (failedAttempts >= MAX_ATTEMPTS) {
@@ -17,7 +16,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const remaining = Math.ceil((waitTime - elapsed) / 1000);
         throw new Error(`Too many failed attempts. Please wait ${remaining} seconds.`);
       } else {
-        // Reset after cooldown
         failedAttempts = 0;
       }
     }
@@ -70,7 +68,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Loading button state
   function setButtonLoading(btn, isLoading) {
     if (isLoading) {
       btn.classList.add('btn-loading');
@@ -83,7 +80,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Store original button texts
   const loginBtn = document.getElementById('loginBtn');
   const registerBtn = document.getElementById('registerBtn');
   if (loginBtn) loginBtn.originalText = loginBtn.innerHTML;
@@ -94,7 +90,7 @@ document.addEventListener('DOMContentLoaded', () => {
     showError('Your account has been blocked. Contact the administrator.');
   }
   if (params.get('unverified') === '1') {
-    showError('Your account is pending admin approval. Please wait for the administrator to verify your account.');
+    showError('Your account is pending admin approval. Please wait for the administrator to verify your account. We will automatically check again every few seconds.');
   }
   if (params.get('reason') === 'token_expired') {
     showError('Your GitHub token has expired. Please update it using the "Update GitHub Token" link below.');
@@ -128,30 +124,23 @@ document.addEventListener('DOMContentLoaded', () => {
     showError('To reset your passphrase, please contact the administrator (siyabongatshem@gmail.com). Your account will be reset and you can re-register with the same email.');
   });
 
-  // ======================== UPDATE TOKEN FUNCTIONALITY ========================
+  // ======================== UPDATE TOKEN MODAL ========================
   const updateTokenLink = document.getElementById('updateTokenLink');
   if (updateTokenLink) {
     updateTokenLink.addEventListener('click', (e) => {
       e.preventDefault();
-      const emailInput = document.getElementById('updateTokenEmail');
-      const passphraseInput = document.getElementById('updateTokenPassphrase');
-      const tokenInput = document.getElementById('updateTokenNewToken');
-      if (emailInput) emailInput.value = '';
-      if (passphraseInput) passphraseInput.value = '';
-      if (tokenInput) tokenInput.value = '';
-      const errorDiv = document.getElementById('updateTokenError');
-      const successDiv = document.getElementById('updateTokenSuccess');
-      if (errorDiv) errorDiv.style.display = 'none';
-      if (successDiv) successDiv.style.display = 'none';
+      // clear fields
+      document.getElementById('updateTokenEmail').value = '';
+      document.getElementById('updateTokenPassphrase').value = '';
+      document.getElementById('updateTokenNewToken').value = '';
+      document.getElementById('updateTokenError').style.display = 'none';
+      document.getElementById('updateTokenSuccess').style.display = 'none';
       if (typeof $ !== 'undefined' && $('#updateTokenModal').length) {
         $('#updateTokenModal').modal('show');
       } else {
-        console.error('jQuery or modal element not found');
         showError('Could not open token update window. Please refresh the page.');
       }
     });
-  } else {
-    console.warn('Update token link not found in DOM');
   }
 
   const confirmUpdateBtn = document.getElementById('confirmUpdateTokenBtn');
@@ -163,34 +152,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const errorDiv = document.getElementById('updateTokenError');
       const successDiv = document.getElementById('updateTokenSuccess');
-      if (errorDiv) errorDiv.style.display = 'none';
-      if (successDiv) successDiv.style.display = 'none';
+      errorDiv.style.display = 'none';
+      successDiv.style.display = 'none';
 
       if (!email || !passphrase || !newToken) {
-        if (errorDiv) {
-          errorDiv.textContent = 'All fields are required.';
-          errorDiv.style.display = 'block';
-        }
+        errorDiv.textContent = 'All fields are required.';
+        errorDiv.style.display = 'block';
         return;
       }
       if (!email.includes('@')) {
-        if (errorDiv) {
-          errorDiv.textContent = 'Enter a valid email address.';
-          errorDiv.style.display = 'block';
-        }
+        errorDiv.textContent = 'Enter a valid email address.';
+        errorDiv.style.display = 'block';
         return;
       }
       if (!newToken.startsWith('ghp_') && !newToken.startsWith('github_pat_')) {
-        if (errorDiv) {
-          errorDiv.textContent = 'Token must start with ghp_ or github_pat_';
-          errorDiv.style.display = 'block';
-        }
+        errorDiv.textContent = 'Token must start with ghp_ or github_pat_';
+        errorDiv.style.display = 'block';
         return;
       }
 
-      const confirmBtn = document.getElementById('confirmUpdateTokenBtn');
-      confirmBtn.disabled = true;
-      confirmBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Updating...';
+      confirmUpdateBtn.disabled = true;
+      confirmUpdateBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Updating...';
 
       try {
         const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
@@ -257,30 +239,23 @@ document.addEventListener('DOMContentLoaded', () => {
           throw new Error(`Failed to save updated token: ${errData.message}`);
         }
 
-        if (successDiv) {
-          successDiv.textContent = 'Token updated successfully! You can now log in.';
-          successDiv.style.display = 'block';
-        }
+        successDiv.textContent = 'Token updated successfully! You can now log in.';
+        successDiv.style.display = 'block';
         setTimeout(() => {
           if (typeof $ !== 'undefined') $('#updateTokenModal').modal('hide');
-          const loginEmail = document.getElementById('loginUsername');
-          if (loginEmail) loginEmail.value = email;
+          document.getElementById('loginUsername').value = email;
         }, 2000);
       } catch (err) {
-        if (errorDiv) {
-          errorDiv.textContent = err.message;
-          errorDiv.style.display = 'block';
-        }
+        errorDiv.textContent = err.message;
+        errorDiv.style.display = 'block';
       } finally {
-        confirmBtn.disabled = false;
-        confirmBtn.innerHTML = 'Update Token';
+        confirmUpdateBtn.disabled = false;
+        confirmUpdateBtn.innerHTML = 'Update Token';
       }
     });
-  } else {
-    console.warn('Confirm update token button not found');
   }
 
-  // ======================== LOGIN / REGISTER FUNCTIONS ========================
+  // ======================== LOGIN WITH POLLING ========================
   async function handleLogin() {
     clearMessages();
     const username = document.getElementById('loginUsername').value.trim();
@@ -301,16 +276,33 @@ document.addEventListener('DOMContentLoaded', () => {
       const isAdminEmail = username === 'siyabongatshem@gmail.com';
       
       if (!isAdminEmail) {
-        const isVerified = await window.AccountManager.isEmailVerified(username);
-        if (!isVerified) {
-          window.location.href = 'login.html?unverified=1';
+        // Check verification with polling (max 20 seconds)
+        let verified = false;
+        let attempts = 0;
+        const maxAttempts = 10; // 10 * 2s = 20s
+        showError('Checking verification status...', 'info');
+
+        while (!verified && attempts < maxAttempts) {
+          verified = await window.AccountManager.isEmailVerified(username);
+          if (!verified) {
+            attempts++;
+            if (attempts < maxAttempts) {
+              showError(`⏳ Waiting for admin approval... (${attempts}/${maxAttempts})`, 'info');
+              await new Promise(resolve => setTimeout(resolve, 2000));
+            }
+          }
+        }
+
+        if (!verified) {
+          showError('Your account is still pending admin approval. Please wait for the administrator to verify your account.');
+          setButtonLoading(loginBtn, false);
           return;
         }
+        showError('✅ Account verified! Logging in...', 'success');
       }
       
       const pat = await window.AccountManager.login(username, passphrase);
       resetRateLimit();
-      // UPDATED: Pass passphrase to SessionManager
       window.SessionManager.setCurrentUser(username, pat, passphrase);
       showSuccess('Login successful! Redirecting...');
       setTimeout(() => { window.location.href = 'admin.html'; }, 1000);
@@ -374,12 +366,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function showError(msg) {
+  function showError(msg, type = 'error') {
     const el = document.getElementById('errorMsg');
     el.textContent = msg;
     el.style.display = 'block';
+    if (type === 'info') el.className = 'alert alert-info mt-3';
+    else if (type === 'success') el.className = 'alert alert-success mt-3';
+    else el.className = 'alert alert-danger mt-3';
     document.getElementById('successMsg').style.display = 'none';
-    setTimeout(() => { if (el.style.display === 'block') el.style.display = 'none'; }, 5000);
   }
 
   function showSuccess(msg) {
