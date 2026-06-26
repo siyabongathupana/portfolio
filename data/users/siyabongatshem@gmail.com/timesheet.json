@@ -1,5 +1,17 @@
 [
   {
+    "id": 1782458367624,
+    "date": "2026-06-26",
+    "start": "08:30",
+    "end": "16:30",
+    "hours": 8,
+    "project": "Omnia Phase 3",
+    "category": "CFAT",
+    "billable": "yes",
+    "notes": "Software CFAT (Punches)",
+    "updatedAt": 1782458367624
+  },
+  {
     "id": 1782294330095,
     "date": "2026-06-25",
     "start": "08:30",
