@@ -1140,7 +1140,7 @@
     if (downloadAllLogsBtn) downloadAllLogsBtn.addEventListener('click', downloadAllLogs);
     await populateUserSelect();
 
-    // --- UPDATED loadUsers function with Verify button ---
+    // --- UPDATED loadUsers with AGGRESSIVE cache busting ---
     async function loadUsers() {
       window.showLoading('Loading users...');
       const container = document.getElementById('usersList');
@@ -1148,11 +1148,14 @@
       try {
         const usernames = await window.AccountManager.listUsers(user.pat);
         const blocked = await window.AccountManager.getBlockedUsers();
-        // Get verification status for each user
+        
+        // Get verification status for each user – with UNIQUE cache buster per user
         const verificationStatus = {};
         for (const username of usernames) {
-          const isVerified = await window.AccountManager.isEmailVerified(username);
+          // Force a fresh check for each user individually
+          const isVerified = await window.AccountManager.isEmailVerified(username, true);
           verificationStatus[username] = isVerified;
+          console.log(`📋 ${username}: ${isVerified ? '✅ Verified' : '❌ Unverified'}`);
         }
 
         container.innerHTML = '';
@@ -1193,8 +1196,9 @@
               window.showLoading('Verifying user...');
               try {
                 await window.AccountManager.verifyUser(username, user.pat);
-                await loadUsers(); // refresh list
-                showToast(`User ${username} verified successfully.`);
+                showToast(`User ${username} verified successfully. Refreshing list...`);
+                // Force a fresh reload
+                await loadUsers();
               } catch(err) {
                 showToast('Verification failed: ' + err.message, 'error');
               } finally {
