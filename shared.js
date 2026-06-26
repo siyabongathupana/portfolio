@@ -1,4 +1,4 @@
-// shared.js – Complete with aggressive retries and cache busting
+// shared.js – with guaranteed verification using GitHub API + aggressive retries
 
 window.showLoading = function (msg = 'Processing...') {
   let loader = document.getElementById('globalLoader');
@@ -306,7 +306,7 @@ window.saveUserPreferences = async function(username, prefs, token) {
 };
 
 // ================================
-// ACCOUNT MANAGER – WITH RETRY LOGIC
+// ACCOUNT MANAGER – WITH GUARANTEED VERIFICATION
 // ================================
 window.AccountManager = {
   async _ensureEmailJS() {
@@ -358,102 +358,94 @@ window.AccountManager = {
   },
   
   // ============================================================
-  // FIXED: isEmailVerified – with RETRIES and aggressive cache busting
+  // GUARANTEED VERIFICATION: Uses GitHub API with 10 retries
   // ============================================================
-  async isEmailVerified(email, forceCheck = false, retries = 5) {
+  async isEmailVerified(email, forceCheck = false, maxRetries = 10) {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(email);
     
-    // Generate a unique cache buster for this call
-    const cb = Date.now().toString(36) + Math.random().toString(36).substring(2, 10);
-    
-    // We'll try multiple endpoints: first GitHub API, then raw CDN (fallback)
-    const endpoints = [
-      // Primary: GitHub API with cache busting
-      {
-        url: `https://api.github.com/repos/${owner}/${repo}/contents/data/verified_users.json?ref=${branch}&cb=${cb}`,
-        isApi: true
-      },
-      // Individual user file via API
-      {
-        url: `https://api.github.com/repos/${owner}/${repo}/contents/${dataPath}/users/${encUser}/verified.json?ref=${branch}&cb=${cb}`,
-        isApi: true
-      },
-      // Fallback: raw CDN with cache busting
-      {
-        url: `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${dataPath}/users/${encUser}/verified.json?cb=${cb}`,
-        isApi: false
-      },
-      // Fallback: raw CDN global list
-      {
-        url: `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/data/verified_users.json?cb=${cb}`,
-        isApi: false
-      }
-    ];
+    // If forceCheck is false, check sessionStorage first
+    if (!forceCheck) {
+      const cached = sessionStorage.getItem(`verified_${email}`);
+      if (cached === 'true') return true;
+    }
 
-    let attempt = 0;
-    while (attempt < retries) {
-      attempt++;
-      console.log(`🔍 Checking verification for ${email} (attempt ${attempt}/${retries})...`);
+    // Try up to maxRetries times with exponential backoff
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      const cb = Date.now().toString(36) + Math.random().toString(36).substring(2, 8);
+      console.log(`🔍 [${attempt}/${maxRetries}] Checking verification for ${email}...`);
 
-      for (const endpoint of endpoints) {
-        try {
-          const resp = await fetch(endpoint.url, {
-            headers: {
-              'Accept': endpoint.isApi ? 'application/vnd.github.v3+json' : 'text/plain',
-              'Cache-Control': 'no-cache, no-store, must-revalidate',
-              'Pragma': 'no-cache'
-            },
-            cache: 'no-store'
-          });
+      try {
+        // 1️⃣ Check individual verified.json via GitHub API
+        const userUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${dataPath}/users/${encUser}/verified.json?ref=${branch}&cb=${cb}`;
+        const resp = await fetch(userUrl, {
+          headers: {
+            'Authorization': `token ${window.SessionManager.getCurrentUser()?.pat || ''}`,
+            'Accept': 'application/vnd.github.v3+json',
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache'
+          },
+          cache: 'no-store'
+        });
 
-          if (resp.ok) {
-            let data;
-            if (endpoint.isApi) {
-              const json = await resp.json();
-              // Decode base64 content
-              const content = atob(json.content.replace(/\n/g, ''));
-              data = JSON.parse(content);
-            } else {
-              data = await resp.json();
-            }
-
-            // Check if the user is in the verified list or the individual file says verified
-            let isVerified = false;
-            if (Array.isArray(data)) {
-              // Legacy: if data is an array of emails (old format)
-              isVerified = data.includes(email);
-            } else if (data.verified) {
-              if (Array.isArray(data.verified)) {
-                isVerified = data.verified.includes(email);
-              } else if (data.verified === true) {
-                isVerified = true;
-              }
-            }
-            // Also check if email is directly the object key (for individual file)
-            if (data.email && data.email === email && data.verified === true) {
-              isVerified = true;
-            }
-
-            if (isVerified) {
-              console.log(`✅ Verified via ${endpoint.url} for ${email}`);
-              return true;
-            }
+        if (resp.ok) {
+          const data = await resp.json();
+          const content = atob(data.content.replace(/\n/g, ''));
+          const json = JSON.parse(content);
+          if (json.verified === true) {
+            console.log(`✅ Verified for ${email} (attempt ${attempt})`);
+            sessionStorage.setItem(`verified_${email}`, 'true');
+            return true;
           }
-        } catch (e) {
-          console.warn(`⚠️ Failed to check ${endpoint.url}:`, e);
         }
-      }
 
-      // If not verified and we have more retries, wait with exponential backoff
-      if (attempt < retries) {
-        const wait = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
-        console.log(`⏳ Waiting ${wait}ms before retry...`);
-        await new Promise(resolve => setTimeout(resolve, wait));
+        // 2️⃣ Also check global verified_users.json
+        const globalUrl = `https://api.github.com/repos/${owner}/${repo}/contents/data/verified_users.json?ref=${branch}&cb=${cb}`;
+        const globalResp = await fetch(globalUrl, {
+          headers: {
+            'Authorization': `token ${window.SessionManager.getCurrentUser()?.pat || ''}`,
+            'Accept': 'application/vnd.github.v3+json',
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache'
+          },
+          cache: 'no-store'
+        });
+
+        if (globalResp.ok) {
+          const globalData = await globalResp.json();
+          const globalContent = atob(globalData.content.replace(/\n/g, ''));
+          const globalJson = JSON.parse(globalContent);
+          if (globalJson.verified && globalJson.verified.includes(email)) {
+            console.log(`✅ Verified for ${email} via global list (attempt ${attempt})`);
+            sessionStorage.setItem(`verified_${email}`, 'true');
+            return true;
+          }
+        }
+
+        // If this was the last attempt, return false
+        if (attempt === maxRetries) {
+          console.log(`❌ ${email} not verified after ${maxRetries} attempts`);
+          sessionStorage.setItem(`verified_${email}`, 'false');
+          return false;
+        }
+
+        // Wait with exponential backoff before retrying
+        const waitTime = Math.min(500 * Math.pow(1.5, attempt - 1), 5000);
+        console.log(`⏳ Waiting ${waitTime}ms before retry ${attempt + 1}...`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+
+      } catch (err) {
+        console.warn(`⚠️ Verification check attempt ${attempt} failed:`, err);
+        if (attempt === maxRetries) {
+          console.error(`❌ All ${maxRetries} attempts failed for ${email}`);
+          return false;
+        }
+        // Wait before retrying on error too
+        const waitTime = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
       }
     }
 
-    console.log(`❌ Not verified for ${email} after ${retries} attempts`);
     return false;
   },
   
@@ -624,6 +616,9 @@ window.AccountManager = {
       await GitHubAPI.updateFile(owner, repo, globalPath, globalData, `Add ${username} to verified list`, branch, adminToken, globalSha);
       console.log(`✅ Added ${username} to global verified list`);
     }
+
+    // Clear cached verification status
+    sessionStorage.removeItem(`verified_${username}`);
 
     await window.Logger.logActivity('admin', 'verify_user', `Verified user ${username}`);
     return result;
