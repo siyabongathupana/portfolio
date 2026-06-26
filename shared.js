@@ -1,4 +1,4 @@
-// shared.js – with guaranteed verification using GitHub API + aggressive retries
+// shared.js – Fast & reliable verification (3 retries, 300ms delay)
 
 window.showLoading = function (msg = 'Processing...') {
   let loader = document.getElementById('globalLoader');
@@ -306,7 +306,7 @@ window.saveUserPreferences = async function(username, prefs, token) {
 };
 
 // ================================
-// ACCOUNT MANAGER – WITH GUARANTEED VERIFICATION
+// ACCOUNT MANAGER – FAST VERIFICATION (3 retries, 300ms delay)
 // ================================
 window.AccountManager = {
   async _ensureEmailJS() {
@@ -358,9 +358,9 @@ window.AccountManager = {
   },
   
   // ============================================================
-  // GUARANTEED VERIFICATION: Uses GitHub API with 10 retries
+  // FAST VERIFICATION: 3 retries, 300ms delay (admin dashboard)
   // ============================================================
-  async isEmailVerified(email, forceCheck = false, maxRetries = 10) {
+  async isEmailVerified(email, forceCheck = false, maxRetries = 3) {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(email);
     
@@ -370,10 +370,9 @@ window.AccountManager = {
       if (cached === 'true') return true;
     }
 
-    // Try up to maxRetries times with exponential backoff
+    // Try up to maxRetries times with short delays
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       const cb = Date.now().toString(36) + Math.random().toString(36).substring(2, 8);
-      console.log(`🔍 [${attempt}/${maxRetries}] Checking verification for ${email}...`);
 
       try {
         // 1️⃣ Check individual verified.json via GitHub API
@@ -429,9 +428,8 @@ window.AccountManager = {
           return false;
         }
 
-        // Wait with exponential backoff before retrying
-        const waitTime = Math.min(500 * Math.pow(1.5, attempt - 1), 5000);
-        console.log(`⏳ Waiting ${waitTime}ms before retry ${attempt + 1}...`);
+        // Wait with short delay before retrying
+        const waitTime = 300 * attempt; // 300ms, 600ms, 900ms...
         await new Promise(resolve => setTimeout(resolve, waitTime));
 
       } catch (err) {
@@ -440,8 +438,7 @@ window.AccountManager = {
           console.error(`❌ All ${maxRetries} attempts failed for ${email}`);
           return false;
         }
-        // Wait before retrying on error too
-        const waitTime = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+        const waitTime = 300 * attempt;
         await new Promise(resolve => setTimeout(resolve, waitTime));
       }
     }
