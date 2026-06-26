@@ -1,4 +1,4 @@
-// shared.js – Complete with cache‑proof verification + polling support
+// shared.js – Complete with AGGRESSIVE cache busting for verification
 
 window.showLoading = function (msg = 'Processing...') {
   let loader = document.getElementById('globalLoader');
@@ -278,7 +278,7 @@ window.compressImage = function(file, maxW = 1600, maxH = 1600, quality = 0.85) 
 };
 
 // ================================
-// USER PREFERENCES (for encryption flag)
+// USER PREFERENCES
 // ================================
 window.loadUserPreferences = async function(username, token) {
   const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
@@ -306,7 +306,7 @@ window.saveUserPreferences = async function(username, prefs, token) {
 };
 
 // ================================
-// ACCOUNT MANAGER
+// ACCOUNT MANAGER – WITH AGGRESSIVE CACHE BUSTING
 // ================================
 window.AccountManager = {
   async _ensureEmailJS() {
@@ -358,16 +358,16 @@ window.AccountManager = {
   },
   
   // ============================================================
-  // FIXED: isEmailVerified – uses GitHub API + random cache buster
+  // FIXED: isEmailVerified – uses UNIQUE cache buster per call
   // ============================================================
   async isEmailVerified(email, forceCheck = false) {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(email);
     
-    // Use random cache buster to force fresh data from GitHub API
-    const cb = Math.random().toString(36).substring(2, 10);
+    // UNIQUE cache buster for EVERY call – ensures fresh data
+    const cb = Date.now().toString(36) + Math.random().toString(36).substring(2, 8);
     
-    // 1. Check global verified_users.json via GitHub API (not CDN)
+    // 1. Check global verified_users.json via GitHub API
     const globalUrl = `https://api.github.com/repos/${owner}/${repo}/contents/data/verified_users.json?ref=${branch}&cb=${cb}`;
     try {
       const resp = await fetch(globalUrl, {
@@ -591,7 +591,7 @@ window.AccountManager = {
 };
 
 // ================================
-// PORTFOLIO DATA (with auto‑detect encryption) – unchanged
+// PORTFOLIO DATA
 // ================================
 window.portfolioData = (() => {
   const PROJECTS_KEY = 'portfolioProjects';
