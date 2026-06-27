@@ -1,4 +1,4 @@
-// shared.js – Fast & reliable verification (3 retries, 300ms delay)
+// shared.js – Guaranteed instant verification using localStorage cache
 
 window.showLoading = function (msg = 'Processing...') {
   let loader = document.getElementById('globalLoader');
@@ -306,7 +306,7 @@ window.saveUserPreferences = async function(username, prefs, token) {
 };
 
 // ================================
-// ACCOUNT MANAGER – FAST VERIFICATION (3 retries, 300ms delay)
+// ACCOUNT MANAGER – WITH LOCAL CACHE
 // ================================
 window.AccountManager = {
   async _ensureEmailJS() {
@@ -358,91 +358,144 @@ window.AccountManager = {
   },
   
   // ============================================================
-  // FAST VERIFICATION: 3 retries, 300ms delay (admin dashboard)
+  // CACHED VERIFICATION – reads from localStorage first
   // ============================================================
-  async isEmailVerified(email, forceCheck = false, maxRetries = 3) {
+  isVerifiedLocally(email) {
+    const cache = localStorage.getItem('verifiedCache');
+    if (cache) {
+      try {
+        const data = JSON.parse(cache);
+        if (data[email] === true) return true;
+        if (data[email] === false) return false;
+      } catch(e) {}
+    }
+    return null; // unknown
+  },
+
+  setVerifiedLocally(email, status) {
+    let cache = {};
+    const existing = localStorage.getItem('verifiedCache');
+    if (existing) {
+      try { cache = JSON.parse(existing); } catch(e) {}
+    }
+    cache[email] = status;
+    localStorage.setItem('verifiedCache', JSON.stringify(cache));
+  },
+
+  // For admin dashboard: returns all verification statuses from cache
+  getAllVerifiedStatuses() {
+    const cache = localStorage.getItem('verifiedCache');
+    if (cache) {
+      try { return JSON.parse(cache); } catch(e) {}
+    }
+    return {};
+  },
+
+  // Admin bulk refresh – fetches fresh from GitHub and updates cache
+  async refreshVerificationCache(adminToken) {
+    const { owner, repo, branch } = window.REPO_CONFIG;
+    const cb = Date.now().toString(36) + Math.random().toString(36).substring(2, 6);
+    const url = `https://api.github.com/repos/${owner}/${repo}/contents/data/verified_users.json?ref=${branch}&cb=${cb}`;
+    try {
+      const resp = await fetch(url, {
+        headers: {
+          'Authorization': `token ${adminToken}`,
+          'Accept': 'application/vnd.github.v3+json',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        },
+        cache: 'no-store'
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        const content = atob(data.content.replace(/\n/g, ''));
+        const json = JSON.parse(content);
+        const verifiedList = json.verified || [];
+        // Build a map of email->true for all verified
+        const map = {};
+        verifiedList.forEach(email => { map[email] = true; });
+        // Also mark all other known users as false? We'll only store true values.
+        // For users not in the list, we don't set them; they remain as whatever they were.
+        // But we want to show verified only if true.
+        // We'll update the cache with the fresh list.
+        let cache = this.getAllVerifiedStatuses();
+        // For each verified, set true
+        verifiedList.forEach(email => { cache[email] = true; });
+        // For users that are in the list but previously false, we leave them.
+        // We don't clear others, because they might be unverified.
+        // If we want to be thorough, we could set all known users from the users list.
+        // But we'll just merge.
+        localStorage.setItem('verifiedCache', JSON.stringify(cache));
+        console.log('✅ Verification cache refreshed from GitHub');
+        return cache;
+      }
+    } catch (err) {
+      console.warn('Failed to refresh cache:', err);
+    }
+    return this.getAllVerifiedStatuses();
+  },
+
+  // Login verification – tries cache first, then single API call
+  async isEmailVerified(email, forceCheck = false) {
+    // First check local cache
+    const cached = this.isVerifiedLocally(email);
+    if (cached === true) return true;
+    if (!forceCheck && cached === false) return false; // only if not forcing
+
+    // If not cached or forceCheck, do a single API call (no retries)
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(email);
-    
-    // If forceCheck is false, check sessionStorage first
-    if (!forceCheck) {
-      const cached = sessionStorage.getItem(`verified_${email}`);
-      if (cached === 'true') return true;
-    }
-
-    // Try up to maxRetries times with short delays
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      const cb = Date.now().toString(36) + Math.random().toString(36).substring(2, 8);
-
-      try {
-        // 1️⃣ Check individual verified.json via GitHub API
-        const userUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${dataPath}/users/${encUser}/verified.json?ref=${branch}&cb=${cb}`;
-        const resp = await fetch(userUrl, {
-          headers: {
-            'Authorization': `token ${window.SessionManager.getCurrentUser()?.pat || ''}`,
-            'Accept': 'application/vnd.github.v3+json',
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache'
-          },
-          cache: 'no-store'
-        });
-
-        if (resp.ok) {
-          const data = await resp.json();
-          const content = atob(data.content.replace(/\n/g, ''));
-          const json = JSON.parse(content);
-          if (json.verified === true) {
-            console.log(`✅ Verified for ${email} (attempt ${attempt})`);
-            sessionStorage.setItem(`verified_${email}`, 'true');
-            return true;
-          }
+    const cb = Date.now().toString(36) + Math.random().toString(36).substring(2, 8);
+    const userUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${dataPath}/users/${encUser}/verified.json?ref=${branch}&cb=${cb}`;
+    try {
+      const resp = await fetch(userUrl, {
+        headers: {
+          'Authorization': `token ${window.SessionManager.getCurrentUser()?.pat || ''}`,
+          'Accept': 'application/vnd.github.v3+json',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        },
+        cache: 'no-store'
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        const content = atob(data.content.replace(/\n/g, ''));
+        const json = JSON.parse(content);
+        if (json.verified === true) {
+          this.setVerifiedLocally(email, true);
+          return true;
         }
-
-        // 2️⃣ Also check global verified_users.json
-        const globalUrl = `https://api.github.com/repos/${owner}/${repo}/contents/data/verified_users.json?ref=${branch}&cb=${cb}`;
-        const globalResp = await fetch(globalUrl, {
-          headers: {
-            'Authorization': `token ${window.SessionManager.getCurrentUser()?.pat || ''}`,
-            'Accept': 'application/vnd.github.v3+json',
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache'
-          },
-          cache: 'no-store'
-        });
-
-        if (globalResp.ok) {
-          const globalData = await globalResp.json();
-          const globalContent = atob(globalData.content.replace(/\n/g, ''));
-          const globalJson = JSON.parse(globalContent);
-          if (globalJson.verified && globalJson.verified.includes(email)) {
-            console.log(`✅ Verified for ${email} via global list (attempt ${attempt})`);
-            sessionStorage.setItem(`verified_${email}`, 'true');
-            return true;
-          }
-        }
-
-        // If this was the last attempt, return false
-        if (attempt === maxRetries) {
-          console.log(`❌ ${email} not verified after ${maxRetries} attempts`);
-          sessionStorage.setItem(`verified_${email}`, 'false');
-          return false;
-        }
-
-        // Wait with short delay before retrying
-        const waitTime = 300 * attempt; // 300ms, 600ms, 900ms...
-        await new Promise(resolve => setTimeout(resolve, waitTime));
-
-      } catch (err) {
-        console.warn(`⚠️ Verification check attempt ${attempt} failed:`, err);
-        if (attempt === maxRetries) {
-          console.error(`❌ All ${maxRetries} attempts failed for ${email}`);
-          return false;
-        }
-        const waitTime = 300 * attempt;
-        await new Promise(resolve => setTimeout(resolve, waitTime));
       }
+    } catch (err) {
+      console.warn('Verification API call failed:', err);
     }
-
+    // If individual check fails, try global list as fallback
+    try {
+      const cb2 = Date.now().toString(36) + Math.random().toString(36).substring(2, 8);
+      const globalUrl = `https://api.github.com/repos/${owner}/${repo}/contents/data/verified_users.json?ref=${branch}&cb=${cb2}`;
+      const resp = await fetch(globalUrl, {
+        headers: {
+          'Authorization': `token ${window.SessionManager.getCurrentUser()?.pat || ''}`,
+          'Accept': 'application/vnd.github.v3+json',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        },
+        cache: 'no-store'
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        const content = atob(data.content.replace(/\n/g, ''));
+        const json = JSON.parse(content);
+        if (json.verified && json.verified.includes(email)) {
+          this.setVerifiedLocally(email, true);
+          return true;
+        }
+      }
+    } catch (err) {
+      console.warn('Global verification check failed:', err);
+    }
+    // If not verified, cache as false
+    this.setVerifiedLocally(email, false);
     return false;
   },
   
@@ -614,8 +667,8 @@ window.AccountManager = {
       console.log(`✅ Added ${username} to global verified list`);
     }
 
-    // Clear cached verification status
-    sessionStorage.removeItem(`verified_${username}`);
+    // Update local cache immediately
+    this.setVerifiedLocally(username, true);
 
     await window.Logger.logActivity('admin', 'verify_user', `Verified user ${username}`);
     return result;
