@@ -1,4 +1,4 @@
-// shared.js – Guaranteed instant verification using localStorage cache
+// shared.js – Complete version with fixed project deletion, enhanced logging, full PDF generation (no analytics, no dark mode)
 
 window.showLoading = function (msg = 'Processing...') {
   let loader = document.getElementById('globalLoader');
@@ -44,25 +44,14 @@ window.SessionManager = (() => {
       }
       return current;
     },
-    setCurrentUser: (username, pat, passphrase) => {
+    setCurrentUser: (username, pat) => {
       current = { username, pat, timestamp: Date.now() };
       sessionStorage.setItem('portfolioUser', JSON.stringify(current));
-      if (passphrase) {
-        sessionStorage.setItem('portfolioPassphrase', btoa(passphrase));
-      }
       window.Logger.log('login', `User logged in as ${username}`, 'INFO');
-    },
-    getPassphrase: () => {
-      const stored = sessionStorage.getItem('portfolioPassphrase');
-      if (stored) {
-        try { return atob(stored); } catch(e) {}
-      }
-      return null;
     },
     logout: () => {
       current = null;
       sessionStorage.removeItem('portfolioUser');
-      sessionStorage.removeItem('portfolioPassphrase');
     },
     isAdmin: () => {
       const user = window.SessionManager.getCurrentUser();
@@ -71,6 +60,7 @@ window.SessionManager = (() => {
   };
 })();
 
+// Enhanced Logger
 window.Logger = {
   async _writeTextFile(path, content, commitMsg, branch, token, sha = null) {
     const { owner, repo } = window.REPO_CONFIG;
@@ -277,37 +267,6 @@ window.compressImage = function(file, maxW = 1600, maxH = 1600, quality = 0.85) 
   });
 };
 
-// ================================
-// USER PREFERENCES
-// ================================
-window.loadUserPreferences = async function(username, token) {
-  const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-  const encUser = encodeURIComponent(username);
-  const path = `${dataPath}/users/${encUser}/preferences.json`;
-  try {
-    const file = await GitHubAPI.getFileContent(owner, repo, path, branch, token);
-    if (file && file.content) {
-      return JSON.parse(file.content);
-    }
-  } catch(e) {}
-  return { encryptionEnabled: false };
-};
-
-window.saveUserPreferences = async function(username, prefs, token) {
-  const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-  const encUser = encodeURIComponent(username);
-  const path = `${dataPath}/users/${encUser}/preferences.json`;
-  let sha = null;
-  try {
-    const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, token);
-    if (existing && existing.sha) sha = existing.sha;
-  } catch(e) {}
-  await GitHubAPI.updateFile(owner, repo, path, prefs, 'Update preferences', branch, token, sha);
-};
-
-// ================================
-// ACCOUNT MANAGER – WITH LOCAL CACHE
-// ================================
 window.AccountManager = {
   async _ensureEmailJS() {
     if (typeof emailjs === 'undefined') {
@@ -327,25 +286,26 @@ window.AccountManager = {
   },
   async _notifyAdminNewUser(userEmail) {
     const cfg = window.APP_CONFIG.emailjs;
-    console.log(`🔔 [Admin Notification] New user registered: ${userEmail}`);
-    console.log(`   → Go to Admin → Users tab to verify them.`);
-    
-    if (!cfg || !cfg.publicKey || cfg.publicKey === 'YOUR_EMAILJS_PUBLIC_KEY') {
-      console.warn('⚠️ EmailJS not configured – check config.js');
-      return;
-    }
+    if (!cfg || !cfg.publicKey || !cfg.adminTemplateID) return;
     try {
       await this._sendEmail(cfg.adminTemplateID, {
         to_email: cfg.adminEmail,
-        subject: `New user registration: ${userEmail}`,
-        message: `A new user (${userEmail}) has created an account. Please verify them from the admin panel.`
+        subject: `New user: ${userEmail}`,
+        message: `New account created: ${userEmail}`
       });
-      console.log(`📧 Admin notification email sent to ${cfg.adminEmail}`);
-    } catch (e) {
-      console.warn('⚠️ Admin email failed (ignored):', e.message);
-    }
+    } catch (e) { console.warn('Admin email failed', e); }
   },
-
+  async _notifyUserConfirmation(userEmail) {
+    const cfg = window.APP_CONFIG.emailjs;
+    if (!cfg || !cfg.publicKey || !cfg.userTemplateID) return;
+    try {
+      await this._sendEmail(cfg.userTemplateID, {
+        to_email: userEmail,
+        subject: 'Welcome to Your Portfolio',
+        message: `Your account (${userEmail}) has been created. You can now log in and manage your portfolio.`
+      });
+    } catch (e) { console.warn('User email failed', e); }
+  },
   async fetchAccount(username) {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(username);
@@ -357,145 +317,25 @@ window.AccountManager = {
     } catch { return null; }
   },
   
-  // ============================================================
-  // CACHED VERIFICATION – reads from localStorage first
-  // ============================================================
-  isVerifiedLocally(email) {
-    const cache = localStorage.getItem('verifiedCache');
-    if (cache) {
-      try {
-        const data = JSON.parse(cache);
-        if (data[email] === true) return true;
-        if (data[email] === false) return false;
-      } catch(e) {}
-    }
-    return null; // unknown
-  },
-
-  setVerifiedLocally(email, status) {
-    let cache = {};
-    const existing = localStorage.getItem('verifiedCache');
-    if (existing) {
-      try { cache = JSON.parse(existing); } catch(e) {}
-    }
-    cache[email] = status;
-    localStorage.setItem('verifiedCache', JSON.stringify(cache));
-  },
-
-  // For admin dashboard: returns all verification statuses from cache
-  getAllVerifiedStatuses() {
-    const cache = localStorage.getItem('verifiedCache');
-    if (cache) {
-      try { return JSON.parse(cache); } catch(e) {}
-    }
-    return {};
-  },
-
-  // Admin bulk refresh – fetches fresh from GitHub and updates cache
-  async refreshVerificationCache(adminToken) {
-    const { owner, repo, branch } = window.REPO_CONFIG;
-    const cb = Date.now().toString(36) + Math.random().toString(36).substring(2, 6);
-    const url = `https://api.github.com/repos/${owner}/${repo}/contents/data/verified_users.json?ref=${branch}&cb=${cb}`;
-    try {
-      const resp = await fetch(url, {
-        headers: {
-          'Authorization': `token ${adminToken}`,
-          'Accept': 'application/vnd.github.v3+json',
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache'
-        },
-        cache: 'no-store'
-      });
-      if (resp.ok) {
-        const data = await resp.json();
-        const content = atob(data.content.replace(/\n/g, ''));
-        const json = JSON.parse(content);
-        const verifiedList = json.verified || [];
-        // Build a map of email->true for all verified
-        const map = {};
-        verifiedList.forEach(email => { map[email] = true; });
-        // Also mark all other known users as false? We'll only store true values.
-        // For users not in the list, we don't set them; they remain as whatever they were.
-        // But we want to show verified only if true.
-        // We'll update the cache with the fresh list.
-        let cache = this.getAllVerifiedStatuses();
-        // For each verified, set true
-        verifiedList.forEach(email => { cache[email] = true; });
-        // For users that are in the list but previously false, we leave them.
-        // We don't clear others, because they might be unverified.
-        // If we want to be thorough, we could set all known users from the users list.
-        // But we'll just merge.
-        localStorage.setItem('verifiedCache', JSON.stringify(cache));
-        console.log('✅ Verification cache refreshed from GitHub');
-        return cache;
-      }
-    } catch (err) {
-      console.warn('Failed to refresh cache:', err);
-    }
-    return this.getAllVerifiedStatuses();
-  },
-
-  // Login verification – tries cache first, then single API call
-  async isEmailVerified(email, forceCheck = false) {
-    // First check local cache
-    const cached = this.isVerifiedLocally(email);
-    if (cached === true) return true;
-    if (!forceCheck && cached === false) return false; // only if not forcing
-
-    // If not cached or forceCheck, do a single API call (no retries)
+  async isEmailVerified(email) {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(email);
-    const cb = Date.now().toString(36) + Math.random().toString(36).substring(2, 8);
-    const userUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${dataPath}/users/${encUser}/verified.json?ref=${branch}&cb=${cb}`;
+    const globalUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/data/verified_users.json`;
     try {
-      const resp = await fetch(userUrl, {
-        headers: {
-          'Authorization': `token ${window.SessionManager.getCurrentUser()?.pat || ''}`,
-          'Accept': 'application/vnd.github.v3+json',
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache'
-        },
-        cache: 'no-store'
-      });
+      const resp = await fetch(globalUrl);
       if (resp.ok) {
         const data = await resp.json();
-        const content = atob(data.content.replace(/\n/g, ''));
-        const json = JSON.parse(content);
-        if (json.verified === true) {
-          this.setVerifiedLocally(email, true);
-          return true;
-        }
+        if (data.verified && data.verified.includes(email)) return true;
       }
-    } catch (err) {
-      console.warn('Verification API call failed:', err);
-    }
-    // If individual check fails, try global list as fallback
+    } catch (err) {}
+    const userUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${dataPath}/users/${encUser}/verified.json`;
     try {
-      const cb2 = Date.now().toString(36) + Math.random().toString(36).substring(2, 8);
-      const globalUrl = `https://api.github.com/repos/${owner}/${repo}/contents/data/verified_users.json?ref=${branch}&cb=${cb2}`;
-      const resp = await fetch(globalUrl, {
-        headers: {
-          'Authorization': `token ${window.SessionManager.getCurrentUser()?.pat || ''}`,
-          'Accept': 'application/vnd.github.v3+json',
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache'
-        },
-        cache: 'no-store'
-      });
+      const resp = await fetch(userUrl);
       if (resp.ok) {
         const data = await resp.json();
-        const content = atob(data.content.replace(/\n/g, ''));
-        const json = JSON.parse(content);
-        if (json.verified && json.verified.includes(email)) {
-          this.setVerifiedLocally(email, true);
-          return true;
-        }
+        if (data.verified === true) return true;
       }
-    } catch (err) {
-      console.warn('Global verification check failed:', err);
-    }
-    // If not verified, cache as false
-    this.setVerifiedLocally(email, false);
+    } catch (err) {}
     return false;
   },
   
@@ -508,27 +348,16 @@ window.AccountManager = {
     const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, pat).catch(() => null);
     if (existing && existing.sha) throw new Error('An account with this email already exists on GitHub.');
     await GitHubAPI.updateFile(owner, repo, path, encrypted, `Register ${username}`, branch, pat, existing?.sha);
-    
     const verificationStatus = { verified: false, createdAt: Date.now() };
     const verificationPath = `${dataPath}/users/${encUser}/verified.json`;
     try {
       await GitHubAPI.updateFile(owner, repo, verificationPath, verificationStatus, `Create verification status for ${username}`, branch, pat);
-    } catch (err) {
-      console.warn('⚠️ Could not create verified.json:', err.message);
-    }
-    
-    try {
-      await window.saveUserPreferences(username, { encryptionEnabled: true }, pat);
-      console.log(`🔐 Encryption enabled for ${username}`);
-    } catch (e) {
-      console.warn(`⚠️ Could not save preferences for ${username}:`, e.message);
-    }
-    
-    await this._notifyAdminNewUser(username);
+    } catch (err) {}
+    this._notifyAdminNewUser(username);
+    this._notifyUserConfirmation(username);
     await window.Logger.logActivity('account', 'register', `New user registered: ${username}`, { email: username });
     return true;
   },
-  
   async login(username, passphrase) {
     const blocked = await this.getBlockedUsers();
     if (blocked.includes(username)) throw new Error('Your account has been blocked. Contact the administrator.');
@@ -540,7 +369,6 @@ window.AccountManager = {
     await window.Logger.logActivity('account', 'login', `User logged in: ${username}`);
     return data.token;
   },
-  
   async getBlockedUsers() {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const url = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${dataPath}/blocked_users.json`;
@@ -550,7 +378,6 @@ window.AccountManager = {
       return await resp.json();
     } catch { return []; }
   },
-  
   async toggleBlock(username, block, adminToken) {
     const blocked = await this.getBlockedUsers();
     if (block) { if (!blocked.includes(username)) blocked.push(username); }
@@ -564,7 +391,6 @@ window.AccountManager = {
     await window.Logger.logActivity('admin', 'toggle_block', `${block ? 'Blocked' : 'Unblocked'} user ${username}`);
     return true;
   },
-  
   async listUsers(adminToken) {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const url = `https://api.github.com/repos/${owner}/${repo}/contents/${dataPath}/users?ref=${branch}`;
@@ -575,7 +401,6 @@ window.AccountManager = {
     const items = await resp.json();
     return items.filter(i => i.type === 'dir').map(i => i.name);
   },
-  
   async deleteUser(username, adminToken) {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(username);
@@ -592,7 +417,6 @@ window.AccountManager = {
     await window.Logger.logActivity('admin', 'delete_user', `Deleted user ${username}`);
     return true;
   },
-  
   async getUserStats(username, adminToken) {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(username);
@@ -629,55 +453,9 @@ window.AccountManager = {
       }
     } catch (e) {}
     return { projects: projectCount, certificates: certCount };
-  },
-
-  async verifyUser(username, adminToken) {
-    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const encUser = encodeURIComponent(username);
-    const path = `${dataPath}/users/${encUser}/verified.json`;
-
-    let sha = null;
-    try {
-      const file = await GitHubAPI.getFileContent(owner, repo, path, branch, adminToken);
-      if (file && file.sha) sha = file.sha;
-    } catch(e) {}
-
-    const newContent = {
-      verified: true,
-      verifiedAt: Date.now(),
-      email: username
-    };
-    const result = await GitHubAPI.updateFile(owner, repo, path, newContent, `Verify user ${username}`, branch, adminToken, sha);
-    console.log(`✅ Updated individual verified.json for ${username}`);
-
-    const globalPath = `data/verified_users.json`;
-    let globalData = { verified: [] };
-    let globalSha = null;
-    try {
-      const globalFile = await GitHubAPI.getFileContent(owner, repo, globalPath, branch, adminToken);
-      if (globalFile && globalFile.content) {
-        globalData = JSON.parse(globalFile.content);
-        globalSha = globalFile.sha;
-      }
-    } catch(e) {}
-    if (!globalData.verified) globalData.verified = [];
-    if (!globalData.verified.includes(username)) {
-      globalData.verified.push(username);
-      await GitHubAPI.updateFile(owner, repo, globalPath, globalData, `Add ${username} to verified list`, branch, adminToken, globalSha);
-      console.log(`✅ Added ${username} to global verified list`);
-    }
-
-    // Update local cache immediately
-    this.setVerifiedLocally(username, true);
-
-    await window.Logger.logActivity('admin', 'verify_user', `Verified user ${username}`);
-    return result;
   }
 };
 
-// ================================
-// PORTFOLIO DATA
-// ================================
 window.portfolioData = (() => {
   const PROJECTS_KEY = 'portfolioProjects';
   const CERTS_KEY = 'portfolioCertificates';
@@ -718,14 +496,7 @@ window.portfolioData = (() => {
         const path = `${dataPath}/users/${encUser}/projects.json`;
         const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
         if (file && file.content) {
-          let data = JSON.parse(file.content);
-          if (data.salt && data.iv && data.ciphertext) {
-            const passphrase = window.SessionManager.getPassphrase();
-            if (!passphrase) throw new Error('Passphrase required to decrypt projects');
-            const decryptedStr = await window.CryptoUtil.decrypt(data, passphrase);
-            data = JSON.parse(decryptedStr);
-          }
-          return data;
+          return JSON.parse(file.content);
         } else {
           if (user.username === window.APP_CONFIG.publicProfileEmail) {
             return await fetchPublicData(user.username, 'projects');
@@ -749,14 +520,7 @@ window.portfolioData = (() => {
         const path = `${dataPath}/users/${encUser}/certificates.json`;
         const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
         if (file && file.content) {
-          let data = JSON.parse(file.content);
-          if (data.salt && data.iv && data.ciphertext) {
-            const passphrase = window.SessionManager.getPassphrase();
-            if (!passphrase) throw new Error('Passphrase required to decrypt certificates');
-            const decryptedStr = await window.CryptoUtil.decrypt(data, passphrase);
-            data = JSON.parse(decryptedStr);
-          }
-          return data;
+          return JSON.parse(file.content);
         } else {
           if (user.username === window.APP_CONFIG.publicProfileEmail) {
             return await fetchPublicData(user.username, 'certificates');
@@ -780,13 +544,7 @@ window.portfolioData = (() => {
         const path = `${dataPath}/users/${encUser}/projects.json`;
         const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
         if (file && file.content) {
-          let data = JSON.parse(file.content);
-          if (data.salt && data.iv && data.ciphertext) {
-            const passphrase = window.SessionManager.getPassphrase();
-            if (!passphrase) throw new Error('Passphrase required to decrypt projects');
-            const decryptedStr = await window.CryptoUtil.decrypt(data, passphrase);
-            data = JSON.parse(decryptedStr);
-          }
+          const data = JSON.parse(file.content);
           localStorage.setItem(PROJECTS_KEY, JSON.stringify(data));
           return data;
         } else {
@@ -821,13 +579,7 @@ window.portfolioData = (() => {
         const path = `${dataPath}/users/${encUser}/certificates.json`;
         const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
         if (file && file.content) {
-          let data = JSON.parse(file.content);
-          if (data.salt && data.iv && data.ciphertext) {
-            const passphrase = window.SessionManager.getPassphrase();
-            if (!passphrase) throw new Error('Passphrase required to decrypt certificates');
-            const decryptedStr = await window.CryptoUtil.decrypt(data, passphrase);
-            data = JSON.parse(decryptedStr);
-          }
+          const data = JSON.parse(file.content);
           localStorage.setItem(CERTS_KEY, JSON.stringify(data));
           return data;
         } else {
@@ -851,6 +603,7 @@ window.portfolioData = (() => {
     return JSON.parse(localStorage.getItem(CERTS_KEY) || '[]');
   }
 
+  // Fixed saveProjects with proper SHA retry
   async function saveProjects(data, forceEmpty = false) {
     const prev = localStorage.getItem(PROJECTS_KEY);
     if (!forceEmpty && prev) {
@@ -867,19 +620,9 @@ window.portfolioData = (() => {
     const user = window.SessionManager.getCurrentUser();
     if (!user || !user.pat) return;
     await verifyNotBlocked();
-    
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(user.username);
     const path = `${dataPath}/users/${encUser}/projects.json`;
-    
-    const prefs = await window.loadUserPreferences(user.username, user.pat);
-    let contentToSave = data;
-    if (prefs.encryptionEnabled) {
-      const passphrase = window.SessionManager.getPassphrase();
-      if (!passphrase) throw new Error('Passphrase required to encrypt projects');
-      contentToSave = await window.CryptoUtil.encrypt(JSON.stringify(data), passphrase);
-    }
-    
     let retries = 3;
     while (retries > 0) {
       try {
@@ -892,25 +635,20 @@ window.portfolioData = (() => {
             if (remoteFile.content) remoteData = JSON.parse(remoteFile.content);
           }
         } catch(e) {}
-        
-        let finalData = contentToSave;
-        if (!prefs.encryptionEnabled) {
-          const merged = { ...remoteData };
-          for (const [id, proj] of Object.entries(data)) {
-            if (!merged[id] || proj.updatedAt > (merged[id].updatedAt || 0)) {
-              merged[id] = proj;
-            }
+        const merged = { ...remoteData };
+        for (const [id, proj] of Object.entries(data)) {
+          if (!merged[id] || proj.updatedAt > (merged[id].updatedAt || 0)) {
+            merged[id] = proj;
           }
-          for (const id of Object.keys(remoteData)) {
-            if (!data.hasOwnProperty(id)) {
-              delete merged[id];
-              await window.Logger.logActivity('project', 'delete_remote', `Deleted project ${id} from remote`);
-            }
-          }
-          finalData = merged;
-          if (forceEmpty && Object.keys(data).length === 0) finalData = {};
         }
-        
+        for (const id of Object.keys(remoteData)) {
+          if (!data.hasOwnProperty(id)) {
+            delete merged[id];
+            await window.Logger.logActivity('project', 'delete_remote', `Deleted project ${id} from remote`);
+          }
+        }
+        let finalData = merged;
+        if (forceEmpty && Object.keys(data).length === 0) finalData = {};
         await GitHubAPI.updateFile(owner, repo, path, finalData, 'Update projects', branch, user.pat, sha);
         await window.Logger.logActivity('project', 'save', `Saved ${Object.keys(finalData).length} projects`);
         return;
@@ -939,19 +677,9 @@ window.portfolioData = (() => {
     const user = window.SessionManager.getCurrentUser();
     if (!user || !user.pat) return;
     await verifyNotBlocked();
-    
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(user.username);
     const path = `${dataPath}/users/${encUser}/certificates.json`;
-    
-    const prefs = await window.loadUserPreferences(user.username, user.pat);
-    let contentToSave = data;
-    if (prefs.encryptionEnabled) {
-      const passphrase = window.SessionManager.getPassphrase();
-      if (!passphrase) throw new Error('Passphrase required to encrypt certificates');
-      contentToSave = await window.CryptoUtil.encrypt(JSON.stringify(data), passphrase);
-    }
-    
     let retries = 3;
     while (retries > 0) {
       try {
@@ -964,20 +692,15 @@ window.portfolioData = (() => {
             if (remoteFile.content) remoteData = JSON.parse(remoteFile.content);
           }
         } catch(e) {}
-        
-        let finalData = contentToSave;
-        if (!prefs.encryptionEnabled) {
-          const mergedMap = new Map();
-          for (const cert of remoteData) mergedMap.set(cert.id, cert);
-          for (const cert of data) {
-            const existing = mergedMap.get(cert.id);
-            if (!existing || cert.updatedAt > existing.updatedAt) mergedMap.set(cert.id, cert);
-          }
-          const merged = Array.from(mergedMap.values());
-          finalData = merged;
-          if (forceEmpty && data.length === 0) finalData = [];
+        const mergedMap = new Map();
+        for (const cert of remoteData) mergedMap.set(cert.id, cert);
+        for (const cert of data) {
+          const existing = mergedMap.get(cert.id);
+          if (!existing || cert.updatedAt > existing.updatedAt) mergedMap.set(cert.id, cert);
         }
-        
+        const merged = Array.from(mergedMap.values());
+        let finalData = merged;
+        if (forceEmpty && data.length === 0) finalData = [];
         await GitHubAPI.updateFile(owner, repo, path, finalData, 'Update certificates', branch, user.pat, sha);
         await window.Logger.logActivity('certificate', 'save', `Saved ${finalData.length} certificates`);
         return;

@@ -1,4 +1,4 @@
-// timesheet.js – Complete, with fixed PDF week‑based row coloring + Auto‑Detect Encryption for New Users
+// timesheet.js – Complete, with fixed PDF week‑based row coloring
 (function() {
   const user = window.SessionManager?.getCurrentUser();
   if (!user) {
@@ -51,7 +51,7 @@
     toastEl.addEventListener("hidden.bs.toast", () => toastEl.remove());
   }
 
-  // ======================== DATA LOAD & SAVE (with encryption) ========================
+  // ======================== DATA LOAD & SAVE ========================
   async function loadTimesheet() {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(user.username);
@@ -62,14 +62,7 @@
       if (resp.ok) {
         const data = await resp.json();
         const content = atob(data.content.replace(/\n/g, ''));
-        let parsed = JSON.parse(content);
-        // Auto‑detect encryption
-        if (parsed.salt && parsed.iv && parsed.ciphertext) {
-          const passphrase = window.SessionManager.getPassphrase();
-          if (!passphrase) throw new Error('Passphrase required to decrypt timesheet');
-          const decryptedStr = await window.CryptoUtil.decrypt(parsed, passphrase);
-          parsed = JSON.parse(decryptedStr);
-        }
+        const parsed = JSON.parse(content);
         entries = Array.isArray(parsed) ? parsed : [];
         entries = entries.map(e => ({ ...e, updatedAt: e.updatedAt || e.id }));
         entries.sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -83,17 +76,8 @@
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(user.username);
     const path = `${dataPath}/users/${encUser}/${TIMESHEET_FILE}`;
-    
-    // NEW: Check if encryption is enabled for this user
-    const prefs = await window.loadUserPreferences(user.username, user.pat);
-    let contentToSave = dataToSave;
-    if (prefs.encryptionEnabled) {
-      const passphrase = window.SessionManager.getPassphrase();
-      if (!passphrase) throw new Error('Passphrase required to encrypt timesheet');
-      contentToSave = await window.CryptoUtil.encrypt(JSON.stringify(dataToSave), passphrase);
-    }
-    
-    const encodedContent = btoa(unescape(encodeURIComponent(JSON.stringify(contentToSave, null, 2))));
+    const content = JSON.stringify(dataToSave, null, 2);
+    const encodedContent = btoa(unescape(encodeURIComponent(content)));
 
     let sha = null;
     const getUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`;

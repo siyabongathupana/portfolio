@@ -1,12 +1,13 @@
-// login.js – with automatic polling for verification status
+// login.js – Improved with rate limiting, password strength, UX, email verification, and token update
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Rate limiting: store failed attempts in memory
+  // Rate limiting: store failed attempts in memory (resets on page refresh)
   let failedAttempts = 0;
   let lastAttemptTime = 0;
-  const BASE_DELAY = 1000;
+  const BASE_DELAY = 1000; // 1 second
   const MAX_ATTEMPTS = 5;
 
+  // Helper to enforce delay
   async function enforceRateLimit() {
     const now = Date.now();
     if (failedAttempts >= MAX_ATTEMPTS) {
@@ -16,6 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const remaining = Math.ceil((waitTime - elapsed) / 1000);
         throw new Error(`Too many failed attempts. Please wait ${remaining} seconds.`);
       } else {
+        // Reset after cooldown
         failedAttempts = 0;
       }
     }
@@ -68,6 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Loading button state
   function setButtonLoading(btn, isLoading) {
     if (isLoading) {
       btn.classList.add('btn-loading');
@@ -80,6 +83,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // Store original button texts
   const loginBtn = document.getElementById('loginBtn');
   const registerBtn = document.getElementById('registerBtn');
   if (loginBtn) loginBtn.originalText = loginBtn.innerHTML;
@@ -90,7 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
     showError('Your account has been blocked. Contact the administrator.');
   }
   if (params.get('unverified') === '1') {
-    showError('Your account is pending admin approval. Please wait for the administrator to verify your account. We will automatically check again every few seconds.');
+    showError('Please verify your email address before logging in. Check your inbox for the verification link.');
   }
   if (params.get('reason') === 'token_expired') {
     showError('Your GitHub token has expired. Please update it using the "Update GitHub Token" link below.');
@@ -124,23 +128,32 @@ document.addEventListener('DOMContentLoaded', () => {
     showError('To reset your passphrase, please contact the administrator (siyabongatshem@gmail.com). Your account will be reset and you can re-register with the same email.');
   });
 
-  // ======================== UPDATE TOKEN MODAL ========================
+  // ======================== UPDATE TOKEN FUNCTIONALITY ========================
   const updateTokenLink = document.getElementById('updateTokenLink');
   if (updateTokenLink) {
     updateTokenLink.addEventListener('click', (e) => {
       e.preventDefault();
-      // clear fields
-      document.getElementById('updateTokenEmail').value = '';
-      document.getElementById('updateTokenPassphrase').value = '';
-      document.getElementById('updateTokenNewToken').value = '';
-      document.getElementById('updateTokenError').style.display = 'none';
-      document.getElementById('updateTokenSuccess').style.display = 'none';
+      // Clear previous values
+      const emailInput = document.getElementById('updateTokenEmail');
+      const passphraseInput = document.getElementById('updateTokenPassphrase');
+      const tokenInput = document.getElementById('updateTokenNewToken');
+      if (emailInput) emailInput.value = '';
+      if (passphraseInput) passphraseInput.value = '';
+      if (tokenInput) tokenInput.value = '';
+      const errorDiv = document.getElementById('updateTokenError');
+      const successDiv = document.getElementById('updateTokenSuccess');
+      if (errorDiv) errorDiv.style.display = 'none';
+      if (successDiv) successDiv.style.display = 'none';
+      // Show modal using jQuery (Bootstrap 4)
       if (typeof $ !== 'undefined' && $('#updateTokenModal').length) {
         $('#updateTokenModal').modal('show');
       } else {
+        console.error('jQuery or modal element not found');
         showError('Could not open token update window. Please refresh the page.');
       }
     });
+  } else {
+    console.warn('Update token link not found in DOM');
   }
 
   const confirmUpdateBtn = document.getElementById('confirmUpdateTokenBtn');
@@ -152,29 +165,37 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const errorDiv = document.getElementById('updateTokenError');
       const successDiv = document.getElementById('updateTokenSuccess');
-      errorDiv.style.display = 'none';
-      successDiv.style.display = 'none';
+      if (errorDiv) errorDiv.style.display = 'none';
+      if (successDiv) successDiv.style.display = 'none';
 
       if (!email || !passphrase || !newToken) {
-        errorDiv.textContent = 'All fields are required.';
-        errorDiv.style.display = 'block';
+        if (errorDiv) {
+          errorDiv.textContent = 'All fields are required.';
+          errorDiv.style.display = 'block';
+        }
         return;
       }
       if (!email.includes('@')) {
-        errorDiv.textContent = 'Enter a valid email address.';
-        errorDiv.style.display = 'block';
+        if (errorDiv) {
+          errorDiv.textContent = 'Enter a valid email address.';
+          errorDiv.style.display = 'block';
+        }
         return;
       }
       if (!newToken.startsWith('ghp_') && !newToken.startsWith('github_pat_')) {
-        errorDiv.textContent = 'Token must start with ghp_ or github_pat_';
-        errorDiv.style.display = 'block';
+        if (errorDiv) {
+          errorDiv.textContent = 'Token must start with ghp_ or github_pat_';
+          errorDiv.style.display = 'block';
+        }
         return;
       }
 
-      confirmUpdateBtn.disabled = true;
-      confirmUpdateBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Updating...';
+      const confirmBtn = document.getElementById('confirmUpdateTokenBtn');
+      confirmBtn.disabled = true;
+      confirmBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Updating...';
 
       try {
+        // 1. Fetch the existing encrypted account file
         const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
         const encUser = encodeURIComponent(email);
         const accountPath = `${dataPath}/users/${encUser}/account.json`;
@@ -183,6 +204,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!resp.ok) throw new Error('Account not found. Please register first.');
         const encryptedBlob = await resp.json();
 
+        // 2. Decrypt with passphrase
         let decrypted;
         try {
           decrypted = await window.CryptoUtil.decrypt(encryptedBlob, passphrase);
@@ -192,6 +214,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const accountData = JSON.parse(decrypted);
         if (accountData.test !== 'VALID') throw new Error('Corrupted account data.');
 
+        // 3. Validate the new token with GitHub
         const testResp = await fetch('https://api.github.com/user', {
           headers: { Authorization: `token ${newToken}` }
         });
@@ -202,9 +225,11 @@ document.addEventListener('DOMContentLoaded', () => {
           throw new Error(`GitHub token validation failed (${testResp.status})`);
         }
 
+        // 4. Replace token and re-encrypt
         accountData.token = newToken;
         const newEncrypted = await window.CryptoUtil.encrypt(JSON.stringify(accountData), passphrase);
 
+        // 5. Get current SHA of the account.json file
         let sha = null;
         const getUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${accountPath}?ref=${branch}`;
         const getResp = await fetch(getUrl, {
@@ -217,6 +242,7 @@ document.addEventListener('DOMContentLoaded', () => {
           throw new Error(`Failed to get file info: ${getResp.status}`);
         }
 
+        // 6. Update the file on GitHub
         const putUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${accountPath}`;
         const putBody = {
           message: `Update token for ${email}`,
@@ -239,23 +265,32 @@ document.addEventListener('DOMContentLoaded', () => {
           throw new Error(`Failed to save updated token: ${errData.message}`);
         }
 
-        successDiv.textContent = 'Token updated successfully! You can now log in.';
-        successDiv.style.display = 'block';
+        if (successDiv) {
+          successDiv.textContent = 'Token updated successfully! You can now log in.';
+          successDiv.style.display = 'block';
+        }
+        // Clear form and close modal after 2 seconds
         setTimeout(() => {
           if (typeof $ !== 'undefined') $('#updateTokenModal').modal('hide');
-          document.getElementById('loginUsername').value = email;
+          // Pre-fill the login email for convenience
+          const loginEmail = document.getElementById('loginUsername');
+          if (loginEmail) loginEmail.value = email;
         }, 2000);
       } catch (err) {
-        errorDiv.textContent = err.message;
-        errorDiv.style.display = 'block';
+        if (errorDiv) {
+          errorDiv.textContent = err.message;
+          errorDiv.style.display = 'block';
+        }
       } finally {
-        confirmUpdateBtn.disabled = false;
-        confirmUpdateBtn.innerHTML = 'Update Token';
+        confirmBtn.disabled = false;
+        confirmBtn.innerHTML = 'Update Token';
       }
     });
+  } else {
+    console.warn('Confirm update token button not found');
   }
 
-  // ======================== LOGIN WITH POLLING ========================
+  // ======================== LOGIN / REGISTER FUNCTIONS ========================
   async function handleLogin() {
     clearMessages();
     const username = document.getElementById('loginUsername').value.trim();
@@ -273,37 +308,20 @@ document.addEventListener('DOMContentLoaded', () => {
       await enforceRateLimit();
       setButtonLoading(loginBtn, true);
       
+      // Skip verification for admin email (optional - remove if you want all users to verify)
       const isAdminEmail = username === 'siyabongatshem@gmail.com';
       
       if (!isAdminEmail) {
-        // Check verification with polling (max 20 seconds)
-        let verified = false;
-        let attempts = 0;
-        const maxAttempts = 10; // 10 * 2s = 20s
-        showError('Checking verification status...', 'info');
-
-        while (!verified && attempts < maxAttempts) {
-          verified = await window.AccountManager.isEmailVerified(username);
-          if (!verified) {
-            attempts++;
-            if (attempts < maxAttempts) {
-              showError(`⏳ Waiting for admin approval... (${attempts}/${maxAttempts})`, 'info');
-              await new Promise(resolve => setTimeout(resolve, 2000));
-            }
-          }
-        }
-
-        if (!verified) {
-          showError('Your account is still pending admin approval. Please wait for the administrator to verify your account.');
-          setButtonLoading(loginBtn, false);
+        const isVerified = await window.AccountManager.isEmailVerified(username);
+        if (!isVerified) {
+          window.location.href = 'login.html?unverified=1';
           return;
         }
-        showError('✅ Account verified! Logging in...', 'success');
       }
       
       const pat = await window.AccountManager.login(username, passphrase);
       resetRateLimit();
-      window.SessionManager.setCurrentUser(username, pat, passphrase);
+      window.SessionManager.setCurrentUser(username, pat);
       showSuccess('Login successful! Redirecting...');
       setTimeout(() => { window.location.href = 'admin.html'; }, 1000);
     } catch (err) {
@@ -336,6 +354,7 @@ document.addEventListener('DOMContentLoaded', () => {
       showError('Passphrase must be at least 8 characters.');
       return;
     }
+    // Check strength (optional warning)
     let strength = 0;
     if (passphrase.length >= 8) strength++;
     if (passphrase.match(/[a-z]/) && passphrase.match(/[A-Z]/)) strength++;
@@ -354,7 +373,7 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       setButtonLoading(registerBtn, true);
       await window.AccountManager.register(username, passphrase, token);
-      showSuccess('Account created! The administrator has been notified. You will be able to log in once your account is verified.');
+      showSuccess('Account created! A verification email has been sent to your inbox. Please verify your email before logging in.');
       document.getElementById('registerForm').style.display = 'none';
       document.getElementById('loginForm').style.display = 'block';
       document.getElementById('formSubtext').innerText = 'Sign in to manage your portfolio';
@@ -366,14 +385,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function showError(msg, type = 'error') {
+  function showError(msg) {
     const el = document.getElementById('errorMsg');
     el.textContent = msg;
     el.style.display = 'block';
-    if (type === 'info') el.className = 'alert alert-info mt-3';
-    else if (type === 'success') el.className = 'alert alert-success mt-3';
-    else el.className = 'alert alert-danger mt-3';
     document.getElementById('successMsg').style.display = 'none';
+    // Auto-hide after 5 seconds
+    setTimeout(() => { if (el.style.display === 'block') el.style.display = 'none'; }, 5000);
   }
 
   function showSuccess(msg) {
@@ -389,5 +407,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('successMsg').style.display = 'none';
   }
 
+  // Auto-focus on email field
   document.getElementById('loginUsername').focus();
 });

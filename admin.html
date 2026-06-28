@@ -120,7 +120,6 @@
       <div class="tab-pane fade" id="usersTab">
         <div class="mb-3 d-flex align-items-center flex-wrap">
           <button class="btn btn-delta mr-2" id="refreshUsersBtn"><i class="fa fa-refresh"></i> Refresh List</button>
-          <button class="btn btn-outline-info mr-2" id="refreshCacheBtn"><i class="fa fa-database"></i> Sync Verification Status</button>
           <span class="text-muted">Blocked users cannot log in. Deleting a user permanently removes all their data.</span>
         </div>
         <div id="usersList"></div>
@@ -1038,14 +1037,6 @@
       if (sendMsgTabNav) sendMsgTabNav.style.display = 'block';
       const refreshUsersBtn = document.getElementById('refreshUsersBtn');
       if (refreshUsersBtn) refreshUsersBtn.addEventListener('click', loadUsers);
-      const refreshCacheBtn = document.getElementById('refreshCacheBtn');
-      if (refreshCacheBtn) refreshCacheBtn.addEventListener('click', async () => {
-        window.showLoading('Syncing verification status...');
-        await window.AccountManager.refreshVerificationCache(user.pat);
-        await loadUsers();
-        window.hideLoading();
-        showToast('Verification cache synced!', 'success');
-      });
       const downloadAllLogsBtn = document.getElementById('downloadAllLogsBtn');
       if (downloadAllLogsBtn) downloadAllLogsBtn.style.display = 'inline-block';
       const logUserSelectGroup = document.getElementById('logUserSelectGroup');
@@ -1053,30 +1044,115 @@
       loadUsers();
     }
 
-    // ============================================================
-    // FAST loadUsers – uses localStorage cache
-    // ============================================================
+    async function downloadLogsForUser(username, isAdminView = false) {
+      window.showLoading(`Fetching logs for ${username}...`);
+      try {
+        let logs;
+        if (isAdminView && username !== user.username) {
+          logs = await window.Logger.getLogsForUser(username, user.pat);
+        } else {
+          logs = await window.Logger.getLogsForUser(user.username, user.pat);
+        }
+        const blob = new Blob([logs], { type: 'text/plain' });
+        const a = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        a.href = url;
+        a.download = `logs_${username}_${new Date().toISOString().slice(0,19)}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        window.Logger.logActivity('logs', 'download', `Downloaded logs for ${username}`);
+        showToast('Logs downloaded', 'success');
+      } catch (err) {
+        showToast(`Failed to download logs: ${err.message}`, 'error');
+      } finally {
+        window.hideLoading();
+      }
+    }
+
+    async function downloadAllLogs() {
+      if (!isAdmin) { showToast('Only admin can download all logs.', 'error'); return; }
+      window.showLoading('Fetching all user logs...');
+      try {
+        const users = await window.AccountManager.listUsers(user.pat);
+        const zip = new JSZip();
+        let fileCount = 0;
+        for (const u of users) {
+          const logs = await window.Logger.getLogsForUser(u, user.pat);
+          if (logs && logs !== 'No logs found for this user.' && logs !== 'Unable to retrieve logs.') {
+            zip.file(`${u}_activity.txt`, logs);
+            fileCount++;
+          }
+        }
+        if (fileCount === 0) {
+          showToast('No logs found for any user.', 'error');
+        } else {
+          const blob = await zip.generateAsync({ type: 'blob' });
+          const a = document.createElement('a');
+          const url = URL.createObjectURL(blob);
+          a.href = url;
+          a.download = `all_logs_${new Date().toISOString().slice(0,19)}.zip`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          window.Logger.logActivity('logs', 'download_all', `Downloaded ZIP of all users' logs (${fileCount} users)`);
+          showToast('All logs downloaded', 'success');
+        }
+      } catch (err) {
+        showToast(`Failed to download all logs: ${err.message}`, 'error');
+      } finally {
+        window.hideLoading();
+      }
+    }
+
+    async function populateUserSelect() {
+      if (!isAdmin) return;
+      try {
+        const users = await window.AccountManager.listUsers(user.pat);
+        const select = document.getElementById('logUserSelect');
+        if (!select) return;
+        select.innerHTML = '<option value="">-- Select user to download logs --</option>';
+        for (const u of users) {
+          select.innerHTML += `<option value="${u}">${u}</option>`;
+        }
+      } catch (err) {
+        console.error('Failed to load user list for logs', err);
+      }
+    }
+
+    const downloadMyLogBtn = document.getElementById('downloadMyLogBtn');
+    if (downloadMyLogBtn) downloadMyLogBtn.addEventListener('click', async () => await downloadLogsForUser(user.username, false));
+    
+    const logUserSelect = document.getElementById('logUserSelect');
+    if (logUserSelect) {
+      logUserSelect.addEventListener('change', async (e) => {
+        const selected = e.target.value;
+        if (selected && isAdmin) {
+          await downloadLogsForUser(selected, true);
+          e.target.value = '';
+        }
+      });
+    }
+    
+    const downloadAllLogsBtn = document.getElementById('downloadAllLogsBtn');
+    if (downloadAllLogsBtn) downloadAllLogsBtn.addEventListener('click', downloadAllLogs);
+    await populateUserSelect();
+
     async function loadUsers() {
+      window.showLoading('Loading users...');
       const container = document.getElementById('usersList');
       if (!container) return;
-      
-      // Show loading state quickly
-      container.innerHTML = '<div class="text-center"><i class="fa fa-spinner fa-spin"></i> Loading users...</div>';
-      
       try {
         const usernames = await window.AccountManager.listUsers(user.pat);
         const blocked = await window.AccountManager.getBlockedUsers();
-        
-        // Get verification status from localStorage cache (instant)
-        const cache = window.AccountManager.getAllVerifiedStatuses();
-        
         container.innerHTML = '';
         if (usernames.length === 0) {
           container.innerHTML = '<div class="empty-state"><i class="fa fa-users"></i><h5>No registered users yet.</h5></div>';
         } else {
           for (const username of usernames) {
             const isBlocked = blocked.includes(username);
-            const isVerified = cache[username] === true; // only true if explicitly cached
             let stats = { projects: 0, certificates: 0 };
             try { stats = await window.AccountManager.getUserStats(username, user.pat); } catch(e) {}
             const card = document.createElement('div');
@@ -1087,11 +1163,9 @@
                   <div>
                     <strong>${window.escapeHtml(username)}</strong>
                     ${isBlocked ? '<span class="badge badge-danger ml-2">Blocked</span>' : '<span class="badge badge-success ml-2">Active</span>'}
-                    ${isVerified ? '<span class="badge badge-success ml-2">Verified</span>' : '<span class="badge badge-warning ml-2">Unverified</span>'}
                     <div class="small text-muted">Projects: ${stats.projects} | Certificates: ${stats.certificates}</div>
                   </div>
                   <div class="mt-2 mt-sm-0">
-                    ${!isVerified && !isBlocked ? `<button class="btn btn-sm btn-success verify-user-btn" data-username="${username}">Verify</button>` : ''}
                     <button class="btn btn-sm ${isBlocked ? 'btn-success' : 'btn-warning'} toggle-block-btn" data-username="${username}">${isBlocked ? 'Unblock' : 'Block'}</button>
                     <button class="btn btn-sm btn-danger delete-user-btn" data-username="${username}">Delete</button>
                   </div>
@@ -1099,27 +1173,6 @@
               </div>`;
             container.appendChild(card);
           }
-
-          // Attach events for Verify buttons
-          document.querySelectorAll('.verify-user-btn').forEach(btn => {
-            btn.addEventListener('click', async () => {
-              const username = btn.dataset.username;
-              if (!confirm(`Verify user "${username}"? They will be able to log in.`)) return;
-              window.showLoading('Verifying user...');
-              try {
-                await window.AccountManager.verifyUser(username, user.pat);
-                // Update cache immediately
-                window.AccountManager.setVerifiedLocally(username, true);
-                showToast(`User ${username} verified successfully.`);
-                await loadUsers(); // refresh list instantly
-              } catch(err) {
-                showToast('Verification failed: ' + err.message, 'error');
-              } finally {
-                window.hideLoading();
-              }
-            });
-          });
-
           document.querySelectorAll('.toggle-block-btn').forEach(btn => {
             btn.addEventListener('click', async () => {
               const username = btn.dataset.username;
@@ -1141,8 +1194,6 @@
               window.showLoading('Deleting user...');
               try {
                 await window.AccountManager.deleteUser(username, user.pat);
-                // Remove from cache
-                window.AccountManager.setVerifiedLocally(username, false);
                 await loadUsers();
                 showToast(`User ${username} deleted`, 'success');
               } catch(err) { showToast('Failed: ' + err.message, 'error'); }
@@ -1152,6 +1203,8 @@
         }
       } catch (err) {
         container.innerHTML = `<div class="alert alert-danger">Unable to load users: ${err.message}</div>`;
+      } finally {
+        window.hideLoading();
       }
     }
 
