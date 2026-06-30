@@ -1,5 +1,17 @@
 [
   {
+    "id": 1782800154531,
+    "date": "2026-06-29",
+    "start": "07:30",
+    "end": "15:30",
+    "hours": 8,
+    "project": "Omnia Phase 3",
+    "category": "Back-Punching",
+    "billable": "yes",
+    "notes": "Banck-Punching Valves",
+    "updatedAt": 1782800154531
+  },
+  {
     "id": 1782795981250,
     "date": "2026-06-29",
     "start": "08:30",
