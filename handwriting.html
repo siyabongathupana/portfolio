@@ -58,6 +58,7 @@
     .debug-box { background: #f1f1f1; padding: 10px; border-radius: 8px; font-size: 0.8rem; max-height: 200px; overflow-y: auto; white-space: pre-wrap; font-family: monospace; }
     .word-count-badge { font-size: 0.8rem; padding: 2px 10px; border-radius: 12px; background: #e9ecef; }
     .error-box { background: #fff3cd; border-left: 4px solid #ffc107; padding: 10px; border-radius: 8px; margin-bottom: 10px; }
+    .preprocessed-preview { max-width: 100%; border-radius: 12px; border: 1px solid #ddd; margin-top: 10px; }
   </style>
 </head>
 <body style="background:#eef3fc;">
@@ -100,15 +101,22 @@
           <label class="custom-control-label" for="autoCrop">Crop blank borders</label>
         </div>
       </div>
-      <div class="col-md-6">
-        <label><i class="fa fa-cloud-upload"></i> OCR.space (free, better handwriting)</label>
+      <div class="col-md-3">
+        <label><i class="fa fa-adjust"></i> Binarize</label>
+        <div class="custom-control custom-switch">
+          <input type="checkbox" class="custom-control-input" id="binarize" checked />
+          <label class="custom-control-label" for="binarize">Threshold (black & white)</label>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <label><i class="fa fa-cloud-upload"></i> OCR.space</label>
         <div class="input-group input-group-sm">
-          <input type="password" class="form-control" id="apiKey" placeholder="Your API key" />
+          <input type="password" class="form-control" id="apiKey" placeholder="API key" />
           <div class="input-group-append">
             <button class="btn btn-outline-primary" id="useOcrSpaceBtn">Use OCR.space</button>
           </div>
         </div>
-        <small class="text-muted">Get free key at <a href="https://ocr.space/ocrapi" target="_blank">ocr.space/ocrapi</a> | Leave empty for Tesseract</small>
+        <small class="text-muted"><a href="https://ocr.space/ocrapi" target="_blank">Get free key</a> | Leave empty for Tesseract</small>
       </div>
     </div>
   </div>
@@ -127,6 +135,9 @@
     <div>
       <button class="btn btn-delta btn-lg" id="analyzeBtn" disabled>
         <span class="progress-spinner"></span> <i class="fa fa-magic"></i> Extract Text
+      </button>
+      <button class="btn btn-outline-secondary ml-2" id="previewBtn" disabled>
+        <i class="fa fa-eye"></i> Preview Preprocessed
       </button>
       <button class="btn btn-outline-secondary ml-2" id="clearBtn"><i class="fa fa-trash"></i> Clear All</button>
     </div>
@@ -187,12 +198,13 @@
 <script>
   (function() {
     // ---- State ----
-    let files = [];
+    let files = []; // { name, dataURL, file }
     let combinedText = '';
     let processedFiles = [];
     let isProcessing = false;
     let useOcrSpace = false;
     let rawOcrData = '';
+    let lastPreprocessed = null;
 
     // ---- DOM refs ----
     const dropZone = document.getElementById('dropZone');
@@ -200,6 +212,7 @@
     const imagePreview = document.getElementById('imagePreview');
     const batchList = document.getElementById('batchList');
     const analyzeBtn = document.getElementById('analyzeBtn');
+    const previewBtn = document.getElementById('previewBtn');
     const clearBtn = document.getElementById('clearBtn');
     const fileInfo = document.getElementById('fileInfo');
     const progressContainer = document.getElementById('progressContainer');
@@ -218,6 +231,7 @@
     const skewSlider = document.getElementById('skewSlider');
     const skewValue = document.getElementById('skewValue');
     const autoCrop = document.getElementById('autoCrop');
+    const binarize = document.getElementById('binarize');
     const apiKeyInput = document.getElementById('apiKey');
     const useOcrSpaceBtn = document.getElementById('useOcrSpaceBtn');
     const toggleDebugBtn = document.getElementById('toggleDebugBtn');
@@ -229,22 +243,33 @@
     skewSlider.addEventListener('input', function() {
       skewValue.textContent = this.value + '°';
       if (files.length > 0) {
-        applyTransforms(files[0].dataURL, parseInt(this.value), autoCrop.checked).then(processed => {
+        applyTransforms(files[0].dataURL, parseInt(this.value), autoCrop.checked, binarize.checked).then(processed => {
           imagePreview.innerHTML = `<img src="${processed}" style="max-height:200px; border-radius:12px;" />`;
+          lastPreprocessed = processed;
         });
       }
     });
 
     autoCrop.addEventListener('change', function() {
       if (files.length > 0) {
-        applyTransforms(files[0].dataURL, parseInt(skewSlider.value), this.checked).then(processed => {
+        applyTransforms(files[0].dataURL, parseInt(skewSlider.value), this.checked, binarize.checked).then(processed => {
           imagePreview.innerHTML = `<img src="${processed}" style="max-height:200px; border-radius:12px;" />`;
+          lastPreprocessed = processed;
         });
       }
     });
 
-    // ---- Image transforms ----
-    function applyTransforms(dataURL, skewDeg, crop) {
+    binarize.addEventListener('change', function() {
+      if (files.length > 0) {
+        applyTransforms(files[0].dataURL, parseInt(skewSlider.value), autoCrop.checked, this.checked).then(processed => {
+          imagePreview.innerHTML = `<img src="${processed}" style="max-height:200px; border-radius:12px;" />`;
+          lastPreprocessed = processed;
+        });
+      }
+    });
+
+    // ---- Image transforms with binarization ----
+    function applyTransforms(dataURL, skewDeg, crop, binarizeOn) {
       return new Promise((resolve) => {
         const img = new Image();
         img.onload = function() {
@@ -277,14 +302,78 @@
             ctx.drawImage(img, 0, 0);
           }
 
+          // Convert to grayscale
+          const imageData = ctx.getImageData(0, 0, w, h);
+          const data = imageData.data;
+          for (let i = 0; i < data.length; i += 4) {
+            const gray = 0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2];
+            data[i] = data[i+1] = data[i+2] = gray;
+          }
+
+          // Binarization (Otsu-style adaptive threshold)
+          if (binarizeOn) {
+            // Simple global threshold based on histogram
+            let histogram = new Array(256).fill(0);
+            for (let i = 0; i < data.length; i += 4) {
+              const val = data[i];
+              histogram[val]++;
+            }
+            // Find threshold using Otsu's method
+            let total = data.length / 4;
+            let sum = 0;
+            for (let i = 0; i < 256; i++) sum += i * histogram[i];
+            let sumB = 0;
+            let wB = 0;
+            let wF = 0;
+            let maxVar = 0;
+            let threshold = 128;
+            for (let t = 0; t < 256; t++) {
+              wB += histogram[t];
+              if (wB === 0) continue;
+              wF = total - wB;
+              if (wF === 0) break;
+              sumB += t * histogram[t];
+              let mB = sumB / wB;
+              let mF = (sum - sumB) / wF;
+              let varBetween = wB * wF * (mB - mF) * (mB - mF);
+              if (varBetween > maxVar) {
+                maxVar = varBetween;
+                threshold = t;
+              }
+            }
+            // Apply threshold
+            for (let i = 0; i < data.length; i += 4) {
+              const val = data[i];
+              const binary = val > threshold ? 255 : 0;
+              data[i] = data[i+1] = data[i+2] = binary;
+            }
+          } else {
+            // Contrast stretch
+            let min = 255, max = 0;
+            for (let i = 0; i < data.length; i += 4) {
+              if (data[i] < min) min = data[i];
+              if (data[i] > max) max = data[i];
+            }
+            const range = max - min;
+            if (range > 20) {
+              for (let i = 0; i < data.length; i += 4) {
+                data[i] = (data[i] - min) / range * 255;
+                data[i+1] = data[i];
+                data[i+2] = data[i];
+              }
+            }
+          }
+          ctx.putImageData(imageData, 0, 0);
+
+          // Auto-crop after binarization (good for removing borders)
           if (crop) {
-            const imageData = ctx.getImageData(0, 0, w, h);
-            const data = imageData.data;
+            const imageData2 = ctx.getImageData(0, 0, w, h);
+            const data2 = imageData2.data;
             let minX = w, maxX = 0, minY = h, maxY = 0;
             for (let y = 0; y < h; y++) {
               for (let x = 0; x < w; x++) {
                 const idx = (y * w + x) * 4;
-                const bright = (data[idx] + data[idx+1] + data[idx+2]) / 3;
+                const bright = (data2[idx] + data2[idx+1] + data2[idx+2]) / 3;
                 if (bright < 240) {
                   if (x < minX) minX = x;
                   if (x > maxX) maxX = x;
@@ -327,11 +416,13 @@
         const reader = new FileReader();
         reader.onload = (e) => {
           const dataURL = e.target.result;
-          files.push({ name: file.name, dataURL: dataURL });
+          files.push({ name: file.name, dataURL: dataURL, file: file });
           updateUI();
           if (files.length === 1) {
-            applyTransforms(dataURL, parseInt(skewSlider.value), autoCrop.checked).then(processed => {
+            applyTransforms(dataURL, parseInt(skewSlider.value), autoCrop.checked, binarize.checked).then(processed => {
               imagePreview.innerHTML = `<img src="${processed}" style="max-height:200px; border-radius:12px;" />`;
+              lastPreprocessed = processed;
+              previewBtn.disabled = false;
             });
           }
           analyzeBtn.disabled = false;
@@ -354,9 +445,12 @@
           if (files.length === 0) {
             imagePreview.innerHTML = '';
             analyzeBtn.disabled = true;
+            previewBtn.disabled = true;
           } else {
-            applyTransforms(files[0].dataURL, parseInt(skewSlider.value), autoCrop.checked).then(processed => {
+            applyTransforms(files[0].dataURL, parseInt(skewSlider.value), autoCrop.checked, binarize.checked).then(processed => {
               imagePreview.innerHTML = `<img src="${processed}" style="max-height:200px; border-radius:12px;" />`;
+              lastPreprocessed = processed;
+              previewBtn.disabled = false;
             });
           }
           fileInfo.textContent = files.length + ' images';
@@ -364,6 +458,7 @@
       });
       fileInfo.textContent = files.length + ' image(s)';
       analyzeBtn.disabled = files.length === 0;
+      previewBtn.disabled = files.length === 0;
     }
 
     // ---- Drop zone events ----
@@ -380,6 +475,16 @@
       fileInput.value = '';
     });
 
+    // ---- Preview preprocessed ----
+    previewBtn.addEventListener('click', function() {
+      if (lastPreprocessed) {
+        const win = window.open();
+        win.document.write(`<img src="${lastPreprocessed}" style="max-width:100%;" />`);
+        win.document.write('<p><b>This is what the OCR engine sees after preprocessing.</b></p>');
+        win.document.close();
+      }
+    });
+
     // ---- Clear ----
     clearBtn.addEventListener('click', () => {
       files = [];
@@ -389,6 +494,7 @@
       batchList.innerHTML = '';
       fileInfo.textContent = '';
       analyzeBtn.disabled = true;
+      previewBtn.disabled = true;
       resultContainer.style.display = 'none';
       progressContainer.style.display = 'none';
       rawOcrData = '';
@@ -397,24 +503,18 @@
       debugContainer.style.display = 'none';
       fileList.innerHTML = '';
       errorContainer.style.display = 'none';
+      lastPreprocessed = null;
     });
 
-    // ============================================================
-    // OCR.space API – CORRECT IMPLEMENTATION
-    // ============================================================
-    async function ocrSpace(imageDataURL, apiKey) {
-      // Convert data URL to blob
-      const response = await fetch(imageDataURL);
-      const blob = await response.blob();
-
+    // ---- OCR.space API ----
+    async function ocrSpace(fileObj, apiKey) {
       const formData = new FormData();
       formData.append('apikey', apiKey);
       formData.append('language', 'eng');
       formData.append('isOverlayRequired', 'false');
       formData.append('OCREngine', '3');
       formData.append('scale', 'true');
-      // Use file upload instead of base64 – more reliable
-      formData.append('file', blob, 'image.jpg');
+      formData.append('file', fileObj);
 
       const apiResponse = await fetch('https://api.ocr.space/parse/image', {
         method: 'POST',
@@ -427,28 +527,22 @@
       }
 
       const data = await apiResponse.json();
-
-      // Store raw response for debugging
       rawOcrData = JSON.stringify(data, null, 2);
 
       if (data.IsErroredOnProcessing) {
         throw new Error(data.ErrorMessage || 'OCR.space processing error');
       }
 
-      // Handle case where no results
       if (!data.ParsedResults || data.ParsedResults.length === 0) {
-        throw new Error('No text detected in the image.');
+        throw new Error('No results returned from OCR.space.');
       }
 
       const parsedText = data.ParsedResults[0].ParsedText || '';
       const exitCode = data.ParsedResults[0].FileParseExitCode;
-
       if (exitCode === 1) {
-        // Exit code 1 means "No text found"
-        throw new Error('OCR.space could not find any text in this image. Try adjusting skew or crop.');
+        throw new Error('OCR.space could not find any text in this image. Try adjusting skew, crop, or binarization.');
       }
 
-      // Calculate confidence from word confidences
       let avgConf = 0;
       const words = data.ParsedResults[0]?.TextOverlay?.Lines?.flatMap(line => line.Words) || [];
       if (words.length > 0) {
@@ -464,11 +558,10 @@
       };
     }
 
-    // ---- Tesseract OCR (fallback) ----
+    // ---- Tesseract OCR ----
     async function tesseractOCR(imageDataURL) {
-      const processed = await preprocessImage(imageDataURL);
       const result = await Tesseract.recognize(
-        processed,
+        imageDataURL,
         'eng',
         {
           tessedit_ocr_engine_mode: 3,
@@ -486,54 +579,6 @@
         confidence: result.data.confidence || 0,
         rawResponse: result
       };
-    }
-
-    // ---- Preprocess for Tesseract ----
-    function preprocessImage(dataURL) {
-      return new Promise((resolve) => {
-        const img = new Image();
-        img.onload = function() {
-          const canvas = document.createElement('canvas');
-          const ctx = canvas.getContext('2d');
-          let w = img.width, h = img.height;
-          const maxW = 1200;
-          if (w > maxW) {
-            h = h * (maxW / w);
-            w = maxW;
-          }
-          canvas.width = w;
-          canvas.height = h;
-          ctx.drawImage(img, 0, 0, w, h);
-
-          const imageData = ctx.getImageData(0, 0, w, h);
-          const data = imageData.data;
-          for (let i = 0; i < data.length; i += 4) {
-            const gray = 0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2];
-            data[i] = data[i+1] = data[i+2] = gray;
-          }
-          ctx.putImageData(imageData, 0, 0);
-
-          const imageData2 = ctx.getImageData(0, 0, w, h);
-          const data2 = imageData2.data;
-          let min = 255, max = 0;
-          for (let i = 0; i < data2.length; i += 4) {
-            if (data2[i] < min) min = data2[i];
-            if (data2[i] > max) max = data2[i];
-          }
-          const range = max - min;
-          if (range > 20) {
-            for (let i = 0; i < data2.length; i += 4) {
-              data2[i] = (data2[i] - min) / range * 255;
-              data2[i+1] = data2[i];
-              data2[i+2] = data2[i];
-            }
-            ctx.putImageData(imageData2, 0, 0);
-          }
-
-          resolve(canvas.toDataURL('image/jpeg', 0.9));
-        };
-        img.src = dataURL;
-      });
     }
 
     // ---- Process all images ----
@@ -561,22 +606,23 @@
         const file = files[i];
         progressText.textContent = `Processing ${i+1}/${files.length}: ${file.name}`;
         try {
-          const transformed = await applyTransforms(file.dataURL, parseInt(skewSlider.value), autoCrop.checked);
+          const transformed = await applyTransforms(file.dataURL, parseInt(skewSlider.value), autoCrop.checked, binarize.checked);
           let ocrResult;
           const useCloud = useOcrSpace && apiKeyInput.value.trim();
           if (useCloud) {
-            ocrResult = await ocrSpace(transformed, apiKeyInput.value.trim());
+            // Use the original File object for OCR.space
+            ocrResult = await ocrSpace(file.file, apiKeyInput.value.trim());
           } else {
             ocrResult = await tesseractOCR(transformed);
           }
           const text = ocrResult.text || '';
-          if (text.trim()) {
+          if (text.trim().length > 0) {
             combinedText += (combinedText ? '\n\n--- ' + file.name + ' ---\n' : '--- ' + file.name + ' ---\n') + text;
             processedFiles.push(file.name);
             totalConf += ocrResult.confidence;
             count++;
           } else {
-            errors.push(`⚠️ ${file.name}: No text extracted`);
+            errors.push(`⚠️ ${file.name}: No text extracted (OCR returned empty)`);
           }
           debugLines.push(`--- ${file.name} ---\n${text || '(empty)'}`);
         } catch (err) {
@@ -588,23 +634,21 @@
         }
       }
 
-      // Store debug info
       debugContent.textContent = debugLines.join('\n\n');
 
-      // Display errors if any
       if (errors.length > 0) {
         errorContainer.style.display = 'block';
         errorContainer.innerHTML = '<strong>⚠️ Issues:</strong><br>' + errors.join('<br>');
       }
 
-      // Update display
       if (combinedText.trim()) {
         resultText.textContent = combinedText;
       } else {
-        resultText.textContent = '⚠️ No text could be extracted from any image. Try:\n' +
-          '• Adjusting the skew slider\n' +
+        resultText.textContent = '⚠️ No text could be extracted. Try:\n' +
+          '• Adjusting skew/crop/binarization\n' +
           '• Using OCR.space (better for handwriting)\n' +
-          '• Uploading a clearer image';
+          '• Uploading a clearer image\n' +
+          '• Click "Preview Preprocessed" to see what the OCR engine sees';
       }
 
       updateStats();
@@ -627,11 +671,7 @@
       totalWords.textContent = words.length;
       totalChars.textContent = chars;
       wordCount.textContent = words.length + ' words';
-      if (processedFiles.length > 0) {
-        avgConf.textContent = 'N/A';
-      } else {
-        avgConf.textContent = '0%';
-      }
+      avgConf.textContent = processedFiles.length > 0 ? 'N/A' : '0%';
     }
 
     // ---- Export to Excel ----
@@ -697,7 +737,7 @@
         this.classList.toggle('btn-outline-primary');
         alert(useOcrSpace ? 'Switched to OCR.space (better for handwriting).' : 'Switched back to Tesseract (offline).');
       } else {
-        alert('Please enter your OCR.space API key first.\nGet one at https://ocr.space/ocrapi (free tier available).');
+        alert('Please enter your OCR.space API key first.\nGet one at https://ocr.space/ocrapi (free tier).');
       }
     });
 
