@@ -55,8 +55,9 @@
     }
     .batch-item .remove { cursor: pointer; color: #dc3545; margin-left: 6px; }
     .settings-panel { background: #f8fafc; padding: 15px; border-radius: 12px; margin-bottom: 20px; }
-    .debug-box { background: #f1f1f1; padding: 10px; border-radius: 8px; font-size: 0.8rem; max-height: 200px; overflow-y: auto; white-space: pre-wrap; }
+    .debug-box { background: #f1f1f1; padding: 10px; border-radius: 8px; font-size: 0.8rem; max-height: 200px; overflow-y: auto; white-space: pre-wrap; font-family: monospace; }
     .word-count-badge { font-size: 0.8rem; padding: 2px 10px; border-radius: 12px; background: #e9ecef; }
+    .error-box { background: #fff3cd; border-left: 4px solid #ffc107; padding: 10px; border-radius: 8px; margin-bottom: 10px; }
   </style>
 </head>
 <body style="background:#eef3fc;">
@@ -82,32 +83,32 @@
 
 <div class="container py-4">
   <h2 class="text-center"><i class="fa fa-file-text-o"></i> Handwriting <span style="color:#2fc7ff;">OCR</span></h2>
-  <p class="text-center text-muted">Upload images of handwritten documents – we'll extract all text and export to Excel.</p>
+  <p class="text-center text-muted">Upload images of handwritten documents – extract all text and export to Excel.</p>
 
   <!-- Settings Panel -->
   <div class="settings-panel">
     <div class="row align-items-center">
-      <div class="col-md-4">
-        <label><i class="fa fa-rotate-left"></i> Skew correction (degrees)</label>
+      <div class="col-md-3">
+        <label><i class="fa fa-rotate-left"></i> Skew (degrees)</label>
         <input type="range" id="skewSlider" min="-15" max="15" value="0" class="form-control-range" />
         <span id="skewValue" class="badge badge-secondary">0°</span>
       </div>
-      <div class="col-md-4">
-        <label><i class="fa fa-crop"></i> Crop margins</label>
+      <div class="col-md-3">
+        <label><i class="fa fa-crop"></i> Auto-crop</label>
         <div class="custom-control custom-switch">
           <input type="checkbox" class="custom-control-input" id="autoCrop" checked />
-          <label class="custom-control-label" for="autoCrop">Auto-crop blank borders</label>
+          <label class="custom-control-label" for="autoCrop">Crop blank borders</label>
         </div>
       </div>
-      <div class="col-md-4">
-        <label><i class="fa fa-cloud-upload"></i> OCR.space API</label>
+      <div class="col-md-6">
+        <label><i class="fa fa-cloud-upload"></i> OCR.space (free, better handwriting)</label>
         <div class="input-group input-group-sm">
           <input type="password" class="form-control" id="apiKey" placeholder="Your API key" />
           <div class="input-group-append">
             <button class="btn btn-outline-primary" id="useOcrSpaceBtn">Use OCR.space</button>
           </div>
         </div>
-        <small class="text-muted">Leave empty to use Tesseract.js (free, offline). <a href="https://ocr.space/ocrapi" target="_blank">Get free API key</a></small>
+        <small class="text-muted">Get free key at <a href="https://ocr.space/ocrapi" target="_blank">ocr.space/ocrapi</a> | Leave empty for Tesseract</small>
       </div>
     </div>
   </div>
@@ -145,8 +146,9 @@
     <div class="row">
       <div class="col-lg-8">
         <h5>Extracted Text <span class="word-count-badge" id="wordCount">0 words</span></h5>
+        <div id="errorContainer" style="display:none;" class="error-box"></div>
         <div class="result-box" id="resultText"><em>No text yet.</em></div>
-        <button class="btn btn-sm btn-outline-secondary mt-2" id="toggleDebugBtn">Show Raw OCR</button>
+        <button class="btn btn-sm btn-outline-secondary mt-2" id="toggleDebugBtn">Show Raw OCR Response</button>
         <div id="debugContainer" style="display:none; margin-top:10px;">
           <div class="debug-box" id="debugContent"></div>
         </div>
@@ -180,17 +182,17 @@
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 <script src="config.js"></script>
 <script src="shared.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
 <script>
   (function() {
     // ---- State ----
     let files = [];
     let combinedText = '';
-    let combinedConfidence = 0;
     let processedFiles = [];
     let isProcessing = false;
     let useOcrSpace = false;
-    let rawOcrText = '';
+    let rawOcrData = '';
 
     // ---- DOM refs ----
     const dropZone = document.getElementById('dropZone');
@@ -221,6 +223,7 @@
     const toggleDebugBtn = document.getElementById('toggleDebugBtn');
     const debugContainer = document.getElementById('debugContainer');
     const debugContent = document.getElementById('debugContent');
+    const errorContainer = document.getElementById('errorContainer');
 
     // ---- Skew slider ----
     skewSlider.addEventListener('input', function() {
@@ -249,7 +252,6 @@
           const ctx = canvas.getContext('2d');
           let w = img.width, h = img.height;
 
-          // Resize if too large
           const maxDimension = 2000;
           if (w > maxDimension || h > maxDimension) {
             const ratio = Math.min(maxDimension / w, maxDimension / h);
@@ -389,44 +391,72 @@
       analyzeBtn.disabled = true;
       resultContainer.style.display = 'none';
       progressContainer.style.display = 'none';
-      rawOcrText = '';
+      rawOcrData = '';
       resultText.textContent = '';
       updateStats();
       debugContainer.style.display = 'none';
       fileList.innerHTML = '';
+      errorContainer.style.display = 'none';
     });
 
-    // ---- OCR.space API ----
+    // ============================================================
+    // OCR.space API – CORRECT IMPLEMENTATION
+    // ============================================================
     async function ocrSpace(imageDataURL, apiKey) {
-      const base64Image = imageDataURL.replace(/^data:image\/\w+;base64,/, '');
+      // Convert data URL to blob
+      const response = await fetch(imageDataURL);
+      const blob = await response.blob();
+
       const formData = new FormData();
-      formData.append('base64Image', base64Image);
       formData.append('apikey', apiKey);
       formData.append('language', 'eng');
       formData.append('isOverlayRequired', 'false');
       formData.append('OCREngine', '3');
       formData.append('scale', 'true');
+      // Use file upload instead of base64 – more reliable
+      formData.append('file', blob, 'image.jpg');
 
-      const response = await fetch('https://api.ocr.space/parse/image', {
+      const apiResponse = await fetch('https://api.ocr.space/parse/image', {
         method: 'POST',
         body: formData
       });
-      if (!response.ok) {
-        const errText = await response.text();
-        throw new Error('OCR.space error: ' + errText);
+
+      if (!apiResponse.ok) {
+        const errText = await apiResponse.text();
+        throw new Error('HTTP ' + apiResponse.status + ': ' + errText);
       }
-      const data = await response.json();
+
+      const data = await apiResponse.json();
+
+      // Store raw response for debugging
+      rawOcrData = JSON.stringify(data, null, 2);
+
       if (data.IsErroredOnProcessing) {
         throw new Error(data.ErrorMessage || 'OCR.space processing error');
       }
-      const parsedText = data.ParsedResults?.[0]?.ParsedText || '';
+
+      // Handle case where no results
+      if (!data.ParsedResults || data.ParsedResults.length === 0) {
+        throw new Error('No text detected in the image.');
+      }
+
+      const parsedText = data.ParsedResults[0].ParsedText || '';
+      const exitCode = data.ParsedResults[0].FileParseExitCode;
+
+      if (exitCode === 1) {
+        // Exit code 1 means "No text found"
+        throw new Error('OCR.space could not find any text in this image. Try adjusting skew or crop.');
+      }
+
+      // Calculate confidence from word confidences
       let avgConf = 0;
-      const words = data.ParsedResults?.[0]?.TextOverlay?.Lines?.flatMap(line => line.Words) || [];
+      const words = data.ParsedResults[0]?.TextOverlay?.Lines?.flatMap(line => line.Words) || [];
       if (words.length > 0) {
         const total = words.reduce((sum, w) => sum + parseFloat(w.Confidence || 0), 0);
         avgConf = total / words.length;
       }
       if (avgConf === 0) avgConf = 80;
+
       return {
         text: parsedText,
         confidence: avgConf / 100,
@@ -475,7 +505,6 @@
           canvas.height = h;
           ctx.drawImage(img, 0, 0, w, h);
 
-          // Grayscale
           const imageData = ctx.getImageData(0, 0, w, h);
           const data = imageData.data;
           for (let i = 0; i < data.length; i += 4) {
@@ -484,7 +513,6 @@
           }
           ctx.putImageData(imageData, 0, 0);
 
-          // Contrast stretch
           const imageData2 = ctx.getImageData(0, 0, w, h);
           const data2 = imageData2.data;
           let min = 255, max = 0;
@@ -519,12 +547,15 @@
       progressBar.style.width = '0%';
       progressBar.textContent = '0%';
       progressText.textContent = 'Preparing...';
+      errorContainer.style.display = 'none';
+      errorContainer.innerHTML = '';
 
       combinedText = '';
       processedFiles = [];
       let totalConf = 0;
       let count = 0;
       let debugLines = [];
+      let errors = [];
 
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
@@ -532,7 +563,8 @@
         try {
           const transformed = await applyTransforms(file.dataURL, parseInt(skewSlider.value), autoCrop.checked);
           let ocrResult;
-          if (useOcrSpace && apiKeyInput.value.trim()) {
+          const useCloud = useOcrSpace && apiKeyInput.value.trim();
+          if (useCloud) {
             ocrResult = await ocrSpace(transformed, apiKeyInput.value.trim());
           } else {
             ocrResult = await tesseractOCR(transformed);
@@ -543,23 +575,36 @@
             processedFiles.push(file.name);
             totalConf += ocrResult.confidence;
             count++;
+          } else {
+            errors.push(`⚠️ ${file.name}: No text extracted`);
           }
-          debugLines.push(`--- ${file.name} ---\n${text}`);
+          debugLines.push(`--- ${file.name} ---\n${text || '(empty)'}`);
         } catch (err) {
           console.error('Error on', file.name, err);
-          progressText.textContent = `Error on ${file.name}: ${err.message}`;
-          debugLines.push(`Error on ${file.name}: ${err.message}`);
+          const errMsg = err.message || 'Unknown error';
+          errors.push(`❌ ${file.name}: ${errMsg}`);
+          progressText.textContent = `Error on ${file.name}: ${errMsg}`;
+          debugLines.push(`Error on ${file.name}: ${errMsg}`);
         }
       }
 
       // Store debug info
       debugContent.textContent = debugLines.join('\n\n');
 
+      // Display errors if any
+      if (errors.length > 0) {
+        errorContainer.style.display = 'block';
+        errorContainer.innerHTML = '<strong>⚠️ Issues:</strong><br>' + errors.join('<br>');
+      }
+
       // Update display
       if (combinedText.trim()) {
         resultText.textContent = combinedText;
       } else {
-        resultText.textContent = '⚠️ No text could be extracted from any image. Try adjusting skew, crop, or using OCR.space for better results.';
+        resultText.textContent = '⚠️ No text could be extracted from any image. Try:\n' +
+          '• Adjusting the skew slider\n' +
+          '• Using OCR.space (better for handwriting)\n' +
+          '• Uploading a clearer image';
       }
 
       updateStats();
@@ -582,7 +627,6 @@
       totalWords.textContent = words.length;
       totalChars.textContent = chars;
       wordCount.textContent = words.length + ' words';
-      // Confidence is not per-line; we'll show avg if available
       if (processedFiles.length > 0) {
         avgConf.textContent = 'N/A';
       } else {
@@ -595,7 +639,6 @@
       if (!combinedText.trim()) { alert('No text to export.'); return; }
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet('Extracted Text');
-      // Add a header row
       worksheet.addRow(['Line', 'Content']);
       const lines = combinedText.split('\n');
       lines.forEach((line, idx) => {
@@ -652,9 +695,9 @@
         this.textContent = useOcrSpace ? 'Use Tesseract' : 'Use OCR.space';
         this.classList.toggle('btn-primary');
         this.classList.toggle('btn-outline-primary');
-        alert(useOcrSpace ? 'Switched to OCR.space.' : 'Switched back to Tesseract.');
+        alert(useOcrSpace ? 'Switched to OCR.space (better for handwriting).' : 'Switched back to Tesseract (offline).');
       } else {
-        alert('Please enter your OCR.space API key first. Get one at https://ocr.space/ocrapi (free).');
+        alert('Please enter your OCR.space API key first.\nGet one at https://ocr.space/ocrapi (free tier available).');
       }
     });
 
