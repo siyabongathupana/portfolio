@@ -3,19 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <title>Handwriting to Excel | Your Portfolio</title>
+  <title>Handwriting OCR | Your Portfolio</title>
   <link rel="icon" type="image/png" href="favicon.png" />
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
-  <!-- Tesseract.js as fallback -->
-  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-  <!-- ExcelJS & FileSaver -->
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
   <style>
-    /* (Same as before – keep the styles) */
     .drop-zone {
       border: 3px dashed #2fc7ff;
       border-radius: 20px;
@@ -39,32 +35,16 @@
       padding: 16px;
       border: 1px solid #e2e8f0;
       margin-top: 15px;
-      max-height: 400px;
+      max-height: 500px;
       overflow-y: auto;
       white-space: pre-wrap;
-      font-size: 0.85rem;
+      font-size: 0.9rem;
       font-family: 'Courier New', monospace;
     }
-    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 12px; margin-top: 15px; }
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap: 12px; margin-top: 15px; }
     .stat-card { background: #f1f5f9; padding: 12px; border-radius: 12px; text-align: center; }
     .stat-card .number { font-size: 1.6rem; font-weight: 700; color: #0b2b3b; }
     .stat-card .label { font-size: 0.7rem; color: #5a7d9a; }
-    .editable-table td { vertical-align: middle; }
-    .editable-table input, .editable-table select {
-      width: 100%;
-      border: none;
-      background: transparent;
-      padding: 4px 6px;
-      border-radius: 4px;
-      transition: 0.2s;
-    }
-    .editable-table input:hover, .editable-table select:hover { background: #f0f7ff; }
-    .editable-table input:focus, .editable-table select:focus { background: #fff; outline: 2px solid #2fc7ff; }
-    .low-confidence { background: #ffe6e6; }
-    .invalid-tag { background: #ffcccc; }
-    .duplicate-row { background: #fff3cd; }
-    .btn-edit { cursor: pointer; color: #2fc7ff; margin-right: 8px; }
-    .btn-delete { cursor: pointer; color: #dc3545; }
     .batch-item {
       display: inline-block;
       padding: 4px 12px;
@@ -74,8 +54,9 @@
       font-size: 0.8rem;
     }
     .batch-item .remove { cursor: pointer; color: #dc3545; margin-left: 6px; }
-    .progress-bar { transition: width 0.2s; }
     .settings-panel { background: #f8fafc; padding: 15px; border-radius: 12px; margin-bottom: 20px; }
+    .debug-box { background: #f1f1f1; padding: 10px; border-radius: 8px; font-size: 0.8rem; max-height: 200px; overflow-y: auto; white-space: pre-wrap; }
+    .word-count-badge { font-size: 0.8rem; padding: 2px 10px; border-radius: 12px; background: #e9ecef; }
   </style>
 </head>
 <body style="background:#eef3fc;">
@@ -92,7 +73,7 @@
         <li class="nav-item"><a class="nav-link" href="projects.html">Projects</a></li>
         <li class="nav-item"><a class="nav-link" href="certificates.html">Certificates</a></li>
         <li class="nav-item"><a class="nav-link" href="timesheet.html">Timesheet</a></li>
-        <li class="nav-item active"><a class="nav-link" href="handwriting.html"><i class="fa fa-pencil"></i> Handwriting</a></li>
+        <li class="nav-item active"><a class="nav-link" href="handwriting.html"><i class="fa fa-pencil"></i> OCR</a></li>
         <li class="nav-item"><a class="nav-link" href="admin.html">Manage</a></li>
       </ul>
     </div>
@@ -100,8 +81,8 @@
 </nav>
 
 <div class="container py-4">
-  <h2 class="text-center"><i class="fa fa-file-text-o"></i> Handwriting <span style="color:#2fc7ff;">to Excel</span></h2>
-  <p class="text-center text-muted">Upload photos of handwritten punch sheets – we'll extract structured data into Excel.</p>
+  <h2 class="text-center"><i class="fa fa-file-text-o"></i> Handwriting <span style="color:#2fc7ff;">OCR</span></h2>
+  <p class="text-center text-muted">Upload images of handwritten documents – we'll extract all text and export to Excel.</p>
 
   <!-- Settings Panel -->
   <div class="settings-panel">
@@ -144,7 +125,7 @@
   <div class="d-flex flex-wrap align-items-center justify-content-between">
     <div>
       <button class="btn btn-delta btn-lg" id="analyzeBtn" disabled>
-        <span class="progress-spinner"></span> <i class="fa fa-magic"></i> Extract All
+        <span class="progress-spinner"></span> <i class="fa fa-magic"></i> Extract Text
       </button>
       <button class="btn btn-outline-secondary ml-2" id="clearBtn"><i class="fa fa-trash"></i> Clear All</button>
     </div>
@@ -163,29 +144,26 @@
   <div id="resultContainer" style="display:none; margin-top:25px;">
     <div class="row">
       <div class="col-lg-8">
-        <h5>Extracted Data <span class="badge badge-secondary" id="rowCount">0</span></h5>
-        <div class="table-responsive">
-          <table class="table table-bordered table-sm editable-table" id="dataTable">
-            <thead>
-              <tr><th>#</th><th>Punch</th><th>Tag</th><th>Description</th><th>Status</th><th>Responsible</th><th>Actions</th></tr>
-            </thead>
-            <tbody id="tableBody"></tbody>
-          </table>
+        <h5>Extracted Text <span class="word-count-badge" id="wordCount">0 words</span></h5>
+        <div class="result-box" id="resultText"><em>No text yet.</em></div>
+        <button class="btn btn-sm btn-outline-secondary mt-2" id="toggleDebugBtn">Show Raw OCR</button>
+        <div id="debugContainer" style="display:none; margin-top:10px;">
+          <div class="debug-box" id="debugContent"></div>
         </div>
       </div>
       <div class="col-lg-4">
         <h5>Statistics</h5>
         <div class="stats-grid">
-          <div class="stat-card"><div class="number" id="totalPunches">0</div><div class="label">Punches</div></div>
-          <div class="stat-card"><div class="number" id="uniqueTags">0</div><div class="label">Unique Tags</div></div>
-          <div class="stat-card"><div class="number" id="duplicates">0</div><div class="label">Duplicates</div></div>
-          <div class="stat-card"><div class="number" id="avgConf">0%</div><div class="label">Avg Confidence</div></div>
+          <div class="stat-card"><div class="number" id="totalLines">0</div><div class="label">Lines</div></div>
+          <div class="stat-card"><div class="number" id="totalWords">0</div><div class="label">Words</div></div>
+          <div class="stat-card"><div class="number" id="totalChars">0</div><div class="label">Characters</div></div>
+          <div class="stat-card"><div class="number" id="avgConf">0%</div><div class="label">Confidence</div></div>
         </div>
         <button class="btn btn-success btn-block mt-3" id="exportExcelBtn"><i class="fa fa-file-excel-o"></i> Export to Excel</button>
-        <button class="btn btn-outline-secondary btn-block mt-2" id="validateBtn"><i class="fa fa-check-circle"></i> Validate Tags</button>
+        <button class="btn btn-outline-secondary btn-block mt-2" id="copyTextBtn"><i class="fa fa-clipboard"></i> Copy Text</button>
         <div class="mt-3">
-          <h6>Issues</h6>
-          <div id="issuesList" class="small text-muted"></div>
+          <h6>Files processed</h6>
+          <div id="fileList" class="small text-muted"></div>
         </div>
       </div>
     </div>
@@ -205,25 +183,14 @@
 
 <script>
   (function() {
-    // ---- Configuration ----
-    const TAG_PATTERNS = [
-      { regex: /(PT|LT|FT|TT|YT|ZT)\d{3}/i, type: 'Instrument' },
-      { regex: /(FV|PV|LV|TV|HV)\d{3}/i, type: 'Valve' },
-      { regex: /(AI|AO|DI|DO)\d{4}/i, type: 'I/O' },
-      { regex: /(MCC|MCP)\d{3}/i, type: 'Motor' },
-      { regex: /(JB|JBR)\d{3}/i, type: 'Junction Box' },
-      { regex: /(XV|XSV)\d{3}/i, type: 'Shutdown Valve' },
-      { regex: /(P|V|T|C|R)\d{4}/i, type: 'General' }
-    ];
-
-    const STATUS_WORDS = ['open', 'closed', 'pending', 'in progress', 'completed', 'rejected', 'accepted', 'on hold', 'resolved', 'deferred', 'awaiting', 'approved'];
-
     // ---- State ----
     let files = [];
-    let extractedData = [];
-    let currentImageData = null;
+    let combinedText = '';
+    let combinedConfidence = 0;
+    let processedFiles = [];
     let isProcessing = false;
     let useOcrSpace = false;
+    let rawOcrText = '';
 
     // ---- DOM refs ----
     const dropZone = document.getElementById('dropZone');
@@ -237,20 +204,23 @@
     const progressBar = document.getElementById('progressBar');
     const progressText = document.getElementById('progressText');
     const resultContainer = document.getElementById('resultContainer');
-    const tableBody = document.getElementById('tableBody');
-    const rowCount = document.getElementById('rowCount');
-    const totalPunches = document.getElementById('totalPunches');
-    const uniqueTags = document.getElementById('uniqueTags');
-    const duplicates = document.getElementById('duplicates');
+    const resultText = document.getElementById('resultText');
+    const totalLines = document.getElementById('totalLines');
+    const totalWords = document.getElementById('totalWords');
+    const totalChars = document.getElementById('totalChars');
     const avgConf = document.getElementById('avgConf');
-    const issuesList = document.getElementById('issuesList');
+    const wordCount = document.getElementById('wordCount');
+    const fileList = document.getElementById('fileList');
     const exportExcelBtn = document.getElementById('exportExcelBtn');
-    const validateBtn = document.getElementById('validateBtn');
+    const copyTextBtn = document.getElementById('copyTextBtn');
     const skewSlider = document.getElementById('skewSlider');
     const skewValue = document.getElementById('skewValue');
     const autoCrop = document.getElementById('autoCrop');
     const apiKeyInput = document.getElementById('apiKey');
     const useOcrSpaceBtn = document.getElementById('useOcrSpaceBtn');
+    const toggleDebugBtn = document.getElementById('toggleDebugBtn');
+    const debugContainer = document.getElementById('debugContainer');
+    const debugContent = document.getElementById('debugContent');
 
     // ---- Skew slider ----
     skewSlider.addEventListener('input', function() {
@@ -258,7 +228,6 @@
       if (files.length > 0) {
         applyTransforms(files[0].dataURL, parseInt(this.value), autoCrop.checked).then(processed => {
           imagePreview.innerHTML = `<img src="${processed}" style="max-height:200px; border-radius:12px;" />`;
-          currentImageData = processed;
         });
       }
     });
@@ -267,12 +236,11 @@
       if (files.length > 0) {
         applyTransforms(files[0].dataURL, parseInt(skewSlider.value), this.checked).then(processed => {
           imagePreview.innerHTML = `<img src="${processed}" style="max-height:200px; border-radius:12px;" />`;
-          currentImageData = processed;
         });
       }
     });
 
-    // ---- Image transforms (skew + crop) ----
+    // ---- Image transforms ----
     function applyTransforms(dataURL, skewDeg, crop) {
       return new Promise((resolve) => {
         const img = new Image();
@@ -280,6 +248,14 @@
           const canvas = document.createElement('canvas');
           const ctx = canvas.getContext('2d');
           let w = img.width, h = img.height;
+
+          // Resize if too large
+          const maxDimension = 2000;
+          if (w > maxDimension || h > maxDimension) {
+            const ratio = Math.min(maxDimension / w, maxDimension / h);
+            w = Math.floor(w * ratio);
+            h = Math.floor(h * ratio);
+          }
 
           if (skewDeg !== 0) {
             const rad = skewDeg * Math.PI / 180;
@@ -354,7 +330,6 @@
           if (files.length === 1) {
             applyTransforms(dataURL, parseInt(skewSlider.value), autoCrop.checked).then(processed => {
               imagePreview.innerHTML = `<img src="${processed}" style="max-height:200px; border-radius:12px;" />`;
-              currentImageData = processed;
             });
           }
           analyzeBtn.disabled = false;
@@ -377,11 +352,9 @@
           if (files.length === 0) {
             imagePreview.innerHTML = '';
             analyzeBtn.disabled = true;
-            currentImageData = null;
           } else {
             applyTransforms(files[0].dataURL, parseInt(skewSlider.value), autoCrop.checked).then(processed => {
               imagePreview.innerHTML = `<img src="${processed}" style="max-height:200px; border-radius:12px;" />`;
-              currentImageData = processed;
             });
           }
           fileInfo.textContent = files.length + ' images';
@@ -408,30 +381,30 @@
     // ---- Clear ----
     clearBtn.addEventListener('click', () => {
       files = [];
-      extractedData = [];
+      combinedText = '';
+      processedFiles = [];
       imagePreview.innerHTML = '';
       batchList.innerHTML = '';
       fileInfo.textContent = '';
       analyzeBtn.disabled = true;
       resultContainer.style.display = 'none';
       progressContainer.style.display = 'none';
-      currentImageData = null;
-      tableBody.innerHTML = '';
+      rawOcrText = '';
+      resultText.textContent = '';
       updateStats();
+      debugContainer.style.display = 'none';
+      fileList.innerHTML = '';
     });
 
-    // ---- OCR.space API call ----
+    // ---- OCR.space API ----
     async function ocrSpace(imageDataURL, apiKey) {
-      // Remove data URL prefix
       const base64Image = imageDataURL.replace(/^data:image\/\w+;base64,/, '');
       const formData = new FormData();
       formData.append('base64Image', base64Image);
       formData.append('apikey', apiKey);
       formData.append('language', 'eng');
       formData.append('isOverlayRequired', 'false');
-      // Use engine 3 for handwriting (supports handwriting)
       formData.append('OCREngine', '3');
-      // Optionally set scale for better accuracy
       formData.append('scale', 'true');
 
       const response = await fetch('https://api.ocr.space/parse/image', {
@@ -447,25 +420,22 @@
         throw new Error(data.ErrorMessage || 'OCR.space processing error');
       }
       const parsedText = data.ParsedResults?.[0]?.ParsedText || '';
-      const confidence = parseFloat(data.ParsedResults?.[0]?.TextOverlay?.Lines?.[0]?.Words?.[0]?.WordText || '0');
-      // Confidence is not directly provided; we'll try to extract average confidence from words.
       let avgConf = 0;
       const words = data.ParsedResults?.[0]?.TextOverlay?.Lines?.flatMap(line => line.Words) || [];
       if (words.length > 0) {
         const total = words.reduce((sum, w) => sum + parseFloat(w.Confidence || 0), 0);
         avgConf = total / words.length;
       }
-      // If no confidence, default to 80% (good guess for OCR.space)
       if (avgConf === 0) avgConf = 80;
       return {
         text: parsedText,
-        confidence: avgConf / 100 // normalize to 0-1
+        confidence: avgConf / 100,
+        rawResponse: data
       };
     }
 
     // ---- Tesseract OCR (fallback) ----
     async function tesseractOCR(imageDataURL) {
-      // Simple preprocessing for Tesseract
       const processed = await preprocessImage(imageDataURL);
       const result = await Tesseract.recognize(
         processed,
@@ -483,7 +453,8 @@
       );
       return {
         text: result.data.text || '',
-        confidence: result.data.confidence || 0
+        confidence: result.data.confidence || 0,
+        rawResponse: result
       };
     }
 
@@ -537,48 +508,6 @@
       });
     }
 
-    // ---- Parse extracted text into rows ----
-    function parseText(text, confidence) {
-      const lines = text.split('\n').filter(l => l.trim() !== '');
-      const rows = [];
-      for (let line of lines) {
-        line = line.trim();
-        let parts = line.split(/\t| {3,}/).filter(p => p.trim() !== '');
-        if (parts.length < 2) continue;
-        let punch = parts[0].trim();
-        let tag = parts.length > 1 ? parts[1].trim() : '';
-        let rest = parts.slice(2).join(' ').trim();
-        let status = '';
-        let responsible = '';
-        let description = rest;
-        const statusRegex = new RegExp('\\b(' + STATUS_WORDS.join('|') + ')\\b', 'i');
-        const statusMatch = rest.match(statusRegex);
-        if (statusMatch) {
-          status = statusMatch[0];
-          description = rest.replace(statusRegex, '').trim();
-        }
-        const words = description.split(/\s+/);
-        if (words.length > 0) {
-          const last = words[words.length-1];
-          if (last.length >= 2 && last.length <= 10 && !/^\d+$/.test(last)) {
-            responsible = last;
-            description = words.slice(0, -1).join(' ');
-          }
-        }
-        const row = {
-          punch: punch,
-          tag: tag,
-          description: description || '',
-          status: status || 'Unknown',
-          responsible: responsible || '',
-          confidence: confidence,
-          sourceFile: ''
-        };
-        rows.push(row);
-      }
-      return rows;
-    }
-
     // ---- Process all images ----
     async function processAllImages() {
       if (isProcessing) return;
@@ -591,9 +520,11 @@
       progressBar.textContent = '0%';
       progressText.textContent = 'Preparing...';
 
-      extractedData = [];
+      combinedText = '';
+      processedFiles = [];
       let totalConf = 0;
       let count = 0;
+      let debugLines = [];
 
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
@@ -606,32 +537,34 @@
           } else {
             ocrResult = await tesseractOCR(transformed);
           }
-          const rows = parseText(ocrResult.text, ocrResult.confidence);
-          rows.forEach(r => r.sourceFile = file.name);
-          extractedData.push(...rows);
-          totalConf += ocrResult.confidence;
-          count++;
+          const text = ocrResult.text || '';
+          if (text.trim()) {
+            combinedText += (combinedText ? '\n\n--- ' + file.name + ' ---\n' : '--- ' + file.name + ' ---\n') + text;
+            processedFiles.push(file.name);
+            totalConf += ocrResult.confidence;
+            count++;
+          }
+          debugLines.push(`--- ${file.name} ---\n${text}`);
         } catch (err) {
           console.error('Error on', file.name, err);
           progressText.textContent = `Error on ${file.name}: ${err.message}`;
+          debugLines.push(`Error on ${file.name}: ${err.message}`);
         }
       }
 
-      // Deduplicate
-      const seen = new Set();
-      const deduped = [];
-      for (let row of extractedData) {
-        const key = (row.punch + row.tag).toLowerCase();
-        if (!seen.has(key)) {
-          seen.add(key);
-          deduped.push(row);
-        }
+      // Store debug info
+      debugContent.textContent = debugLines.join('\n\n');
+
+      // Update display
+      if (combinedText.trim()) {
+        resultText.textContent = combinedText;
+      } else {
+        resultText.textContent = '⚠️ No text could be extracted from any image. Try adjusting skew, crop, or using OCR.space for better results.';
       }
-      extractedData = deduped;
 
       updateStats();
-      renderTable();
       resultContainer.style.display = 'block';
+      fileList.innerHTML = processedFiles.map(f => `<div>📄 ${f}</div>`).join('');
       progressText.textContent = '✅ Done!';
       setTimeout(() => { progressContainer.style.display = 'none'; }, 1500);
 
@@ -640,136 +573,75 @@
       analyzeBtn.classList.remove('btn-loading');
     }
 
-    // ---- Render table ----
-    function renderTable() {
-      tableBody.innerHTML = '';
-      extractedData.forEach((row, idx) => {
-        const tr = document.createElement('tr');
-        const isDuplicate = extractedData.some((r, i) => i !== idx && r.punch === row.punch && r.tag === row.tag);
-        if (isDuplicate) tr.classList.add('duplicate-row');
-        let tagValid = false;
-        for (let p of TAG_PATTERNS) {
-          if (p.regex.test(row.tag)) { tagValid = true; break; }
-        }
-        if (!tagValid && row.tag) tr.classList.add('invalid-tag');
-        if (row.confidence < 0.6) tr.classList.add('low-confidence');
-
-        tr.innerHTML = `
-          <td>${idx+1}</td>
-          <td><input type="text" value="${escapeHtml(row.punch)}" data-field="punch" data-idx="${idx}" /></td>
-          <td><input type="text" value="${escapeHtml(row.tag)}" data-field="tag" data-idx="${idx}" /></td>
-          <td><input type="text" value="${escapeHtml(row.description)}" data-field="description" data-idx="${idx}" /></td>
-          <td>
-            <select data-field="status" data-idx="${idx}">
-              ${STATUS_WORDS.map(s => `<option value="${s}" ${s.toLowerCase() === row.status.toLowerCase() ? 'selected' : ''}>${s}</option>`).join('')}
-            </select>
-          </td>
-          <td><input type="text" value="${escapeHtml(row.responsible)}" data-field="responsible" data-idx="${idx}" /></td>
-          <td>
-            <span class="btn-edit" title="Save changes"><i class="fa fa-save"></i></span>
-            <span class="btn-delete" data-idx="${idx}" title="Delete row"><i class="fa fa-trash"></i></span>
-          </td>
-        `;
-        tableBody.appendChild(tr);
-      });
-
-      // Save changes
-      document.querySelectorAll('.btn-edit').forEach(el => {
-        el.addEventListener('click', function() {
-          const tr = this.closest('tr');
-          const inputs = tr.querySelectorAll('input, select');
-          const idx = parseInt(tr.querySelector('[data-field]').dataset.idx);
-          inputs.forEach(input => {
-            const field = input.dataset.field;
-            const value = input.value;
-            if (field === 'status') {
-              extractedData[idx].status = value;
-            } else {
-              extractedData[idx][field] = value;
-            }
-          });
-          updateStats();
-          renderTable();
-        });
-      });
-
-      // Delete row
-      document.querySelectorAll('.btn-delete').forEach(el => {
-        el.addEventListener('click', function() {
-          const idx = parseInt(this.dataset.idx);
-          if (confirm('Delete this row?')) {
-            extractedData.splice(idx, 1);
-            renderTable();
-            updateStats();
-          }
-        });
-      });
-
-      rowCount.textContent = extractedData.length;
-    }
-
     // ---- Stats ----
     function updateStats() {
-      const total = extractedData.length;
-      totalPunches.textContent = total;
-      const tags = new Set(extractedData.map(r => r.tag).filter(t => t));
-      uniqueTags.textContent = tags.size;
-      const seen = new Set();
-      let dupCount = 0;
-      for (let row of extractedData) {
-        const key = (row.punch + row.tag).toLowerCase();
-        if (seen.has(key)) dupCount++;
-        else seen.add(key);
+      const lines = combinedText.split('\n').filter(l => l.trim() !== '');
+      const words = combinedText.split(/\s+/).filter(w => w.trim() !== '');
+      const chars = combinedText.replace(/\s/g, '').length;
+      totalLines.textContent = lines.length;
+      totalWords.textContent = words.length;
+      totalChars.textContent = chars;
+      wordCount.textContent = words.length + ' words';
+      // Confidence is not per-line; we'll show avg if available
+      if (processedFiles.length > 0) {
+        avgConf.textContent = 'N/A';
+      } else {
+        avgConf.textContent = '0%';
       }
-      duplicates.textContent = dupCount;
-      let avg = 0;
-      if (total > 0) avg = extractedData.reduce((sum, r) => sum + r.confidence, 0) / total;
-      avgConf.textContent = (avg * 100).toFixed(1) + '%';
-
-      let issues = [];
-      for (let row of extractedData) {
-        if (row.confidence < 0.6) issues.push(`Row ${extractedData.indexOf(row)+1}: Low confidence (${(row.confidence*100).toFixed(1)}%)`);
-        let tagValid = false;
-        for (let p of TAG_PATTERNS) {
-          if (p.regex.test(row.tag)) { tagValid = true; break; }
-        }
-        if (!tagValid && row.tag) issues.push(`Row ${extractedData.indexOf(row)+1}: Invalid tag "${row.tag}"`);
-      }
-      if (dupCount > 0) issues.push(`Found ${dupCount} duplicate entries`);
-      if (issues.length === 0) issues.push('✅ All rows look good.');
-      issuesList.innerHTML = issues.join('<br>');
     }
 
     // ---- Export to Excel ----
     async function exportExcel() {
-      if (extractedData.length === 0) { alert('No data to export.'); return; }
+      if (!combinedText.trim()) { alert('No text to export.'); return; }
       const workbook = new ExcelJS.Workbook();
-      const worksheet = workbook.addWorksheet('Punch List');
-      worksheet.addRow(['Punch', 'Tag', 'Description', 'Status', 'Responsible', 'Confidence', 'Source File']);
-      extractedData.forEach(row => {
-        worksheet.addRow([row.punch, row.tag, row.description, row.status, row.responsible, (row.confidence*100).toFixed(1)+'%', row.sourceFile]);
+      const worksheet = workbook.addWorksheet('Extracted Text');
+      // Add a header row
+      worksheet.addRow(['Line', 'Content']);
+      const lines = combinedText.split('\n');
+      lines.forEach((line, idx) => {
+        worksheet.addRow([idx + 1, line]);
       });
       worksheet.getRow(1).font = { bold: true };
-      worksheet.columns = [
-        { width: 12 }, { width: 15 }, { width: 40 }, { width: 15 }, { width: 15 }, { width: 12 }, { width: 25 }
-      ];
+      worksheet.getColumn(1).width = 10;
+      worksheet.getColumn(2).width = 80;
+      worksheet.eachRow(row => row.alignment = { wrapText: true, vertical: 'middle' });
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-      saveAs(blob, `PunchList_${new Date().toISOString().slice(0,10)}.xlsx`);
+      saveAs(blob, `OCR_Export_${new Date().toISOString().slice(0,10)}.xlsx`);
     }
 
-    // ---- Validate tags ----
-    function validateTags() {
-      let valid = 0, invalid = 0;
-      extractedData.forEach(row => {
-        let isTagValid = false;
-        for (let p of TAG_PATTERNS) {
-          if (p.regex.test(row.tag)) { isTagValid = true; break; }
-        }
-        if (isTagValid) valid++;
-        else invalid++;
+    // ---- Copy text ----
+    copyTextBtn.addEventListener('click', () => {
+      if (!combinedText.trim()) { alert('No text to copy.'); return; }
+      navigator.clipboard.writeText(combinedText).then(() => {
+        showToast('📋 Text copied to clipboard!');
+      }).catch(() => {
+        const textarea = document.createElement('textarea');
+        textarea.value = combinedText;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        showToast('📋 Text copied!');
       });
-      alert(`Tag validation:\nValid: ${valid}\nInvalid: ${invalid}`);
+    });
+
+    // ---- Toast helper ----
+    function showToast(msg) {
+      let container = document.getElementById('toastContainer');
+      if (!container) {
+        container = document.createElement('div');
+        container.id = 'toastContainer';
+        container.style.position = 'fixed';
+        container.style.bottom = '20px';
+        container.style.right = '20px';
+        container.style.zIndex = '1050';
+        document.body.appendChild(container);
+      }
+      const toastId = 'toast-' + Date.now();
+      const html = `<div id="${toastId}" style="background: #28a745; color: white; padding: 12px 20px; border-radius: 8px; margin-top: 10px; min-width: 200px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); font-size: 14px;">${msg}</div>`;
+      container.insertAdjacentHTML('beforeend', html);
+      setTimeout(() => { const el = document.getElementById(toastId); if (el) el.remove(); }, 3000);
     }
 
     // ---- Toggle OCR.space ----
@@ -780,22 +652,26 @@
         this.textContent = useOcrSpace ? 'Use Tesseract' : 'Use OCR.space';
         this.classList.toggle('btn-primary');
         this.classList.toggle('btn-outline-primary');
-        alert(useOcrSpace ? 'Switched to OCR.space (free, 500 pages/month).' : 'Switched back to Tesseract (offline).');
+        alert(useOcrSpace ? 'Switched to OCR.space.' : 'Switched back to Tesseract.');
       } else {
-        alert('Please enter your OCR.space API key first. Get one at https://ocr.space/ocrapi (free tier available).');
+        alert('Please enter your OCR.space API key first. Get one at https://ocr.space/ocrapi (free).');
+      }
+    });
+
+    // ---- Toggle debug ----
+    toggleDebugBtn.addEventListener('click', function() {
+      if (debugContainer.style.display === 'none') {
+        debugContainer.style.display = 'block';
+        this.textContent = 'Hide Raw OCR';
+      } else {
+        debugContainer.style.display = 'none';
+        this.textContent = 'Show Raw OCR';
       }
     });
 
     // ---- Events ----
     analyzeBtn.addEventListener('click', processAllImages);
     exportExcelBtn.addEventListener('click', exportExcel);
-    validateBtn.addEventListener('click', validateTags);
-
-    // ---- Helper ----
-    function escapeHtml(str) {
-      if (!str) return '';
-      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-    }
 
     // ---- Footer ----
     window.updateUserFooter();
