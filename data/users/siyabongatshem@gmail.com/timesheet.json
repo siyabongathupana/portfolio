@@ -9,8 +9,7 @@
     "category": "Back-Punching",
     "billable": "yes",
     "notes": "Banck-Punching Valves",
-    "updatedAt": 1782809120619,
-    "weekKey": "2026-W27"
+    "updatedAt": 1782809130629
   },
   {
     "id": 1782795981250,
@@ -22,8 +21,7 @@
     "category": "Training",
     "billable": "no",
     "notes": "ProcessWorld Training",
-    "updatedAt": 1782796035175,
-    "weekKey": "2026-W27"
+    "updatedAt": 1782796035175
   },
   {
     "id": 1782458367624,
@@ -35,8 +33,7 @@
     "category": "CFAT",
     "billable": "yes",
     "notes": "Software CFAT (Punches)",
-    "updatedAt": 1782458367624,
-    "weekKey": "2026-W26"
+    "updatedAt": 1782458367624
   },
   {
     "id": 1782294330095,
@@ -48,8 +45,7 @@
     "category": "CFAT",
     "billable": "yes",
     "notes": "Software CFAT (Punches)",
-    "updatedAt": 1782458386115,
-    "weekKey": "2026-W26"
+    "updatedAt": 1782458386115
   },
   {
     "id": 1782210107453,
@@ -61,8 +57,7 @@
     "category": "CFAT",
     "billable": "yes",
     "notes": "Software CFAT (BPCS & SIS & New Graphics)",
-    "updatedAt": 1782294445713,
-    "weekKey": "2026-W26"
+    "updatedAt": 1782294445713
   },
   {
     "id": 1782198266934,
@@ -74,8 +69,7 @@
     "category": "CFAT",
     "billable": "yes",
     "notes": "Software CFAT (Valves)",
-    "updatedAt": 1782198266934,
-    "weekKey": "2026-W26"
+    "updatedAt": 1782198266934
   },
   {
     "id": 1782198545943,
@@ -87,8 +81,7 @@
     "category": "Other",
     "billable": "no",
     "notes": "Home Affairs (Passport)",
-    "updatedAt": 1782198545943,
-    "weekKey": "2026-W26"
+    "updatedAt": 1782198545943
   },
   {
     "id": 1782196691513,
@@ -100,8 +93,7 @@
     "category": "CFAT",
     "billable": "yes",
     "notes": "Software CFAT (Valves)",
-    "updatedAt": 1782196747115,
-    "weekKey": "2026-W26"
+    "updatedAt": 1782196747115
   },
   {
     "id": 1781687171791,
@@ -113,8 +105,7 @@
     "category": "CFAT",
     "billable": "yes",
     "notes": "Software CFAT (BPCS & Graphics)",
-    "updatedAt": 1781777855618,
-    "weekKey": "2026-W25"
+    "updatedAt": 1781777855618
   },
   {
     "id": 1781687129668,
@@ -126,8 +117,7 @@
     "category": "CFAT",
     "billable": "yes",
     "notes": "Software CFAT (BPCS & Graphics)",
-    "updatedAt": 1781777844174,
-    "weekKey": "2026-W25"
+    "updatedAt": 1781777844174
   },
   {
     "id": 1781678120713,
@@ -139,8 +129,7 @@
     "category": "CFAT",
     "billable": "yes",
     "notes": "Software CFAT (BPCS & Graphics)",
-    "updatedAt": 1781777827462,
-    "weekKey": "2026-W25"
+    "updatedAt": 1781777827462
   },
   {
     "id": 1781678069798,
@@ -152,8 +141,7 @@
     "category": "Admin",
     "billable": "no",
     "notes": "Public Holiday",
-    "updatedAt": 1781678069798,
-    "weekKey": "2026-W25"
+    "updatedAt": 1781678069798
   },
   {
     "id": 1781453076698,
@@ -165,8 +153,7 @@
     "category": "Other",
     "billable": "no",
     "notes": "Leave",
-    "updatedAt": 1781453076698,
-    "weekKey": "2026-W25"
+    "updatedAt": 1781453076698
   },
   {
     "id": 1781269753159,
@@ -178,8 +165,7 @@
     "category": "IFAT",
     "billable": "yes",
     "notes": "Graphics IFAT (SIS)",
-    "updatedAt": 1781269753159,
-    "weekKey": "2026-W24"
+    "updatedAt": 1781269753159
   },
   {
     "id": 1781261811422,
@@ -191,8 +177,7 @@
     "category": "IFAT",
     "billable": "yes",
     "notes": "Graphics IFAT (SIS)",
-    "updatedAt": 1781262589473,
-    "weekKey": "2026-W24"
+    "updatedAt": 1781262589473
   },
   {
     "id": 1781255245382,
@@ -204,8 +189,7 @@
     "category": "Admin",
     "billable": "no",
     "notes": "Coffee break",
-    "updatedAt": 1781255245382,
-    "weekKey": "2026-W24"
+    "updatedAt": 1781255245382
   },
   {
     "id": 1781253098059,
@@ -217,8 +201,7 @@
     "category": "IFAT",
     "billable": "yes",
     "notes": "Graphics IFAT (SIS)",
-    "updatedAt": 1781255201710,
-    "weekKey": "2026-W24"
+    "updatedAt": 1781255201710
   },
   {
     "id": 1781185826119,
@@ -230,8 +213,7 @@
     "category": "IFAT",
     "billable": "yes",
     "notes": "Graphics IFAT (SIS)",
-    "updatedAt": 1781185826119,
-    "weekKey": "2026-W24"
+    "updatedAt": 1781185826119
   },
   {
     "id": 1781182361206,
@@ -243,8 +225,7 @@
     "category": "IFAT",
     "billable": "yes",
     "notes": "Graphics IFAT (SIS)",
-    "updatedAt": 1781182361206,
-    "weekKey": "2026-W24"
+    "updatedAt": 1781182361206
   },
   {
     "id": 1781176148378,
@@ -256,8 +237,7 @@
     "category": "Training",
     "billable": "no",
     "notes": "Upgrade Video and Quiz (Completed)",
-    "updatedAt": 1781177011562,
-    "weekKey": "2026-W24"
+    "updatedAt": 1781177011562
   },
   {
     "id": 1781175755892,
@@ -269,8 +249,7 @@
     "category": "Admin",
     "billable": "yes",
     "notes": "Lunch",
-    "updatedAt": 1781687399954,
-    "weekKey": "2026-W24"
+    "updatedAt": 1781687399954
   },
   {
     "id": 1781175130971,
@@ -282,8 +261,7 @@
     "category": "Back-Punching",
     "billable": "yes",
     "notes": "Backpunching IFAT",
-    "updatedAt": 1781175130971,
-    "weekKey": "2026-W24"
+    "updatedAt": 1781175130971
   },
   {
     "id": 1781156448303,
@@ -295,8 +273,7 @@
     "category": "Admin",
     "billable": "no",
     "notes": "Timesheets",
-    "updatedAt": 1781156448303,
-    "weekKey": "2026-W24"
+    "updatedAt": 1781156448303
   },
   {
     "id": 1781100775676,
@@ -308,8 +285,7 @@
     "category": "Back-Punching",
     "billable": "yes",
     "notes": "Back-Punching IFAT",
-    "updatedAt": 1781100775676,
-    "weekKey": "2026-W24"
+    "updatedAt": 1781100775676
   },
   {
     "id": 1781096580299,
