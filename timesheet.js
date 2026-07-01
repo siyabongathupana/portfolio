@@ -1,4 +1,4 @@
-// timesheet.js – COMPLETE with ALL Excel sheets (Data, Summary, Charts, Advanced Analysis)
+// timesheet.js – COMPLETE with ALL Excel sheets (No Overlapping Charts)
 (function() {
   const user = window.SessionManager?.getCurrentUser();
   if (!user) {
@@ -466,7 +466,7 @@
     });
   }
 
-  // ======================== EXCEL EXPORT with ALL sheets ========================
+  // ======================== EXCEL EXPORT with ALL sheets and NO OVERLAPPING ========================
   async function exportStyledExcel(startDate, endDate) {
     window.showLoading("Generating Excel report...");
     try {
@@ -726,7 +726,7 @@
       summarySheet.getCell('A50').font = { italic: true, size: 8 };
       summarySheet.mergeCells('A50:C50');
 
-      // ==================== SHEET 3: CHARTS (6 charts) ====================
+      // ==================== SHEET 3: CHARTS (6 charts - NO OVERLAPPING) ====================
       const chartsSheet = workbook.addWorksheet("Charts", {
         pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, paperSize: 9 }
       });
@@ -737,11 +737,15 @@
       chartsTitle.font = { size: 18, bold: true, color: { argb: 'FF0B2B3B' } };
       chartsTitle.alignment = { horizontal: 'center' };
       chartsSheet.getRow(1).height = 32;
-      chartsSheet.getRow(2).height = 20;
+      
+      // Add a spacer row
+      chartsSheet.getRow(2).height = 15;
 
-      const CHART_WIDTH = 360;
-      const CHART_HEIGHT = 260;
-      const ROW_OFFSET = Math.ceil(CHART_HEIGHT / 20) + 4;
+      // Define chart dimensions - SMALLER to fit 2 per row without overlapping
+      const CHART_WIDTH = 340;
+      const CHART_HEIGHT = 240;
+      // Row offset: chart height + title row + padding
+      const ROW_OFFSET = Math.ceil((CHART_HEIGHT + 15) / 20) + 2;
 
       async function addChart(chartsSheet, chartBuilder, col, row, title) {
         try {
@@ -752,13 +756,15 @@
             ext: { width: CHART_WIDTH, height: CHART_HEIGHT },
             editAs: 'oneCell'
           });
+          // Add title in cell above chart
           const titleRow = row - 1;
           if (titleRow >= 0) {
             const colLetter = String.fromCharCode(65 + (col * 3));
             const titleCellRef = chartsSheet.getCell(`${colLetter}${titleRow + 1}`);
             titleCellRef.value = title;
-            titleCellRef.font = { bold: true, size: 11, color: { argb: 'FF0B2B3B' } };
+            titleCellRef.font = { bold: true, size: 10, color: { argb: 'FF0B2B3B' } };
             titleCellRef.alignment = { horizontal: 'center' };
+            titleCellRef.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF0F4F8' } };
           }
           return true;
         } catch(e) {
@@ -767,6 +773,9 @@
         }
       }
 
+      // ROW 1: Charts 1 & 2 (columns 0 and 1)
+      const row1Start = 3;
+      
       // 1. Pie: Category Distribution
       await addChart(chartsSheet, (ctx, canvas) => {
         const catMap = {};
@@ -774,19 +783,22 @@
         return new Chart(ctx, {
           type: 'pie',
           data: { labels: Object.keys(catMap), datasets: [{ data: Object.values(catMap), backgroundColor: ['#2fc7ff', '#ffc107', '#28a745', '#dc3545', '#6f42c1', '#fd7e14', '#17a2b8', '#e83e8c'] }] },
-          options: { responsive: false, maintainAspectRatio: true, plugins: { legend: { position: 'right', labels: { font: { size: 72 } } }, title: { display: true, text: 'Hours by Category', font: { size: 80 } }, tooltip: { bodyFont: { size: 40 } } } }
+          options: { responsive: false, maintainAspectRatio: true, plugins: { legend: { position: 'right', labels: { font: { size: 56 } } }, title: { display: true, text: 'Hours by Category', font: { size: 64 } }, tooltip: { bodyFont: { size: 32 } } } }
         });
-      }, 0, 3, 'Hours by Category');
+      }, 0, row1Start, 'Hours by Category');
 
       // 2. Doughnut: Billable vs Non-Billable
       await addChart(chartsSheet, (ctx, canvas) => {
         return new Chart(ctx, {
           type: 'doughnut',
           data: { labels: ['Billable', 'Non-Billable'], datasets: [{ data: [billableHours, nonBillable], backgroundColor: ['#28a745', '#dc3545'] }] },
-          options: { responsive: false, maintainAspectRatio: true, plugins: { legend: { position: 'right', labels: { font: { size: 72 } } }, title: { display: true, text: 'Billable Breakdown', font: { size: 80 } }, tooltip: { bodyFont: { size: 40 } } } }
+          options: { responsive: false, maintainAspectRatio: true, plugins: { legend: { position: 'right', labels: { font: { size: 56 } } }, title: { display: true, text: 'Billable Breakdown', font: { size: 64 } }, tooltip: { bodyFont: { size: 32 } } } }
         });
-      }, 1, 3, 'Billable Breakdown');
+      }, 1, row1Start, 'Billable Breakdown');
 
+      // ROW 2: Charts 3 & 4
+      const row2Start = row1Start + ROW_OFFSET;
+      
       // 3. Line: Weekly Trend
       await addChart(chartsSheet, (ctx, canvas) => {
         const weeklyTotals = {};
@@ -799,9 +811,9 @@
         return new Chart(ctx, {
           type: 'line',
           data: { labels: weeksSorted, datasets: [{ label: 'Total Hours', data: weekData, borderColor: '#2fc7ff', backgroundColor: 'rgba(47,199,255,0.1)', fill: true, tension: 0.3 }] },
-          options: { responsive: false, maintainAspectRatio: true, plugins: { legend: { labels: { font: { size: 72 } } }, title: { display: true, text: 'Weekly Hours Trend', font: { size: 80 } }, tooltip: { bodyFont: { size: 40 } } }, scales: { x: { ticks: { font: { size: 48 } } }, y: { ticks: { font: { size: 56 } } } } }
+          options: { responsive: false, maintainAspectRatio: true, plugins: { legend: { labels: { font: { size: 56 } } }, title: { display: true, text: 'Weekly Hours Trend', font: { size: 64 } }, tooltip: { bodyFont: { size: 32 } } }, scales: { x: { ticks: { font: { size: 40 } } }, y: { ticks: { font: { size: 48 } } } } }
         });
-      }, 0, 3 + ROW_OFFSET, 'Weekly Hours Trend');
+      }, 0, row2Start, 'Weekly Hours Trend');
 
       // 4. Stacked Bar: Admin vs Project
       await addChart(chartsSheet, (ctx, canvas) => {
@@ -819,10 +831,13 @@
         return new Chart(ctx, {
           type: 'bar',
           data: { labels: allWeeks, datasets: [{ label: 'Admin Hours', data: allWeeks.map(w => weeklyAdmin[w] || 0), backgroundColor: '#ffc107' }, { label: 'Project Hours', data: allWeeks.map(w => weeklyProject[w] || 0), backgroundColor: '#2fc7ff' }] },
-          options: { responsive: false, maintainAspectRatio: true, scales: { x: { stacked: true, ticks: { font: { size: 48 } } }, y: { stacked: true, ticks: { font: { size: 56 } } } }, plugins: { legend: { labels: { font: { size: 72 } } }, title: { display: true, text: 'Admin vs Project Hours', font: { size: 80 } }, tooltip: { bodyFont: { size: 40 } } } }
+          options: { responsive: false, maintainAspectRatio: true, scales: { x: { stacked: true, ticks: { font: { size: 36 } } }, y: { stacked: true, ticks: { font: { size: 48 } } } }, plugins: { legend: { labels: { font: { size: 56 } } }, title: { display: true, text: 'Admin vs Project Hours', font: { size: 64 } }, tooltip: { bodyFont: { size: 32 } } } }
         });
-      }, 1, 3 + ROW_OFFSET, 'Admin vs Project Hours');
+      }, 1, row2Start, 'Admin vs Project Hours');
 
+      // ROW 3: Charts 5 & 6
+      const row3Start = row2Start + ROW_OFFSET;
+      
       // 5. Bar: Daily Hours Distribution
       await addChart(chartsSheet, (ctx, canvas) => {
         const dailyHours = {};
@@ -832,9 +847,9 @@
         return new Chart(ctx, {
           type: 'bar',
           data: { labels: dates, datasets: [{ label: 'Daily Hours', data: hoursData, backgroundColor: 'rgba(47,199,255,0.6)', borderColor: '#2fc7ff', borderWidth: 2 }] },
-          options: { responsive: false, maintainAspectRatio: true, plugins: { legend: { labels: { font: { size: 72 } } }, title: { display: true, text: 'Daily Hours Distribution', font: { size: 80 } }, tooltip: { bodyFont: { size: 40 } } }, scales: { x: { ticks: { font: { size: 40 }, maxRotation: 45 } }, y: { ticks: { font: { size: 56 } } } } }
+          options: { responsive: false, maintainAspectRatio: true, plugins: { legend: { labels: { font: { size: 56 } } }, title: { display: true, text: 'Daily Hours Distribution', font: { size: 64 } }, tooltip: { bodyFont: { size: 32 } } }, scales: { x: { ticks: { font: { size: 32 }, maxRotation: 45 } }, y: { ticks: { font: { size: 48 } } } } }
         });
-      }, 0, 3 + ROW_OFFSET * 2, 'Daily Hours Distribution');
+      }, 0, row3Start, 'Daily Hours Distribution');
 
       // 6. Horizontal Bar: Top Projects
       await addChart(chartsSheet, (ctx, canvas) => {
@@ -844,13 +859,15 @@
         return new Chart(ctx, {
           type: 'bar',
           data: { labels: sortedProjects.map(p => p[0]), datasets: [{ label: 'Hours', data: sortedProjects.map(p => p[1]), backgroundColor: ['#2fc7ff', '#28a745', '#ffc107', '#dc3545', '#6f42c1', '#fd7e14', '#17a2b8', '#e83e8c'], borderRadius: 4 }] },
-          options: { responsive: false, maintainAspectRatio: true, indexAxis: 'y', plugins: { legend: { labels: { font: { size: 72 } } }, title: { display: true, text: 'Top Projects by Hours', font: { size: 80 } }, tooltip: { bodyFont: { size: 40 } } }, scales: { x: { ticks: { font: { size: 56 } } }, y: { ticks: { font: { size: 48 } } } } }
+          options: { responsive: false, maintainAspectRatio: true, indexAxis: 'y', plugins: { legend: { labels: { font: { size: 56 } } }, title: { display: true, text: 'Top Projects by Hours', font: { size: 64 } }, tooltip: { bodyFont: { size: 32 } } }, scales: { x: { ticks: { font: { size: 48 } } }, y: { ticks: { font: { size: 40 } } } } }
         });
-      }, 1, 3 + ROW_OFFSET * 2, 'Top Projects by Hours');
+      }, 1, row3Start, 'Top Projects by Hours');
 
-      chartsSheet.getCell('A75').value = `Generated: ${new Date().toLocaleString()} | Your Portfolio System`;
-      chartsSheet.getCell('A75').font = { italic: true, size: 8 };
-      chartsSheet.mergeCells('A75:F75');
+      // Footer
+      const footerRow = row3Start + ROW_OFFSET + 1;
+      chartsSheet.getCell(`A${footerRow}`).value = `Generated: ${new Date().toLocaleString()} | Your Portfolio System`;
+      chartsSheet.getCell(`A${footerRow}`).font = { italic: true, size: 8 };
+      chartsSheet.mergeCells(`A${footerRow}:F${footerRow}`);
 
       // ==================== SHEET 4: ADVANCED ANALYSIS ====================
       const analysisSheet = workbook.addWorksheet("Advanced Analysis", {
@@ -1019,11 +1036,11 @@
       scoreValCell.alignment = { horizontal: 'right' };
       rowIdx += 2;
 
-      const footerRow = rowIdx;
-      analysisSheet.getCell(`A${footerRow}`).value = `Analysis generated: ${new Date().toLocaleString()} | Based on ${filtered.length} entries`;
-      analysisSheet.mergeCells(`A${footerRow}:C${footerRow}`);
-      analysisSheet.getCell(`A${footerRow}`).font = { italic: true, size: 8 };
-      analysisSheet.getCell(`A${footerRow}`).alignment = { horizontal: 'center' };
+      const footerRow2 = rowIdx;
+      analysisSheet.getCell(`A${footerRow2}`).value = `Analysis generated: ${new Date().toLocaleString()} | Based on ${filtered.length} entries`;
+      analysisSheet.mergeCells(`A${footerRow2}:C${footerRow2}`);
+      analysisSheet.getCell(`A${footerRow2}`).font = { italic: true, size: 8 };
+      analysisSheet.getCell(`A${footerRow2}`).alignment = { horizontal: 'center' };
 
       // ==================== SAVE ====================
       const buffer = await workbook.xlsx.writeBuffer();
