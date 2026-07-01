@@ -1,4 +1,4 @@
-// timesheet.js – COMPLETE, FULLY VERIFIED (PDF removed, Excel only)
+// timesheet.js – COMPLETE, FIXED (no exportExcelBtn reference)
 (function() {
   const user = window.SessionManager?.getCurrentUser();
   if (!user) {
@@ -29,7 +29,6 @@
       window.saveAs(blob, filename);
       return;
     }
-    // Fallback
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
     link.download = filename;
@@ -298,7 +297,6 @@
     const project = document.getElementById('filterProject').value;
     const category = document.getElementById('filterCategory').value;
     
-    // Use UTC for all date calculations to avoid timezone issues
     const nowUTC = new Date();
     nowUTC.setUTCHours(0, 0, 0, 0);
     
@@ -341,7 +339,7 @@
     const tbody = document.getElementById('historyBody');
     const tfoot = document.getElementById('historyFoot');
     if (filtered.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="9" class="text-center">No entries found.  </td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" class="text-center">No entries found.</td></tr>';
       tfoot.style.display = 'none';
       return;
     }
@@ -448,7 +446,6 @@
         resolve(imgData);
       } catch (err) {
         console.warn('Chart capture failed, using fallback:', err);
-        // Return a simple placeholder image
         const fallbackCanvas = document.createElement('canvas');
         fallbackCanvas.width = width;
         fallbackCanvas.height = height;
@@ -509,7 +506,6 @@
 
       const workbook = new ExcelJS.Workbook();
       
-      // MAIN DATA SHEET
       const worksheet = workbook.addWorksheet("Timesheet Data", {
         pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0, paperSize: 9, horizontalCentered: true, verticalCentered: true }
       });
@@ -651,7 +647,6 @@
       const CHART_HEIGHT = 260;
       const ROW_OFFSET = Math.ceil(CHART_HEIGHT / 20) + 4;
 
-      // Helper to add a chart image
       async function addChart(chartsSheet, chartBuilder, col, row, title) {
         try {
           const imgData = await safeCaptureChart(chartBuilder, 1200, 900);
@@ -661,7 +656,6 @@
             ext: { width: CHART_WIDTH, height: CHART_HEIGHT },
             editAs: 'oneCell'
           });
-          // Add title in cell above chart
           const titleRow = row - 1;
           if (titleRow >= 0) {
             const colLetter = String.fromCharCode(65 + (col * 3));
@@ -762,7 +756,6 @@
       chartsSheet.getCell('A75').font = { italic: true, size: 8 };
       chartsSheet.mergeCells('A75:F75');
 
-      // ==================== SAVE ====================
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       saveAs(blob, `Timesheet_${startDate}_to_${endDate}_readonly.xlsx`);
@@ -851,14 +844,9 @@
     document.getElementById('nowEndBtn').onclick = () => { document.getElementById('endTime').value = new Date().toTimeString().slice(0,5); updateHoursAuto(); };
     document.getElementById('addEntryBtn').onclick = () => addEntry();
     document.getElementById('refreshHistoryBtn').onclick = () => refreshView();
-    document.getElementById('exportExcelBtn').onclick = () => { 
-      const end = new Date(); 
-      const start = new Date(); 
-      start.setDate(start.getDate() - 30); 
-      document.getElementById('reportStartDate').value = formatDate(start); 
-      document.getElementById('reportEndDate').value = formatDate(end); 
-      $('#reportModal').modal('show'); 
-    };
+    
+    // REMOVED: exportExcelBtn reference - no longer needed
+    
     document.getElementById('printBtn').onclick = () => window.print();
     document.getElementById('filterRange').onchange = () => { renderHistory(); updateSummaryAndProgress(); updateCharts(); };
     document.getElementById('filterProject').onchange = () => { renderHistory(); updateSummaryAndProgress(); updateCharts(); };
@@ -876,7 +864,6 @@
     document.getElementById('addProjectBtn').onclick = () => { document.getElementById('newProjectName').value = ''; $('#newProjectModal').modal('show'); };
     document.getElementById('confirmNewProjectBtn').onclick = async () => { const newProj = document.getElementById('newProjectName')?.value.trim(); if(!newProj) return; window.showLoading(`Creating project "${newProj}"...`); try { await createTimesheetOnlyProject(newProj); showToast(`Project "${newProj}" created.`); } catch(err){ showToast("Failed: "+err.message,"error"); } finally{ window.hideLoading(); $('#newProjectModal').modal('hide'); } };
     
-    // Generate Excel Report button (was PDF Report)
     document.getElementById('generateReportBtn').onclick = () => { 
       document.getElementById('reportName').value = userFullName; 
       const end = new Date(); 
