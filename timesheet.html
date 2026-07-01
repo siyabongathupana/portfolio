@@ -18,9 +18,9 @@
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
   <!-- FileSaver.js (for saving Excel) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-  <!-- QRCode.js (kept for potential future use) -->
+  <!-- QRCode.js -->
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
-  <!-- jsPDF (kept for potential future use) -->
+  <!-- jsPDF -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
   <!-- Core app scripts -->
@@ -167,7 +167,6 @@
   <div class="d-flex justify-content-between align-items-center flex-wrap mb-3">
     <h3><i class="fa fa-clock-o"></i> Timesheet</h3>
     <div>
-      <!-- SINGLE Excel button -->
       <button id="generateReportBtn" class="btn btn-excel btn-sm mr-2"><i class="fa fa-file-excel-o"></i> Export Excel Report</button>
       <button id="printBtn" class="btn btn-secondary btn-sm"><i class="fa fa-print"></i> Print</button>
     </div>
@@ -308,7 +307,6 @@
         <option>Other</option>
       </select>
     </div>
-    <!-- Traffic Light -->
     <div style="display: inline-flex; align-items: center; gap: 8px; margin-left: 15px;">
       <div id="standaloneTrafficLight"></div>
       <button id="downloadRulesBtn" class="btn btn-sm btn-outline-info" title="Download traffic light rules">
@@ -378,7 +376,7 @@
   </div>
 </div>
 
-<!-- Report Modal - Excel Only -->
+<!-- Report Modal -->
 <div class="modal fade" id="reportModal" tabindex="-1">
   <div class="modal-dialog modal-md">
     <div class="modal-content">
@@ -391,7 +389,7 @@
           <i class="fa fa-info-circle"></i> <strong>What's included:</strong>
           <ul class="mb-0 mt-1">
             <li>📊 Detailed timesheet data table</li>
-            <li>📈 6 interactive charts (Category, Billable, Weekly Trend, Admin vs Project, Daily Distribution, Top Projects)</li>
+            <li>📈 6 interactive charts</li>
             <li>🔒 Password-protected worksheet</li>
             <li>📋 Summary with KPI metrics</li>
           </ul>
