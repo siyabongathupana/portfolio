@@ -1,4 +1,4 @@
-// timesheet.js – COMPLETE, FIXED (no exportExcelBtn reference)
+// timesheet.js – COMPLETE with ALL Excel sheets (Data, Summary, Charts, Advanced Analysis)
 (function() {
   const user = window.SessionManager?.getCurrentUser();
   if (!user) {
@@ -466,7 +466,7 @@
     });
   }
 
-  // ======================== EXCEL EXPORT ========================
+  // ======================== EXCEL EXPORT with ALL sheets ========================
   async function exportStyledExcel(startDate, endDate) {
     window.showLoading("Generating Excel report...");
     try {
@@ -506,6 +506,7 @@
 
       const workbook = new ExcelJS.Workbook();
       
+      // ==================== SHEET 1: TIMESHEET DATA ====================
       const worksheet = workbook.addWorksheet("Timesheet Data", {
         pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0, paperSize: 9, horizontalCentered: true, verticalCentered: true }
       });
@@ -630,7 +631,102 @@
         sort: false, autoFilter: false, pivotTables: false
       });
 
-      // CHARTS SHEET with 6 charts
+      // ==================== SHEET 2: SUMMARY ====================
+      const summarySheet = workbook.addWorksheet("Summary", {
+        pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, paperSize: 9 }
+      });
+      summarySheet.columns = [{ width: 25 }, { width: 20 }, { width: 20 }];
+      
+      summarySheet.mergeCells('A1:C1');
+      const sumTitle = summarySheet.getCell('A1');
+      sumTitle.value = `TIMESHEET SUMMARY - ${userFullName || user.username}`;
+      sumTitle.font = { size: 16, bold: true, color: { argb: 'FF0B2B3B' } };
+      sumTitle.alignment = { horizontal: 'center' };
+      summarySheet.getRow(1).height = 28;
+
+      summarySheet.mergeCells('A2:C2');
+      const sumPeriod = summarySheet.getCell('A2');
+      sumPeriod.value = `Period: ${startDate} to ${endDate}  |  Generated: ${new Date().toLocaleString()}`;
+      sumPeriod.font = { size: 10, italic: true };
+      sumPeriod.alignment = { horizontal: 'center' };
+      summarySheet.getRow(2).height = 20;
+
+      const adminHours = filtered.filter(e => e.category === 'Admin').reduce((s,e) => s + e.hours, 0);
+      const adminRatio = totalHours > 0 ? (adminHours / totalHours) * 100 : 0;
+      const uniqueProjects = new Set(filtered.map(e => e.project)).size;
+      const uniqueDays = new Set(filtered.map(e => e.date)).size;
+      const avgDaily = uniqueDays > 0 ? totalHours / uniqueDays : 0;
+      
+      const kpiRows = [
+        ["Total Hours", totalHours.toFixed(1)],
+        ["Billable Hours", billableHours.toFixed(1)],
+        ["Non-Billable Hours", nonBillable.toFixed(1)],
+        ["Overtime Hours", overtime.toFixed(1)],
+        ["Unique Projects", uniqueProjects],
+        ["Unique Working Days", uniqueDays],
+        ["Average Daily Hours", avgDaily.toFixed(1)],
+        ["Admin Hours", adminHours.toFixed(1)],
+        ["Admin Ratio (%)", adminRatio.toFixed(1) + "%"],
+        ["Total Entries", filtered.length]
+      ];
+      
+      let r = 4;
+      for (const [label, val] of kpiRows) {
+        const labelCell = summarySheet.getCell(`A${r}`);
+        labelCell.value = label;
+        labelCell.font = { bold: true, size: 11 };
+        labelCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE6F4FA' } };
+        labelCell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+        const valCell = summarySheet.getCell(`B${r}`);
+        valCell.value = val;
+        valCell.font = { size: 12, bold: true, color: { argb: 'FF0B2B3B' } };
+        valCell.alignment = { horizontal: 'right' };
+        valCell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+        r++;
+      }
+
+      // Bar chart on Summary sheet
+      try {
+        const projMap = {};
+        filtered.forEach(e => { projMap[e.project] = (projMap[e.project] || 0) + e.hours; });
+        const projLabels = Object.keys(projMap).slice(0, 10);
+        const projData = projLabels.map(l => projMap[l]);
+        const canvas = document.createElement('canvas');
+        canvas.width = 1800;
+        canvas.height = 1000;
+        const ctx = canvas.getContext('2d');
+        const chart = new Chart(ctx, {
+          type: 'bar',
+          data: { labels: projLabels, datasets: [{ label: 'Hours', data: projData, backgroundColor: '#2fc7ff' }] },
+          options: {
+            responsive: false,
+            maintainAspectRatio: true,
+            plugins: {
+              legend: { labels: { font: { size: 72 } } },
+              title: { display: true, text: 'Top Projects by Hours', font: { size: 80 } }
+            },
+            scales: {
+              x: { ticks: { font: { size: 56 } } },
+              y: { ticks: { font: { size: 56 } } }
+            }
+          }
+        });
+        await new Promise(r => setTimeout(r, 800));
+        const chartBase64 = canvas.toDataURL('image/png');
+        chart.destroy();
+        const chartImageId = workbook.addImage({ base64: chartBase64, extension: 'png' });
+        summarySheet.addImage(chartImageId, {
+          tl: { col: 0, row: r + 1 },
+          ext: { width: 450, height: 250 },
+          editAs: 'oneCell'
+        });
+      } catch(e) { console.warn("Summary chart skipped", e); }
+
+      summarySheet.getCell('A50').value = `Generated by Your Portfolio System`;
+      summarySheet.getCell('A50').font = { italic: true, size: 8 };
+      summarySheet.mergeCells('A50:C50');
+
+      // ==================== SHEET 3: CHARTS (6 charts) ====================
       const chartsSheet = workbook.addWorksheet("Charts", {
         pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, paperSize: 9 }
       });
@@ -678,7 +774,7 @@
         return new Chart(ctx, {
           type: 'pie',
           data: { labels: Object.keys(catMap), datasets: [{ data: Object.values(catMap), backgroundColor: ['#2fc7ff', '#ffc107', '#28a745', '#dc3545', '#6f42c1', '#fd7e14', '#17a2b8', '#e83e8c'] }] },
-          options: { responsive: false, maintainAspectRatio: true, plugins: { legend: { position: 'right', labels: { font: { size: 72 } } }, tooltip: { bodyFont: { size: 40 } } } }
+          options: { responsive: false, maintainAspectRatio: true, plugins: { legend: { position: 'right', labels: { font: { size: 72 } } }, title: { display: true, text: 'Hours by Category', font: { size: 80 } }, tooltip: { bodyFont: { size: 40 } } } }
         });
       }, 0, 3, 'Hours by Category');
 
@@ -687,7 +783,7 @@
         return new Chart(ctx, {
           type: 'doughnut',
           data: { labels: ['Billable', 'Non-Billable'], datasets: [{ data: [billableHours, nonBillable], backgroundColor: ['#28a745', '#dc3545'] }] },
-          options: { responsive: false, maintainAspectRatio: true, plugins: { legend: { position: 'right', labels: { font: { size: 72 } } }, tooltip: { bodyFont: { size: 40 } } } }
+          options: { responsive: false, maintainAspectRatio: true, plugins: { legend: { position: 'right', labels: { font: { size: 72 } } }, title: { display: true, text: 'Billable Breakdown', font: { size: 80 } }, tooltip: { bodyFont: { size: 40 } } } }
         });
       }, 1, 3, 'Billable Breakdown');
 
@@ -703,7 +799,7 @@
         return new Chart(ctx, {
           type: 'line',
           data: { labels: weeksSorted, datasets: [{ label: 'Total Hours', data: weekData, borderColor: '#2fc7ff', backgroundColor: 'rgba(47,199,255,0.1)', fill: true, tension: 0.3 }] },
-          options: { responsive: false, maintainAspectRatio: true, plugins: { legend: { labels: { font: { size: 72 } } }, tooltip: { bodyFont: { size: 40 } } }, scales: { x: { ticks: { font: { size: 48 } } }, y: { ticks: { font: { size: 56 } } } } }
+          options: { responsive: false, maintainAspectRatio: true, plugins: { legend: { labels: { font: { size: 72 } } }, title: { display: true, text: 'Weekly Hours Trend', font: { size: 80 } }, tooltip: { bodyFont: { size: 40 } } }, scales: { x: { ticks: { font: { size: 48 } } }, y: { ticks: { font: { size: 56 } } } } }
         });
       }, 0, 3 + ROW_OFFSET, 'Weekly Hours Trend');
 
@@ -723,7 +819,7 @@
         return new Chart(ctx, {
           type: 'bar',
           data: { labels: allWeeks, datasets: [{ label: 'Admin Hours', data: allWeeks.map(w => weeklyAdmin[w] || 0), backgroundColor: '#ffc107' }, { label: 'Project Hours', data: allWeeks.map(w => weeklyProject[w] || 0), backgroundColor: '#2fc7ff' }] },
-          options: { responsive: false, maintainAspectRatio: true, scales: { x: { stacked: true, ticks: { font: { size: 48 } } }, y: { stacked: true, ticks: { font: { size: 56 } } } }, plugins: { legend: { labels: { font: { size: 72 } } }, tooltip: { bodyFont: { size: 40 } } } }
+          options: { responsive: false, maintainAspectRatio: true, scales: { x: { stacked: true, ticks: { font: { size: 48 } } }, y: { stacked: true, ticks: { font: { size: 56 } } } }, plugins: { legend: { labels: { font: { size: 72 } } }, title: { display: true, text: 'Admin vs Project Hours', font: { size: 80 } }, tooltip: { bodyFont: { size: 40 } } } }
         });
       }, 1, 3 + ROW_OFFSET, 'Admin vs Project Hours');
 
@@ -736,7 +832,7 @@
         return new Chart(ctx, {
           type: 'bar',
           data: { labels: dates, datasets: [{ label: 'Daily Hours', data: hoursData, backgroundColor: 'rgba(47,199,255,0.6)', borderColor: '#2fc7ff', borderWidth: 2 }] },
-          options: { responsive: false, maintainAspectRatio: true, plugins: { legend: { labels: { font: { size: 72 } } }, tooltip: { bodyFont: { size: 40 } } }, scales: { x: { ticks: { font: { size: 40 }, maxRotation: 45 } }, y: { ticks: { font: { size: 56 } } } } }
+          options: { responsive: false, maintainAspectRatio: true, plugins: { legend: { labels: { font: { size: 72 } } }, title: { display: true, text: 'Daily Hours Distribution', font: { size: 80 } }, tooltip: { bodyFont: { size: 40 } } }, scales: { x: { ticks: { font: { size: 40 }, maxRotation: 45 } }, y: { ticks: { font: { size: 56 } } } } }
         });
       }, 0, 3 + ROW_OFFSET * 2, 'Daily Hours Distribution');
 
@@ -748,7 +844,7 @@
         return new Chart(ctx, {
           type: 'bar',
           data: { labels: sortedProjects.map(p => p[0]), datasets: [{ label: 'Hours', data: sortedProjects.map(p => p[1]), backgroundColor: ['#2fc7ff', '#28a745', '#ffc107', '#dc3545', '#6f42c1', '#fd7e14', '#17a2b8', '#e83e8c'], borderRadius: 4 }] },
-          options: { responsive: false, maintainAspectRatio: true, indexAxis: 'y', plugins: { legend: { labels: { font: { size: 72 } } }, tooltip: { bodyFont: { size: 40 } } }, scales: { x: { ticks: { font: { size: 56 } } }, y: { ticks: { font: { size: 48 } } } } }
+          options: { responsive: false, maintainAspectRatio: true, indexAxis: 'y', plugins: { legend: { labels: { font: { size: 72 } } }, title: { display: true, text: 'Top Projects by Hours', font: { size: 80 } }, tooltip: { bodyFont: { size: 40 } } }, scales: { x: { ticks: { font: { size: 56 } } }, y: { ticks: { font: { size: 48 } } } } }
         });
       }, 1, 3 + ROW_OFFSET * 2, 'Top Projects by Hours');
 
@@ -756,10 +852,184 @@
       chartsSheet.getCell('A75').font = { italic: true, size: 8 };
       chartsSheet.mergeCells('A75:F75');
 
+      // ==================== SHEET 4: ADVANCED ANALYSIS ====================
+      const analysisSheet = workbook.addWorksheet("Advanced Analysis", {
+        pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, paperSize: 9 }
+      });
+      analysisSheet.columns = [{ width: 28 }, { width: 22 }, { width: 35 }];
+      
+      analysisSheet.mergeCells('A1:C1');
+      const analysisTitle = analysisSheet.getCell('A1');
+      analysisTitle.value = "DEEP DIVE ANALYSIS";
+      analysisTitle.font = { size: 16, bold: true, color: { argb: 'FF0B2B3B' } };
+      analysisTitle.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE6F4FA' } };
+      analysisTitle.alignment = { horizontal: 'center', vertical: 'middle' };
+      analysisSheet.getRow(1).height = 32;
+
+      let rowIdx = 3;
+      
+      function addSectionHeader(title, startRow) {
+        const cell = analysisSheet.getCell(`A${startRow}`);
+        cell.value = title;
+        cell.font = { bold: true, size: 12 };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
+        cell.font.color = { argb: 'FFFFFFFF' };
+        cell.alignment = { horizontal: 'left', vertical: 'middle' };
+        analysisSheet.mergeCells(`A${startRow}:C${startRow}`);
+        analysisSheet.getRow(startRow).height = 22;
+        return startRow + 1;
+      }
+
+      function addKeyValue(label, value, row) {
+        const labelCell = analysisSheet.getCell(`A${row}`);
+        labelCell.value = label;
+        labelCell.font = { bold: true };
+        labelCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF0F0F0' } };
+        labelCell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+        const valCell = analysisSheet.getCell(`B${row}`);
+        valCell.value = value;
+        valCell.font = { size: 11 };
+        valCell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+        valCell.alignment = { horizontal: 'right' };
+        return row + 1;
+      }
+
+      function addTwoColumnTable(data, startRow, col1Header, col2Header) {
+        let r = startRow;
+        const h1 = analysisSheet.getCell(`A${r}`);
+        h1.value = col1Header;
+        h1.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        h1.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
+        h1.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+        const h2 = analysisSheet.getCell(`B${r}`);
+        h2.value = col2Header;
+        h2.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        h2.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
+        h2.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+        analysisSheet.getRow(r).height = 22;
+        r++;
+        for (let i = 0; i < data.length; i++) {
+          const [colA, colB] = data[i];
+          const row = analysisSheet.getRow(r);
+          const aCell = row.getCell(1);
+          aCell.value = colA;
+          aCell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+          aCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: i % 2 === 0 ? 'FFE6F0FA' : 'FFFFF8E7' } };
+          const bCell = row.getCell(2);
+          bCell.value = colB;
+          bCell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+          bCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: i % 2 === 0 ? 'FFE6F0FA' : 'FFFFF8E7' } };
+          bCell.alignment = { horizontal: 'right' };
+          r++;
+        }
+        return r + 1;
+      }
+
+      // Build analysis content
+      rowIdx = addSectionHeader("📈 KEY METRICS", rowIdx);
+      const workingDays = new Set(filtered.map(e => e.date));
+      const avgDaily2 = totalHours / workingDays.size;
+      rowIdx = addKeyValue("Average Daily Hours", avgDaily2.toFixed(2), rowIdx);
+      rowIdx = addKeyValue("Total Hours", totalHours.toFixed(1), rowIdx);
+      rowIdx = addKeyValue("Billable Hours", billableHours.toFixed(1), rowIdx);
+      rowIdx = addKeyValue("Non-Billable Hours", nonBillable.toFixed(1), rowIdx);
+      rowIdx = addKeyValue("Overtime Hours", overtime.toFixed(1), rowIdx);
+      rowIdx = addKeyValue("Admin Ratio (%)", adminRatio.toFixed(1) + "%", rowIdx);
+      rowIdx = addKeyValue("Unique Projects", uniqueProjects, rowIdx);
+      rowIdx += 1;
+
+      rowIdx = addSectionHeader("📊 ADMIN RATIO BY WEEK", rowIdx);
+      const weeklyAdminTable = [];
+      const weeklyAdminMap = new Map();
+      filtered.forEach(e => {
+        const week = getWeekNumber(e.date);
+        const year = new Date(e.date).getFullYear();
+        const key = `${year}-W${week}`;
+        if (!weeklyAdminMap.has(key)) weeklyAdminMap.set(key, { total: 0, admin: 0 });
+        const w = weeklyAdminMap.get(key);
+        w.total += e.hours;
+        if (e.category === 'Admin') w.admin += e.hours;
+      });
+      for (let [week, data] of weeklyAdminMap) {
+        const ratio = data.total > 0 ? (data.admin / data.total) * 100 : 0;
+        weeklyAdminTable.push([week, ratio.toFixed(1) + "%"]);
+      }
+      rowIdx = addTwoColumnTable(weeklyAdminTable, rowIdx, "Week", "Admin %");
+      rowIdx += 1;
+
+      rowIdx = addSectionHeader("🏆 TOP 3 PROJECTS (HOURS)", rowIdx);
+      const projTotals = {};
+      filtered.forEach(e => { projTotals[e.project] = (projTotals[e.project] || 0) + e.hours; });
+      const topProjects = Object.entries(projTotals).sort((a,b) => b[1] - a[1]).slice(0,3);
+      const topTable = topProjects.map(([proj, hrs]) => [proj, hrs.toFixed(1)]);
+      rowIdx = addTwoColumnTable(topTable, rowIdx, "Project", "Hours");
+      rowIdx += 1;
+
+      rowIdx = addSectionHeader("⚠️ OVERTIME DAYS (>8h)", rowIdx);
+      const overtimeDays = filtered.filter(e => e.hours > 8);
+      const overtimeTable = overtimeDays.map(e => [e.date, e.hours.toFixed(2)]);
+      if (overtimeTable.length === 0) overtimeTable.push(["None", ""]);
+      rowIdx = addTwoColumnTable(overtimeTable, rowIdx, "Date", "Hours");
+      rowIdx += 1;
+
+      rowIdx = addSectionHeader("📝 ENTRIES WITHOUT NOTES", rowIdx);
+      const missingNotes = filtered.filter(e => !e.notes || e.notes.trim() === "");
+      const notesTable = missingNotes.slice(0, 30).map(e => [e.date, e.project]);
+      if (notesTable.length === 0) notesTable.push(["All entries have notes", ""]);
+      rowIdx = addTwoColumnTable(notesTable, rowIdx, "Date", "Project");
+      if (missingNotes.length > 30) {
+        const noteCell = analysisSheet.getCell(`A${rowIdx}`);
+        noteCell.value = `... and ${missingNotes.length - 30} more`;
+        noteCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE6F0FA' } };
+        noteCell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+        analysisSheet.mergeCells(`A${rowIdx}:B${rowIdx}`);
+        rowIdx++;
+      }
+      rowIdx += 1;
+
+      rowIdx = addSectionHeader("⏳ CONSISTENCY", rowIdx);
+      const sortedDates = [...new Set(filtered.map(e => e.date))].sort();
+      let maxGap = 0;
+      for (let i = 1; i < sortedDates.length; i++) {
+        const diff = (new Date(sortedDates[i]) - new Date(sortedDates[i-1])) / (1000*3600*24);
+        if (diff > 1) {
+          const gap = diff - 1;
+          if (gap > maxGap) maxGap = gap;
+        }
+      }
+      rowIdx = addKeyValue("Longest gap between entries (days)", maxGap.toString(), rowIdx);
+      rowIdx += 1;
+
+      rowIdx = addSectionHeader("💚 PORTFOLIO HEALTH SCORE", rowIdx);
+      let healthScore = 100;
+      if (adminRatio > 15) healthScore -= 10;
+      if (overtimeDays.length > 3) healthScore -= 15;
+      if (missingNotes.length > 0) healthScore -= Math.min(missingNotes.length, 20);
+      if (uniqueProjects === 0) healthScore -= 50;
+      healthScore = Math.max(0, healthScore);
+      const scoreCell = analysisSheet.getCell(`A${rowIdx}`);
+      scoreCell.value = "Health Score (0-100)";
+      scoreCell.font = { bold: true };
+      scoreCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF0F0F0' } };
+      scoreCell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+      const scoreValCell = analysisSheet.getCell(`B${rowIdx}`);
+      scoreValCell.value = healthScore;
+      scoreValCell.font = { size: 14, bold: true, color: { argb: healthScore >= 80 ? 'FF28A745' : (healthScore >= 50 ? 'FFFFC107' : 'FFDC3545') } };
+      scoreValCell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+      scoreValCell.alignment = { horizontal: 'right' };
+      rowIdx += 2;
+
+      const footerRow = rowIdx;
+      analysisSheet.getCell(`A${footerRow}`).value = `Analysis generated: ${new Date().toLocaleString()} | Based on ${filtered.length} entries`;
+      analysisSheet.mergeCells(`A${footerRow}:C${footerRow}`);
+      analysisSheet.getCell(`A${footerRow}`).font = { italic: true, size: 8 };
+      analysisSheet.getCell(`A${footerRow}`).alignment = { horizontal: 'center' };
+
+      // ==================== SAVE ====================
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       saveAs(blob, `Timesheet_${startDate}_to_${endDate}_readonly.xlsx`);
-      showToast("Excel report generated – enhanced with 6 charts!", "success");
+      showToast("Excel report generated – 4 sheets with all data!", "success");
     } catch (err) {
       console.error("Excel export error:", err);
       showToast("Excel generation failed: " + err.message, "error");
@@ -844,9 +1114,6 @@
     document.getElementById('nowEndBtn').onclick = () => { document.getElementById('endTime').value = new Date().toTimeString().slice(0,5); updateHoursAuto(); };
     document.getElementById('addEntryBtn').onclick = () => addEntry();
     document.getElementById('refreshHistoryBtn').onclick = () => refreshView();
-    
-    // REMOVED: exportExcelBtn reference - no longer needed
-    
     document.getElementById('printBtn').onclick = () => window.print();
     document.getElementById('filterRange').onchange = () => { renderHistory(); updateSummaryAndProgress(); updateCharts(); };
     document.getElementById('filterProject').onchange = () => { renderHistory(); updateSummaryAndProgress(); updateCharts(); };
