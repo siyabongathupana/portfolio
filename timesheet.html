@@ -18,9 +18,9 @@
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
   <!-- FileSaver.js (for saving Excel) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-  <!-- QRCode.js -->
+  <!-- QRCode.js (kept for potential future use) -->
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
-  <!-- jsPDF and plugins -->
+  <!-- jsPDF (kept for potential future use) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
   <!-- Core app scripts -->
@@ -117,6 +117,8 @@
     .btn-duplicate:hover { background: #138496; }
     .custom-switch .custom-control-label:before { border-radius: 20px; background-color: #e2e8f0; }
     .custom-switch .custom-control-input:checked ~ .custom-control-label:before { background-color: #2fc7ff; }
+    .btn-excel { background: #28a745; color: white; border: none; }
+    .btn-excel:hover { background: #218838; color: white; }
     @media (max-width: 768px) {
       .timesheet-container { padding: 12px; margin: 10px; border-radius: 16px; }
       .quick-log-card { padding: 15px; }
@@ -139,10 +141,6 @@
       .history-table th { background: #f0f0f0 !important; color: black !important; }
       @page { size: landscape; margin: 1.5cm; }
     }
-    #generateReportBtn {
-    opacity: 0.5;
-    pointer-events: none;
-   }
   </style>
 </head>
 <body style="background:#eef3fc;">
@@ -159,7 +157,6 @@
         <li class="nav-item"><a class="nav-link" href="projects.html">Projects</a></li>
         <li class="nav-item"><a class="nav-link" href="certificates.html">Certificates</a></li>
         <li class="nav-item active"><a class="nav-link" href="timesheet.html">Timesheet</a></li>
-        
         <li class="nav-item"><a class="nav-link" href="admin.html">Manage</a></li>
       </ul>
     </div>
@@ -170,9 +167,9 @@
   <div class="d-flex justify-content-between align-items-center flex-wrap mb-3">
     <h3><i class="fa fa-clock-o"></i> Timesheet</h3>
     <div>
-      <button id="exportExcelBtn" class="btn btn-sm btn-success mr-2"><i class="fa fa-file-excel-o"></i> Excel</button>
-      <button id="generateReportBtn" class="btn btn-sm btn-primary mr-2"><i class="fa fa-file-pdf-o"></i> PDF Report</button>
-      <button id="printBtn" class="btn btn-sm btn-secondary"><i class="fa fa-print"></i> Print</button>
+      <button id="exportExcelBtn" class="btn btn-excel btn-sm mr-2"><i class="fa fa-file-excel-o"></i> Excel</button>
+      <button id="generateReportBtn" class="btn btn-primary btn-sm mr-2"><i class="fa fa-file-excel-o"></i> Excel Report</button>
+      <button id="printBtn" class="btn btn-secondary btn-sm"><i class="fa fa-print"></i> Print</button>
     </div>
   </div>
 
@@ -311,12 +308,12 @@
         <option>Other</option>
       </select>
     </div>
-    <!-----------------------------------------------------------TRAFFFIC--------------------------------------------------------->
-     <div style="display: inline-flex; align-items: center; gap: 8px; margin-left: 15px;">
-        <div id="standaloneTrafficLight"></div>
-        <button id="downloadRulesBtn" class="btn btn-sm btn-outline-info" title="Download traffic light rules">
-            <i class="fa fa-download"></i>
-        </button>
+    <!-- Traffic Light -->
+    <div style="display: inline-flex; align-items: center; gap: 8px; margin-left: 15px;">
+      <div id="standaloneTrafficLight"></div>
+      <button id="downloadRulesBtn" class="btn btn-sm btn-outline-info" title="Download traffic light rules">
+        <i class="fa fa-download"></i>
+      </button>
     </div>
     <button id="refreshHistoryBtn" class="btn btn-sm btn-outline-info"><i class="fa fa-refresh"></i> Refresh</button>
   </div>
@@ -381,18 +378,28 @@
   </div>
 </div>
 
-<!-- Report Modal -->
+<!-- Report Modal - Excel Only -->
 <div class="modal fade" id="reportModal" tabindex="-1">
   <div class="modal-dialog modal-md">
     <div class="modal-content">
-      <div class="modal-header"><h5><i class="fa fa-file-pdf-o"></i> Generate Report</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div>
+      <div class="modal-header"><h5><i class="fa fa-file-excel-o"></i> Generate Excel Report</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div>
       <div class="modal-body">
         <div class="form-group"><label>Full Name (as on report)</label><input type="text" id="reportName" class="form-control" readonly></div>
         <div class="form-group"><label>Start Date</label><input type="date" id="reportStartDate" class="form-control"></div>
         <div class="form-group"><label>End Date</label><input type="date" id="reportEndDate" class="form-control"></div>
-        <div class="form-group"><label>Format</label><select id="reportType" class="form-control"><option value="pdf">PDF Document</option><option value="excel">Excel Workbook (.xlsx)</option></select></div>
+        <div class="alert alert-info mt-2">
+          <i class="fa fa-info-circle"></i> Generates an Excel workbook with:
+          <ul class="mb-0 mt-1">
+            <li>Detailed timesheet data table</li>
+            <li>6 interactive charts (Category, Billable, Weekly Trend, Admin vs Project, Daily Distribution, Top Projects)</li>
+            <li>Password-protected worksheet</li>
+          </ul>
+        </div>
       </div>
-      <div class="modal-footer"><button class="btn btn-secondary" data-dismiss="modal">Cancel</button><button id="generateReportConfirmBtn" class="btn btn-primary">Generate</button></div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+        <button id="generateReportConfirmBtn" class="btn btn-success"><i class="fa fa-file-excel-o"></i> Generate Excel</button>
+      </div>
     </div>
   </div>
 </div>
