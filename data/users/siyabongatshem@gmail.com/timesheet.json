@@ -1,17 +1,5 @@
 [
   {
-    "id": 1782994098627,
-    "date": "2026-07-01",
-    "start": "08:30",
-    "end": "16:30",
-    "hours": 8,
-    "project": "Omnia Phase 3",
-    "category": "CFAT",
-    "billable": "yes",
-    "notes": "BackPunching",
-    "updatedAt": 1782994098627
-  },
-  {
     "id": 1782993278237,
     "date": "2026-07-02",
     "start": "08:30",
@@ -23,6 +11,18 @@
     "notes": "3rd Party Integration",
     "updatedAt": 1782993278237,
     "weekKey": "2026-W27"
+  },
+  {
+    "id": 1782994098627,
+    "date": "2026-07-01",
+    "start": "08:30",
+    "end": "16:30",
+    "hours": 8,
+    "project": "Omnia Phase 3",
+    "category": "Back-Punching",
+    "billable": "yes",
+    "notes": "BackPunching",
+    "updatedAt": 1782994131855
   },
   {
     "id": 1782800154531,
