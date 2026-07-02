@@ -1,4 +1,4 @@
-// timesheet.js – COMPLETE with FIXED MONTH FILTER & EVENT DELEGATION
+// timesheet.js – COMPLETE with Monthly Comparison & Column Filters
 (function() {
   const user = window.SessionManager?.getCurrentUser();
   if (!user) {
@@ -54,7 +54,6 @@
 
   let projectChart = null, categoryChart = null, billableChart = null;
 
-  // Cache for project options to avoid repeated fetches
   let _projectsLoaded = false;
 
   function showToast(message, type = "success") {
@@ -324,20 +323,21 @@
     const project = document.getElementById('filterProject').value;
     const category = document.getElementById('filterCategory').value;
     
-    // Get today's date in YYYY-MM-DD for string comparison
     const today = new Date();
-    const todayYMD = formatDate(today); // "2026-07-02"
-    const thisMonthPrefix = todayYMD.substring(0, 7); // "2026-07"
+    const todayYMD = formatDate(today);
+    const thisMonthPrefix = todayYMD.substring(0, 7);
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setUTCDate(thirtyDaysAgo.getUTCDate() - 30);
+    const thirtyDaysAgoStr = formatDate(thirtyDaysAgo);
     
     let filtered = [...entries];
     if (range !== 'all') {
       filtered = filtered.filter(entry => {
-        const entryDate = entry.date; // "2026-07-02"
+        const entryDate = entry.date;
         if (range === 'day') {
           return entryDate === todayYMD;
         }
         if (range === 'week') {
-          // Compute week start/end using UTC to avoid timezone issues
           const d = new Date(entryDate);
           d.setUTCHours(0, 0, 0, 0);
           const now = new Date();
@@ -353,8 +353,10 @@
           return d >= startOfWeek && d <= endOfWeek;
         }
         if (range === 'month') {
-          // Compare by year-month string
           return entryDate.substring(0, 7) === thisMonthPrefix;
+        }
+        if (range === 'last30') {
+          return entryDate >= thirtyDaysAgoStr;
         }
         return true;
       });
@@ -390,7 +392,6 @@
       const actionCell = row.insertCell(8);
       actionCell.className = 'print-hide';
       
-      // Use data attributes – NO inline onclick (fixes double-click)
       const editBtn = document.createElement('button');
       editBtn.className = 'btn btn-sm btn-edit mr-1';
       editBtn.innerHTML = '<i class="fa fa-pencil"></i>';
@@ -527,7 +528,7 @@
     });
   }
 
-  // ======================== EXCEL EXPORT ========================
+  // ======================== EXCEL EXPORT with Monthly Comparison & Column Filters ========================
   async function exportStyledExcel(startDate, endDate) {
     window.showLoading("Generating Excel report...");
     try {
@@ -567,7 +568,7 @@
 
       const workbook = new ExcelJS.Workbook();
       
-      // ==================== SHEET 1: TIMESHEET DATA ====================
+      // ==================== SHEET 1: TIMESHEET DATA (with filters) ====================
       const worksheet = workbook.addWorksheet("Timesheet Data", {
         pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0, paperSize: 9, horizontalCentered: true, verticalCentered: true }
       });
@@ -684,8 +685,13 @@
         row.height = maxHeight;
       });
 
+      // === ADD FILTERS (autoFilter) ===
+      worksheet.autoFilter = `A1:H${totalRowNum}`;
+
       worksheet.views = [{ state: 'frozen', ySplit: 4 }];
       worksheet.pageSetup.printArea = `A1:H${totalRowNum}`;
+      
+      // Protect sheet with autoFilter allowed
       worksheet.protect('Siya', {
         selectLockedCells: true,
         selectUnlockedCells: true,
@@ -697,7 +703,7 @@
         insertColumns: false,
         deleteColumns: false,
         sort: false,
-        autoFilter: false,
+        autoFilter: true,   // ✅ Allow filtering
         pivotTables: false
       });
 
@@ -1065,7 +1071,7 @@
         return r + 1;
       }
 
-      // Build analysis content (same as before)
+      // Build analysis content
       rowIdx = addSectionHeader("📈 KEY METRICS", rowIdx);
       const workingDays = new Set(filtered.map(e => e.date));
       const avgDaily2 = totalHours / workingDays.size;
@@ -1097,6 +1103,115 @@
       rowIdx = addTwoColumnTable(weeklyAdminTable, rowIdx, "Week", "Admin %");
       rowIdx += 1;
 
+      // ========== NEW: MONTHLY COMPARISON ==========
+      rowIdx = addSectionHeader("📊 MONTHLY COMPARISON", rowIdx);
+      
+      // Compute monthly aggregates from filtered entries
+      const monthlyData = {};
+      filtered.forEach(e => {
+        const monthKey = e.date.substring(0, 7); // "2026-07"
+        if (!monthlyData[monthKey]) {
+          monthlyData[monthKey] = { total: 0, billable: 0, overtime: 0, days: new Set() };
+        }
+        monthlyData[monthKey].total += e.hours;
+        if (e.billable === 'yes') monthlyData[monthKey].billable += e.hours;
+        monthlyData[monthKey].days.add(e.date);
+        // Overtime: sum of daily hours > 8
+        // We'll compute later by aggregating per day per month
+      });
+      
+      // Recompute overtime per month (needs daily sums)
+      const monthlyOvertime = {};
+      const dailyHoursByMonth = {};
+      filtered.forEach(e => {
+        const monthKey = e.date.substring(0, 7);
+        if (!dailyHoursByMonth[monthKey]) dailyHoursByMonth[monthKey] = {};
+        const day = e.date;
+        if (!dailyHoursByMonth[monthKey][day]) dailyHoursByMonth[monthKey][day] = 0;
+        dailyHoursByMonth[monthKey][day] += e.hours;
+      });
+      for (const monthKey in dailyHoursByMonth) {
+        let ot = 0;
+        for (const day in dailyHoursByMonth[monthKey]) {
+          const hrs = dailyHoursByMonth[monthKey][day];
+          if (hrs > 8) ot += (hrs - 8);
+        }
+        monthlyOvertime[monthKey] = ot;
+      }
+      
+      // Prepare table data
+      const monthKeys = Object.keys(monthlyData).sort();
+      const monthTable = [];
+      let prevTotal = null;
+      for (const m of monthKeys) {
+        const data = monthlyData[m];
+        const total = data.total;
+        const billable = data.billable;
+        const days = data.days.size;
+        const avg = days > 0 ? total / days : 0;
+        const ot = monthlyOvertime[m] || 0;
+        let growth = null;
+        if (prevTotal !== null) {
+          const diff = total - prevTotal;
+          growth = (prevTotal > 0) ? ((diff / prevTotal) * 100) : 0;
+        }
+        monthTable.push({
+          month: m,
+          total: total,
+          billable: billable,
+          overtime: ot,
+          avg: avg,
+          growth: growth
+        });
+        prevTotal = total;
+      }
+      
+      // Render the table
+      const monthHeaders = ['Month', 'Hours', 'Billable', 'Overtime', 'Avg/Day', 'Growth'];
+      const monthDataRows = monthTable.map(row => [
+        row.month,
+        row.total.toFixed(1),
+        row.billable.toFixed(1),
+        row.overtime.toFixed(1),
+        row.avg.toFixed(1),
+        row.growth !== null ? (row.growth >= 0 ? '+' : '') + row.growth.toFixed(1) + '%' : '-'
+      ]);
+      
+      // Add headers
+      const hRow = analysisSheet.getRow(rowIdx);
+      monthHeaders.forEach((h, idx) => {
+        const cell = hRow.getCell(idx+1);
+        cell.value = h;
+        cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
+        cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+      });
+      analysisSheet.getRow(rowIdx).height = 22;
+      rowIdx++;
+      
+      // Add data rows
+      for (const rowData of monthDataRows) {
+        const row = analysisSheet.getRow(rowIdx);
+        rowData.forEach((val, idx) => {
+          const cell = row.getCell(idx+1);
+          cell.value = val;
+          cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+          cell.alignment = { vertical: 'middle', horizontal: (idx === 0) ? 'left' : 'right' };
+          // Color growth positive/negative
+          if (idx === 5 && val !== '-') {
+            const num = parseFloat(val);
+            if (!isNaN(num)) {
+              cell.font = { color: { argb: num >= 0 ? 'FF28A745' : 'FFDC3545' }, bold: true };
+            }
+          }
+        });
+        analysisSheet.getRow(rowIdx).height = 18;
+        rowIdx++;
+      }
+      
+      rowIdx += 1; // extra spacing
+
       rowIdx = addSectionHeader("🏆 TOP 3 PROJECTS (HOURS)", rowIdx);
       const projTotals = {};
       filtered.forEach(e => { projTotals[e.project] = (projTotals[e.project] || 0) + e.hours; });
@@ -1112,20 +1227,8 @@
       rowIdx = addTwoColumnTable(overtimeTable, rowIdx, "Date", "Hours");
       rowIdx += 1;
 
-      rowIdx = addSectionHeader("📝 ENTRIES WITHOUT NOTES", rowIdx);
-      const missingNotes = filtered.filter(e => !e.notes || e.notes.trim() === "");
-      const notesTable = missingNotes.slice(0, 30).map(e => [e.date, e.project]);
-      if (notesTable.length === 0) notesTable.push(["All entries have notes", ""]);
-      rowIdx = addTwoColumnTable(notesTable, rowIdx, "Date", "Project");
-      if (missingNotes.length > 30) {
-        const noteCell = analysisSheet.getCell(`A${rowIdx}`);
-        noteCell.value = `... and ${missingNotes.length - 30} more`;
-        noteCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE6F0FA' } };
-        noteCell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
-        analysisSheet.mergeCells(`A${rowIdx}:B${rowIdx}`);
-        rowIdx++;
-      }
-      rowIdx += 1;
+      // ========== REMOVED "ENTRIES WITHOUT NOTES" SECTION ==========
+      // (No longer included)
 
       rowIdx = addSectionHeader("⏳ CONSISTENCY", rowIdx);
       const sortedDates = [...new Set(filtered.map(e => e.date))].sort();
@@ -1144,7 +1247,7 @@
       let healthScore = 100;
       if (adminRatio > 15) healthScore -= 10;
       if (overtimeDays.length > 3) healthScore -= 15;
-      if (missingNotes.length > 0) healthScore -= Math.min(missingNotes.length, 20);
+      // Removed missingNotes penalty since we removed that section
       if (uniqueProjects === 0) healthScore -= 50;
       healthScore = Math.max(0, healthScore);
       const scoreCell = analysisSheet.getCell(`A${rowIdx}`);
@@ -1184,7 +1287,7 @@
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       saveAs(blob, `Timesheet_${startDate}_to_${endDate}_readonly.xlsx`);
-      showToast("Excel report generated – all sheets locked!", "success");
+      showToast("Excel report generated – column filters enabled, monthly comparison added!", "success");
     } catch (err) {
       console.error("Excel export error:", err);
       showToast("Excel generation failed: " + err.message, "error");
@@ -1305,7 +1408,7 @@
     };
     document.getElementById('saveEditBtn').onclick = saveEdit;
 
-    // ===== DELEGATED EVENT LISTENER FOR TABLE ACTIONS (FIXES DOUBLE-CLICK) =====
+    // Delegated event listener for table actions (fixes double-click)
     document.getElementById('historyBody').addEventListener('click', function(e) {
       const target = e.target.closest('button');
       if (!target) return;
