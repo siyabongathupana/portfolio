@@ -3,13 +3,13 @@
     "id": 1782993278237,
     "date": "2026-07-02",
     "start": "08:30",
-    "end": "16:30",
-    "hours": 8,
+    "end": "17:15",
+    "hours": 8.75,
     "project": "Omnia Phase 3",
     "category": "CFAT",
     "billable": "yes",
     "notes": "3rd Party Integration & Update AN_PUMPS grpc",
-    "updatedAt": 1783000817630,
+    "updatedAt": 1783005132513,
     "weekKey": "2026-W27"
   },
   {
