@@ -1,4 +1,4 @@
-// timesheet.js – COMPLETE with SUBTOTAL in Excel, responsive total row
+// timesheet.js – COMPLETE with fixed SUBTOTAL, chart sizes, and clean formatting
 (function() {
   const user = window.SessionManager?.getCurrentUser();
   if (!user) {
@@ -672,7 +672,7 @@
 
       const totalRowNum = currentRow;
       const totalRow = worksheet.getRow(totalRowNum);
-      // ✅ Use SUBTOTAL so the total responds to column filters (Project, Category, Billable)
+      // ✅ Use SUBTOTAL(109, ...) – sums only visible rows after filtering
       totalRow.getCell(4).value = { formula: `SUBTOTAL(109,D5:D${totalRowNum - 1})` };
       totalRow.getCell(4).font = { bold: true, size: 11 };
       for (let i = 1; i <= 8; i++) {
@@ -835,7 +835,7 @@
         pivotTables: false
       });
 
-      // ==================== SHEET 3: CHARTS ====================
+      // ==================== SHEET 3: CHARTS (larger sizes) ====================
       const chartsSheet = workbook.addWorksheet("Charts", {
         pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, paperSize: 9 }
       });
@@ -847,19 +847,20 @@
       chartsTitle.alignment = { horizontal: 'center' };
       chartsSheet.getRow(1).height = 38;
       
-      chartsSheet.getColumn(1).width = 40; // A
-      chartsSheet.getColumn(2).width = 5;  // B
-      chartsSheet.getColumn(3).width = 5;  // C
-      chartsSheet.getColumn(4).width = 5;  // D
-      chartsSheet.getColumn(5).width = 40; // E
-      chartsSheet.getColumn(6).width = 5;  // F
+      chartsSheet.getColumn(1).width = 44; // A
+      chartsSheet.getColumn(2).width = 4;  // B
+      chartsSheet.getColumn(3).width = 4;  // C
+      chartsSheet.getColumn(4).width = 4;  // D
+      chartsSheet.getColumn(5).width = 44; // E
+      chartsSheet.getColumn(6).width = 4;  // F
 
       chartsSheet.getRow(2).height = 25;
       chartsSheet.getRow(3).height = 5;
 
-      const CHART_WIDTH = 310;
-      const CHART_HEIGHT = 240;
-      const ROW_OFFSET = Math.ceil((CHART_HEIGHT + 80) / 20) + 3;
+      // Larger chart dimensions
+      const CHART_WIDTH = 380;
+      const CHART_HEIGHT = 290;
+      const ROW_OFFSET = Math.ceil((CHART_HEIGHT + 90) / 20) + 4;
 
       async function addChart(chartsSheet, chartBuilder, col, row, title) {
         try {
@@ -1274,7 +1275,7 @@
       }
       rowIdx += 1;
 
-      // ===== 5. PROJECT DISTRIBUTION =====
+      // ===== 5. PROJECT DISTRIBUTION (clean formatting) =====
       rowIdx = addSectionHeader("📊 PROJECT DISTRIBUTION", rowIdx);
       const projDist = {};
       filtered.forEach(e => { projDist[e.project] = (projDist[e.project] || 0) + e.hours; });
@@ -1304,13 +1305,8 @@
           cell.value = val;
           cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
           cell.alignment = { vertical: 'middle', horizontal: (idx === 0) ? 'left' : 'right' };
-          if (idx === 2) {
-            const num = parseFloat(val);
-            if (!isNaN(num)) {
-              const intensity = Math.min(255, Math.round((num / 100) * 200) + 55);
-              cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: `FF${intensity.toString(16).padStart(2, '0')}E6F0FA` } };
-            }
-          }
+          // Light blue background for all rows (clean)
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE6F4FA' } };
         });
         analysisSheet.getRow(rowIdx).height = 18;
         rowIdx++;
@@ -1478,7 +1474,7 @@
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       saveAs(blob, `Timesheet_${startDate}_to_${endDate}_readonly.xlsx`);
-      showToast("Excel report generated – Accurate Reporting!", "success");
+      showToast("Excel report generated – SUBTOTAL fixed, chart sizes increased!", "success");
     } catch (err) {
       console.error("Excel export error:", err);
       showToast("Excel generation failed: " + err.message, "error");
