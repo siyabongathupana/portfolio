@@ -1,4 +1,4 @@
-// timesheet.js – COMPLETE with CHARTS REPOSITIONED and ALL SHEETS LOCKED
+// timesheet.js – COMPLETE with FIXED HORIZONTAL SPACING & ALL SHEETS LOCKED
 (function() {
   const user = window.SessionManager?.getCurrentUser();
   if (!user) {
@@ -466,7 +466,7 @@
     });
   }
 
-  // ======================== EXCEL EXPORT with CHART REPOSITIONING and ALL SHEETS LOCKED ========================
+  // ======================== EXCEL EXPORT with FIXED HORIZONTAL SPACING & ALL SHEETS LOCKED ========================
   async function exportStyledExcel(startDate, endDate) {
     window.showLoading("Generating Excel report...");
     try {
@@ -733,7 +733,7 @@
         sort: false, autoFilter: false, pivotTables: false
       });
 
-      // ==================== SHEET 3: CHARTS (REPOSITIONED - right charts moved to column E) ====================
+      // ==================== SHEET 3: CHARTS (FIXED HORIZONTAL SPACING) ====================
       const chartsSheet = workbook.addWorksheet("Charts", {
         pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, paperSize: 9 }
       });
@@ -745,21 +745,22 @@
       chartsTitle.alignment = { horizontal: 'center' };
       chartsSheet.getRow(1).height = 38;
       
-      // Set column widths: A and E are chart columns, B and D are gaps, C and F are extra space
-      chartsSheet.getColumn(1).width = 22; // A - left chart
-      chartsSheet.getColumn(2).width = 6;  // B - gap
-      chartsSheet.getColumn(3).width = 6;  // C - extra space
-      chartsSheet.getColumn(4).width = 6;  // D - gap
-      chartsSheet.getColumn(5).width = 22; // E - right chart
-      chartsSheet.getColumn(6).width = 6;  // F - margin
+      // Set column widths: A (chart1), B(gap), C(gap), D(gap), E(chart2), F(gap)
+      // Make A and E wide enough for 340px charts
+      chartsSheet.getColumn(1).width = 40; // A
+      chartsSheet.getColumn(2).width = 5;  // B
+      chartsSheet.getColumn(3).width = 5;  // C
+      chartsSheet.getColumn(4).width = 5;  // D
+      chartsSheet.getColumn(5).width = 40; // E
+      chartsSheet.getColumn(6).width = 5;  // F
 
       // Add spacer rows
       chartsSheet.getRow(2).height = 25;
       chartsSheet.getRow(3).height = 5;
 
-      // CHART DIMENSIONS
-      const CHART_WIDTH = 340;
-      const CHART_HEIGHT = 260;
+      // CHART DIMENSIONS (slightly smaller to fit)
+      const CHART_WIDTH = 310;
+      const CHART_HEIGHT = 240;
       const ROW_OFFSET = Math.ceil((CHART_HEIGHT + 80) / 20) + 3;
 
       async function addChart(chartsSheet, chartBuilder, col, row, title) {
@@ -767,8 +768,8 @@
           const imgData = await safeCaptureChart(chartBuilder, 1200, 900);
           const imageId = workbook.addImage({ base64: imgData, extension: 'png' });
           
-          // col 0 -> left (column A, offset 0.5)
-          // col 1 -> right (column E, offset 4.5)
+          // col 0 -> column A (offset 0.5)
+          // col 1 -> column E (offset 4.5) - moved to far right
           const colOffset = col === 0 ? 0.5 : 4.5;
           
           chartsSheet.addImage(imageId, {
