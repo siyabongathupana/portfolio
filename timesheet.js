@@ -1,4 +1,4 @@
-// timesheet.js – COMPLETE with all fixes & optimizations
+// timesheet.js – COMPLETE with FIXED MONTH FILTER & EVENT DELEGATION
 (function() {
   const user = window.SessionManager?.getCurrentUser();
   if (!user) {
@@ -98,7 +98,6 @@
         console.error("Failed to load timesheet:", e);
         showToast("Could not load timesheet data. Using local cache.", "warning");
       }
-      // Keep existing entries from previous load or fallback to empty
     }
   }
 
@@ -180,7 +179,6 @@
 
   async function loadProjectsForTimesheet(force = false) {
     if (_projectsLoaded && !force) {
-      // Use cached project options
       return;
     }
     await loadPortfolioProjects();
@@ -201,7 +199,6 @@
   async function createTimesheetOnlyProject(projectName) {
     if (allProjectOptions.includes(projectName)) return false;
     await saveTimesheetProjects([...timesheetProjects, projectName]);
-    // Update cache
     timesheetProjects.push(projectName);
     updateCombinedProjectList();
     await loadProjectsForTimesheet(true);
@@ -327,35 +324,37 @@
     const project = document.getElementById('filterProject').value;
     const category = document.getElementById('filterCategory').value;
     
-    const nowUTC = new Date();
-    nowUTC.setUTCHours(0, 0, 0, 0);
+    // Get today's date in YYYY-MM-DD for string comparison
+    const today = new Date();
+    const todayYMD = formatDate(today); // "2026-07-02"
+    const thisMonthPrefix = todayYMD.substring(0, 7); // "2026-07"
     
     let filtered = [...entries];
     if (range !== 'all') {
       filtered = filtered.filter(entry => {
-        const d = new Date(entry.date);
-        // d is already UTC midnight, but we set to be safe
-        d.setUTCHours(0, 0, 0, 0);
-        
+        const entryDate = entry.date; // "2026-07-02"
         if (range === 'day') {
-          return d.getTime() === nowUTC.getTime();
+          return entryDate === todayYMD;
         }
         if (range === 'week') {
-          const day = nowUTC.getUTCDay();
+          // Compute week start/end using UTC to avoid timezone issues
+          const d = new Date(entryDate);
+          d.setUTCHours(0, 0, 0, 0);
+          const now = new Date();
+          now.setUTCHours(0, 0, 0, 0);
+          const day = now.getUTCDay();
           const diff = (day === 0 ? 6 : day - 1);
-          const startOfWeek = new Date(nowUTC);
-          startOfWeek.setUTCDate(nowUTC.getUTCDate() - diff);
+          const startOfWeek = new Date(now);
+          startOfWeek.setUTCDate(now.getUTCDate() - diff);
           startOfWeek.setUTCHours(0, 0, 0, 0);
-          
           const endOfWeek = new Date(startOfWeek);
           endOfWeek.setUTCDate(startOfWeek.getUTCDate() + 6);
           endOfWeek.setUTCHours(23, 59, 59, 999);
-          
           return d >= startOfWeek && d <= endOfWeek;
         }
         if (range === 'month') {
-          return d.getUTCMonth() === nowUTC.getUTCMonth() && 
-                 d.getUTCFullYear() === nowUTC.getUTCFullYear();
+          // Compare by year-month string
+          return entryDate.substring(0, 7) === thisMonthPrefix;
         }
         return true;
       });
@@ -387,11 +386,32 @@
       row.insertCell(5).innerText = entry.category;
       row.insertCell(6).innerText = entry.billable === 'yes' ? 'Billable' : 'Non-billable';
       row.insertCell(7).innerText = entry.notes || '-';
-      const actionCell = row.insertCell(8); actionCell.className = 'print-hide';
-      const editBtn = document.createElement('button'); editBtn.className = 'btn btn-sm btn-edit mr-1'; editBtn.innerHTML = '<i class="fa fa-pencil"></i>'; editBtn.onclick = () => editEntry(entry.id);
-      const dupBtn = document.createElement('button'); dupBtn.className = 'btn btn-sm btn-duplicate mr-1'; dupBtn.innerHTML = '<i class="fa fa-copy"></i>'; dupBtn.onclick = () => duplicateEntry(entry);
-      const delBtn = document.createElement('button'); delBtn.className = 'btn btn-sm btn-danger'; delBtn.innerHTML = '<i class="fa fa-trash"></i>'; delBtn.onclick = () => deleteEntry(entry.id);
-      actionCell.appendChild(editBtn); actionCell.appendChild(dupBtn); actionCell.appendChild(delBtn);
+      
+      const actionCell = row.insertCell(8);
+      actionCell.className = 'print-hide';
+      
+      // Use data attributes – NO inline onclick (fixes double-click)
+      const editBtn = document.createElement('button');
+      editBtn.className = 'btn btn-sm btn-edit mr-1';
+      editBtn.innerHTML = '<i class="fa fa-pencil"></i>';
+      editBtn.dataset.id = entry.id;
+      editBtn.dataset.action = 'edit';
+      
+      const dupBtn = document.createElement('button');
+      dupBtn.className = 'btn btn-sm btn-duplicate mr-1';
+      dupBtn.innerHTML = '<i class="fa fa-copy"></i>';
+      dupBtn.dataset.id = entry.id;
+      dupBtn.dataset.action = 'duplicate';
+      
+      const delBtn = document.createElement('button');
+      delBtn.className = 'btn btn-sm btn-danger';
+      delBtn.innerHTML = '<i class="fa fa-trash"></i>';
+      delBtn.dataset.id = entry.id;
+      delBtn.dataset.action = 'delete';
+      
+      actionCell.appendChild(editBtn);
+      actionCell.appendChild(dupBtn);
+      actionCell.appendChild(delBtn);
     });
     document.getElementById('totalHoursCell').innerHTML = '<strong>' + totalHours.toFixed(2) + '</strong>';
     tfoot.style.display = 'table-footer-group';
@@ -462,7 +482,6 @@
   }
 
   // ======================== SAFE CHART CAPTURE WITH FALLBACK ========================
-  // Reusable hidden canvas for chart exports to reduce memory churn
   let _chartCanvas = null;
 
   async function safeCaptureChart(chartBuilder, width = 800, height = 600) {
@@ -481,9 +500,8 @@
       let chart = null;
       try {
         chart = await chartBuilder(ctx, canvas);
-        // Force chart to render
         chart.update();
-        await new Promise(r => setTimeout(r, 1000)); // increased timeout
+        await new Promise(r => setTimeout(r, 1000));
         const imgData = canvas.toDataURL('image/png');
         if (imgData.length < 1000) throw new Error('Chart image too small');
         resolve(imgData);
@@ -505,12 +523,11 @@
         resolve(fallbackCanvas.toDataURL('image/png'));
       } finally {
         if (chart && typeof chart.destroy === 'function') chart.destroy();
-        // Don't remove canvas from DOM; reuse it.
       }
     });
   }
 
-  // ======================== EXCEL EXPORT with FIXED HORIZONTAL SPACING & ALL SHEETS LOCKED ========================
+  // ======================== EXCEL EXPORT ========================
   async function exportStyledExcel(startDate, endDate) {
     window.showLoading("Generating Excel report...");
     try {
@@ -670,7 +687,7 @@
       worksheet.views = [{ state: 'frozen', ySplit: 4 }];
       worksheet.pageSetup.printArea = `A1:H${totalRowNum}`;
       worksheet.protect('Siya', {
-        selectLockedCells: true,   // Allow selection for copying
+        selectLockedCells: true,
         selectUnlockedCells: true,
         formatCells: false,
         formatColumns: false,
@@ -794,7 +811,7 @@
         pivotTables: false
       });
 
-      // ==================== SHEET 3: CHARTS (FIXED HORIZONTAL SPACING) ====================
+      // ==================== SHEET 3: CHARTS ====================
       const chartsSheet = workbook.addWorksheet("Charts", {
         pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, paperSize: 9 }
       });
@@ -1167,7 +1184,7 @@
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       saveAs(blob, `Timesheet_${startDate}_to_${endDate}_readonly.xlsx`);
-      showToast("Excel report generated – all sheets locked, cells selectable!", "success");
+      showToast("Excel report generated – all sheets locked!", "success");
     } catch (err) {
       console.error("Excel export error:", err);
       showToast("Excel generation failed: " + err.message, "error");
@@ -1226,14 +1243,13 @@
     window.showLoading("Refreshing timesheet...");
     try {
       await loadTimesheet();
-      await loadProjectsForTimesheet(false); // use cache if available
+      await loadProjectsForTimesheet(false);
       renderHistory();
       updateSummaryAndProgress();
       updateCharts();
 
       window.__timesheetEntries = entries;
       window.__timesheetProjectOptions = allProjectOptions;
-      // Dispatch event only on success
       document.dispatchEvent(new Event('timesheetUpdated'));
     } catch(err) {
       if (!err.message.includes("Token expired")) showToast("Refresh failed: " + err.message, "error");
@@ -1288,6 +1304,24 @@
       exportStyledExcel(start, end); 
     };
     document.getElementById('saveEditBtn').onclick = saveEdit;
+
+    // ===== DELEGATED EVENT LISTENER FOR TABLE ACTIONS (FIXES DOUBLE-CLICK) =====
+    document.getElementById('historyBody').addEventListener('click', function(e) {
+      const target = e.target.closest('button');
+      if (!target) return;
+      const action = target.dataset.action;
+      const id = target.dataset.id;
+      if (!id) return;
+      const entryId = parseInt(id, 10);
+      if (action === 'edit') {
+        editEntry(entryId);
+      } else if (action === 'delete') {
+        deleteEntry(entryId);
+      } else if (action === 'duplicate') {
+        const entry = entries.find(e => e.id === entryId);
+        if (entry) duplicateEntry(entry);
+      }
+    });
 
     await loadNotificationPreference();
     document.getElementById('notificationsToggle').addEventListener('change', async (e) => { window.showLoading("Saving preference..."); try { await saveNotificationPreference(e.target.checked); showToast(e.target.checked ? "Notifications enabled" : "Notifications disabled"); } catch(err){ if(err.message.includes("401")){ showToast("Token expired. Please login again.","error"); window.SessionManager.logout(); setTimeout(()=>window.location.href="login.html",2000); } else showToast("Failed: "+err.message,"error"); e.target.checked = !e.target.checked; } finally{ window.hideLoading(); } });
