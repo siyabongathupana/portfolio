@@ -1,4 +1,4 @@
-// timesheet.js – COMPLETE with Monthly Comparison & Column Filters
+// timesheet.js – COMPLETE with summary chart aspect ratio fix, filters on E4,F4,G4
 (function() {
   const user = window.SessionManager?.getCurrentUser();
   if (!user) {
@@ -528,7 +528,7 @@
     });
   }
 
-  // ======================== EXCEL EXPORT with Monthly Comparison & Column Filters ========================
+  // ======================== EXCEL EXPORT ========================
   async function exportStyledExcel(startDate, endDate) {
     window.showLoading("Generating Excel report...");
     try {
@@ -568,7 +568,7 @@
 
       const workbook = new ExcelJS.Workbook();
       
-      // ==================== SHEET 1: TIMESHEET DATA (with filters) ====================
+      // ==================== SHEET 1: TIMESHEET DATA ====================
       const worksheet = workbook.addWorksheet("Timesheet Data", {
         pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0, paperSize: 9, horizontalCentered: true, verticalCentered: true }
       });
@@ -685,13 +685,13 @@
         row.height = maxHeight;
       });
 
-      // === ADD FILTERS (autoFilter) ===
-      worksheet.autoFilter = `A1:H${totalRowNum}`;
+      // ===== FILTERS ONLY ON E4, F4, G4 (Project, Category, Billable) =====
+      const filterRange = `E4:G${totalRowNum}`;
+      worksheet.autoFilter = filterRange;
 
       worksheet.views = [{ state: 'frozen', ySplit: 4 }];
       worksheet.pageSetup.printArea = `A1:H${totalRowNum}`;
       
-      // Protect sheet with autoFilter allowed
       worksheet.protect('Siya', {
         selectLockedCells: true,
         selectUnlockedCells: true,
@@ -703,7 +703,7 @@
         insertColumns: false,
         deleteColumns: false,
         sort: false,
-        autoFilter: true,   // ✅ Allow filtering
+        autoFilter: true,
         pivotTables: false
       });
 
@@ -761,39 +761,50 @@
         r++;
       }
 
-      // Bar chart on Summary sheet
+      // ===== SUMMARY CHART – FIXED ASPECT RATIO =====
       try {
         const projMap = {};
         filtered.forEach(e => { projMap[e.project] = (projMap[e.project] || 0) + e.hours; });
         const projLabels = Object.keys(projMap).slice(0, 10);
         const projData = projLabels.map(l => projMap[l]);
+        
         const canvas = document.createElement('canvas');
-        canvas.width = 1200;
-        canvas.height = 800;
+        canvas.width = 900;
+        canvas.height = 600;   // 3:2 ratio – matches display size below
         const ctx = canvas.getContext('2d');
         const chart = new Chart(ctx, {
           type: 'bar',
-          data: { labels: projLabels, datasets: [{ label: 'Hours', data: projData, backgroundColor: '#2fc7ff' }] },
+          data: { 
+            labels: projLabels, 
+            datasets: [{ label: 'Hours', data: projData, backgroundColor: '#2fc7ff' }] 
+          },
           options: {
             responsive: false,
             maintainAspectRatio: true,
             plugins: {
-              legend: { labels: { font: { size: 72 } } },
-              title: { display: true, text: 'Top Projects by Hours', font: { size: 80 } }
+              legend: { labels: { font: { size: 48 } } },
+              title: { display: true, text: 'Top Projects by Hours', font: { size: 56 } }
             },
             scales: {
-              x: { ticks: { font: { size: 56 } } },
-              y: { ticks: { font: { size: 56 } } }
+              x: { 
+                ticks: { font: { size: 36 } },
+                title: { display: true, text: 'Project', font: { size: 48 } }
+              },
+              y: { 
+                ticks: { font: { size: 40 } },
+                title: { display: true, text: 'Hours', font: { size: 48 } }
+              }
             }
           }
         });
+        chart.update();
         await new Promise(r => setTimeout(r, 800));
         const chartBase64 = canvas.toDataURL('image/png');
         chart.destroy();
         const chartImageId = workbook.addImage({ base64: chartBase64, extension: 'png' });
         summarySheet.addImage(chartImageId, {
           tl: { col: 0, row: r + 1 },
-          ext: { width: 450, height: 250 },
+          ext: { width: 450, height: 300 },   // 3:2 ratio – no stretching
           editAs: 'oneCell'
         });
       } catch(e) { console.warn("Summary chart skipped", e); }
@@ -1103,24 +1114,20 @@
       rowIdx = addTwoColumnTable(weeklyAdminTable, rowIdx, "Week", "Admin %");
       rowIdx += 1;
 
-      // ========== NEW: MONTHLY COMPARISON ==========
+      // ========== MONTHLY COMPARISON (Month-YYYY) ==========
       rowIdx = addSectionHeader("📊 MONTHLY COMPARISON", rowIdx);
       
-      // Compute monthly aggregates from filtered entries
       const monthlyData = {};
       filtered.forEach(e => {
-        const monthKey = e.date.substring(0, 7); // "2026-07"
+        const monthKey = e.date.substring(0, 7);
         if (!monthlyData[monthKey]) {
           monthlyData[monthKey] = { total: 0, billable: 0, overtime: 0, days: new Set() };
         }
         monthlyData[monthKey].total += e.hours;
         if (e.billable === 'yes') monthlyData[monthKey].billable += e.hours;
         monthlyData[monthKey].days.add(e.date);
-        // Overtime: sum of daily hours > 8
-        // We'll compute later by aggregating per day per month
       });
       
-      // Recompute overtime per month (needs daily sums)
       const monthlyOvertime = {};
       const dailyHoursByMonth = {};
       filtered.forEach(e => {
@@ -1139,10 +1146,17 @@
         monthlyOvertime[monthKey] = ot;
       }
       
-      // Prepare table data
       const monthKeys = Object.keys(monthlyData).sort();
       const monthTable = [];
       let prevTotal = null;
+      
+      function formatMonthKey(monthKey) {
+        const [year, month] = monthKey.split('-');
+        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 
+                           'July', 'August', 'September', 'October', 'November', 'December'];
+        return monthNames[parseInt(month) - 1] + '-' + year;
+      }
+      
       for (const m of monthKeys) {
         const data = monthlyData[m];
         const total = data.total;
@@ -1156,7 +1170,7 @@
           growth = (prevTotal > 0) ? ((diff / prevTotal) * 100) : 0;
         }
         monthTable.push({
-          month: m,
+          month: formatMonthKey(m),
           total: total,
           billable: billable,
           overtime: ot,
@@ -1166,7 +1180,6 @@
         prevTotal = total;
       }
       
-      // Render the table
       const monthHeaders = ['Month', 'Hours', 'Billable', 'Overtime', 'Avg/Day', 'Growth'];
       const monthDataRows = monthTable.map(row => [
         row.month,
@@ -1177,7 +1190,6 @@
         row.growth !== null ? (row.growth >= 0 ? '+' : '') + row.growth.toFixed(1) + '%' : '-'
       ]);
       
-      // Add headers
       const hRow = analysisSheet.getRow(rowIdx);
       monthHeaders.forEach((h, idx) => {
         const cell = hRow.getCell(idx+1);
@@ -1190,7 +1202,6 @@
       analysisSheet.getRow(rowIdx).height = 22;
       rowIdx++;
       
-      // Add data rows
       for (const rowData of monthDataRows) {
         const row = analysisSheet.getRow(rowIdx);
         rowData.forEach((val, idx) => {
@@ -1198,7 +1209,6 @@
           cell.value = val;
           cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
           cell.alignment = { vertical: 'middle', horizontal: (idx === 0) ? 'left' : 'right' };
-          // Color growth positive/negative
           if (idx === 5 && val !== '-') {
             const num = parseFloat(val);
             if (!isNaN(num)) {
@@ -1209,8 +1219,7 @@
         analysisSheet.getRow(rowIdx).height = 18;
         rowIdx++;
       }
-      
-      rowIdx += 1; // extra spacing
+      rowIdx += 1;
 
       rowIdx = addSectionHeader("🏆 TOP 3 PROJECTS (HOURS)", rowIdx);
       const projTotals = {};
@@ -1226,9 +1235,6 @@
       if (overtimeTable.length === 0) overtimeTable.push(["None", ""]);
       rowIdx = addTwoColumnTable(overtimeTable, rowIdx, "Date", "Hours");
       rowIdx += 1;
-
-      // ========== REMOVED "ENTRIES WITHOUT NOTES" SECTION ==========
-      // (No longer included)
 
       rowIdx = addSectionHeader("⏳ CONSISTENCY", rowIdx);
       const sortedDates = [...new Set(filtered.map(e => e.date))].sort();
@@ -1247,7 +1253,6 @@
       let healthScore = 100;
       if (adminRatio > 15) healthScore -= 10;
       if (overtimeDays.length > 3) healthScore -= 15;
-      // Removed missingNotes penalty since we removed that section
       if (uniqueProjects === 0) healthScore -= 50;
       healthScore = Math.max(0, healthScore);
       const scoreCell = analysisSheet.getCell(`A${rowIdx}`);
@@ -1287,7 +1292,7 @@
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       saveAs(blob, `Timesheet_${startDate}_to_${endDate}_readonly.xlsx`);
-      showToast("Excel report generated – column filters enabled, monthly comparison added!", "success");
+      showToast("Excel report generated – summary chart aspect ratio fixed, filters on E4,F4,G4!", "success");
     } catch (err) {
       console.error("Excel export error:", err);
       showToast("Excel generation failed: " + err.message, "error");
