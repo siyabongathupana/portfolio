@@ -1,4 +1,4 @@
-// timesheet.js – COMPLETE with FIXED HORIZONTAL OVERLAPPING
+// timesheet.js – COMPLETE with CHARTS REPOSITIONED and ALL SHEETS LOCKED
 (function() {
   const user = window.SessionManager?.getCurrentUser();
   if (!user) {
@@ -466,7 +466,7 @@
     });
   }
 
-  // ======================== EXCEL EXPORT with FIXED HORIZONTAL OVERLAPPING ========================
+  // ======================== EXCEL EXPORT with CHART REPOSITIONING and ALL SHEETS LOCKED ========================
   async function exportStyledExcel(startDate, endDate) {
     window.showLoading("Generating Excel report...");
     try {
@@ -506,7 +506,7 @@
 
       const workbook = new ExcelJS.Workbook();
       
-      // ==================== SHEET 1: TIMESHEET DATA ====================
+      // ==================== SHEET 1: TIMESHEET DATA (already protected) ====================
       const worksheet = workbook.addWorksheet("Timesheet Data", {
         pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0, paperSize: 9, horizontalCentered: true, verticalCentered: true }
       });
@@ -631,7 +631,7 @@
         sort: false, autoFilter: false, pivotTables: false
       });
 
-      // ==================== SHEET 2: SUMMARY ====================
+      // ==================== SHEET 2: SUMMARY (protected) ====================
       const summarySheet = workbook.addWorksheet("Summary", {
         pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, paperSize: 9 }
       });
@@ -726,7 +726,14 @@
       summarySheet.getCell('A50').font = { italic: true, size: 8 };
       summarySheet.mergeCells('A50:C50');
 
-      // ==================== SHEET 3: CHARTS (FIXED HORIZONTAL OVERLAPPING) ====================
+      // Protect Summary sheet
+      summarySheet.protect('Siya', {
+        selectLockedCells: false, selectUnlockedCells: false, formatCells: false, formatColumns: false,
+        formatRows: false, insertRows: false, deleteRows: false, insertColumns: false, deleteColumns: false,
+        sort: false, autoFilter: false, pivotTables: false
+      });
+
+      // ==================== SHEET 3: CHARTS (REPOSITIONED - right charts moved to column E) ====================
       const chartsSheet = workbook.addWorksheet("Charts", {
         pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, paperSize: 9 }
       });
@@ -738,14 +745,13 @@
       chartsTitle.alignment = { horizontal: 'center' };
       chartsSheet.getRow(1).height = 38;
       
-      // Set column widths to prevent horizontal overlap
-      // 6 columns: A, B, C, D, E, F
-      chartsSheet.getColumn(1).width = 22; // A
-      chartsSheet.getColumn(2).width = 4;  // B (gap)
-      chartsSheet.getColumn(3).width = 22; // C
-      chartsSheet.getColumn(4).width = 4;  // D (gap)
-      chartsSheet.getColumn(5).width = 22; // E
-      chartsSheet.getColumn(6).width = 4;  // F (gap)
+      // Set column widths: A and E are chart columns, B and D are gaps, C and F are extra space
+      chartsSheet.getColumn(1).width = 22; // A - left chart
+      chartsSheet.getColumn(2).width = 6;  // B - gap
+      chartsSheet.getColumn(3).width = 6;  // C - extra space
+      chartsSheet.getColumn(4).width = 6;  // D - gap
+      chartsSheet.getColumn(5).width = 22; // E - right chart
+      chartsSheet.getColumn(6).width = 6;  // F - margin
 
       // Add spacer rows
       chartsSheet.getRow(2).height = 25;
@@ -754,7 +760,6 @@
       // CHART DIMENSIONS
       const CHART_WIDTH = 340;
       const CHART_HEIGHT = 260;
-      // ROW OFFSET: chart height + title + large gap
       const ROW_OFFSET = Math.ceil((CHART_HEIGHT + 80) / 20) + 3;
 
       async function addChart(chartsSheet, chartBuilder, col, row, title) {
@@ -762,10 +767,9 @@
           const imgData = await safeCaptureChart(chartBuilder, 1200, 900);
           const imageId = workbook.addImage({ base64: imgData, extension: 'png' });
           
-          // Place chart in the appropriate column
-          // col 0 -> column A (index 0), col 1 -> column C (index 2), col 2 -> column E (index 4)
-          // We use two charts per row, so col is 0 or 1
-          const colOffset = col === 0 ? 0.5 : 2.5; // Place second chart in column C (index 2)
+          // col 0 -> left (column A, offset 0.5)
+          // col 1 -> right (column E, offset 4.5)
+          const colOffset = col === 0 ? 0.5 : 4.5;
           
           chartsSheet.addImage(imageId, {
             tl: { col: colOffset, row: row },
@@ -776,7 +780,7 @@
           // Add title in cell above chart
           const titleRow = row - 1;
           if (titleRow >= 0) {
-            const colLetter = String.fromCharCode(65 + Math.floor(colOffset));
+            const colLetter = col === 0 ? 'A' : 'E';
             const titleCellRef = chartsSheet.getCell(`${colLetter}${titleRow + 1}`);
             titleCellRef.value = title;
             titleCellRef.font = { bold: true, size: 12, color: { argb: 'FF0B2B3B' } };
@@ -795,7 +799,7 @@
       // ROW 1: Charts 1 & 2
       const row1Start = 4;
       
-      // 1. Pie: Category Distribution
+      // 1. Pie: Category Distribution (LEFT)
       await addChart(chartsSheet, (ctx, canvas) => {
         const catMap = {};
         filtered.forEach(e => { catMap[e.category] = (catMap[e.category] || 0) + e.hours; });
@@ -806,7 +810,7 @@
         });
       }, 0, row1Start, 'Hours by Category');
 
-      // 2. Doughnut: Billable vs Non-Billable
+      // 2. Doughnut: Billable vs Non-Billable (RIGHT)
       await addChart(chartsSheet, (ctx, canvas) => {
         return new Chart(ctx, {
           type: 'doughnut',
@@ -818,7 +822,7 @@
       // ROW 2: Charts 3 & 4
       const row2Start = row1Start + ROW_OFFSET + 4;
       
-      // 3. Line: Weekly Trend
+      // 3. Line: Weekly Trend (LEFT)
       await addChart(chartsSheet, (ctx, canvas) => {
         const weeklyTotals = {};
         filtered.forEach(e => {
@@ -834,7 +838,7 @@
         });
       }, 0, row2Start, 'Weekly Hours Trend');
 
-      // 4. Stacked Bar: Admin vs Project
+      // 4. Stacked Bar: Admin vs Project (RIGHT)
       await addChart(chartsSheet, (ctx, canvas) => {
         const weeklyAdmin = {};
         const weeklyProject = {};
@@ -857,7 +861,7 @@
       // ROW 3: Charts 5 & 6
       const row3Start = row2Start + ROW_OFFSET + 4;
       
-      // 5. Stacked Bar: Weekly Billable vs Non-Billable
+      // 5. Stacked Bar: Weekly Billable vs Non-Billable (LEFT)
       await addChart(chartsSheet, (ctx, canvas) => {
         const weeklyBillable = {};
         const weeklyNonBillable = {};
@@ -895,7 +899,7 @@
         });
       }, 0, row3Start, 'Weekly Billable vs Non-Billable');
 
-      // 6. Horizontal Bar: Top Projects
+      // 6. Horizontal Bar: Top Projects (RIGHT)
       await addChart(chartsSheet, (ctx, canvas) => {
         const projMap = {};
         filtered.forEach(e => { projMap[e.project] = (projMap[e.project] || 0) + e.hours; });
@@ -914,7 +918,14 @@
       chartsSheet.mergeCells(`A${footerRow}:F${footerRow}`);
       chartsSheet.getRow(footerRow).height = 25;
 
-      // ==================== SHEET 4: ADVANCED ANALYSIS ====================
+      // Protect Charts sheet
+      chartsSheet.protect('Siya', {
+        selectLockedCells: false, selectUnlockedCells: false, formatCells: false, formatColumns: false,
+        formatRows: false, insertRows: false, deleteRows: false, insertColumns: false, deleteColumns: false,
+        sort: false, autoFilter: false, pivotTables: false
+      });
+
+      // ==================== SHEET 4: ADVANCED ANALYSIS (protected) ====================
       const analysisSheet = workbook.addWorksheet("Advanced Analysis", {
         pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, paperSize: 9 }
       });
@@ -1087,11 +1098,18 @@
       analysisSheet.getCell(`A${footerRow2}`).font = { italic: true, size: 8 };
       analysisSheet.getCell(`A${footerRow2}`).alignment = { horizontal: 'center' };
 
+      // Protect Advanced Analysis sheet
+      analysisSheet.protect('Siya', {
+        selectLockedCells: false, selectUnlockedCells: false, formatCells: false, formatColumns: false,
+        formatRows: false, insertRows: false, deleteRows: false, insertColumns: false, deleteColumns: false,
+        sort: false, autoFilter: false, pivotTables: false
+      });
+
       // ==================== SAVE ====================
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       saveAs(blob, `Timesheet_${startDate}_to_${endDate}_readonly.xlsx`);
-      showToast("Excel report generated – 4 sheets with all data!", "success");
+      showToast("Excel report generated – all sheets locked!", "success");
     } catch (err) {
       console.error("Excel export error:", err);
       showToast("Excel generation failed: " + err.message, "error");
