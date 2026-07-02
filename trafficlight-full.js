@@ -1,4 +1,4 @@
-// trafficlight-full.js – COMPLETE with Weekly Hours Fix, Logo & QR in PDF
+// trafficlight-full.js – COMPLETE FIXED VERSION
 (function() {
     // ---------- GET TODAY'S DATE IN UTC ----------
     function getTodayUTC() {
@@ -80,13 +80,30 @@
         return working;
     }
     
+    // ---------- CASE-INSENSITIVE TRAINING CHECK ----------
     function checkTrainingThisMonth(entries, todayYMD) {
         const year = parseInt(todayYMD.substring(0, 4));
         const month = parseInt(todayYMD.substring(5, 7)) - 1;
-        return entries.some(e => {
+        
+        const found = entries.some(e => {
             const d = new Date(e.date);
-            return e.category === 'Training' && d.getFullYear() === year && d.getMonth() === month;
+            const cat = (e.category || '').trim().toLowerCase();
+            return cat === 'training' && d.getFullYear() === year && d.getMonth() === month;
         });
+
+        // Debug log – helps verify training entries are detected
+        const trainingEntries = entries.filter(e => {
+            const d = new Date(e.date);
+            const cat = (e.category || '').trim().toLowerCase();
+            return cat === 'training' && d.getFullYear() === year && d.getMonth() === month;
+        });
+        if (trainingEntries.length > 0) {
+            console.log(`[TrafficLight] ✅ Found ${trainingEntries.length} training entry(s) this month:`, trainingEntries.map(e => e.title || e.date).join(', '));
+        } else {
+            console.log(`[TrafficLight] ℹ️ No training entries found this month.`);
+        }
+
+        return found;
     }
     
     function checkWeekendWork(entries, start, end) {
@@ -230,11 +247,16 @@
             const d = new Date(e.date + "T00:00:00Z");
             return d >= startDate && d <= endDate && (!e.project || e.project.trim() === "");
         }).length;
+        
+        // ========== WEEKLY TARGET LOGIC – ONLY APPLIES TO 'week' FILTER ==========
+        const isWeekFilter = (filterType === 'week');
         const weeklyTargetReached = totalHours >= 40;
         const weeklySignificantlyBelow = totalHours < 30;
         
+        // ========== BUILD FLAGS ==========
         let redFlags = [], amberFlags = [];
         
+        // Missing days – applies to all filters
         if (filterType === 'week' || filterType === 'day') {
             if (missingDays >= 2) redFlags.push(missingDays + " missing working days");
             else if (missingDays === 1) amberFlags.push("One missing working day");
@@ -242,8 +264,12 @@
             if (missingDays > 15) redFlags.push("Many missing working days (" + missingDays + ")");
         }
         
-        // *** FIX: Only apply weekly hour rules on Friday or later ***
-        if (weeklySignificantlyBelow && filterType === 'week' && isLateWeek) redFlags.push("Weekly hours <30h");
+        // Weekly hour rules – ONLY for 'week' filter AND late week (Fri–Sun)
+        if (isWeekFilter && isLateWeek) {
+            if (weeklySignificantlyBelow) redFlags.push("Weekly hours <30h");
+            if (!weeklyTargetReached) amberFlags.push("Weekly target <40h");
+        }
+        
         if (negativeHours) redFlags.push("Negative/Impossible hours");
         if (duplicateEntries.length) redFlags.push(duplicateEntries.length + " duplicate entries");
         if (daysAbove12) redFlags.push(daysAbove12 + " day(s) >12h");
@@ -254,39 +280,49 @@
         
         if (daysBelowTarget) amberFlags.push(daysBelowTarget + " day(s) below 7.5h");
         if (daysAbove10) amberFlags.push(daysAbove10 + " day(s) above 10h");
-        if (filterType === 'week' && !weeklyTargetReached && isLateWeek) amberFlags.push("Weekly target <40h");
         if (adminRatio > 15) amberFlags.push("Admin " + adminRatio.toFixed(1) + "% >15%");
         if (notesMissing) amberFlags.push(notesMissing + " missing notes");
         if (daysManyProjects) amberFlags.push(daysManyProjects + " day(s) >4 projects");
         if (!trainingThisMonth) amberFlags.push("No training this month");
         if (overtimeDays > 2) amberFlags.push(overtimeDays + " overtime days (>8h)");
         
+        // ========== SPECIAL BADGES ==========
         let specialBadge = null, specialMsg = null;
         if (overtimeDays >= 5 || hasWeekendWork || totalHours >= 50) {
             specialBadge = "burnout";
             specialMsg = "⚠️ Burnout risk: unsustainable workload.";
             redFlags.push("Burnout risk");
         }
-        const allGreen = (missingDays === 0 && daysOutside759 === 0 && weeklyTargetReached &&
+        
+        // ========== ALL GREEN CONDITION (FIXED) ==========
+        // weeklyTargetReached is ONLY required for 'week' filter AND late week (Fri–Sun)
+        const weeklyConditionOk = (isWeekFilter && isLateWeek) ? weeklyTargetReached : true;
+        
+        const allGreen = (missingDays === 0 && daysOutside759 === 0 && weeklyConditionOk &&
                           unallocated === 0 && invalidProjects.size === 0 && adminRatio <= 15 &&
                           duplicateEntries.length === 0 && notesMissing === 0 && overtimeDays === 0 &&
                           totalProjectsWorked >= 1 && !negativeHours);
+        
         const rockstar = (allGreen && trainingThisMonth && duplicateEntries.length === 0 && notesMissing === 0);
         if (rockstar && !specialBadge) {
             specialBadge = "rockstar";
             specialMsg = "🌟 Rockstar Week!";
         }
-        const efficiency = (totalHours >= 40 && overtimeDays === 0 && missingDays === 0 && adminRatio < 10);
+        
+        // Efficiency badge – only for 'week' filter
+        const efficiency = (isWeekFilter && totalHours >= 40 && overtimeDays === 0 && missingDays === 0 && adminRatio < 10);
         if (efficiency && !specialBadge && !rockstar) {
             specialBadge = "efficiency";
             specialMsg = "⚡ Efficiency mode";
         }
+        
         const perfectWeek = (allGreen && duplicateEntries.length === 0 && notesMissing === 0 && missingDays === 0);
         if (perfectWeek && !specialBadge && !rockstar) {
             specialBadge = "perfect";
             specialMsg = "🏆 Perfect week!";
         }
         
+        // ========== STATUS DETERMINATION ==========
         let status = "green";
         let reasons = [];
         if (specialBadge === "burnout") status = "red", reasons = redFlags;
@@ -295,6 +331,7 @@
         else if (allGreen) reasons = ["All good for past working days."];
         else reasons = ["Check details"];
         
+        // ========== HEALTH SCORE ==========
         let score = 100;
         const weights = {
             missingDay: 25, weeklyBelow30: 30, duplicate: 5, invalidProject: 10, unallocated: 8,
@@ -303,7 +340,7 @@
             weeklyTargetNotReached: 5
         };
         if ((filterType === 'week' || filterType === 'day') && missingDays) score -= Math.min(missingDays * weights.missingDay, 50);
-        if (weeklySignificantlyBelow) score -= weights.weeklyBelow30;
+        if (isWeekFilter && isLateWeek && weeklySignificantlyBelow) score -= weights.weeklyBelow30;
         if (duplicateEntries.length) score -= Math.min(duplicateEntries.length * weights.duplicate, 15);
         if (invalidProjects.size) score -= Math.min(invalidProjects.size * weights.invalidProject, 20);
         if (unallocated) score -= Math.min(unallocated * weights.unallocated, 15);
@@ -317,11 +354,12 @@
         if (daysAbove10) score -= daysAbove10 * weights.daysAbove10;
         if (daysBelowTarget) score -= daysBelowTarget * weights.daysBelowTarget;
         if (daysManyProjects) score -= daysManyProjects * weights.manyProjects;
-        if (filterType === 'week' && !weeklyTargetReached && totalHours < 40 && isLateWeek) score -= weights.weeklyTargetNotReached;
+        if (isWeekFilter && isLateWeek && !weeklyTargetReached) score -= weights.weeklyTargetNotReached;
         score = Math.max(0, Math.min(100, score));
         if (specialBadge === "rockstar" || specialBadge === "perfect") score = 100;
         if (specialBadge === "efficiency") score = 95;
         
+        // ========== TODAY MESSAGE ==========
         const todayIsWeekday = todayDate.getUTCDay() !== 0 && todayDate.getUTCDay() !== 6;
         const todayIsHoliday = isSouthAfricanPublicHoliday(todayDate);
         let todayMsg = "";
@@ -360,7 +398,7 @@
     }
     
     // ---------- PDF DOWNLOAD WITH LOGO AND QR CODE ----------
-        async function downloadRulesPDF() {
+    async function downloadRulesPDF() {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
         const pageWidth = doc.internal.pageSize.getWidth();
@@ -511,7 +549,7 @@
         y += 5;
         var weightsList = [
             "• Missing working day: -25 each (max -50)",
-            "• Weekly hours <30h: -30",
+            "• Weekly hours <30h: -30 (only if Friday or later)",
             "• Duplicate entry: -5 each (max -15)",
             "• Invalid project code: -10 each (max -20)",
             "• Unallocated entry: -8 each (max -15)",
@@ -525,7 +563,7 @@
             "• Day above 10h: -3 each",
             "• Day below 7.5h: -3 each",
             "• >4 projects in a day: -2 each",
-            "• Weekly target not reached (<40h): -5"
+            "• Weekly target not reached (<40h): -5 (only if Friday or later)"
         ];
         for (var i = 0; i < weightsList.length; i++) {
             doc.text(weightsList[i], margin + 4, y);
@@ -593,6 +631,7 @@
             e.preventDefault();
             downloadRulesPDF();
         });
+        // Initial update after DOM ready
         setTimeout(updateTrafficLight, 500);
     });
     window.refreshStandaloneLight = updateTrafficLight;
