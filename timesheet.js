@@ -1478,7 +1478,7 @@
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       saveAs(blob, `Timesheet_${startDate}_to_${endDate}_readonly.xlsx`);
-      showToast("Excel report generated – SUBTOTAL total responds to column filters!", "success");
+      showToast("Excel report generated – Accurate Reporting!", "success");
     } catch (err) {
       console.error("Excel export error:", err);
       showToast("Excel generation failed: " + err.message, "error");
