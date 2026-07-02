@@ -1,5 +1,17 @@
 [
   {
+    "id": 1783026290004,
+    "date": "2026-07-02",
+    "start": "03:45",
+    "end": "15:45",
+    "hours": 12,
+    "project": "KOGAS",
+    "category": "Training",
+    "billable": "yes",
+    "notes": "",
+    "updatedAt": 1783026290004
+  },
+  {
     "id": 1782993278237,
     "date": "2026-07-02",
     "start": "08:30",
