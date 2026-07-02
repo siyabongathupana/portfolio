@@ -1,4 +1,4 @@
-// timesheet.js – COMPLETE with PROPER CHART SPACING (No Overlapping)
+// timesheet.js – COMPLETE with FIXED HORIZONTAL OVERLAPPING
 (function() {
   const user = window.SessionManager?.getCurrentUser();
   if (!user) {
@@ -466,7 +466,7 @@
     });
   }
 
-  // ======================== EXCEL EXPORT with ALL sheets and PROPER SPACING ========================
+  // ======================== EXCEL EXPORT with FIXED HORIZONTAL OVERLAPPING ========================
   async function exportStyledExcel(startDate, endDate) {
     window.showLoading("Generating Excel report...");
     try {
@@ -726,7 +726,7 @@
       summarySheet.getCell('A50').font = { italic: true, size: 8 };
       summarySheet.mergeCells('A50:C50');
 
-      // ==================== SHEET 3: CHARTS (6 charts with MASSIVE SPACING - NO OVERLAPPING) ====================
+      // ==================== SHEET 3: CHARTS (FIXED HORIZONTAL OVERLAPPING) ====================
       const chartsSheet = workbook.addWorksheet("Charts", {
         pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, paperSize: 9 }
       });
@@ -738,23 +738,34 @@
       chartsTitle.alignment = { horizontal: 'center' };
       chartsSheet.getRow(1).height = 38;
       
-      // Add multiple spacer rows for breathing room
+      // Set column widths to prevent horizontal overlap
+      // 6 columns: A, B, C, D, E, F
+      chartsSheet.getColumn(1).width = 22; // A
+      chartsSheet.getColumn(2).width = 4;  // B (gap)
+      chartsSheet.getColumn(3).width = 22; // C
+      chartsSheet.getColumn(4).width = 4;  // D (gap)
+      chartsSheet.getColumn(5).width = 22; // E
+      chartsSheet.getColumn(6).width = 4;  // F (gap)
+
+      // Add spacer rows
       chartsSheet.getRow(2).height = 25;
       chartsSheet.getRow(3).height = 5;
 
-      // CHART DIMENSIONS with MASSIVE SPACING
+      // CHART DIMENSIONS
       const CHART_WIDTH = 340;
       const CHART_HEIGHT = 260;
-      // ROW OFFSET: chart height + title + 40 rows of padding (BIG gap)
-      const ROW_OFFSET = Math.ceil((CHART_HEIGHT + 80) / 20) + 2;
+      // ROW OFFSET: chart height + title + large gap
+      const ROW_OFFSET = Math.ceil((CHART_HEIGHT + 80) / 20) + 3;
 
       async function addChart(chartsSheet, chartBuilder, col, row, title) {
         try {
           const imgData = await safeCaptureChart(chartBuilder, 1200, 900);
           const imageId = workbook.addImage({ base64: imgData, extension: 'png' });
           
-          // Add left margin for second column
-          const colOffset = col === 0 ? 0.5 : 3.5;
+          // Place chart in the appropriate column
+          // col 0 -> column A (index 0), col 1 -> column C (index 2), col 2 -> column E (index 4)
+          // We use two charts per row, so col is 0 or 1
+          const colOffset = col === 0 ? 0.5 : 2.5; // Place second chart in column C (index 2)
           
           chartsSheet.addImage(imageId, {
             tl: { col: colOffset, row: row },
@@ -762,7 +773,7 @@
             editAs: 'oneCell'
           });
           
-          // Add title in cell above chart with padding
+          // Add title in cell above chart
           const titleRow = row - 1;
           if (titleRow >= 0) {
             const colLetter = String.fromCharCode(65 + Math.floor(colOffset));
@@ -781,7 +792,7 @@
         }
       }
 
-      // ROW 1: Charts 1 & 2 (starting at row 4 to leave space)
+      // ROW 1: Charts 1 & 2
       const row1Start = 4;
       
       // 1. Pie: Category Distribution
@@ -804,8 +815,8 @@
         });
       }, 1, row1Start, 'Billable Breakdown');
 
-      // ROW 2: Charts 3 & 4 (with LARGE spacing)
-      const row2Start = row1Start + ROW_OFFSET + 4; // Extra +4 for more space
+      // ROW 2: Charts 3 & 4
+      const row2Start = row1Start + ROW_OFFSET + 4;
       
       // 3. Line: Weekly Trend
       await addChart(chartsSheet, (ctx, canvas) => {
@@ -843,10 +854,10 @@
         });
       }, 1, row2Start, 'Admin vs Project Hours');
 
-      // ROW 3: Charts 5 & 6 (with LARGE spacing)
-      const row3Start = row2Start + ROW_OFFSET + 4; // Extra +4 for more space
+      // ROW 3: Charts 5 & 6
+      const row3Start = row2Start + ROW_OFFSET + 4;
       
-      // 5. NEW: Stacked Bar - Weekly Billable vs Non-Billable
+      // 5. Stacked Bar: Weekly Billable vs Non-Billable
       await addChart(chartsSheet, (ctx, canvas) => {
         const weeklyBillable = {};
         const weeklyNonBillable = {};
@@ -896,7 +907,7 @@
         });
       }, 1, row3Start, 'Top Projects by Hours');
 
-      // Footer with massive spacing
+      // Footer
       const footerRow = row3Start + ROW_OFFSET + 6;
       chartsSheet.getCell(`A${footerRow}`).value = `Generated: ${new Date().toLocaleString()} | Your Portfolio System`;
       chartsSheet.getCell(`A${footerRow}`).font = { italic: true, size: 9 };
