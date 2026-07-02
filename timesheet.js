@@ -1,4 +1,4 @@
-// timesheet.js – COMPLETE with summary chart aspect ratio fix, filters on E4,F4,G4
+// timesheet.js – COMPLETE with enriched Deep Dive Analysis + responsive total
 (function() {
   const user = window.SessionManager?.getCurrentUser();
   if (!user) {
@@ -366,17 +366,22 @@
     return filtered;
   }
 
+  // ======================== RENDER HISTORY – FIXED: total always visible ========================
   function renderHistory() {
     const filtered = getFilteredEntries();
     const tbody = document.getElementById('historyBody');
     const tfoot = document.getElementById('historyFoot');
+    
+    let totalHours = 0;
+    tbody.innerHTML = '';
+    
     if (filtered.length === 0) {
       tbody.innerHTML = '<tr><td colspan="9" class="text-center">No entries found.</td></tr>';
-      tfoot.style.display = 'none';
+      document.getElementById('totalHoursCell').innerHTML = '<strong>0.00</strong>';
+      tfoot.style.display = 'table-footer-group';
       return;
     }
-    tbody.innerHTML = '';
-    let totalHours = 0;
+    
     filtered.forEach(entry => {
       totalHours += entry.hours;
       const row = tbody.insertRow();
@@ -414,6 +419,7 @@
       actionCell.appendChild(dupBtn);
       actionCell.appendChild(delBtn);
     });
+    
     document.getElementById('totalHoursCell').innerHTML = '<strong>' + totalHours.toFixed(2) + '</strong>';
     tfoot.style.display = 'table-footer-group';
   }
@@ -770,7 +776,7 @@
         
         const canvas = document.createElement('canvas');
         canvas.width = 900;
-        canvas.height = 600;   // 3:2 ratio – matches display size below
+        canvas.height = 600;
         const ctx = canvas.getContext('2d');
         const chart = new Chart(ctx, {
           type: 'bar',
@@ -804,7 +810,7 @@
         const chartImageId = workbook.addImage({ base64: chartBase64, extension: 'png' });
         summarySheet.addImage(chartImageId, {
           tl: { col: 0, row: r + 1 },
-          ext: { width: 450, height: 300 },   // 3:2 ratio – no stretching
+          ext: { width: 450, height: 300 },
           editAs: 'oneCell'
         });
       } catch(e) { console.warn("Summary chart skipped", e); }
@@ -1009,7 +1015,7 @@
         pivotTables: false
       });
 
-      // ==================== SHEET 4: ADVANCED ANALYSIS ====================
+      // ==================== SHEET 4: ADVANCED ANALYSIS (ENRICHED) ====================
       const analysisSheet = workbook.addWorksheet("Advanced Analysis", {
         pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, paperSize: 9 }
       });
@@ -1082,7 +1088,7 @@
         return r + 1;
       }
 
-      // Build analysis content
+      // ===== 1. KEY METRICS =====
       rowIdx = addSectionHeader("📈 KEY METRICS", rowIdx);
       const workingDays = new Set(filtered.map(e => e.date));
       const avgDaily2 = totalHours / workingDays.size;
@@ -1095,6 +1101,7 @@
       rowIdx = addKeyValue("Unique Projects", uniqueProjects, rowIdx);
       rowIdx += 1;
 
+      // ===== 2. ADMIN RATIO BY WEEK =====
       rowIdx = addSectionHeader("📊 ADMIN RATIO BY WEEK", rowIdx);
       const weeklyAdminTable = [];
       const weeklyAdminMap = new Map();
@@ -1114,8 +1121,8 @@
       rowIdx = addTwoColumnTable(weeklyAdminTable, rowIdx, "Week", "Admin %");
       rowIdx += 1;
 
-      // ========== MONTHLY COMPARISON (Month-YYYY) ==========
-      rowIdx = addSectionHeader("📊 MONTHLY COMPARISON", rowIdx);
+      // ===== 3. MONTHLY COMPARISON (Month-YYYY) =====
+      rowIdx = addSectionHeader("📅 MONTHLY COMPARISON", rowIdx);
       
       const monthlyData = {};
       filtered.forEach(e => {
@@ -1221,6 +1228,186 @@
       }
       rowIdx += 1;
 
+      // ===== 4. BUSIEST DAY OF WEEK =====
+      rowIdx = addSectionHeader("📅 BUSIEST DAY OF WEEK", rowIdx);
+      const dayMap = { Monday: 0, Tuesday: 0, Wednesday: 0, Thursday: 0, Friday: 0, Saturday: 0, Sunday: 0 };
+      const dayCount = { Monday: 0, Tuesday: 0, Wednesday: 0, Thursday: 0, Friday: 0, Saturday: 0, Sunday: 0 };
+      filtered.forEach(e => {
+        const d = new Date(e.date);
+        const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+        const dayName = dayNames[d.getUTCDay()];
+        dayMap[dayName] += e.hours;
+        dayCount[dayName] += 1;
+      });
+      const dayTable = Object.keys(dayMap).map(day => {
+        const avg = dayCount[day] > 0 ? dayMap[day] / dayCount[day] : 0;
+        return [day, dayMap[day].toFixed(1), avg.toFixed(1)];
+      });
+      // Sort by average hours descending
+      dayTable.sort((a, b) => parseFloat(b[2]) - parseFloat(a[2]));
+      
+      const dayHeaders = ['Day', 'Total Hours', 'Avg Hours'];
+      const dayRow = analysisSheet.getRow(rowIdx);
+      dayHeaders.forEach((h, idx) => {
+        const cell = dayRow.getCell(idx+1);
+        cell.value = h;
+        cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
+        cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+      });
+      analysisSheet.getRow(rowIdx).height = 22;
+      rowIdx++;
+      for (const rowData of dayTable) {
+        const row = analysisSheet.getRow(rowIdx);
+        rowData.forEach((val, idx) => {
+          const cell = row.getCell(idx+1);
+          cell.value = val;
+          cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+          cell.alignment = { vertical: 'middle', horizontal: (idx === 0) ? 'left' : 'right' };
+          // Highlight the busiest day
+          if (idx === 2 && parseFloat(val) === parseFloat(dayTable[0][2])) {
+            cell.font = { bold: true, color: { argb: 'FF28A745' } };
+          }
+        });
+        analysisSheet.getRow(rowIdx).height = 18;
+        rowIdx++;
+      }
+      rowIdx += 1;
+
+      // ===== 5. PROJECT DISTRIBUTION =====
+      rowIdx = addSectionHeader("📊 PROJECT DISTRIBUTION", rowIdx);
+      const projDist = {};
+      filtered.forEach(e => { projDist[e.project] = (projDist[e.project] || 0) + e.hours; });
+      const sortedProj = Object.entries(projDist).sort((a, b) => b[1] - a[1]);
+      const totalProjHours = sortedProj.reduce((sum, p) => sum + p[1], 0);
+      const projTable = sortedProj.map(([proj, hrs]) => {
+        const pct = totalProjHours > 0 ? (hrs / totalProjHours) * 100 : 0;
+        return [proj, hrs.toFixed(1), pct.toFixed(1) + '%'];
+      });
+      
+      const projHeaders = ['Project', 'Hours', 'Share'];
+      const projRow = analysisSheet.getRow(rowIdx);
+      projHeaders.forEach((h, idx) => {
+        const cell = projRow.getCell(idx+1);
+        cell.value = h;
+        cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
+        cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+      });
+      analysisSheet.getRow(rowIdx).height = 22;
+      rowIdx++;
+      for (const rowData of projTable.slice(0, 10)) {
+        const row = analysisSheet.getRow(rowIdx);
+        rowData.forEach((val, idx) => {
+          const cell = row.getCell(idx+1);
+          cell.value = val;
+          cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+          cell.alignment = { vertical: 'middle', horizontal: (idx === 0) ? 'left' : 'right' };
+          if (idx === 2) {
+            const num = parseFloat(val);
+            if (!isNaN(num)) {
+              // Visual bar using background color intensity
+              const intensity = Math.min(255, Math.round((num / 100) * 200) + 55);
+              cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: `FF${intensity.toString(16).padStart(2, '0')}E6F0FA` } };
+            }
+          }
+        });
+        analysisSheet.getRow(rowIdx).height = 18;
+        rowIdx++;
+      }
+      rowIdx += 1;
+
+      // ===== 6. BILLABLE RATIO TREND =====
+      rowIdx = addSectionHeader("📈 BILLABLE RATIO TREND", rowIdx);
+      const monthlyBillable = {};
+      filtered.forEach(e => {
+        const m = e.date.substring(0, 7);
+        if (!monthlyBillable[m]) monthlyBillable[m] = { total: 0, billable: 0 };
+        monthlyBillable[m].total += e.hours;
+        if (e.billable === 'yes') monthlyBillable[m].billable += e.hours;
+      });
+      const billableTrend = Object.keys(monthlyBillable).sort().map(m => {
+        const data = monthlyBillable[m];
+        const ratio = data.total > 0 ? (data.billable / data.total) * 100 : 0;
+        const formattedMonth = formatMonthKey(m);
+        return [formattedMonth, data.total.toFixed(1), data.billable.toFixed(1), ratio.toFixed(1) + '%'];
+      });
+      
+      const trendHeaders = ['Month', 'Total', 'Billable', 'Billable %'];
+      const trendRow = analysisSheet.getRow(rowIdx);
+      trendHeaders.forEach((h, idx) => {
+        const cell = trendRow.getCell(idx+1);
+        cell.value = h;
+        cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
+        cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+      });
+      analysisSheet.getRow(rowIdx).height = 22;
+      rowIdx++;
+      for (const rowData of billableTrend) {
+        const row = analysisSheet.getRow(rowIdx);
+        rowData.forEach((val, idx) => {
+          const cell = row.getCell(idx+1);
+          cell.value = val;
+          cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+          cell.alignment = { vertical: 'middle', horizontal: (idx === 0) ? 'left' : 'right' };
+          if (idx === 3) {
+            const num = parseFloat(val);
+            if (!isNaN(num)) {
+              cell.font = { color: { argb: num >= 80 ? 'FF28A745' : (num >= 60 ? 'FFFFC107' : 'FFDC3545') }, bold: true };
+            }
+          }
+        });
+        analysisSheet.getRow(rowIdx).height = 18;
+        rowIdx++;
+      }
+      rowIdx += 1;
+
+      // ===== 7. CATEGORY INSIGHTS =====
+      rowIdx = addSectionHeader("📋 CATEGORY INSIGHTS", rowIdx);
+      const catCount = {};
+      filtered.forEach(e => { catCount[e.category] = (catCount[e.category] || 0) + 1; });
+      const sortedCats = Object.entries(catCount).sort((a, b) => b[1] - a[1]);
+      const mostUsed = sortedCats.length > 0 ? sortedCats[0][0] : 'N/A';
+      const mostCount = sortedCats.length > 0 ? sortedCats[0][1] : 0;
+      
+      rowIdx = addKeyValue("Most Used Category", mostUsed + ' (' + mostCount + ' entries)', rowIdx);
+      rowIdx = addKeyValue("Total Categories Used", sortedCats.length, rowIdx);
+      
+      // Category distribution table
+      rowIdx = addSectionHeader("Category Distribution", rowIdx);
+      const catHeaders = ['Category', 'Entries', 'Share'];
+      const catRow = analysisSheet.getRow(rowIdx);
+      catHeaders.forEach((h, idx) => {
+        const cell = catRow.getCell(idx+1);
+        cell.value = h;
+        cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
+        cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+      });
+      analysisSheet.getRow(rowIdx).height = 22;
+      rowIdx++;
+      const totalEntries = filtered.length;
+      for (const [cat, count] of sortedCats.slice(0, 8)) {
+        const row = analysisSheet.getRow(rowIdx);
+        const pct = totalEntries > 0 ? (count / totalEntries) * 100 : 0;
+        const cells = [cat, count, pct.toFixed(1) + '%'];
+        cells.forEach((val, idx) => {
+          const cell = row.getCell(idx+1);
+          cell.value = val;
+          cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+          cell.alignment = { vertical: 'middle', horizontal: (idx === 0) ? 'left' : 'right' };
+        });
+        analysisSheet.getRow(rowIdx).height = 18;
+        rowIdx++;
+      }
+      rowIdx += 1;
+
+      // ===== 8. TOP 3 PROJECTS =====
       rowIdx = addSectionHeader("🏆 TOP 3 PROJECTS (HOURS)", rowIdx);
       const projTotals = {};
       filtered.forEach(e => { projTotals[e.project] = (projTotals[e.project] || 0) + e.hours; });
@@ -1229,6 +1416,7 @@
       rowIdx = addTwoColumnTable(topTable, rowIdx, "Project", "Hours");
       rowIdx += 1;
 
+      // ===== 9. OVERTIME DAYS =====
       rowIdx = addSectionHeader("⚠️ OVERTIME DAYS (>8h)", rowIdx);
       const overtimeDays = filtered.filter(e => e.hours > 8);
       const overtimeTable = overtimeDays.map(e => [e.date, e.hours.toFixed(2)]);
@@ -1236,6 +1424,7 @@
       rowIdx = addTwoColumnTable(overtimeTable, rowIdx, "Date", "Hours");
       rowIdx += 1;
 
+      // ===== 10. CONSISTENCY =====
       rowIdx = addSectionHeader("⏳ CONSISTENCY", rowIdx);
       const sortedDates = [...new Set(filtered.map(e => e.date))].sort();
       let maxGap = 0;
@@ -1249,6 +1438,7 @@
       rowIdx = addKeyValue("Longest gap between entries (days)", maxGap.toString(), rowIdx);
       rowIdx += 1;
 
+      // ===== 11. PORTFOLIO HEALTH SCORE =====
       rowIdx = addSectionHeader("💚 PORTFOLIO HEALTH SCORE", rowIdx);
       let healthScore = 100;
       if (adminRatio > 15) healthScore -= 10;
@@ -1292,7 +1482,7 @@
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       saveAs(blob, `Timesheet_${startDate}_to_${endDate}_readonly.xlsx`);
-      showToast("Excel report generated – summary chart aspect ratio fixed, filters on E4,F4,G4!", "success");
+      showToast("Excel report generated – enriched Deep Dive Analysis added!", "success");
     } catch (err) {
       console.error("Excel export error:", err);
       showToast("Excel generation failed: " + err.message, "error");
