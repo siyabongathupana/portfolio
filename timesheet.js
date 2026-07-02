@@ -1,4 +1,4 @@
-// timesheet.js – COMPLETE with enriched Deep Dive Analysis + responsive total
+// timesheet.js – COMPLETE with SUBTOTAL in Excel, responsive total row
 (function() {
   const user = window.SessionManager?.getCurrentUser();
   if (!user) {
@@ -366,7 +366,7 @@
     return filtered;
   }
 
-  // ======================== RENDER HISTORY – FIXED: total always visible ========================
+  // ======================== RENDER HISTORY – total always visible ========================
   function renderHistory() {
     const filtered = getFilteredEntries();
     const tbody = document.getElementById('historyBody');
@@ -672,7 +672,8 @@
 
       const totalRowNum = currentRow;
       const totalRow = worksheet.getRow(totalRowNum);
-      totalRow.getCell(4).value = totalHours.toFixed(1);
+      // ✅ Use SUBTOTAL so the total responds to column filters (Project, Category, Billable)
+      totalRow.getCell(4).value = { formula: `SUBTOTAL(109,D5:D${totalRowNum - 1})` };
       totalRow.getCell(4).font = { bold: true, size: 11 };
       for (let i = 1; i <= 8; i++) {
         const cell = totalRow.getCell(i);
@@ -1243,7 +1244,6 @@
         const avg = dayCount[day] > 0 ? dayMap[day] / dayCount[day] : 0;
         return [day, dayMap[day].toFixed(1), avg.toFixed(1)];
       });
-      // Sort by average hours descending
       dayTable.sort((a, b) => parseFloat(b[2]) - parseFloat(a[2]));
       
       const dayHeaders = ['Day', 'Total Hours', 'Avg Hours'];
@@ -1265,7 +1265,6 @@
           cell.value = val;
           cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
           cell.alignment = { vertical: 'middle', horizontal: (idx === 0) ? 'left' : 'right' };
-          // Highlight the busiest day
           if (idx === 2 && parseFloat(val) === parseFloat(dayTable[0][2])) {
             cell.font = { bold: true, color: { argb: 'FF28A745' } };
           }
@@ -1308,7 +1307,6 @@
           if (idx === 2) {
             const num = parseFloat(val);
             if (!isNaN(num)) {
-              // Visual bar using background color intensity
               const intensity = Math.min(255, Math.round((num / 100) * 200) + 55);
               cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: `FF${intensity.toString(16).padStart(2, '0')}E6F0FA` } };
             }
@@ -1377,8 +1375,6 @@
       rowIdx = addKeyValue("Most Used Category", mostUsed + ' (' + mostCount + ' entries)', rowIdx);
       rowIdx = addKeyValue("Total Categories Used", sortedCats.length, rowIdx);
       
-      // Category distribution table
-      rowIdx = addSectionHeader("Category Distribution", rowIdx);
       const catHeaders = ['Category', 'Entries', 'Share'];
       const catRow = analysisSheet.getRow(rowIdx);
       catHeaders.forEach((h, idx) => {
@@ -1482,7 +1478,7 @@
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       saveAs(blob, `Timesheet_${startDate}_to_${endDate}_readonly.xlsx`);
-      showToast("Excel report generated – enriched Deep Dive Analysis added!", "success");
+      showToast("Excel report generated – SUBTOTAL total responds to column filters!", "success");
     } catch (err) {
       console.error("Excel export error:", err);
       showToast("Excel generation failed: " + err.message, "error");
