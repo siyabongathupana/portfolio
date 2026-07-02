@@ -466,7 +466,7 @@
     });
   }
 
-  // ======================== EXCEL EXPORT with ALL sheets and NO OVERLAPPING ========================
+  // ======================== EXCEL EXPORT with ALL sheets and PROPER SPACING ========================
   async function exportStyledExcel(startDate, endDate) {
     window.showLoading("Generating Excel report...");
     try {
@@ -726,7 +726,7 @@
       summarySheet.getCell('A50').font = { italic: true, size: 8 };
       summarySheet.mergeCells('A50:C50');
 
-      // ==================== SHEET 3: CHARTS (6 charts - NO OVERLAPPING) ====================
+      // ==================== SHEET 3: CHARTS (6 charts with PROPER SPACING) ====================
       const chartsSheet = workbook.addWorksheet("Charts", {
         pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, paperSize: 9 }
       });
@@ -734,37 +734,40 @@
       chartsSheet.mergeCells('A1:F1');
       const chartsTitle = chartsSheet.getCell('A1');
       chartsTitle.value = "VISUAL ANALYTICS DASHBOARD";
-      chartsTitle.font = { size: 18, bold: true, color: { argb: 'FF0B2B3B' } };
+      chartsTitle.font = { size: 20, bold: true, color: { argb: 'FF0B2B3B' } };
       chartsTitle.alignment = { horizontal: 'center' };
-      chartsSheet.getRow(1).height = 32;
+      chartsSheet.getRow(1).height = 38;
       
-      // Add a spacer row
-      chartsSheet.getRow(2).height = 15;
+      chartsSheet.getRow(2).height = 20;
 
-      // Define chart dimensions - SMALLER to fit 2 per row without overlapping
+      // CHART DIMENSIONS with PROPER SPACING
       const CHART_WIDTH = 340;
-      const CHART_HEIGHT = 240;
-      // Row offset: chart height + title row + padding
-      const ROW_OFFSET = Math.ceil((CHART_HEIGHT + 15) / 20) + 2;
+      const CHART_HEIGHT = 260;
+      const ROW_OFFSET = Math.ceil((CHART_HEIGHT + 50) / 20) + 2;
 
       async function addChart(chartsSheet, chartBuilder, col, row, title) {
         try {
           const imgData = await safeCaptureChart(chartBuilder, 1200, 900);
           const imageId = workbook.addImage({ base64: imgData, extension: 'png' });
+          
+          const colOffset = col === 0 ? 0.5 : 3.5;
+          
           chartsSheet.addImage(imageId, {
-            tl: { col: col * 3, row: row },
+            tl: { col: colOffset, row: row },
             ext: { width: CHART_WIDTH, height: CHART_HEIGHT },
             editAs: 'oneCell'
           });
-          // Add title in cell above chart
+          
           const titleRow = row - 1;
           if (titleRow >= 0) {
-            const colLetter = String.fromCharCode(65 + (col * 3));
+            const colLetter = String.fromCharCode(65 + Math.floor(colOffset));
             const titleCellRef = chartsSheet.getCell(`${colLetter}${titleRow + 1}`);
             titleCellRef.value = title;
-            titleCellRef.font = { bold: true, size: 10, color: { argb: 'FF0B2B3B' } };
-            titleCellRef.alignment = { horizontal: 'center' };
+            titleCellRef.font = { bold: true, size: 12, color: { argb: 'FF0B2B3B' } };
+            titleCellRef.alignment = { horizontal: 'center', vertical: 'middle' };
             titleCellRef.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF0F4F8' } };
+            titleCellRef.border = { bottom: { style: 'thin', color: { argb: 'FFD0D8E0' } } };
+            chartsSheet.getRow(titleRow + 1).height = 24;
           }
           return true;
         } catch(e) {
@@ -773,7 +776,7 @@
         }
       }
 
-      // ROW 1: Charts 1 & 2 (columns 0 and 1)
+      // ROW 1: Charts 1 & 2
       const row1Start = 3;
       
       // 1. Pie: Category Distribution
@@ -835,21 +838,46 @@
         });
       }, 1, row2Start, 'Admin vs Project Hours');
 
-      // ROW 3: Charts 5 & 6
+      // ROW 3: Charts 5 & 6 (NEW: Weekly Billable vs Non-Billable instead of Daily Distribution)
       const row3Start = row2Start + ROW_OFFSET;
       
-      // 5. Bar: Daily Hours Distribution
+      // 5. NEW: Stacked Bar - Weekly Billable vs Non-Billable
       await addChart(chartsSheet, (ctx, canvas) => {
-        const dailyHours = {};
-        filtered.forEach(e => { dailyHours[e.date] = (dailyHours[e.date] || 0) + e.hours; });
-        const dates = Object.keys(dailyHours).sort().slice(0, 15);
-        const hoursData = dates.map(d => dailyHours[d]);
+        const weeklyBillable = {};
+        const weeklyNonBillable = {};
+        filtered.forEach(e => {
+          const week = `${new Date(e.date).getFullYear()}-W${getWeekNumber(e.date)}`;
+          if (e.billable === 'yes') {
+            weeklyBillable[week] = (weeklyBillable[week] || 0) + e.hours;
+          } else {
+            weeklyNonBillable[week] = (weeklyNonBillable[week] || 0) + e.hours;
+          }
+        });
+        const allWeeks = [...new Set([...Object.keys(weeklyBillable), ...Object.keys(weeklyNonBillable)])].sort();
         return new Chart(ctx, {
           type: 'bar',
-          data: { labels: dates, datasets: [{ label: 'Daily Hours', data: hoursData, backgroundColor: 'rgba(47,199,255,0.6)', borderColor: '#2fc7ff', borderWidth: 2 }] },
-          options: { responsive: false, maintainAspectRatio: true, plugins: { legend: { labels: { font: { size: 56 } } }, title: { display: true, text: 'Daily Hours Distribution', font: { size: 64 } }, tooltip: { bodyFont: { size: 32 } } }, scales: { x: { ticks: { font: { size: 32 }, maxRotation: 45 } }, y: { ticks: { font: { size: 48 } } } } }
+          data: { 
+            labels: allWeeks, 
+            datasets: [
+              { label: 'Billable', data: allWeeks.map(w => weeklyBillable[w] || 0), backgroundColor: '#28a745' },
+              { label: 'Non-Billable', data: allWeeks.map(w => weeklyNonBillable[w] || 0), backgroundColor: '#dc3545' }
+            ] 
+          },
+          options: { 
+            responsive: false, 
+            maintainAspectRatio: true, 
+            scales: { 
+              x: { stacked: true, ticks: { font: { size: 36 } } }, 
+              y: { stacked: true, ticks: { font: { size: 48 } } } 
+            }, 
+            plugins: { 
+              legend: { labels: { font: { size: 56 } } }, 
+              title: { display: true, text: 'Weekly Billable vs Non-Billable', font: { size: 64 } }, 
+              tooltip: { bodyFont: { size: 32 } } 
+            } 
+          }
         });
-      }, 0, row3Start, 'Daily Hours Distribution');
+      }, 0, row3Start, 'Weekly Billable vs Non-Billable');
 
       // 6. Horizontal Bar: Top Projects
       await addChart(chartsSheet, (ctx, canvas) => {
@@ -864,10 +892,11 @@
       }, 1, row3Start, 'Top Projects by Hours');
 
       // Footer
-      const footerRow = row3Start + ROW_OFFSET + 1;
+      const footerRow = row3Start + ROW_OFFSET + 2;
       chartsSheet.getCell(`A${footerRow}`).value = `Generated: ${new Date().toLocaleString()} | Your Portfolio System`;
-      chartsSheet.getCell(`A${footerRow}`).font = { italic: true, size: 8 };
+      chartsSheet.getCell(`A${footerRow}`).font = { italic: true, size: 9 };
       chartsSheet.mergeCells(`A${footerRow}:F${footerRow}`);
+      chartsSheet.getRow(footerRow).height = 20;
 
       // ==================== SHEET 4: ADVANCED ANALYSIS ====================
       const analysisSheet = workbook.addWorksheet("Advanced Analysis", {
