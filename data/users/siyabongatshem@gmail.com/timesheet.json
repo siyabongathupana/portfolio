@@ -8,8 +8,8 @@
     "project": "Omnia Phase 3",
     "category": "CFAT",
     "billable": "yes",
-    "notes": "3rd Party Integration & Update AN_Pumps GRPC",
-    "updatedAt": 1783000790058,
+    "notes": "3rd Party Integration & Update AN_PUMPS grpc",
+    "updatedAt": 1783000817630,
     "weekKey": "2026-W27"
   },
   {
@@ -22,8 +22,7 @@
     "category": "Back-Punching",
     "billable": "yes",
     "notes": "BackPunching",
-    "updatedAt": 1782994131855,
-    "weekKey": "2026-W27"
+    "updatedAt": 1782994131855
   },
   {
     "id": 1782800154531,
