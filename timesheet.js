@@ -1,4 +1,4 @@
-// timesheet.js – COMPLETE with FIXED HORIZONTAL SPACING & ALL SHEETS LOCKED
+// timesheet.js – COMPLETE with all fixes & optimizations
 (function() {
   const user = window.SessionManager?.getCurrentUser();
   if (!user) {
@@ -54,6 +54,9 @@
 
   let projectChart = null, categoryChart = null, billableChart = null;
 
+  // Cache for project options to avoid repeated fetches
+  let _projectsLoaded = false;
+
   function showToast(message, type = "success") {
     const container = document.getElementById("toastContainer");
     if (!container) return;
@@ -77,13 +80,26 @@
       if (resp.ok) {
         const data = await resp.json();
         const content = atob(data.content.replace(/\n/g, ''));
-        const parsed = JSON.parse(content);
+        let parsed;
+        try {
+          parsed = JSON.parse(content);
+        } catch (e) {
+          console.warn("Timesheet JSON parse failed, using empty array:", e);
+          parsed = [];
+          showToast("Timesheet data was corrupted; reset to empty.", "error");
+        }
         entries = Array.isArray(parsed) ? parsed : [];
         entries = entries.map(e => ({ ...e, updatedAt: e.updatedAt || e.id }));
         entries.sort((a, b) => new Date(b.date) - new Date(a.date));
       } else if (resp.status === 404) entries = [];
       else throw new Error(`HTTP ${resp.status}`);
-    } catch(e) { if (!e.message.includes("Token expired")) console.error(e); entries = []; }
+    } catch(e) {
+      if (!e.message.includes("Token expired")) {
+        console.error("Failed to load timesheet:", e);
+        showToast("Could not load timesheet data. Using local cache.", "warning");
+      }
+      // Keep existing entries from previous load or fallback to empty
+    }
   }
 
   async function saveTimesheet(dataToSave) {
@@ -112,7 +128,11 @@
         if (!putResp.ok) throw new Error(`GitHub API error: ${putResp.status}`);
         entries = [...dataToSave];
         return true;
-      } catch (err) { retries--; if (retries === 0) throw err; await new Promise(r => setTimeout(r, 1000)); }
+      } catch (err) {
+        retries--;
+        if (retries === 0) throw err;
+        await new Promise(r => setTimeout(r, 1000));
+      }
     }
   }
 
@@ -124,7 +144,7 @@
       const resp = await githubFetchWithAuth(`https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`, { headers: { Authorization: `token ${user.pat}` } });
       if (resp.ok) { const data = await resp.json(); timesheetProjects = JSON.parse(atob(data.content.replace(/\n/g, ''))); }
       else if (resp.status === 404) timesheetProjects = [];
-    } catch(e) { timesheetProjects = []; }
+    } catch(e) { console.warn("Failed to load timesheet projects:", e); timesheetProjects = []; }
   }
 
   async function saveTimesheetProjects(projectsArray) {
@@ -158,7 +178,11 @@
     allProjectOptions = combined;
   }
 
-  async function loadProjectsForTimesheet() {
+  async function loadProjectsForTimesheet(force = false) {
+    if (_projectsLoaded && !force) {
+      // Use cached project options
+      return;
+    }
     await loadPortfolioProjects();
     await loadTimesheetProjects();
     updateCombinedProjectList();
@@ -171,12 +195,16 @@
       allProjectOptions.forEach(proj => { const opt = document.createElement('option'); opt.value = proj; opt.textContent = proj; sel.appendChild(opt); });
       if (currentVal && allProjectOptions.includes(currentVal)) sel.value = currentVal;
     }
+    _projectsLoaded = true;
   }
 
   async function createTimesheetOnlyProject(projectName) {
     if (allProjectOptions.includes(projectName)) return false;
     await saveTimesheetProjects([...timesheetProjects, projectName]);
-    await loadProjectsForTimesheet();
+    // Update cache
+    timesheetProjects.push(projectName);
+    updateCombinedProjectList();
+    await loadProjectsForTimesheet(true);
     return true;
   }
 
@@ -184,7 +212,9 @@
     if (!timesheetProjects.includes(projectName)) return false;
     const updated = timesheetProjects.filter(p => p !== projectName);
     await saveTimesheetProjects(updated);
-    await loadProjectsForTimesheet();
+    timesheetProjects = updated;
+    updateCombinedProjectList();
+    await loadProjectsForTimesheet(true);
     showToast(`Project "${projectName}" deleted from timesheet list.`, "success");
     return true;
   }
@@ -304,6 +334,7 @@
     if (range !== 'all') {
       filtered = filtered.filter(entry => {
         const d = new Date(entry.date);
+        // d is already UTC midnight, but we set to be safe
         d.setUTCHours(0, 0, 0, 0);
         
         if (range === 'day') {
@@ -431,16 +462,28 @@
   }
 
   // ======================== SAFE CHART CAPTURE WITH FALLBACK ========================
+  // Reusable hidden canvas for chart exports to reduce memory churn
+  let _chartCanvas = null;
+
   async function safeCaptureChart(chartBuilder, width = 800, height = 600) {
     return new Promise(async (resolve) => {
-      const canvas = document.createElement('canvas');
+      if (!_chartCanvas) {
+        _chartCanvas = document.createElement('canvas');
+        _chartCanvas.style.position = 'absolute';
+        _chartCanvas.style.top = '-9999px';
+        _chartCanvas.style.left = '-9999px';
+        document.body.appendChild(_chartCanvas);
+      }
+      const canvas = _chartCanvas;
       canvas.width = width;
       canvas.height = height;
       const ctx = canvas.getContext('2d');
       let chart = null;
       try {
         chart = await chartBuilder(ctx, canvas);
-        await new Promise(r => setTimeout(r, 600));
+        // Force chart to render
+        chart.update();
+        await new Promise(r => setTimeout(r, 1000)); // increased timeout
         const imgData = canvas.toDataURL('image/png');
         if (imgData.length < 1000) throw new Error('Chart image too small');
         resolve(imgData);
@@ -462,6 +505,7 @@
         resolve(fallbackCanvas.toDataURL('image/png'));
       } finally {
         if (chart && typeof chart.destroy === 'function') chart.destroy();
+        // Don't remove canvas from DOM; reuse it.
       }
     });
   }
@@ -506,7 +550,7 @@
 
       const workbook = new ExcelJS.Workbook();
       
-      // ==================== SHEET 1: TIMESHEET DATA (already protected) ====================
+      // ==================== SHEET 1: TIMESHEET DATA ====================
       const worksheet = workbook.addWorksheet("Timesheet Data", {
         pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0, paperSize: 9, horizontalCentered: true, verticalCentered: true }
       });
@@ -626,12 +670,21 @@
       worksheet.views = [{ state: 'frozen', ySplit: 4 }];
       worksheet.pageSetup.printArea = `A1:H${totalRowNum}`;
       worksheet.protect('Siya', {
-        selectLockedCells: false, selectUnlockedCells: false, formatCells: false, formatColumns: false,
-        formatRows: false, insertRows: false, deleteRows: false, insertColumns: false, deleteColumns: false,
-        sort: false, autoFilter: false, pivotTables: false
+        selectLockedCells: true,   // Allow selection for copying
+        selectUnlockedCells: true,
+        formatCells: false,
+        formatColumns: false,
+        formatRows: false,
+        insertRows: false,
+        deleteRows: false,
+        insertColumns: false,
+        deleteColumns: false,
+        sort: false,
+        autoFilter: false,
+        pivotTables: false
       });
 
-      // ==================== SHEET 2: SUMMARY (protected) ====================
+      // ==================== SHEET 2: SUMMARY ====================
       const summarySheet = workbook.addWorksheet("Summary", {
         pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, paperSize: 9 }
       });
@@ -692,8 +745,8 @@
         const projLabels = Object.keys(projMap).slice(0, 10);
         const projData = projLabels.map(l => projMap[l]);
         const canvas = document.createElement('canvas');
-        canvas.width = 1800;
-        canvas.height = 1000;
+        canvas.width = 1200;
+        canvas.height = 800;
         const ctx = canvas.getContext('2d');
         const chart = new Chart(ctx, {
           type: 'bar',
@@ -726,11 +779,19 @@
       summarySheet.getCell('A50').font = { italic: true, size: 8 };
       summarySheet.mergeCells('A50:C50');
 
-      // Protect Summary sheet
       summarySheet.protect('Siya', {
-        selectLockedCells: false, selectUnlockedCells: false, formatCells: false, formatColumns: false,
-        formatRows: false, insertRows: false, deleteRows: false, insertColumns: false, deleteColumns: false,
-        sort: false, autoFilter: false, pivotTables: false
+        selectLockedCells: true,
+        selectUnlockedCells: true,
+        formatCells: false,
+        formatColumns: false,
+        formatRows: false,
+        insertRows: false,
+        deleteRows: false,
+        insertColumns: false,
+        deleteColumns: false,
+        sort: false,
+        autoFilter: false,
+        pivotTables: false
       });
 
       // ==================== SHEET 3: CHARTS (FIXED HORIZONTAL SPACING) ====================
@@ -745,8 +806,6 @@
       chartsTitle.alignment = { horizontal: 'center' };
       chartsSheet.getRow(1).height = 38;
       
-      // Set column widths: A (chart1), B(gap), C(gap), D(gap), E(chart2), F(gap)
-      // Make A and E wide enough for 340px charts
       chartsSheet.getColumn(1).width = 40; // A
       chartsSheet.getColumn(2).width = 5;  // B
       chartsSheet.getColumn(3).width = 5;  // C
@@ -754,11 +813,9 @@
       chartsSheet.getColumn(5).width = 40; // E
       chartsSheet.getColumn(6).width = 5;  // F
 
-      // Add spacer rows
       chartsSheet.getRow(2).height = 25;
       chartsSheet.getRow(3).height = 5;
 
-      // CHART DIMENSIONS (slightly smaller to fit)
       const CHART_WIDTH = 310;
       const CHART_HEIGHT = 240;
       const ROW_OFFSET = Math.ceil((CHART_HEIGHT + 80) / 20) + 3;
@@ -767,18 +824,12 @@
         try {
           const imgData = await safeCaptureChart(chartBuilder, 1200, 900);
           const imageId = workbook.addImage({ base64: imgData, extension: 'png' });
-          
-          // col 0 -> column A (offset 0.5)
-          // col 1 -> column E (offset 4.5) - moved to far right
           const colOffset = col === 0 ? 0.5 : 4.5;
-          
           chartsSheet.addImage(imageId, {
             tl: { col: colOffset, row: row },
             ext: { width: CHART_WIDTH, height: CHART_HEIGHT },
             editAs: 'oneCell'
           });
-          
-          // Add title in cell above chart
           const titleRow = row - 1;
           if (titleRow >= 0) {
             const colLetter = col === 0 ? 'A' : 'E';
@@ -797,10 +848,8 @@
         }
       }
 
-      // ROW 1: Charts 1 & 2
       const row1Start = 4;
       
-      // 1. Pie: Category Distribution (LEFT)
       await addChart(chartsSheet, (ctx, canvas) => {
         const catMap = {};
         filtered.forEach(e => { catMap[e.category] = (catMap[e.category] || 0) + e.hours; });
@@ -811,7 +860,6 @@
         });
       }, 0, row1Start, 'Hours by Category');
 
-      // 2. Doughnut: Billable vs Non-Billable (RIGHT)
       await addChart(chartsSheet, (ctx, canvas) => {
         return new Chart(ctx, {
           type: 'doughnut',
@@ -820,10 +868,8 @@
         });
       }, 1, row1Start, 'Billable Breakdown');
 
-      // ROW 2: Charts 3 & 4
       const row2Start = row1Start + ROW_OFFSET + 4;
       
-      // 3. Line: Weekly Trend (LEFT)
       await addChart(chartsSheet, (ctx, canvas) => {
         const weeklyTotals = {};
         filtered.forEach(e => {
@@ -839,7 +885,6 @@
         });
       }, 0, row2Start, 'Weekly Hours Trend');
 
-      // 4. Stacked Bar: Admin vs Project (RIGHT)
       await addChart(chartsSheet, (ctx, canvas) => {
         const weeklyAdmin = {};
         const weeklyProject = {};
@@ -859,10 +904,8 @@
         });
       }, 1, row2Start, 'Admin vs Project Hours');
 
-      // ROW 3: Charts 5 & 6
       const row3Start = row2Start + ROW_OFFSET + 4;
       
-      // 5. Stacked Bar: Weekly Billable vs Non-Billable (LEFT)
       await addChart(chartsSheet, (ctx, canvas) => {
         const weeklyBillable = {};
         const weeklyNonBillable = {};
@@ -900,7 +943,6 @@
         });
       }, 0, row3Start, 'Weekly Billable vs Non-Billable');
 
-      // 6. Horizontal Bar: Top Projects (RIGHT)
       await addChart(chartsSheet, (ctx, canvas) => {
         const projMap = {};
         filtered.forEach(e => { projMap[e.project] = (projMap[e.project] || 0) + e.hours; });
@@ -912,21 +954,28 @@
         });
       }, 1, row3Start, 'Top Projects by Hours');
 
-      // Footer
       const footerRow = row3Start + ROW_OFFSET + 6;
       chartsSheet.getCell(`A${footerRow}`).value = `Generated: ${new Date().toLocaleString()} | Your Portfolio System`;
       chartsSheet.getCell(`A${footerRow}`).font = { italic: true, size: 9 };
       chartsSheet.mergeCells(`A${footerRow}:F${footerRow}`);
       chartsSheet.getRow(footerRow).height = 25;
 
-      // Protect Charts sheet
       chartsSheet.protect('Siya', {
-        selectLockedCells: false, selectUnlockedCells: false, formatCells: false, formatColumns: false,
-        formatRows: false, insertRows: false, deleteRows: false, insertColumns: false, deleteColumns: false,
-        sort: false, autoFilter: false, pivotTables: false
+        selectLockedCells: true,
+        selectUnlockedCells: true,
+        formatCells: false,
+        formatColumns: false,
+        formatRows: false,
+        insertRows: false,
+        deleteRows: false,
+        insertColumns: false,
+        deleteColumns: false,
+        sort: false,
+        autoFilter: false,
+        pivotTables: false
       });
 
-      // ==================== SHEET 4: ADVANCED ANALYSIS (protected) ====================
+      // ==================== SHEET 4: ADVANCED ANALYSIS ====================
       const analysisSheet = workbook.addWorksheet("Advanced Analysis", {
         pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, paperSize: 9 }
       });
@@ -999,7 +1048,7 @@
         return r + 1;
       }
 
-      // Build analysis content
+      // Build analysis content (same as before)
       rowIdx = addSectionHeader("📈 KEY METRICS", rowIdx);
       const workingDays = new Set(filtered.map(e => e.date));
       const avgDaily2 = totalHours / workingDays.size;
@@ -1099,18 +1148,26 @@
       analysisSheet.getCell(`A${footerRow2}`).font = { italic: true, size: 8 };
       analysisSheet.getCell(`A${footerRow2}`).alignment = { horizontal: 'center' };
 
-      // Protect Advanced Analysis sheet
       analysisSheet.protect('Siya', {
-        selectLockedCells: false, selectUnlockedCells: false, formatCells: false, formatColumns: false,
-        formatRows: false, insertRows: false, deleteRows: false, insertColumns: false, deleteColumns: false,
-        sort: false, autoFilter: false, pivotTables: false
+        selectLockedCells: true,
+        selectUnlockedCells: true,
+        formatCells: false,
+        formatColumns: false,
+        formatRows: false,
+        insertRows: false,
+        deleteRows: false,
+        insertColumns: false,
+        deleteColumns: false,
+        sort: false,
+        autoFilter: false,
+        pivotTables: false
       });
 
       // ==================== SAVE ====================
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       saveAs(blob, `Timesheet_${startDate}_to_${endDate}_readonly.xlsx`);
-      showToast("Excel report generated – all sheets locked!", "success");
+      showToast("Excel report generated – all sheets locked, cells selectable!", "success");
     } catch (err) {
       console.error("Excel export error:", err);
       showToast("Excel generation failed: " + err.message, "error");
@@ -1169,13 +1226,14 @@
     window.showLoading("Refreshing timesheet...");
     try {
       await loadTimesheet();
-      await loadProjectsForTimesheet();
+      await loadProjectsForTimesheet(false); // use cache if available
       renderHistory();
       updateSummaryAndProgress();
       updateCharts();
 
       window.__timesheetEntries = entries;
       window.__timesheetProjectOptions = allProjectOptions;
+      // Dispatch event only on success
       document.dispatchEvent(new Event('timesheetUpdated'));
     } catch(err) {
       if (!err.message.includes("Token expired")) showToast("Refresh failed: " + err.message, "error");
