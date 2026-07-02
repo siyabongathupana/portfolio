@@ -1,4 +1,4 @@
-// timesheet.js – COMPLETE with ALL Excel sheets (No Overlapping Charts)
+// timesheet.js – COMPLETE with PROPER CHART SPACING (No Overlapping)
 (function() {
   const user = window.SessionManager?.getCurrentUser();
   if (!user) {
@@ -726,7 +726,7 @@
       summarySheet.getCell('A50').font = { italic: true, size: 8 };
       summarySheet.mergeCells('A50:C50');
 
-      // ==================== SHEET 3: CHARTS (6 charts with PROPER SPACING) ====================
+      // ==================== SHEET 3: CHARTS (6 charts with MASSIVE SPACING - NO OVERLAPPING) ====================
       const chartsSheet = workbook.addWorksheet("Charts", {
         pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, paperSize: 9 }
       });
@@ -738,18 +738,22 @@
       chartsTitle.alignment = { horizontal: 'center' };
       chartsSheet.getRow(1).height = 38;
       
-      chartsSheet.getRow(2).height = 20;
+      // Add multiple spacer rows for breathing room
+      chartsSheet.getRow(2).height = 25;
+      chartsSheet.getRow(3).height = 5;
 
-      // CHART DIMENSIONS with PROPER SPACING
+      // CHART DIMENSIONS with MASSIVE SPACING
       const CHART_WIDTH = 340;
       const CHART_HEIGHT = 260;
-      const ROW_OFFSET = Math.ceil((CHART_HEIGHT + 50) / 20) + 2;
+      // ROW OFFSET: chart height + title + 40 rows of padding (BIG gap)
+      const ROW_OFFSET = Math.ceil((CHART_HEIGHT + 80) / 20) + 2;
 
       async function addChart(chartsSheet, chartBuilder, col, row, title) {
         try {
           const imgData = await safeCaptureChart(chartBuilder, 1200, 900);
           const imageId = workbook.addImage({ base64: imgData, extension: 'png' });
           
+          // Add left margin for second column
           const colOffset = col === 0 ? 0.5 : 3.5;
           
           chartsSheet.addImage(imageId, {
@@ -758,6 +762,7 @@
             editAs: 'oneCell'
           });
           
+          // Add title in cell above chart with padding
           const titleRow = row - 1;
           if (titleRow >= 0) {
             const colLetter = String.fromCharCode(65 + Math.floor(colOffset));
@@ -767,7 +772,7 @@
             titleCellRef.alignment = { horizontal: 'center', vertical: 'middle' };
             titleCellRef.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF0F4F8' } };
             titleCellRef.border = { bottom: { style: 'thin', color: { argb: 'FFD0D8E0' } } };
-            chartsSheet.getRow(titleRow + 1).height = 24;
+            chartsSheet.getRow(titleRow + 1).height = 26;
           }
           return true;
         } catch(e) {
@@ -776,8 +781,8 @@
         }
       }
 
-      // ROW 1: Charts 1 & 2
-      const row1Start = 3;
+      // ROW 1: Charts 1 & 2 (starting at row 4 to leave space)
+      const row1Start = 4;
       
       // 1. Pie: Category Distribution
       await addChart(chartsSheet, (ctx, canvas) => {
@@ -799,8 +804,8 @@
         });
       }, 1, row1Start, 'Billable Breakdown');
 
-      // ROW 2: Charts 3 & 4
-      const row2Start = row1Start + ROW_OFFSET;
+      // ROW 2: Charts 3 & 4 (with LARGE spacing)
+      const row2Start = row1Start + ROW_OFFSET + 4; // Extra +4 for more space
       
       // 3. Line: Weekly Trend
       await addChart(chartsSheet, (ctx, canvas) => {
@@ -838,8 +843,8 @@
         });
       }, 1, row2Start, 'Admin vs Project Hours');
 
-      // ROW 3: Charts 5 & 6 (NEW: Weekly Billable vs Non-Billable instead of Daily Distribution)
-      const row3Start = row2Start + ROW_OFFSET;
+      // ROW 3: Charts 5 & 6 (with LARGE spacing)
+      const row3Start = row2Start + ROW_OFFSET + 4; // Extra +4 for more space
       
       // 5. NEW: Stacked Bar - Weekly Billable vs Non-Billable
       await addChart(chartsSheet, (ctx, canvas) => {
@@ -891,12 +896,12 @@
         });
       }, 1, row3Start, 'Top Projects by Hours');
 
-      // Footer
-      const footerRow = row3Start + ROW_OFFSET + 2;
+      // Footer with massive spacing
+      const footerRow = row3Start + ROW_OFFSET + 6;
       chartsSheet.getCell(`A${footerRow}`).value = `Generated: ${new Date().toLocaleString()} | Your Portfolio System`;
       chartsSheet.getCell(`A${footerRow}`).font = { italic: true, size: 9 };
       chartsSheet.mergeCells(`A${footerRow}:F${footerRow}`);
-      chartsSheet.getRow(footerRow).height = 20;
+      chartsSheet.getRow(footerRow).height = 25;
 
       // ==================== SHEET 4: ADVANCED ANALYSIS ====================
       const analysisSheet = workbook.addWorksheet("Advanced Analysis", {
