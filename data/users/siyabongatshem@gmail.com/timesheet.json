@@ -1,5 +1,17 @@
 [
   {
+    "id": 1783070814783,
+    "date": "2026-07-03",
+    "start": "08:30",
+    "end": "15:30",
+    "hours": 7,
+    "project": "Omnia Phase 3",
+    "category": "CFAT",
+    "billable": "yes",
+    "notes": "Modbus Mapping + Pump Graphic",
+    "updatedAt": 1783070814783
+  },
+  {
     "id": 1782993278237,
     "date": "2026-07-02",
     "start": "08:30",
