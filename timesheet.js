@@ -1,4 +1,4 @@
-// timesheet.js – COMPLETE with fixed SUBTOTAL and better chart spacing
+// timesheet.js – COMPLETE with dynamic SUBTOTAL on column D
 (function() {
   const user = window.SessionManager?.getCurrentUser();
   if (!user) {
@@ -573,7 +573,9 @@
       const getRowFill = (entry) => weekFills.find(wf => wf.week === entry.weekKey)?.fill || { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } };
 
       const workbook = new ExcelJS.Workbook();
-      
+      // Force recalculation so SUBTOTAL works immediately
+      workbook.calcProperties = { fullCalcOnLoad: true };
+
       // ==================== SHEET 1: TIMESHEET DATA ====================
       const worksheet = workbook.addWorksheet("Timesheet Data", {
         pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0, paperSize: 9, horizontalCentered: true, verticalCentered: true }
@@ -672,9 +674,8 @@
 
       const totalRowNum = currentRow;
       const totalRow = worksheet.getRow(totalRowNum);
-      // ✅ FIXED: Set SUBTOTAL formula correctly – this sums only visible rows after filtering
-      const formula = `SUBTOTAL(109,D5:D${totalRowNum - 1})`;
-      totalRow.getCell(4).value = { formula: formula };
+      // ✅ DYNAMIC: SUBTOTAL over entire column D – automatically adjusts to filter changes
+      totalRow.getCell(4).value = { formula: 'SUBTOTAL(109,D:D)' };
       totalRow.getCell(4).font = { bold: true, size: 11 };
       // Clear other cells in total row
       for (let i = 1; i <= 8; i++) {
@@ -1479,7 +1480,7 @@
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       saveAs(blob, `Timesheet_${startDate}_to_${endDate}_readonly.xlsx`);
-      showToast("Excel report generated – SUBTOTAL formula fixed, charts spaced out!", "success");
+      showToast("Excel report generated – dynamic SUBTOTAL on column D!", "success");
     } catch (err) {
       console.error("Excel export error:", err);
       showToast("Excel generation failed: " + err.message, "error");
