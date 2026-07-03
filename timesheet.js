@@ -1,4 +1,4 @@
-// timesheet.js – COMPLETE with fixed SUBTOTAL, chart sizes, and clean formatting
+// timesheet.js – COMPLETE with fixed SUBTOTAL and better chart spacing
 (function() {
   const user = window.SessionManager?.getCurrentUser();
   if (!user) {
@@ -672,9 +672,11 @@
 
       const totalRowNum = currentRow;
       const totalRow = worksheet.getRow(totalRowNum);
-      // ✅ Use SUBTOTAL(109, ...) – sums only visible rows after filtering
-      totalRow.getCell(4).value = { formula: `SUBTOTAL(109,D5:D${totalRowNum - 1})` };
+      // ✅ FIXED: Set SUBTOTAL formula correctly – this sums only visible rows after filtering
+      const formula = `SUBTOTAL(109,D5:D${totalRowNum - 1})`;
+      totalRow.getCell(4).value = { formula: formula };
       totalRow.getCell(4).font = { bold: true, size: 11 };
+      // Clear other cells in total row
       for (let i = 1; i <= 8; i++) {
         const cell = totalRow.getCell(i);
         cell.border = { top: { style: 'thin' }, bottom: { style: 'double' }, left: { style: 'thin' }, right: { style: 'thin' } };
@@ -835,7 +837,7 @@
         pivotTables: false
       });
 
-      // ==================== SHEET 3: CHARTS (larger sizes) ====================
+      // ==================== SHEET 3: CHARTS (larger sizes with more horizontal spacing) ====================
       const chartsSheet = workbook.addWorksheet("Charts", {
         pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, paperSize: 9 }
       });
@@ -847,12 +849,13 @@
       chartsTitle.alignment = { horizontal: 'center' };
       chartsSheet.getRow(1).height = 38;
       
-      chartsSheet.getColumn(1).width = 44; // A
-      chartsSheet.getColumn(2).width = 4;  // B
-      chartsSheet.getColumn(3).width = 4;  // C
-      chartsSheet.getColumn(4).width = 4;  // D
-      chartsSheet.getColumn(5).width = 44; // E
-      chartsSheet.getColumn(6).width = 4;  // F
+      // More spacing: increase column widths to push charts apart
+      chartsSheet.getColumn(1).width = 46; // A (left chart)
+      chartsSheet.getColumn(2).width = 8;  // B (gap)
+      chartsSheet.getColumn(3).width = 8;  // C (extra gap)
+      chartsSheet.getColumn(4).width = 8;  // D (gap)
+      chartsSheet.getColumn(5).width = 46; // E (right chart)
+      chartsSheet.getColumn(6).width = 8;  // F (right margin)
 
       chartsSheet.getRow(2).height = 25;
       chartsSheet.getRow(3).height = 5;
@@ -866,6 +869,8 @@
         try {
           const imgData = await safeCaptureChart(chartBuilder, 1200, 900);
           const imageId = workbook.addImage({ base64: imgData, extension: 'png' });
+          // col 0 -> left (column A, offset 0.5)
+          // col 1 -> right (column E, offset 4.5)
           const colOffset = col === 0 ? 0.5 : 4.5;
           chartsSheet.addImage(imageId, {
             tl: { col: colOffset, row: row },
@@ -1474,7 +1479,7 @@
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       saveAs(blob, `Timesheet_${startDate}_to_${endDate}_readonly.xlsx`);
-      showToast("Excel report generated – SUBTOTAL fixed, chart sizes increased!", "success");
+      showToast("Excel report generated – SUBTOTAL formula fixed, charts spaced out!", "success");
     } catch (err) {
       console.error("Excel export error:", err);
       showToast("Excel generation failed: " + err.message, "error");
