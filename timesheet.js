@@ -1,4 +1,4 @@
-// timesheet.js – COMPLETE with dynamic SUBTOTAL on column D
+// timesheet.js – COMPLETE with circular reference fix
 (function() {
   const user = window.SessionManager?.getCurrentUser();
   if (!user) {
@@ -674,8 +674,9 @@
 
       const totalRowNum = currentRow;
       const totalRow = worksheet.getRow(totalRowNum);
-      // ✅ DYNAMIC: SUBTOTAL over entire column D – automatically adjusts to filter changes
-      totalRow.getCell(4).value = { formula: 'SUBTOTAL(109,D:D)' };
+      // ✅ FIXED: Exclude the total row itself – range ends at totalRowNum-1
+      const formula = `SUBTOTAL(109,D5:D${totalRowNum - 1})`;
+      totalRow.getCell(4).value = { formula: formula };
       totalRow.getCell(4).font = { bold: true, size: 11 };
       // Clear other cells in total row
       for (let i = 1; i <= 8; i++) {
@@ -1480,7 +1481,7 @@
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       saveAs(blob, `Timesheet_${startDate}_to_${endDate}_readonly.xlsx`);
-      showToast("Excel report generated – dynamic SUBTOTAL on column D!", "success");
+      showToast("Excel report generated – circular reference fixed!", "success");
     } catch (err) {
       console.error("Excel export error:", err);
       showToast("Excel generation failed: " + err.message, "error");
