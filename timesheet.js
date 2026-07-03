@@ -1,4 +1,4 @@
-// timesheet.js – COMPLETE with circular reference fix
+// timesheet.js – Optimistic UI with background sync
 (function() {
   const user = window.SessionManager?.getCurrentUser();
   if (!user) {
@@ -55,6 +55,8 @@
   let projectChart = null, categoryChart = null, billableChart = null;
 
   let _projectsLoaded = false;
+  let _isSaving = false;
+  let _saveQueue = [];
 
   function showToast(message, type = "success") {
     const container = document.getElementById("toastContainer");
@@ -100,7 +102,33 @@
     }
   }
 
-  async function saveTimesheet(dataToSave) {
+  // Background sync: push local entries to GitHub with retries
+  async function syncEntriesToGitHub(force = false) {
+    if (_isSaving && !force) {
+      return new Promise((resolve) => {
+        _saveQueue.push(resolve);
+      });
+    }
+    _isSaving = true;
+    try {
+      await _doSaveEntries(entries);
+      while (_saveQueue.length) {
+        const resolve = _saveQueue.shift();
+        resolve();
+      }
+    } catch (err) {
+      console.error("Background sync failed:", err);
+      showToast("⚠️ Could not save to GitHub. Your data is safe locally but not synced.", "error");
+      while (_saveQueue.length) {
+        const resolve = _saveQueue.shift();
+        resolve();
+      }
+    } finally {
+      _isSaving = false;
+    }
+  }
+
+  async function _doSaveEntries(dataToSave) {
     if (!Array.isArray(dataToSave)) throw new Error("Invalid data: expected array");
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(user.username);
@@ -120,6 +148,7 @@
     if (sha) body.sha = sha;
 
     let retries = 3;
+    let lastError;
     while (retries > 0) {
       try {
         const putResp = await githubFetchWithAuth(putUrl, { method: 'PUT', headers: { Authorization: `token ${user.pat}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
@@ -127,13 +156,16 @@
         entries = [...dataToSave];
         return true;
       } catch (err) {
+        lastError = err;
         retries--;
         if (retries === 0) throw err;
-        await new Promise(r => setTimeout(r, 1000));
+        await new Promise(r => setTimeout(r, 1000 * (4 - retries)));
       }
     }
+    throw lastError;
   }
 
+  // ======================== PROJECTS ========================
   async function loadTimesheetProjects() {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(user.username);
@@ -231,6 +263,7 @@
     document.getElementById('hoursAuto').value = calcHours(start, end).toFixed(2);
   }
 
+  // ======================== ADD ENTRY – OPTIMISTIC UI ========================
   async function addEntry(duplicateData = null) {
     let date, start, end, project, category, billable, notes;
     if (duplicateData) {
@@ -249,30 +282,41 @@
     if (!date || !start || !end || !project || !category) { showToast("Please fill all required fields.", "error"); return; }
     const hours = calcHours(start, end);
     if (hours <= 0) { showToast("End time must be after start time.", "error"); return; }
-    const addBtn = document.getElementById('addEntryBtn');
-    addBtn.disabled = true; addBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Adding...';
-    try {
-      const newEntry = { id: Date.now(), date, start, end, hours, project, category, billable, notes, updatedAt: Date.now() };
-      await saveTimesheet([newEntry, ...entries]);
-      showToast(duplicateData ? "Entry duplicated!" : "Entry saved.");
-      await refreshView();
-      if (!duplicateData) {
-        document.getElementById('startTime').value = '';
-        document.getElementById('endTime').value = '';
-        document.getElementById('taskNotes').value = '';
-        document.getElementById('hoursAuto').value = '';
-      }
-    } catch(err) { if (!err.message.includes("Token expired")) showToast("Failed to add entry: " + err.message, "error"); }
-    finally { addBtn.disabled = false; addBtn.innerHTML = '<i class="fa fa-plus"></i> Add Entry'; }
+
+    const newEntry = { id: Date.now(), date, start, end, hours, project, category, billable, notes, updatedAt: Date.now() };
+
+    // 1. Optimistically add to local array
+    entries = [newEntry, ...entries];
+
+    // 2. Immediately re-render UI
+    renderHistory();
+    updateSummaryAndProgress();
+    updateCharts();
+    showToast(duplicateData ? "Entry duplicated!" : "Entry saved locally.", "success");
+
+    // 3. Clear form (if not duplicate)
+    if (!duplicateData) {
+      document.getElementById('startTime').value = '';
+      document.getElementById('endTime').value = '';
+      document.getElementById('taskNotes').value = '';
+      document.getElementById('hoursAuto').value = '';
+    }
+
+    // 4. Background sync to GitHub (don't await – let it run)
+    syncEntriesToGitHub().catch(err => console.warn("Background sync error:", err));
   }
 
+  // ======================== DELETE / EDIT / DUPLICATE – also optimistic ========================
   async function deleteEntry(id) {
     if (!confirm("Delete this entry?")) return;
-    try {
-      await saveTimesheet(entries.filter(e => e.id != id));
-      showToast("Entry deleted.");
-      await refreshView();
-    } catch(err) { if (!err.message.includes("Token expired")) showToast("Delete failed: " + err.message, "error"); }
+    const deleted = entries.find(e => e.id == id);
+    if (!deleted) return;
+    entries = entries.filter(e => e.id != id);
+    renderHistory();
+    updateSummaryAndProgress();
+    updateCharts();
+    showToast("Entry deleted locally.", "success");
+    syncEntriesToGitHub().catch(err => console.warn("Background sync error:", err));
   }
 
   async function saveEdit() {
@@ -287,19 +331,18 @@
     if (!date || !start || !end || !project || !category) { showToast("Please fill all fields.", "error"); return; }
     const hours = calcHours(start, end);
     if (hours <= 0) { showToast("End time must be after start.", "error"); return; }
-    const saveBtn = document.getElementById('saveEditBtn');
-    saveBtn.disabled = true; saveBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Saving...';
-    try {
-      const index = entries.findIndex(e => e.id == id);
-      if (index === -1) throw new Error("Entry not found");
-      const updatedEntry = { ...entries[index], date, start, end, hours, project, category, billable, notes, updatedAt: Date.now() };
-      const newEntries = [...entries]; newEntries[index] = updatedEntry;
-      await saveTimesheet(newEntries);
-      $('#editModal').modal('hide');
-      showToast("Entry updated.");
-      await refreshView();
-    } catch(err) { if (!err.message.includes("Token expired")) showToast("Update failed: " + err.message, "error"); }
-    finally { saveBtn.disabled = false; saveBtn.innerHTML = 'Save Changes'; }
+
+    const index = entries.findIndex(e => e.id == id);
+    if (index === -1) { showToast("Entry not found.", "error"); return; }
+    const updatedEntry = { ...entries[index], date, start, end, hours, project, category, billable, notes, updatedAt: Date.now() };
+    entries[index] = updatedEntry;
+
+    renderHistory();
+    updateSummaryAndProgress();
+    updateCharts();
+    $('#editModal').modal('hide');
+    showToast("Entry updated locally.", "success");
+    syncEntriesToGitHub().catch(err => console.warn("Background sync error:", err));
   }
 
   async function duplicateEntry(entry) { await addEntry(entry); }
@@ -366,7 +409,6 @@
     return filtered;
   }
 
-  // ======================== RENDER HISTORY – total always visible ========================
   function renderHistory() {
     const filtered = getFilteredEntries();
     const tbody = document.getElementById('historyBody');
@@ -573,7 +615,6 @@
       const getRowFill = (entry) => weekFills.find(wf => wf.week === entry.weekKey)?.fill || { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } };
 
       const workbook = new ExcelJS.Workbook();
-      // Force recalculation so SUBTOTAL works immediately
       workbook.calcProperties = { fullCalcOnLoad: true };
 
       // ==================== SHEET 1: TIMESHEET DATA ====================
@@ -674,11 +715,9 @@
 
       const totalRowNum = currentRow;
       const totalRow = worksheet.getRow(totalRowNum);
-      // ✅ FIXED: Exclude the total row itself – range ends at totalRowNum-1
       const formula = `SUBTOTAL(109,D5:D${totalRowNum - 1})`;
       totalRow.getCell(4).value = { formula: formula };
       totalRow.getCell(4).font = { bold: true, size: 11 };
-      // Clear other cells in total row
       for (let i = 1; i <= 8; i++) {
         const cell = totalRow.getCell(i);
         cell.border = { top: { style: 'thin' }, bottom: { style: 'double' }, left: { style: 'thin' }, right: { style: 'thin' } };
@@ -696,7 +735,6 @@
         row.height = maxHeight;
       });
 
-      // ===== FILTERS ONLY ON E4, F4, G4 (Project, Category, Billable) =====
       const filterRange = `E4:G${totalRowNum}`;
       worksheet.autoFilter = filterRange;
 
@@ -772,7 +810,7 @@
         r++;
       }
 
-      // ===== SUMMARY CHART – FIXED ASPECT RATIO =====
+      // Summary chart
       try {
         const projMap = {};
         filtered.forEach(e => { projMap[e.project] = (projMap[e.project] || 0) + e.hours; });
@@ -839,7 +877,7 @@
         pivotTables: false
       });
 
-      // ==================== SHEET 3: CHARTS (larger sizes with more horizontal spacing) ====================
+      // ==================== SHEET 3: CHARTS ====================
       const chartsSheet = workbook.addWorksheet("Charts", {
         pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, paperSize: 9 }
       });
@@ -851,18 +889,16 @@
       chartsTitle.alignment = { horizontal: 'center' };
       chartsSheet.getRow(1).height = 38;
       
-      // More spacing: increase column widths to push charts apart
-      chartsSheet.getColumn(1).width = 46; // A (left chart)
-      chartsSheet.getColumn(2).width = 8;  // B (gap)
-      chartsSheet.getColumn(3).width = 8;  // C (extra gap)
-      chartsSheet.getColumn(4).width = 8;  // D (gap)
-      chartsSheet.getColumn(5).width = 46; // E (right chart)
-      chartsSheet.getColumn(6).width = 8;  // F (right margin)
+      chartsSheet.getColumn(1).width = 46;
+      chartsSheet.getColumn(2).width = 8;
+      chartsSheet.getColumn(3).width = 8;
+      chartsSheet.getColumn(4).width = 8;
+      chartsSheet.getColumn(5).width = 46;
+      chartsSheet.getColumn(6).width = 8;
 
       chartsSheet.getRow(2).height = 25;
       chartsSheet.getRow(3).height = 5;
 
-      // Larger chart dimensions
       const CHART_WIDTH = 380;
       const CHART_HEIGHT = 290;
       const ROW_OFFSET = Math.ceil((CHART_HEIGHT + 90) / 20) + 4;
@@ -871,8 +907,6 @@
         try {
           const imgData = await safeCaptureChart(chartBuilder, 1200, 900);
           const imageId = workbook.addImage({ base64: imgData, extension: 'png' });
-          // col 0 -> left (column A, offset 0.5)
-          // col 1 -> right (column E, offset 4.5)
           const colOffset = col === 0 ? 0.5 : 4.5;
           chartsSheet.addImage(imageId, {
             tl: { col: colOffset, row: row },
@@ -1024,7 +1058,7 @@
         pivotTables: false
       });
 
-      // ==================== SHEET 4: ADVANCED ANALYSIS (ENRICHED) ====================
+      // ==================== SHEET 4: ADVANCED ANALYSIS ====================
       const analysisSheet = workbook.addWorksheet("Advanced Analysis", {
         pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, paperSize: 9 }
       });
@@ -1130,7 +1164,7 @@
       rowIdx = addTwoColumnTable(weeklyAdminTable, rowIdx, "Week", "Admin %");
       rowIdx += 1;
 
-      // ===== 3. MONTHLY COMPARISON (Month-YYYY) =====
+      // ===== 3. MONTHLY COMPARISON =====
       rowIdx = addSectionHeader("📅 MONTHLY COMPARISON", rowIdx);
       
       const monthlyData = {};
@@ -1282,7 +1316,7 @@
       }
       rowIdx += 1;
 
-      // ===== 5. PROJECT DISTRIBUTION (clean formatting) =====
+      // ===== 5. PROJECT DISTRIBUTION =====
       rowIdx = addSectionHeader("📊 PROJECT DISTRIBUTION", rowIdx);
       const projDist = {};
       filtered.forEach(e => { projDist[e.project] = (projDist[e.project] || 0) + e.hours; });
@@ -1312,7 +1346,6 @@
           cell.value = val;
           cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
           cell.alignment = { vertical: 'middle', horizontal: (idx === 0) ? 'left' : 'right' };
-          // Light blue background for all rows (clean)
           cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE6F4FA' } };
         });
         analysisSheet.getRow(rowIdx).height = 18;
@@ -1481,7 +1514,7 @@
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       saveAs(blob, `Timesheet_${startDate}_to_${endDate}_readonly.xlsx`);
-      showToast("Excel report generated – circular reference fixed!", "success");
+      showToast("Excel report generated successfully!", "success");
     } catch (err) {
       console.error("Excel export error:", err);
       showToast("Excel generation failed: " + err.message, "error");
@@ -1535,9 +1568,9 @@
     notificationsEnabled = enabled;
   }
 
-  // ======================== REFRESH & AUTO REFRESH ========================
+  // ======================== REFRESH (manual) ========================
   async function refreshView() {
-    window.showLoading("Refreshing timesheet...");
+    window.showLoading("Refreshing from GitHub...");
     try {
       await loadTimesheet();
       await loadProjectsForTimesheet(false);
@@ -1548,6 +1581,7 @@
       window.__timesheetEntries = entries;
       window.__timesheetProjectOptions = allProjectOptions;
       document.dispatchEvent(new Event('timesheetUpdated'));
+      showToast("Refreshed from GitHub.", "success");
     } catch(err) {
       if (!err.message.includes("Token expired")) showToast("Refresh failed: " + err.message, "error");
     } finally {
@@ -1602,7 +1636,7 @@
     };
     document.getElementById('saveEditBtn').onclick = saveEdit;
 
-    // Delegated event listener for table actions (fixes double-click)
+    // Delegated event listener for table actions
     document.getElementById('historyBody').addEventListener('click', function(e) {
       const target = e.target.closest('button');
       if (!target) return;
@@ -1624,7 +1658,12 @@
     document.getElementById('notificationsToggle').addEventListener('change', async (e) => { window.showLoading("Saving preference..."); try { await saveNotificationPreference(e.target.checked); showToast(e.target.checked ? "Notifications enabled" : "Notifications disabled"); } catch(err){ if(err.message.includes("401")){ showToast("Token expired. Please login again.","error"); window.SessionManager.logout(); setTimeout(()=>window.location.href="login.html",2000); } else showToast("Failed: "+err.message,"error"); e.target.checked = !e.target.checked; } finally{ window.hideLoading(); } });
 
     await loadUserMeta();
-    await refreshView();
+    // Load entries from GitHub initially
+    await loadTimesheet();
+    await loadProjectsForTimesheet(false);
+    renderHistory();
+    updateSummaryAndProgress();
+    updateCharts();
 
     window.__timesheetEntries = entries;
     window.__timesheetProjectOptions = allProjectOptions;
