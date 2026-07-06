@@ -1637,7 +1637,7 @@
 
         // Month title (centered across the 7 columns)
         const titleRowNum = baseRow;
-        const titleCell = calendarSheet.getCell(titleRowNum, baseCol);
+        const titleCell = calendarSheet.getRow(titleRowNum).getCell(baseCol);
         calendarSheet.mergeCells(titleRowNum, baseCol, titleRowNum, baseCol + 6);
         titleCell.value = `${monthNamesCal[m]} ${reportYear}`;
         titleCell.font = { size: 12, bold: true, color: { argb: 'FFFFFFFF' } };
@@ -1648,7 +1648,7 @@
         // Weekday headers (Sun–Sat)
         const headerRowNum = baseRow + 1;
         for (let wd = 0; wd < 7; wd++) {
-          const cell = calendarSheet.getCell(headerRowNum, baseCol + wd);
+          const cell = calendarSheet.getRow(headerRowNum).getCell(baseCol + wd);
           cell.value = weekdayNamesCal[wd];
           cell.font = { bold: true, size: 9, color: { argb: 'FFFFFFFF' } };
           cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2C3E50' } };
@@ -1669,7 +1669,7 @@
           const row = calendarSheet.getRow(rowNum);
           row.height = 18;
           for (let wd = 0; wd < 7; wd++) {
-            const cell = calendarSheet.getCell(rowNum, baseCol + wd);
+            const cell = row.getCell(baseCol + wd);
             let dayNumber = null;
             let hours = null;
 
@@ -1717,7 +1717,7 @@
           const h = getHoursForDay(m, d);
           if (h !== null) monthTotal += h;
         }
-        const totalCell = calendarSheet.getCell(totalRowNum, baseCol);
+        const totalCell = totalRow.getCell(baseCol);
         calendarSheet.mergeCells(totalRowNum, baseCol, totalRowNum, baseCol + 5);
         totalCell.value = `Total: ${monthTotal.toFixed(1)}h`;
         totalCell.font = { bold: true, size: 8, color: { argb: 'FF0B2B3B' } };
@@ -1732,7 +1732,7 @@
           const isWeekend = date.getDay() === 0 || date.getDay() === 6;
           if (!isWeekend && getHoursForDay(m, d) !== null) workingDaysLogged++;
         }
-        const wdCell = calendarSheet.getCell(totalRowNum, baseCol + 6);
+        const wdCell = totalRow.getCell(baseCol + 6);
         wdCell.value = `${workingDaysLogged}d`;
         wdCell.font = { bold: true, size: 8 };
         wdCell.alignment = { horizontal: 'center', vertical: 'middle' };
@@ -1740,8 +1740,9 @@
 
         // Thick outer borders for the month block (title + header + 6 weeks + total)
         for (let r = baseRow; r <= totalRowNum; r++) {
+          const row = calendarSheet.getRow(r);
           for (let c = baseCol; c <= baseCol + 6; c++) {
-            const cell = calendarSheet.getCell(r, c);
+            const cell = row.getCell(c);
             if (r === baseRow) cell.border.top = { style: 'thick' };
             if (r === totalRowNum) cell.border.bottom = { style: 'thick' };
             if (c === baseCol) cell.border.left = { style: 'thick' };
@@ -1753,7 +1754,7 @@
       // Legend – placed below the grid
       const legendStartRow = startRow + 4 * blockHeight + 2;
       calendarSheet.mergeCells(legendStartRow, 1, legendStartRow, totalCols);
-      const legendTitle = calendarSheet.getCell(legendStartRow, 1);
+      const legendTitle = calendarSheet.getRow(legendStartRow).getCell(1);
       legendTitle.value = '📊 Legend';
       legendTitle.font = { bold: true, size: 12 };
       legendTitle.alignment = { horizontal: 'center' };
