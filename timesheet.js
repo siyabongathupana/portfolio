@@ -1,4 +1,4 @@
-// timesheet.js – Optimistic UI with background sync
+// timesheet.js – Optimistic UI with background sync, Excel export with Yearly Calendar Heatmap
 (function() {
   const user = window.SessionManager?.getCurrentUser();
   if (!user) {
@@ -576,7 +576,7 @@
     });
   }
 
-  // ======================== EXCEL EXPORT ========================
+  // ======================== EXCEL EXPORT (with Yearly Calendar Heatmap) ========================
   async function exportStyledExcel(startDate, endDate) {
     window.showLoading("Generating Excel report...");
     try {
@@ -640,6 +640,7 @@
         if (headers[i].length > colMaxLen[i]) colMaxLen[i] = headers[i].length;
       }
       worksheet.columns = colMaxLen.map(w => ({ width: w + 2 }));
+      // ★ Set number format for hours column (column 4)
       worksheet.getColumn(4).numFmt = '0.00';
 
       worksheet.mergeCells('A1:H1');
@@ -684,10 +685,11 @@
       let currentRow = 5;
       for (const entry of filtered) {
         const row = worksheet.getRow(currentRow);
+        // ★ Write hours as a NUMBER (not string)
         row.getCell(1).value = entry.date;
         row.getCell(2).value = entry.start;
         row.getCell(3).value = entry.end;
-        row.getCell(4).value = entry.hours;
+        row.getCell(4).value = parseFloat(entry.hours) || 0;   // numeric
         row.getCell(5).value = entry.project;
         row.getCell(6).value = entry.category;
         row.getCell(7).value = entry.billable === 'yes' ? 'Billable' : 'Non-billable';
@@ -714,16 +716,18 @@
         currentRow++;
       }
 
+      // ★ Total row – calculated in JavaScript, no formula
       const totalRowNum = currentRow;
       const totalRow = worksheet.getRow(totalRowNum);
-      const formula = `SUBTOTAL(109,D5:D${totalRowNum - 1})`;
-      totalRow.getCell(4).value = { formula: formula };
+      const totalHoursSum = filtered.reduce((sum, e) => sum + (parseFloat(e.hours) || 0), 0);
+      totalRow.getCell(4).value = totalHoursSum;
+      totalRow.getCell(4).numFmt = '0.00';
       totalRow.getCell(4).font = { bold: true, size: 11 };
       for (let i = 1; i <= 8; i++) {
         const cell = totalRow.getCell(i);
+        if (i !== 4) cell.value = '';
         cell.border = { top: { style: 'thin' }, bottom: { style: 'double' }, left: { style: 'thin' }, right: { style: 'thin' } };
         cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF0F0F0' } };
-        if (i !== 4) cell.value = '';
       }
 
       worksheet.eachRow((row, rowNumber) => {
@@ -1497,6 +1501,133 @@
       analysisSheet.getCell(`A${footerRow2}`).alignment = { horizontal: 'center' };
 
       analysisSheet.protect('Siya', {
+        selectLockedCells: true,
+        selectUnlockedCells: true,
+        formatCells: false,
+        formatColumns: false,
+        formatRows: false,
+        insertRows: false,
+        deleteRows: false,
+        insertColumns: false,
+        deleteColumns: false,
+        sort: false,
+        autoFilter: false,
+        pivotTables: false
+      });
+
+      // ==================== SHEET 5: YEARLY CALENDAR HEATMAP ====================
+      const calendarSheet = workbook.addWorksheet("Yearly Calendar", {
+        pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0, paperSize: 9 }
+      });
+      
+      // Determine the year from the report start date
+      const reportYear = new Date(startDate).getFullYear();
+      
+      // Helper to get total hours for a specific day (month, day) from entries that match the year
+      function getHoursForDay(month, day) {
+        const dateStr = `${reportYear}-${String(month+1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const match = entries.filter(e => e.date === dateStr);
+        if (match.length === 0) return null;
+        const total = match.reduce((sum, e) => sum + (parseFloat(e.hours) || 0), 0);
+        return total;
+      }
+
+      function getColorForHours(hours) {
+        if (hours === null) return { fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF0F0F0' } }, text: '' };
+        if (hours >= 7.5 && hours <= 9) return { fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFA8E6CF' } }, text: '✓' };
+        if (hours > 9 && hours <= 12) return { fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFD966' } }, text: '⚡' };
+        if (hours > 12) return { fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFF6B6B' } }, text: '⚠️' };
+        return { fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF0F0F0' } }, text: '' };
+      }
+
+      // Build the calendar: rows = days 1-31, columns = months Jan-Dec
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      
+      // Header row: month names
+      const headerRowCal = calendarSheet.getRow(1);
+      headerRowCal.getCell(1).value = 'Day';
+      headerRowCal.getCell(1).font = { bold: true, size: 10 };
+      headerRowCal.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
+      headerRowCal.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
+      headerRowCal.getCell(1).font.color = { argb: 'FFFFFFFF' };
+      
+      for (let m = 0; m < 12; m++) {
+        const cell = headerRowCal.getCell(m+2);
+        cell.value = monthNames[m];
+        cell.font = { bold: true, size: 10, color: { argb: 'FFFFFFFF' } };
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
+        cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+      }
+      headerRowCal.height = 22;
+
+      // Rows for days 1 to 31
+      for (let d = 1; d <= 31; d++) {
+        const row = calendarSheet.getRow(d+1);
+        const dayCell = row.getCell(1);
+        dayCell.value = d;
+        dayCell.font = { bold: true, size: 9 };
+        dayCell.alignment = { horizontal: 'center', vertical: 'middle' };
+        dayCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE6F4FA' } };
+        dayCell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+
+        for (let m = 0; m < 12; m++) {
+          const hours = getHoursForDay(m, d);
+          const colorInfo = getColorForHours(hours);
+          const cell = row.getCell(m+2);
+          if (hours !== null) {
+            cell.value = hours.toFixed(1);
+          } else {
+            cell.value = '';
+          }
+          cell.fill = colorInfo.fill;
+          cell.alignment = { horizontal: 'center', vertical: 'middle' };
+          cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+          // Optionally add a small symbol to indicate status
+          if (hours !== null) {
+            cell.font = { size: 8, bold: true };
+          }
+        }
+        row.height = 18;
+      }
+
+      // Set column widths
+      calendarSheet.getColumn(1).width = 8;
+      for (let m = 0; m < 12; m++) {
+        calendarSheet.getColumn(m+2).width = 10;
+      }
+
+      // Add legend
+      const legendStartRow = 35;
+      calendarSheet.mergeCells(`A${legendStartRow}:D${legendStartRow}`);
+      const legendTitle = calendarSheet.getCell(`A${legendStartRow}`);
+      legendTitle.value = '📊 Legend';
+      legendTitle.font = { bold: true, size: 12 };
+      
+      const legendRows = [
+        ['🟩', 'Normal (7.5–9h)', 'FFA8E6CF'],
+        ['🟨', 'High (9–12h)', 'FFFFD966'],
+        ['🟥', 'Overtime (>12h)', 'FFFF6B6B'],
+        ['⬜', 'No data', 'FFF0F0F0']
+      ];
+      let lRow = legendStartRow + 1;
+      for (const [symbol, desc, color] of legendRows) {
+        const row = calendarSheet.getRow(lRow);
+        row.getCell(1).value = symbol;
+        row.getCell(1).alignment = { horizontal: 'center' };
+        const descCell = row.getCell(2);
+        descCell.value = desc;
+        descCell.font = { size: 9 };
+        // Apply fill to a sample cell
+        const fillCell = row.getCell(3);
+        fillCell.value = ' ';
+        fillCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: color } };
+        fillCell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+        lRow++;
+      }
+
+      // Protect the calendar sheet (read-only)
+      calendarSheet.protect('Siya', {
         selectLockedCells: true,
         selectUnlockedCells: true,
         formatCells: false,
