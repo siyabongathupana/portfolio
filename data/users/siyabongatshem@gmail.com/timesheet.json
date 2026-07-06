@@ -1,5 +1,17 @@
 [
   {
+    "id": 1783323810329,
+    "date": "2026-07-06",
+    "start": "08:00",
+    "end": "09:30",
+    "hours": 1.5,
+    "project": "Omnia Phase 3",
+    "category": "Back-Punching",
+    "billable": "yes",
+    "notes": "Add more Pumps and Populate graphics",
+    "updatedAt": 1783323810329
+  },
+  {
     "id": 1783322364525,
     "date": "2026-07-06",
     "start": "07:30",
