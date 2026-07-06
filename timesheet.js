@@ -640,6 +640,7 @@
         if (headers[i].length > colMaxLen[i]) colMaxLen[i] = headers[i].length;
       }
       worksheet.columns = colMaxLen.map(w => ({ width: w + 2 }));
+      worksheet.getColumn(4).numFmt = '0.00';
 
       worksheet.mergeCells('A1:H1');
       const titleCell = worksheet.getCell('A1');
@@ -686,7 +687,7 @@
         row.getCell(1).value = entry.date;
         row.getCell(2).value = entry.start;
         row.getCell(3).value = entry.end;
-        row.getCell(4).value = entry.hours.toFixed(2);
+        row.getCell(4).value = entry.hours;
         row.getCell(5).value = entry.project;
         row.getCell(6).value = entry.category;
         row.getCell(7).value = entry.billable === 'yes' ? 'Billable' : 'Non-billable';
