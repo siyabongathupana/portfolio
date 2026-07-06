@@ -1,4 +1,4 @@
-// timesheet.js – Optimistic UI with background sync + Yearly Calendar
+// timesheet.js – Optimistic UI with background sync + Yearly Calendar + Progress Loader
 (function() {
   const user = window.SessionManager?.getCurrentUser();
   if (!user) {
@@ -68,6 +68,117 @@
     const toastEl = document.getElementById(toastId);
     $(toastEl).toast("show");
     toastEl.addEventListener("hidden.bs.toast", () => toastEl.remove());
+  }
+
+  // ======================== PROGRESS LOADER ========================
+  let _progressCallback = null;
+
+  function showProgressLoader() {
+    let loader = document.getElementById('progressLoader');
+    if (!loader) {
+      loader = document.createElement('div');
+      loader.id = 'progressLoader';
+      loader.innerHTML = `
+        <div class="progress-overlay">
+          <div class="progress-card">
+            <h4><i class="fa fa-file-excel-o"></i> Generating Excel Report</h4>
+            <p id="progressStage" class="progress-stage">Initializing...</p>
+            <div class="progress-track">
+              <div id="progressFill" class="progress-fill-bar" style="width:0%;"></div>
+            </div>
+            <span id="progressPercent" class="progress-percent">0%</span>
+          </div>
+        </div>
+      `;
+      // Add styles
+      const style = document.createElement('style');
+      style.textContent = `
+        .progress-overlay {
+          position: fixed;
+          top: 0; left: 0; right: 0; bottom: 0;
+          background: rgba(0,0,0,0.55);
+          z-index: 10000;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          backdrop-filter: blur(4px);
+        }
+        .progress-card {
+          background: white;
+          border-radius: 24px;
+          padding: 35px 45px;
+          min-width: 380px;
+          max-width: 90%;
+          text-align: center;
+          box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+          animation: fadeInUp 0.3s ease;
+        }
+        .progress-card h4 {
+          font-size: 1.2rem;
+          font-weight: 600;
+          color: #0b2b3b;
+          margin-bottom: 8px;
+        }
+        .progress-card h4 i {
+          color: #2fc7ff;
+          margin-right: 10px;
+        }
+        .progress-stage {
+          font-size: 0.85rem;
+          color: #5a7d9a;
+          margin-bottom: 16px;
+          min-height: 24px;
+        }
+        .progress-track {
+          width: 100%;
+          height: 10px;
+          background: #e2e8f0;
+          border-radius: 20px;
+          overflow: hidden;
+          margin-bottom: 10px;
+        }
+        .progress-fill-bar {
+          height: 100%;
+          width: 0%;
+          background: linear-gradient(90deg, #2fc7ff, #1d9fcf);
+          border-radius: 20px;
+          transition: width 0.3s ease;
+        }
+        .progress-percent {
+          font-size: 1.1rem;
+          font-weight: 700;
+          color: #0b2b3b;
+        }
+        @keyframes fadeInUp {
+          from { opacity: 0; transform: translateY(30px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `;
+      document.head.appendChild(style);
+      document.body.appendChild(loader);
+    }
+    loader.style.display = 'flex';
+    document.getElementById('progressFill').style.width = '0%';
+    document.getElementById('progressPercent').textContent = '0%';
+    document.getElementById('progressStage').textContent = 'Initializing...';
+    return loader;
+  }
+
+  function updateProgress(percent, stage = '') {
+    const fill = document.getElementById('progressFill');
+    const percentEl = document.getElementById('progressPercent');
+    const stageEl = document.getElementById('progressStage');
+    if (fill) {
+      const clamped = Math.min(100, Math.max(0, percent));
+      fill.style.width = clamped + '%';
+    }
+    if (percentEl) percentEl.textContent = Math.min(100, Math.max(0, percent)) + '%';
+    if (stageEl && stage) stageEl.textContent = stage;
+  }
+
+  function hideProgressLoader() {
+    const loader = document.getElementById('progressLoader');
+    if (loader) loader.style.display = 'none';
   }
 
   // ======================== DATA LOAD & SAVE ========================
@@ -576,9 +687,11 @@
     });
   }
 
-  // ======================== EXCEL EXPORT ========================
+  // ======================== EXCEL EXPORT (with Yearly Calendar) ========================
   async function exportStyledExcel(startDate, endDate) {
-    window.showLoading("Generating Excel report...");
+    showProgressLoader();
+    updateProgress(0, 'Initializing...');
+    
     try {
       if (typeof getWeekNumber === 'undefined') {
         window.getWeekNumber = function(date) {
@@ -597,13 +710,15 @@
         };
       }
 
+      updateProgress(5, 'Loading entries...');
       const filtered = entries.filter(e => e.date >= startDate && e.date <= endDate);
       if (!filtered.length) {
         showToast("No entries in selected range.", "error");
-        window.hideLoading();
+        hideProgressLoader();
         return;
       }
 
+      updateProgress(10, 'Processing data...');
       filtered.forEach(e => { e.weekKey = `${new Date(e.date).getFullYear()}-W${getWeekNumber(e.date)}`; });
       const weeks = [...new Map(filtered.map(e => [e.weekKey, e.weekKey])).values()];
       const weekFills = weeks.map((w, idx) => ({
@@ -618,6 +733,7 @@
       workbook.calcProperties = { fullCalcOnLoad: true };
 
       // ==================== SHEET 1: TIMESHEET DATA ====================
+      updateProgress(15, 'Creating Timesheet Data sheet...');
       const worksheet = workbook.addWorksheet("Timesheet Data", {
         pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0, paperSize: 9, horizontalCentered: true, verticalCentered: true }
       });
@@ -757,6 +873,7 @@
       });
 
       // ==================== SHEET 2: SUMMARY ====================
+      updateProgress(30, 'Creating Summary sheet...');
       const summarySheet = workbook.addWorksheet("Summary", {
         pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, paperSize: 9 }
       });
@@ -878,6 +995,7 @@
       });
 
       // ==================== SHEET 3: CHARTS ====================
+      updateProgress(50, 'Creating Charts sheet...');
       const chartsSheet = workbook.addWorksheet("Charts", {
         pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, paperSize: 9 }
       });
@@ -1059,6 +1177,7 @@
       });
 
       // ==================== SHEET 4: ADVANCED ANALYSIS ====================
+      updateProgress(70, 'Creating Advanced Analysis sheet...');
       const analysisSheet = workbook.addWorksheet("Advanced Analysis", {
         pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, paperSize: 9 }
       });
@@ -1511,6 +1630,7 @@
       });
 
       // ==================== SHEET 5: YEARLY CALENDAR (GRID LAYOUT) ====================
+      updateProgress(85, 'Creating Yearly Calendar...');
       const calendarSheet = workbook.addWorksheet("Yearly Calendar", {
         pageSetup: {
           orientation: 'landscape',
@@ -1618,40 +1738,49 @@
       const monthNamesCal = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
       const weekdayNamesCal = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
-      // Layout: 3 columns, 4 rows
+      // Layout: 3 columns, 4 rows with spacers
       const monthsPerRow = 3;
-      const blockHeight = 9; // title + header + 6 weeks + total row = 9 rows
+      const monthCols = 7;
+      const spacerCols = 1;
+      const blockCols = monthCols + spacerCols;
+      const totalCols = monthsPerRow * blockCols - spacerCols;
+
+      const blockRows = 9;
+      const spacerRows = 1;
       const startRow = 1;
       const startCol = 1;
-      const totalCols = monthsPerRow * 7;
 
-      // Explicitly create all columns
-      calendarSheet.columns = Array.from({ length: totalCols }, (_, i) => ({
-        header: '',
-        key: i + 1,
-        width: 10
-      }));
+      // Set column widths: day columns = 5 (square), spacer columns = 1
+      for (let col = 1; col <= totalCols; col++) {
+        const offset = col - startCol;
+        const mod = offset % blockCols;
+        if (mod === monthCols) {
+          calendarSheet.getColumn(col).width = 1;
+        } else {
+          calendarSheet.getColumn(col).width = 5;
+        }
+      }
 
       // Build each month
       for (let m = 0; m < 12; m++) {
         const rowIndex = Math.floor(m / monthsPerRow);
         const colIndex = m % monthsPerRow;
-        const baseRow = startRow + rowIndex * blockHeight;
-        const baseCol = startCol + colIndex * 7;
+        const baseRow = startRow + rowIndex * (blockRows + spacerRows);
+        const baseCol = startCol + colIndex * blockCols;
 
-        // ---- Month title (row = baseRow) ----
+        // ---- Month title ----
         const titleRow = baseRow;
         const titleCell = calendarSheet.getRow(titleRow).getCell(baseCol);
-        calendarSheet.mergeCells(titleRow, baseCol, titleRow, baseCol + 6);
+        calendarSheet.mergeCells(titleRow, baseCol, titleRow, baseCol + monthCols - 1);
         titleCell.value = `${monthNamesCal[m]} ${reportYear}`;
         titleCell.font = { size: 12, bold: true, color: { argb: 'FFFFFFFF' } };
         titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
         titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
-        calendarSheet.getRow(titleRow).height = 26;
+        calendarSheet.getRow(titleRow).height = 28;
 
-        // ---- Weekday headers (row = baseRow + 1) ----
+        // ---- Weekday headers ----
         const headerRow = baseRow + 1;
-        for (let wd = 0; wd < 7; wd++) {
+        for (let wd = 0; wd < monthCols; wd++) {
           const cell = calendarSheet.getRow(headerRow).getCell(baseCol + wd);
           cell.value = weekdayNamesCal[wd];
           cell.font = { bold: true, size: 9, color: { argb: 'FFFFFFFF' } };
@@ -1661,24 +1790,23 @@
         }
         calendarSheet.getRow(headerRow).height = 20;
 
-        // ---- Day grid: 6 weeks (rows baseRow+2 to baseRow+7) ----
+        // ---- Day grid: 6 weeks ----
         const firstDay = new Date(reportYear, m, 1);
         const daysInMonth = new Date(reportYear, m + 1, 0).getDate();
-        const startWeekday = firstDay.getDay(); // 0 = Sunday
+        const startWeekday = firstDay.getDay();
 
         let dayCounter = 1;
         let done = false;
         for (let week = 0; week < 6 && !done; week++) {
           const rowNum = baseRow + 2 + week;
           const row = calendarSheet.getRow(rowNum);
-          row.height = 18;
-          for (let wd = 0; wd < 7; wd++) {
+          row.height = 36;
+          for (let wd = 0; wd < monthCols; wd++) {
             const cell = row.getCell(baseCol + wd);
             let dayNumber = null;
             let hours = null;
 
             if (week === 0 && wd < startWeekday) {
-              // Empty cell before month starts
               cell.value = '';
               cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } };
             } else if (dayCounter <= daysInMonth) {
@@ -1692,10 +1820,10 @@
               const dayText = dayNumber.toString();
               const hoursText = hours !== null ? `${hours.toFixed(1)}h` : '';
               const richText = [
-                { text: dayText + '\n', font: { size: 10, bold: true } }
+                { text: dayText + '\n', font: { size: 9, bold: true } }
               ];
               if (hoursText) {
-                richText.push({ text: hoursText, font: { size: 7, bold: false } });
+                richText.push({ text: hoursText, font: { size: 6, bold: false } });
               }
               cell.value = { richText };
               cell.alignment = { horizontal: 'left', vertical: 'top', wrapText: true };
@@ -1706,7 +1834,6 @@
               if (dayCounter > daysInMonth + 1) done = true;
             }
 
-            // Thin borders for all day cells
             cell.border = {
               top: { style: 'thin' }, bottom: { style: 'thin' },
               left: { style: 'thin' }, right: { style: 'thin' }
@@ -1714,7 +1841,7 @@
           }
         }
 
-        // ---- Total row (row = baseRow + 8) ----
+        // ---- Total row ----
         const totalRowNum = baseRow + 8;
         const totalRow = calendarSheet.getRow(totalRowNum);
         let monthTotal = 0;
@@ -1723,51 +1850,46 @@
           if (h !== null) monthTotal += h;
         }
         const totalCell = totalRow.getCell(baseCol);
-        calendarSheet.mergeCells(totalRowNum, baseCol, totalRowNum, baseCol + 5);
+        calendarSheet.mergeCells(totalRowNum, baseCol, totalRowNum, baseCol + monthCols - 2);
         totalCell.value = `Total: ${monthTotal.toFixed(1)}h`;
         totalCell.font = { bold: true, size: 8, color: { argb: 'FF0B2B3B' } };
         totalCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE6F4FA' } };
         totalCell.alignment = { horizontal: 'right', vertical: 'middle' };
         totalRow.height = 20;
 
-        // Working days counter in last column
         let workingDaysLogged = 0;
         for (let d = 1; d <= daysInMonth; d++) {
           const date = new Date(reportYear, m, d);
           const isWeekend = date.getDay() === 0 || date.getDay() === 6;
           if (!isWeekend && getHoursForDay(m, d) !== null) workingDaysLogged++;
         }
-        const wdCell = totalRow.getCell(baseCol + 6);
+        const wdCell = totalRow.getCell(baseCol + monthCols - 1);
         wdCell.value = `${workingDaysLogged}d`;
         wdCell.font = { bold: true, size: 8 };
         wdCell.alignment = { horizontal: 'center', vertical: 'middle' };
         wdCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE6F4FA' } };
 
-        // ---- Thick outer borders for the month block (edges only) ----
-        // Top edge: title row (baseRow)
-        for (let c = baseCol; c <= baseCol + 6; c++) {
+        // ---- Thick outer borders ----
+        for (let c = baseCol; c < baseCol + monthCols; c++) {
           const cell = calendarSheet.getRow(baseRow).getCell(c);
           try { cell.border.top = { style: 'thick' }; } catch(e) {}
         }
-        // Bottom edge: total row (baseRow + 8)
-        for (let c = baseCol; c <= baseCol + 6; c++) {
+        for (let c = baseCol; c < baseCol + monthCols; c++) {
           const cell = calendarSheet.getRow(totalRowNum).getCell(c);
           try { cell.border.bottom = { style: 'thick' }; } catch(e) {}
         }
-        // Left edge: all rows from baseRow to totalRowNum
         for (let r = baseRow; r <= totalRowNum; r++) {
           const cell = calendarSheet.getRow(r).getCell(baseCol);
           try { cell.border.left = { style: 'thick' }; } catch(e) {}
         }
-        // Right edge: all rows from baseRow to totalRowNum
         for (let r = baseRow; r <= totalRowNum; r++) {
-          const cell = calendarSheet.getRow(r).getCell(baseCol + 6);
+          const cell = calendarSheet.getRow(r).getCell(baseCol + monthCols - 1);
           try { cell.border.right = { style: 'thick' }; } catch(e) {}
         }
       }
 
       // ---- Legend ----
-      const legendStartRow = startRow + 4 * blockHeight + 2;
+      const legendStartRow = startRow + 4 * (blockRows + spacerRows) + 2;
       calendarSheet.mergeCells(legendStartRow, 1, legendStartRow, totalCols);
       const legendTitle = calendarSheet.getRow(legendStartRow).getCell(1);
       legendTitle.value = '📊 Legend';
@@ -1798,10 +1920,8 @@
         lRow++;
       }
 
-      // Turn off gridlines
       calendarSheet.views = [{ showGridLines: false }];
 
-      // Protect sheet
       calendarSheet.protect('Siya', {
         selectLockedCells: true,
         selectUnlockedCells: true,
@@ -1818,15 +1938,21 @@
       });
 
       // ==================== SAVE ====================
+      updateProgress(95, 'Saving Excel file...');
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       saveAs(blob, `Timesheet_${startDate}_to_${endDate}_readonly.xlsx`);
+      
+      updateProgress(100, 'Done!');
       showToast("Excel report generated successfully!", "success");
+      setTimeout(hideProgressLoader, 1000);
     } catch (err) {
       console.error("Excel export error:", err);
       showToast("Excel generation failed: " + err.message, "error");
+      hideProgressLoader();
     } finally {
-      window.hideLoading();
+      // Ensure loader is hidden if something goes wrong
+      setTimeout(hideProgressLoader, 3000);
     }
   }
 
