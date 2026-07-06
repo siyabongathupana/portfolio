@@ -1,4 +1,4 @@
-// timesheet.js – Optimistic UI with background sync, Excel export with Yearly Calendar (grid layout)
+// timesheet.js – Optimistic UI with background sync, Excel export with Yearly Calendar grid
 (function() {
   const user = window.SessionManager?.getCurrentUser();
   if (!user) {
@@ -1511,8 +1511,7 @@
         pivotTables: false
       });
 
-     
-  // ==================== SHEET 5: YEARLY CALENDAR (GRID LAYOUT) ====================
+      // ==================== SHEET 5: YEARLY CALENDAR (GRID LAYOUT) ====================
       const calendarSheet = workbook.addWorksheet("Yearly Calendar", {
         pageSetup: {
           orientation: 'landscape',
@@ -1524,12 +1523,12 @@
           verticalCentered: true
         }
       });
-      
+
       const reportYear = new Date(startDate).getFullYear();
-      
+
       // Build fast lookup maps
       const hoursMap = new Map();
-      const leaveMap = new Map(); // true if any entry with category containing "leave"
+      const leaveMap = new Map();
       entries.forEach(e => {
         const d = new Date(e.date);
         if (d.getFullYear() === reportYear) {
@@ -1542,17 +1541,17 @@
           }
         }
       });
-      
+
       function getHoursForDay(month, day) {
         const dateStr = `${reportYear}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
         return hoursMap.has(dateStr) ? hoursMap.get(dateStr) : null;
       }
-      
+
       function isLeaveDay(month, day) {
         const dateStr = `${reportYear}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
         return leaveMap.has(dateStr);
       }
-      
+
       // ---- South African public holidays ----
       function getEasterDate(year) {
         const a = year % 19;
@@ -1571,7 +1570,7 @@
         const day = ((h + l - 7 * m + 114) % 31) + 1;
         return new Date(year, month - 1, day);
       }
-      
+
       function isPublicHoliday(year, month, day) {
         const date = new Date(year, month, day);
         const y = date.getFullYear();
@@ -1592,7 +1591,7 @@
         ];
         return fixed.includes(key) || movable.includes(key);
       }
-      
+
       function getColorForDay(month, day, hours) {
         if (isPublicHoliday(reportYear, month, day) || isLeaveDay(month, day)) {
           return { fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFB19CD9' } }, text: '🎉' };
@@ -1611,32 +1610,31 @@
         }
         return { fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF0F0F0' } }, text: '' };
       }
-      
+
       const monthNamesCal = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
       const weekdayNamesCal = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-      
+
       // Layout: 3 columns, 4 rows
       const monthsPerRow = 3;
-      const blockWidth = 10; // column width
       const blockHeight = 7; // rows per month block (title + header + 6 weeks + total row)
       const startRow = 1;
       const startCol = 1;
       const totalCols = monthsPerRow * 7;
-      
-      // Explicitly create all columns (this ensures cells exist up to totalCols)
+
+      // Explicitly create all columns (ensures cells exist)
       calendarSheet.columns = Array.from({ length: totalCols }, (_, i) => ({
         header: '',
         key: i + 1,
         width: 10
       }));
-      
+
       // Build each month
       for (let m = 0; m < 12; m++) {
         const rowIndex = Math.floor(m / monthsPerRow);
         const colIndex = m % monthsPerRow;
         const baseRow = startRow + rowIndex * blockHeight;
         const baseCol = startCol + colIndex * 7;
-      
+
         // Month title (centered across the 7 columns)
         const titleRowNum = baseRow;
         const titleCell = calendarSheet.getCell(titleRowNum, baseCol);
@@ -1646,7 +1644,7 @@
         titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
         titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
         calendarSheet.getRow(titleRowNum).height = 26;
-      
+
         // Weekday headers (Sun–Sat)
         const headerRowNum = baseRow + 1;
         for (let wd = 0; wd < 7; wd++) {
@@ -1658,12 +1656,12 @@
           cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
         }
         calendarSheet.getRow(headerRowNum).height = 20;
-      
+
         // Days: 6 weeks
         const firstDay = new Date(reportYear, m, 1);
         const daysInMonth = new Date(reportYear, m + 1, 0).getDate();
         const startWeekday = firstDay.getDay(); // 0 = Sunday
-      
+
         let dayCounter = 1;
         let done = false;
         for (let week = 0; week < 6 && !done; week++) {
@@ -1674,7 +1672,7 @@
             const cell = calendarSheet.getCell(rowNum, baseCol + wd);
             let dayNumber = null;
             let hours = null;
-      
+
             if (week === 0 && wd < startWeekday) {
               cell.value = '';
               cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } };
@@ -1683,7 +1681,7 @@
               hours = getHoursForDay(m, dayCounter);
               dayCounter++;
             }
-      
+
             if (dayNumber !== null) {
               const colorInfo = getColorForDay(m, dayNumber, hours);
               const dayText = dayNumber.toString();
@@ -1702,7 +1700,7 @@
               cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } };
               if (dayCounter > daysInMonth + 1) done = true;
             }
-      
+
             // Thin borders
             cell.border = {
               top: { style: 'thin' }, bottom: { style: 'thin' },
@@ -1710,7 +1708,7 @@
             };
           }
         }
-      
+
         // Monthly total row (row = baseRow + 8)
         const totalRowNum = baseRow + 8;
         const totalRow = calendarSheet.getRow(totalRowNum);
@@ -1726,7 +1724,7 @@
         totalCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE6F4FA' } };
         totalCell.alignment = { horizontal: 'right', vertical: 'middle' };
         totalRow.height = 20;
-      
+
         // Working days counter in last column
         let workingDaysLogged = 0;
         for (let d = 1; d <= daysInMonth; d++) {
@@ -1739,12 +1737,11 @@
         wdCell.font = { bold: true, size: 8 };
         wdCell.alignment = { horizontal: 'center', vertical: 'middle' };
         wdCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE6F4FA' } };
-      
+
         // Thick outer borders for the month block (title + header + 6 weeks + total)
         for (let r = baseRow; r <= totalRowNum; r++) {
           for (let c = baseCol; c <= baseCol + 6; c++) {
-            const cell = calendarSheet.getCell(r, c); // ✅ always returns a valid cell
-            // Only set borders if the cell is not part of a merged range? but fine.
+            const cell = calendarSheet.getCell(r, c);
             if (r === baseRow) cell.border.top = { style: 'thick' };
             if (r === totalRowNum) cell.border.bottom = { style: 'thick' };
             if (c === baseCol) cell.border.left = { style: 'thick' };
@@ -1752,7 +1749,7 @@
           }
         }
       }
-      
+
       // Legend – placed below the grid
       const legendStartRow = startRow + 4 * blockHeight + 2;
       calendarSheet.mergeCells(legendStartRow, 1, legendStartRow, totalCols);
@@ -1760,7 +1757,7 @@
       legendTitle.value = '📊 Legend';
       legendTitle.font = { bold: true, size: 12 };
       legendTitle.alignment = { horizontal: 'center' };
-      
+
       const legendData = [
         ['🟩', 'Normal (7.5–8.0h)', 'FFA8E6CF'],
         ['🟨', 'High (>8.0–8.5h)', 'FFFFD966'],
@@ -1784,10 +1781,10 @@
         sampleCell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
         lRow++;
       }
-      
+
       // Turn off gridlines
       calendarSheet.views = [{ showGridLines: false }];
-      
+
       // Protect sheet
       calendarSheet.protect('Siya', {
         selectLockedCells: true,
