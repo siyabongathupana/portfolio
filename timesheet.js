@@ -1642,9 +1642,9 @@
           verticalCentered: true
         }
       });
-
+      
       const reportYear = new Date(startDate).getFullYear();
-
+      
       // Build fast lookup maps
       const hoursMap = new Map();
       const leaveMap = new Map();
@@ -1660,17 +1660,17 @@
           }
         }
       });
-
+      
       function getHoursForDay(month, day) {
         const dateStr = `${reportYear}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
         return hoursMap.has(dateStr) ? hoursMap.get(dateStr) : null;
       }
-
+      
       function isLeaveDay(month, day) {
         const dateStr = `${reportYear}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
         return leaveMap.has(dateStr);
       }
-
+      
       // ---- South African public holidays ----
       function getEasterDate(year) {
         const a = year % 19;
@@ -1689,7 +1689,7 @@
         const day = ((h + l - 7 * m + 114) % 31) + 1;
         return new Date(year, month - 1, day);
       }
-
+      
       function isPublicHoliday(year, month, day) {
         const date = new Date(year, month, day);
         const y = date.getFullYear();
@@ -1710,7 +1710,7 @@
         ];
         return fixed.includes(key) || movable.includes(key);
       }
-
+      
       function getColorForDay(month, day, hours) {
         // Holiday or leave → purple
         if (isPublicHoliday(reportYear, month, day) || isLeaveDay(month, day)) {
@@ -1731,43 +1731,42 @@
         if (hours < 7.5 || hours > 8.5) {
           return { fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFF6B6B' } } };
         }
-        // Fallback grey
         return { fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF0F0F0' } } };
       }
-
+      
       const monthNamesCal = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
       const weekdayNamesCal = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-
+      
       // Layout: 3 columns, 4 rows with spacers
       const monthsPerRow = 3;
       const monthCols = 7;
       const spacerCols = 1;
-      const blockCols = monthCols + spacerCols;
-      const totalCols = monthsPerRow * blockCols - spacerCols;
-
+      const blockCols = monthCols + spacerCols; // 8
+      const totalCols = monthsPerRow * blockCols - spacerCols; // 23
+      
       const blockRows = 9;
       const spacerRows = 1;
       const startRow = 1;
       const startCol = 1;
-
-      // Set column widths: day columns = 5 (square), spacer columns = 1
+      
+      // Set column widths: day columns = 8 (wider, to span page), spacer columns = 1
       for (let col = 1; col <= totalCols; col++) {
         const offset = col - startCol;
         const mod = offset % blockCols;
         if (mod === monthCols) {
-          calendarSheet.getColumn(col).width = 1;
+          calendarSheet.getColumn(col).width = 1; // spacer
         } else {
-          calendarSheet.getColumn(col).width = 5;
+          calendarSheet.getColumn(col).width = 8; // day column
         }
       }
-
+      
       // Build each month
       for (let m = 0; m < 12; m++) {
         const rowIndex = Math.floor(m / monthsPerRow);
         const colIndex = m % monthsPerRow;
         const baseRow = startRow + rowIndex * (blockRows + spacerRows);
         const baseCol = startCol + colIndex * blockCols;
-
+      
         // ---- Month title ----
         const titleRow = baseRow;
         const titleCell = calendarSheet.getRow(titleRow).getCell(baseCol);
@@ -1777,7 +1776,7 @@
         titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
         titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
         calendarSheet.getRow(titleRow).height = 28;
-
+      
         // ---- Weekday headers ----
         const headerRow = baseRow + 1;
         for (let wd = 0; wd < monthCols; wd++) {
@@ -1789,23 +1788,23 @@
           cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
         }
         calendarSheet.getRow(headerRow).height = 20;
-
+      
         // ---- Day grid: 6 weeks ----
         const firstDay = new Date(reportYear, m, 1);
         const daysInMonth = new Date(reportYear, m + 1, 0).getDate();
         const startWeekday = firstDay.getDay();
-
+      
         let dayCounter = 1;
         let done = false;
         for (let week = 0; week < 6 && !done; week++) {
           const rowNum = baseRow + 2 + week;
           const row = calendarSheet.getRow(rowNum);
-          row.height = 36;
+          row.height = 30; // increased to give more vertical space
           for (let wd = 0; wd < monthCols; wd++) {
             const cell = row.getCell(baseCol + wd);
             let dayNumber = null;
             let hours = null;
-
+      
             if (week === 0 && wd < startWeekday) {
               cell.value = '';
               cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } };
@@ -1814,7 +1813,7 @@
               hours = getHoursForDay(m, dayCounter);
               dayCounter++;
             }
-
+      
             if (dayNumber !== null) {
               const colorInfo = getColorForDay(m, dayNumber, hours);
               const dayText = dayNumber.toString();
@@ -1823,7 +1822,7 @@
                 { text: dayText + '\n', font: { size: 9, bold: true } }
               ];
               if (hoursText) {
-                richText.push({ text: hoursText, font: { size: 6, bold: false } });
+                richText.push({ text: hoursText, font: { size: 7, bold: false } });
               }
               cell.value = { richText };
               cell.alignment = { horizontal: 'left', vertical: 'top', wrapText: true };
@@ -1833,14 +1832,14 @@
               cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } };
               if (dayCounter > daysInMonth + 1) done = true;
             }
-
+      
             cell.border = {
               top: { style: 'thin' }, bottom: { style: 'thin' },
               left: { style: 'thin' }, right: { style: 'thin' }
             };
           }
         }
-
+      
         // ---- Total row ----
         const totalRowNum = baseRow + 8;
         const totalRow = calendarSheet.getRow(totalRowNum);
@@ -1856,7 +1855,7 @@
         totalCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE6F4FA' } };
         totalCell.alignment = { horizontal: 'right', vertical: 'middle' };
         totalRow.height = 20;
-
+      
         let workingDaysLogged = 0;
         for (let d = 1; d <= daysInMonth; d++) {
           const date = new Date(reportYear, m, d);
@@ -1868,7 +1867,7 @@
         wdCell.font = { bold: true, size: 8 };
         wdCell.alignment = { horizontal: 'center', vertical: 'middle' };
         wdCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE6F4FA' } };
-
+      
         // ---- Thick outer borders ----
         for (let c = baseCol; c < baseCol + monthCols; c++) {
           const cell = calendarSheet.getRow(baseRow).getCell(c);
@@ -1887,7 +1886,7 @@
           try { cell.border.right = { style: 'thick' }; } catch(e) {}
         }
       }
-
+      
       // ---- Legend ----
       const legendStartRow = startRow + 4 * (blockRows + spacerRows) + 2;
       calendarSheet.mergeCells(legendStartRow, 1, legendStartRow, totalCols);
@@ -1895,7 +1894,7 @@
       legendTitle.value = '📊 Legend';
       legendTitle.font = { bold: true, size: 12 };
       legendTitle.alignment = { horizontal: 'center' };
-
+      
       const legendData = [
         ['🟩', 'Normal (7.5–8.0h)', 'FFA8E6CF'],
         ['🟨', 'High (>8.0–8.5h)', 'FFFFD966'],
@@ -1919,9 +1918,9 @@
         sampleCell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
         lRow++;
       }
-
+      
       calendarSheet.views = [{ showGridLines: false }];
-
+      
       calendarSheet.protect('Siya', {
         selectLockedCells: true,
         selectUnlockedCells: true,
@@ -1936,7 +1935,7 @@
         autoFilter: false,
         pivotTables: false
       });
-
+      
       // ==================== SAVE ====================
       updateProgress(95, 'Saving Excel file...');
       const buffer = await workbook.xlsx.writeBuffer();
