@@ -1,4 +1,4 @@
-// timesheet.js – Optimistic UI with background sync, Excel export with Yearly Calendar grid
+// timesheet.js – Optimistic UI with background sync + Yearly Calendar
 (function() {
   const user = window.SessionManager?.getCurrentUser();
   if (!user) {
@@ -576,7 +576,7 @@
     });
   }
 
-  // ======================== EXCEL EXPORT (with Yearly Calendar grid) ========================
+  // ======================== EXCEL EXPORT ========================
   async function exportStyledExcel(startDate, endDate) {
     window.showLoading("Generating Excel report...");
     try {
@@ -640,10 +640,9 @@
         if (headers[i].length > colMaxLen[i]) colMaxLen[i] = headers[i].length;
       }
       worksheet.columns = colMaxLen.map(w => ({ width: w + 2 }));
-      worksheet.getColumn(4).numFmt = '0.00';
 
       worksheet.mergeCells('A1:H1');
-      const titleCell = worksheet.getRow(1).getCell(1);
+      const titleCell = worksheet.getCell('A1');
       titleCell.value = `TIMESHEET REPORT - ${userFullName || user.username}`;
       titleCell.font = { size: 18, bold: true, color: { argb: 'FFFFFFFF' } };
       titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
@@ -651,7 +650,7 @@
       worksheet.getRow(1).height = 32;
 
       worksheet.mergeCells('A2:H2');
-      const periodCell = worksheet.getRow(2).getCell(1);
+      const periodCell = worksheet.getCell('A2');
       periodCell.value = `Period: ${startDate} to ${endDate}  |  Generated: ${new Date().toLocaleString()}`;
       periodCell.font = { size: 11, italic: true };
       periodCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE6F4FA' } };
@@ -664,7 +663,7 @@
       const overtime = calculateOvertimeForPeriod(filtered);
       const summaryText = `📊 Total: ${totalHours.toFixed(1)} hrs  |  Billable: ${billableHours.toFixed(1)}  |  Non-billable: ${nonBillable.toFixed(1)}  |  Overtime: ${overtime.toFixed(1)}`;
       worksheet.mergeCells('A3:H3');
-      const summaryCell = worksheet.getRow(3).getCell(1);
+      const summaryCell = worksheet.getCell('A3');
       summaryCell.value = summaryText;
       summaryCell.font = { bold: true, size: 10 };
       summaryCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9EDF7' } };
@@ -687,7 +686,7 @@
         row.getCell(1).value = entry.date;
         row.getCell(2).value = entry.start;
         row.getCell(3).value = entry.end;
-        row.getCell(4).value = parseFloat(entry.hours) || 0;
+        row.getCell(4).value = entry.hours.toFixed(2);
         row.getCell(5).value = entry.project;
         row.getCell(6).value = entry.category;
         row.getCell(7).value = entry.billable === 'yes' ? 'Billable' : 'Non-billable';
@@ -716,15 +715,14 @@
 
       const totalRowNum = currentRow;
       const totalRow = worksheet.getRow(totalRowNum);
-      const totalHoursSum = filtered.reduce((sum, e) => sum + (parseFloat(e.hours) || 0), 0);
-      totalRow.getCell(4).value = totalHoursSum;
-      totalRow.getCell(4).numFmt = '0.00';
+      const formula = `SUBTOTAL(109,D5:D${totalRowNum - 1})`;
+      totalRow.getCell(4).value = { formula: formula };
       totalRow.getCell(4).font = { bold: true, size: 11 };
       for (let i = 1; i <= 8; i++) {
         const cell = totalRow.getCell(i);
-        if (i !== 4) cell.value = '';
         cell.border = { top: { style: 'thin' }, bottom: { style: 'double' }, left: { style: 'thin' }, right: { style: 'thin' } };
         cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF0F0F0' } };
+        if (i !== 4) cell.value = '';
       }
 
       worksheet.eachRow((row, rowNumber) => {
@@ -765,14 +763,14 @@
       summarySheet.columns = [{ width: 25 }, { width: 20 }, { width: 20 }];
       
       summarySheet.mergeCells('A1:C1');
-      const sumTitle = summarySheet.getRow(1).getCell(1);
+      const sumTitle = summarySheet.getCell('A1');
       sumTitle.value = `TIMESHEET SUMMARY - ${userFullName || user.username}`;
       sumTitle.font = { size: 16, bold: true, color: { argb: 'FF0B2B3B' } };
       sumTitle.alignment = { horizontal: 'center' };
       summarySheet.getRow(1).height = 28;
 
       summarySheet.mergeCells('A2:C2');
-      const sumPeriod = summarySheet.getRow(2).getCell(1);
+      const sumPeriod = summarySheet.getCell('A2');
       sumPeriod.value = `Period: ${startDate} to ${endDate}  |  Generated: ${new Date().toLocaleString()}`;
       sumPeriod.font = { size: 10, italic: true };
       sumPeriod.alignment = { horizontal: 'center' };
@@ -799,12 +797,12 @@
       
       let r = 4;
       for (const [label, val] of kpiRows) {
-        const labelCell = summarySheet.getRow(r).getCell(1);
+        const labelCell = summarySheet.getCell(`A${r}`);
         labelCell.value = label;
         labelCell.font = { bold: true, size: 11 };
         labelCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE6F4FA' } };
         labelCell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
-        const valCell = summarySheet.getRow(r).getCell(2);
+        const valCell = summarySheet.getCell(`B${r}`);
         valCell.value = val;
         valCell.font = { size: 12, bold: true, color: { argb: 'FF0B2B3B' } };
         valCell.alignment = { horizontal: 'right' };
@@ -812,6 +810,7 @@
         r++;
       }
 
+      // Summary chart
       try {
         const projMap = {};
         filtered.forEach(e => { projMap[e.project] = (projMap[e.project] || 0) + e.hours; });
@@ -859,8 +858,8 @@
         });
       } catch(e) { console.warn("Summary chart skipped", e); }
 
-      summarySheet.getRow(50).getCell(1).value = `Generated by Your Portfolio System`;
-      summarySheet.getRow(50).getCell(1).font = { italic: true, size: 8 };
+      summarySheet.getCell('A50').value = `Generated by Your Portfolio System`;
+      summarySheet.getCell('A50').font = { italic: true, size: 8 };
       summarySheet.mergeCells('A50:C50');
 
       summarySheet.protect('Siya', {
@@ -884,7 +883,7 @@
       });
       
       chartsSheet.mergeCells('A1:F1');
-      const chartsTitle = chartsSheet.getRow(1).getCell(1);
+      const chartsTitle = chartsSheet.getCell('A1');
       chartsTitle.value = "VISUAL ANALYTICS DASHBOARD";
       chartsTitle.font = { size: 20, bold: true, color: { argb: 'FF0B2B3B' } };
       chartsTitle.alignment = { horizontal: 'center' };
@@ -917,7 +916,7 @@
           const titleRow = row - 1;
           if (titleRow >= 0) {
             const colLetter = col === 0 ? 'A' : 'E';
-            const titleCellRef = chartsSheet.getRow(titleRow + 1).getCell(col === 0 ? 1 : 5);
+            const titleCellRef = chartsSheet.getCell(`${colLetter}${titleRow + 1}`);
             titleCellRef.value = title;
             titleCellRef.font = { bold: true, size: 12, color: { argb: 'FF0B2B3B' } };
             titleCellRef.alignment = { horizontal: 'center', vertical: 'middle' };
@@ -1039,8 +1038,8 @@
       }, 1, row3Start, 'Top Projects by Hours');
 
       const footerRow = row3Start + ROW_OFFSET + 6;
-      chartsSheet.getRow(footerRow).getCell(1).value = `Generated: ${new Date().toLocaleString()} | Your Portfolio System`;
-      chartsSheet.getRow(footerRow).getCell(1).font = { italic: true, size: 9 };
+      chartsSheet.getCell(`A${footerRow}`).value = `Generated: ${new Date().toLocaleString()} | Your Portfolio System`;
+      chartsSheet.getCell(`A${footerRow}`).font = { italic: true, size: 9 };
       chartsSheet.mergeCells(`A${footerRow}:F${footerRow}`);
       chartsSheet.getRow(footerRow).height = 25;
 
@@ -1066,7 +1065,7 @@
       analysisSheet.columns = [{ width: 28 }, { width: 22 }, { width: 35 }];
       
       analysisSheet.mergeCells('A1:C1');
-      const analysisTitle = analysisSheet.getRow(1).getCell(1);
+      const analysisTitle = analysisSheet.getCell('A1');
       analysisTitle.value = "DEEP DIVE ANALYSIS";
       analysisTitle.font = { size: 16, bold: true, color: { argb: 'FF0B2B3B' } };
       analysisTitle.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE6F4FA' } };
@@ -1076,7 +1075,7 @@
       let rowIdx = 3;
       
       function addSectionHeader(title, startRow) {
-        const cell = analysisSheet.getRow(startRow).getCell(1);
+        const cell = analysisSheet.getCell(`A${startRow}`);
         cell.value = title;
         cell.font = { bold: true, size: 12 };
         cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
@@ -1088,12 +1087,12 @@
       }
 
       function addKeyValue(label, value, row) {
-        const labelCell = analysisSheet.getRow(row).getCell(1);
+        const labelCell = analysisSheet.getCell(`A${row}`);
         labelCell.value = label;
         labelCell.font = { bold: true };
         labelCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF0F0F0' } };
         labelCell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
-        const valCell = analysisSheet.getRow(row).getCell(2);
+        const valCell = analysisSheet.getCell(`B${row}`);
         valCell.value = value;
         valCell.font = { size: 11 };
         valCell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
@@ -1103,12 +1102,12 @@
 
       function addTwoColumnTable(data, startRow, col1Header, col2Header) {
         let r = startRow;
-        const h1 = analysisSheet.getRow(r).getCell(1);
+        const h1 = analysisSheet.getCell(`A${r}`);
         h1.value = col1Header;
         h1.font = { bold: true, color: { argb: 'FFFFFFFF' } };
         h1.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
         h1.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
-        const h2 = analysisSheet.getRow(r).getCell(2);
+        const h2 = analysisSheet.getCell(`B${r}`);
         h2.value = col2Header;
         h2.font = { bold: true, color: { argb: 'FFFFFFFF' } };
         h2.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
@@ -1478,12 +1477,12 @@
       if (overtimeDays.length > 3) healthScore -= 15;
       if (uniqueProjects === 0) healthScore -= 50;
       healthScore = Math.max(0, healthScore);
-      const scoreCell = analysisSheet.getRow(rowIdx).getCell(1);
+      const scoreCell = analysisSheet.getCell(`A${rowIdx}`);
       scoreCell.value = "Health Score (0-100)";
       scoreCell.font = { bold: true };
       scoreCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF0F0F0' } };
       scoreCell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
-      const scoreValCell = analysisSheet.getRow(rowIdx).getCell(2);
+      const scoreValCell = analysisSheet.getCell(`B${rowIdx}`);
       scoreValCell.value = healthScore;
       scoreValCell.font = { size: 14, bold: true, color: { argb: healthScore >= 80 ? 'FF28A745' : (healthScore >= 50 ? 'FFFFC107' : 'FFDC3545') } };
       scoreValCell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
@@ -1491,10 +1490,10 @@
       rowIdx += 2;
 
       const footerRow2 = rowIdx;
-      analysisSheet.getRow(footerRow2).getCell(1).value = `Analysis generated: ${new Date().toLocaleString()} | Based on ${filtered.length} entries`;
+      analysisSheet.getCell(`A${footerRow2}`).value = `Analysis generated: ${new Date().toLocaleString()} | Based on ${filtered.length} entries`;
       analysisSheet.mergeCells(`A${footerRow2}:C${footerRow2}`);
-      analysisSheet.getRow(footerRow2).getCell(1).font = { italic: true, size: 8 };
-      analysisSheet.getRow(footerRow2).getCell(1).alignment = { horizontal: 'center' };
+      analysisSheet.getCell(`A${footerRow2}`).font = { italic: true, size: 8 };
+      analysisSheet.getCell(`A${footerRow2}`).alignment = { horizontal: 'center' };
 
       analysisSheet.protect('Siya', {
         selectLockedCells: true,
@@ -1511,7 +1510,313 @@
         pivotTables: false
       });
 
-      //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      // ==================== SHEET 5: YEARLY CALENDAR (GRID LAYOUT) ====================
+      const calendarSheet = workbook.addWorksheet("Yearly Calendar", {
+        pageSetup: {
+          orientation: 'landscape',
+          fitToPage: true,
+          fitToWidth: 1,
+          fitToHeight: 0,
+          paperSize: 9,
+          horizontalCentered: true,
+          verticalCentered: true
+        }
+      });
+
+      const reportYear = new Date(startDate).getFullYear();
+
+      // Build fast lookup maps
+      const hoursMap = new Map();
+      const leaveMap = new Map();
+      entries.forEach(e => {
+        const d = new Date(e.date);
+        if (d.getFullYear() === reportYear) {
+          const key = e.date;
+          const current = hoursMap.get(key) || 0;
+          hoursMap.set(key, current + (parseFloat(e.hours) || 0));
+          const cat = (e.category || '').toLowerCase();
+          if (cat.includes('leave')) {
+            leaveMap.set(key, true);
+          }
+        }
+      });
+
+      function getHoursForDay(month, day) {
+        const dateStr = `${reportYear}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+        return hoursMap.has(dateStr) ? hoursMap.get(dateStr) : null;
+      }
+
+      function isLeaveDay(month, day) {
+        const dateStr = `${reportYear}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+        return leaveMap.has(dateStr);
+      }
+
+      // ---- South African public holidays ----
+      function getEasterDate(year) {
+        const a = year % 19;
+        const b = Math.floor(year / 100);
+        const c = year % 100;
+        const d = Math.floor(b / 4);
+        const e = b % 4;
+        const f = Math.floor((b + 8) / 25);
+        const g = Math.floor((b - f + 1) / 3);
+        const h = (19 * a + b - d - g + 15) % 30;
+        const i = Math.floor(c / 4);
+        const k = c % 4;
+        const l = (32 + 2 * e + 2 * i - h - k) % 7;
+        const m = Math.floor((a + 11 * h + 22 * l) / 451);
+        const month = Math.floor((h + l - 7 * m + 114) / 31);
+        const day = ((h + l - 7 * m + 114) % 31) + 1;
+        return new Date(year, month - 1, day);
+      }
+
+      function isPublicHoliday(year, month, day) {
+        const date = new Date(year, month, day);
+        const y = date.getFullYear();
+        const m = date.getMonth();
+        const d = date.getDate();
+        const key = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        const fixed = [
+          `${y}-01-01`, `${y}-03-21`, `${y}-04-27`, `${y}-05-01`,
+          `${y}-06-16`, `${y}-08-09`, `${y}-09-24`, `${y}-12-16`,
+          `${y}-12-25`, `${y}-12-26`
+        ];
+        const easter = getEasterDate(y);
+        const goodFriday = new Date(easter); goodFriday.setDate(easter.getDate() - 2);
+        const easterMonday = new Date(easter); easterMonday.setDate(easter.getDate() + 1);
+        const movable = [
+          goodFriday.toISOString().split('T')[0],
+          easterMonday.toISOString().split('T')[0]
+        ];
+        return fixed.includes(key) || movable.includes(key);
+      }
+
+      function getColorForDay(month, day, hours) {
+        // Holiday or leave → purple
+        if (isPublicHoliday(reportYear, month, day) || isLeaveDay(month, day)) {
+          return { fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFB19CD9' } } };
+        }
+        if (hours === null) {
+          return { fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF0F0F0' } } };
+        }
+        // Normal: 7.5 – 8.0 → green
+        if (hours >= 7.5 && hours <= 8.0) {
+          return { fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFA8E6CF' } } };
+        }
+        // High: >8.0 – 8.5 → yellow
+        if (hours > 8.0 && hours <= 8.5) {
+          return { fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFD966' } } };
+        }
+        // Under‑time (<7.5) OR Overtime (>8.5) → red
+        if (hours < 7.5 || hours > 8.5) {
+          return { fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFF6B6B' } } };
+        }
+        // Fallback grey
+        return { fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF0F0F0' } } };
+      }
+
+      const monthNamesCal = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      const weekdayNamesCal = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+      // Layout: 3 columns, 4 rows
+      const monthsPerRow = 3;
+      const blockHeight = 9; // title + header + 6 weeks + total row = 9 rows
+      const startRow = 1;
+      const startCol = 1;
+      const totalCols = monthsPerRow * 7;
+
+      // Explicitly create all columns
+      calendarSheet.columns = Array.from({ length: totalCols }, (_, i) => ({
+        header: '',
+        key: i + 1,
+        width: 10
+      }));
+
+      // Build each month
+      for (let m = 0; m < 12; m++) {
+        const rowIndex = Math.floor(m / monthsPerRow);
+        const colIndex = m % monthsPerRow;
+        const baseRow = startRow + rowIndex * blockHeight;
+        const baseCol = startCol + colIndex * 7;
+
+        // ---- Month title (row = baseRow) ----
+        const titleRow = baseRow;
+        const titleCell = calendarSheet.getRow(titleRow).getCell(baseCol);
+        calendarSheet.mergeCells(titleRow, baseCol, titleRow, baseCol + 6);
+        titleCell.value = `${monthNamesCal[m]} ${reportYear}`;
+        titleCell.font = { size: 12, bold: true, color: { argb: 'FFFFFFFF' } };
+        titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+        titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
+        calendarSheet.getRow(titleRow).height = 26;
+
+        // ---- Weekday headers (row = baseRow + 1) ----
+        const headerRow = baseRow + 1;
+        for (let wd = 0; wd < 7; wd++) {
+          const cell = calendarSheet.getRow(headerRow).getCell(baseCol + wd);
+          cell.value = weekdayNamesCal[wd];
+          cell.font = { bold: true, size: 9, color: { argb: 'FFFFFFFF' } };
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2C3E50' } };
+          cell.alignment = { horizontal: 'center', vertical: 'middle' };
+          cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+        }
+        calendarSheet.getRow(headerRow).height = 20;
+
+        // ---- Day grid: 6 weeks (rows baseRow+2 to baseRow+7) ----
+        const firstDay = new Date(reportYear, m, 1);
+        const daysInMonth = new Date(reportYear, m + 1, 0).getDate();
+        const startWeekday = firstDay.getDay(); // 0 = Sunday
+
+        let dayCounter = 1;
+        let done = false;
+        for (let week = 0; week < 6 && !done; week++) {
+          const rowNum = baseRow + 2 + week;
+          const row = calendarSheet.getRow(rowNum);
+          row.height = 18;
+          for (let wd = 0; wd < 7; wd++) {
+            const cell = row.getCell(baseCol + wd);
+            let dayNumber = null;
+            let hours = null;
+
+            if (week === 0 && wd < startWeekday) {
+              // Empty cell before month starts
+              cell.value = '';
+              cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } };
+            } else if (dayCounter <= daysInMonth) {
+              dayNumber = dayCounter;
+              hours = getHoursForDay(m, dayCounter);
+              dayCounter++;
+            }
+
+            if (dayNumber !== null) {
+              const colorInfo = getColorForDay(m, dayNumber, hours);
+              const dayText = dayNumber.toString();
+              const hoursText = hours !== null ? `${hours.toFixed(1)}h` : '';
+              const richText = [
+                { text: dayText + '\n', font: { size: 10, bold: true } }
+              ];
+              if (hoursText) {
+                richText.push({ text: hoursText, font: { size: 7, bold: false } });
+              }
+              cell.value = { richText };
+              cell.alignment = { horizontal: 'left', vertical: 'top', wrapText: true };
+              cell.fill = colorInfo.fill;
+            } else {
+              cell.value = '';
+              cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } };
+              if (dayCounter > daysInMonth + 1) done = true;
+            }
+
+            // Thin borders for all day cells
+            cell.border = {
+              top: { style: 'thin' }, bottom: { style: 'thin' },
+              left: { style: 'thin' }, right: { style: 'thin' }
+            };
+          }
+        }
+
+        // ---- Total row (row = baseRow + 8) ----
+        const totalRowNum = baseRow + 8;
+        const totalRow = calendarSheet.getRow(totalRowNum);
+        let monthTotal = 0;
+        for (let d = 1; d <= daysInMonth; d++) {
+          const h = getHoursForDay(m, d);
+          if (h !== null) monthTotal += h;
+        }
+        const totalCell = totalRow.getCell(baseCol);
+        calendarSheet.mergeCells(totalRowNum, baseCol, totalRowNum, baseCol + 5);
+        totalCell.value = `Total: ${monthTotal.toFixed(1)}h`;
+        totalCell.font = { bold: true, size: 8, color: { argb: 'FF0B2B3B' } };
+        totalCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE6F4FA' } };
+        totalCell.alignment = { horizontal: 'right', vertical: 'middle' };
+        totalRow.height = 20;
+
+        // Working days counter in last column
+        let workingDaysLogged = 0;
+        for (let d = 1; d <= daysInMonth; d++) {
+          const date = new Date(reportYear, m, d);
+          const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+          if (!isWeekend && getHoursForDay(m, d) !== null) workingDaysLogged++;
+        }
+        const wdCell = totalRow.getCell(baseCol + 6);
+        wdCell.value = `${workingDaysLogged}d`;
+        wdCell.font = { bold: true, size: 8 };
+        wdCell.alignment = { horizontal: 'center', vertical: 'middle' };
+        wdCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE6F4FA' } };
+
+        // ---- Thick outer borders for the month block (edges only) ----
+        // Top edge: title row (baseRow)
+        for (let c = baseCol; c <= baseCol + 6; c++) {
+          const cell = calendarSheet.getRow(baseRow).getCell(c);
+          try { cell.border.top = { style: 'thick' }; } catch(e) {}
+        }
+        // Bottom edge: total row (baseRow + 8)
+        for (let c = baseCol; c <= baseCol + 6; c++) {
+          const cell = calendarSheet.getRow(totalRowNum).getCell(c);
+          try { cell.border.bottom = { style: 'thick' }; } catch(e) {}
+        }
+        // Left edge: all rows from baseRow to totalRowNum
+        for (let r = baseRow; r <= totalRowNum; r++) {
+          const cell = calendarSheet.getRow(r).getCell(baseCol);
+          try { cell.border.left = { style: 'thick' }; } catch(e) {}
+        }
+        // Right edge: all rows from baseRow to totalRowNum
+        for (let r = baseRow; r <= totalRowNum; r++) {
+          const cell = calendarSheet.getRow(r).getCell(baseCol + 6);
+          try { cell.border.right = { style: 'thick' }; } catch(e) {}
+        }
+      }
+
+      // ---- Legend ----
+      const legendStartRow = startRow + 4 * blockHeight + 2;
+      calendarSheet.mergeCells(legendStartRow, 1, legendStartRow, totalCols);
+      const legendTitle = calendarSheet.getRow(legendStartRow).getCell(1);
+      legendTitle.value = '📊 Legend';
+      legendTitle.font = { bold: true, size: 12 };
+      legendTitle.alignment = { horizontal: 'center' };
+
+      const legendData = [
+        ['🟩', 'Normal (7.5–8.0h)', 'FFA8E6CF'],
+        ['🟨', 'High (>8.0–8.5h)', 'FFFFD966'],
+        ['🟥', 'Under‑time (<7.5h) or Overtime (>8.5h)', 'FFFF6B6B'],
+        ['🟪', 'Holiday / Leave', 'FFB19CD9'],
+        ['⬜', 'Weekend / No data', 'FFF0F0F0']
+      ];
+      let lRow = legendStartRow + 1;
+      for (const [symbol, desc, color] of legendData) {
+        const row = calendarSheet.getRow(lRow);
+        const symCell = row.getCell(1);
+        symCell.value = symbol;
+        symCell.alignment = { horizontal: 'center' };
+        symCell.font = { size: 10 };
+        const descCell = row.getCell(2);
+        descCell.value = desc;
+        descCell.font = { size: 9 };
+        const sampleCell = row.getCell(3);
+        sampleCell.value = '  ';
+        sampleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: color } };
+        sampleCell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+        lRow++;
+      }
+
+      // Turn off gridlines
+      calendarSheet.views = [{ showGridLines: false }];
+
+      // Protect sheet
+      calendarSheet.protect('Siya', {
+        selectLockedCells: true,
+        selectUnlockedCells: true,
+        formatCells: false,
+        formatColumns: false,
+        formatRows: false,
+        insertRows: false,
+        deleteRows: false,
+        insertColumns: false,
+        deleteColumns: false,
+        sort: false,
+        autoFilter: false,
+        pivotTables: false
+      });
+
       // ==================== SAVE ====================
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
