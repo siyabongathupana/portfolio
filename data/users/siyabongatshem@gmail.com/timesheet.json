@@ -1,5 +1,17 @@
 [
   {
+    "id": 1783428519154,
+    "date": "2026-07-07",
+    "start": "14:30",
+    "end": "17:00",
+    "hours": 2.5,
+    "project": "Omnia Phase 3",
+    "category": "Meetings",
+    "billable": "yes",
+    "notes": "Omnia Back-Punching",
+    "updatedAt": 1783428519154
+  },
+  {
     "id": 1783410771857,
     "date": "2026-07-07",
     "start": "08:30",
