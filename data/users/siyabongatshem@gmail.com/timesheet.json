@@ -1,5 +1,17 @@
 [
   {
+    "id": 1783517219830,
+    "date": "2026-07-08",
+    "start": "11:34",
+    "end": "15:26",
+    "hours": 3.87,
+    "project": "Omnia Phase 3",
+    "category": "Other",
+    "billable": "yes",
+    "notes": "Transferring Punches to Excel",
+    "updatedAt": 1783517219830
+  },
+  {
     "id": 1783517072640,
     "date": "2026-07-08",
     "start": "08:40",
