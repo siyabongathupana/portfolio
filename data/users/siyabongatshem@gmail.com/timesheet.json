@@ -1,5 +1,17 @@
 [
   {
+    "id": 1783517072640,
+    "date": "2026-07-08",
+    "start": "08:40",
+    "end": "11:34",
+    "hours": 2.9,
+    "project": "Other",
+    "category": "Admin",
+    "billable": "no",
+    "notes": "Preparing Shipment & Emails",
+    "updatedAt": 1783517072640
+  },
+  {
     "id": 1783428519154,
     "date": "2026-07-07",
     "start": "14:00",
