@@ -1,5 +1,17 @@
 [
   {
+    "id": 1783522868740,
+    "date": "2026-07-08",
+    "start": "15:26",
+    "end": "17:00",
+    "hours": 1.57,
+    "project": "Other",
+    "category": "Training",
+    "billable": "no",
+    "notes": "Looking for SD plus, Serial card & 8 wide carrier",
+    "updatedAt": 1783522868740
+  },
+  {
     "id": 1783521340888,
     "date": "2026-07-08",
     "start": "15:55",
