@@ -1,17 +1,5 @@
 [
   {
-    "id": 1783607170052,
-    "date": "2026-07-08",
-    "start": "13:30",
-    "end": "16:26",
-    "hours": 2.93,
-    "project": "Omnia Phase 3",
-    "category": "Other",
-    "billable": "yes",
-    "notes": "Tags & Checking (Fixing) Graphic references",
-    "updatedAt": 1783607170052
-  },
-  {
     "id": 1783607062363,
     "date": "2026-07-09",
     "start": "08:30",
@@ -22,6 +10,18 @@
     "billable": "no",
     "notes": "Testing Jarrod's Equipment and Andrew's Serial Cards",
     "updatedAt": 1783607232855
+  },
+  {
+    "id": 1783607170052,
+    "date": "2026-07-09",
+    "start": "13:30",
+    "end": "16:26",
+    "hours": 2.93,
+    "project": "Omnia Phase 3",
+    "category": "Other",
+    "billable": "yes",
+    "notes": "Tags & Checking (Fixing) Graphic references",
+    "updatedAt": 1783607319406
   },
   {
     "id": 1783522868740,
