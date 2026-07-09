@@ -13,7 +13,7 @@
   },
   {
     "id": 1783607062363,
-    "date": "2026-07-08",
+    "date": "2026-07-09",
     "start": "08:30",
     "end": "13:30",
     "hours": 5,
@@ -21,7 +21,7 @@
     "category": "Training",
     "billable": "no",
     "notes": "Testing Jarrod's Equipment and Andrew's Serial Cards",
-    "updatedAt": 1783607062363
+    "updatedAt": 1783607232855
   },
   {
     "id": 1783522868740,
