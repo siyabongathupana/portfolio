@@ -1,15 +1,27 @@
 [
   {
+    "id": 1783950237422,
+    "date": "2026-07-13",
+    "start": "11:30",
+    "end": "12:30",
+    "hours": 1,
+    "project": "Other",
+    "category": "Meetings",
+    "billable": "yes",
+    "notes": "Study Aid Meeting with Grant",
+    "updatedAt": 1783950237422
+  },
+  {
     "id": 1783919136649,
     "date": "2026-07-13",
     "start": "07:05",
-    "end": "23:30",
-    "hours": 16.42,
+    "end": "11:30",
+    "hours": 4.42,
     "project": "Omnia Turbine Speed",
     "category": "Implementation",
     "billable": "yes",
     "notes": "Graphic and  Modules",
-    "updatedAt": 1783950173606
+    "updatedAt": 1783950186354
   },
   {
     "id": 1783769317475,
