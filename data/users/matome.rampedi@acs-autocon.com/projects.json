@@ -2,18 +2,18 @@
   "proj_1783942510350": {
     "id": "proj_1783942510350",
     "projectCategory": "deltaV",
-    "title": "Steam Station 2 DCS Replacement",
-    "shortDesc": "",
-    "industry": "",
+    "title": "Steam Station 2",
+    "shortDesc": "DCS Replacement",
+    "industry": "Industrial",
     "client": "Wood/Sasol",
     "duration": "",
     "status": "Completed",
-    "userRole": "",
+    "userRole": "Engineer",
     "teamMembers": "",
-    "controllerType": "MD",
-    "deltaVVersion": "",
+    "controllerType": "PK",
+    "deltaVVersion": "15",
     "projectType": "DCS",
-    "cabinetCount": 1,
+    "cabinetCount": 6,
     "io": {
       "AI": 0,
       "AO": 0,
@@ -34,7 +34,7 @@
     "description": "",
     "graphType": "bar",
     "selectedImages": [],
-    "updatedAt": 1783942510350,
+    "updatedAt": 1783946135090,
     "blocked": false
   }
 }
