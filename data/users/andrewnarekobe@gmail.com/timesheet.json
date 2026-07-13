@@ -1,5 +1,17 @@
 [
   {
+    "id": 1783931835274,
+    "date": "2026-07-13",
+    "start": "08:30",
+    "end": "10:40",
+    "hours": 2.17,
+    "project": "Omnia PH3",
+    "category": "Implementation",
+    "billable": "yes",
+    "notes": "Omnia Turbine Speed Control",
+    "updatedAt": 1783931835274
+  },
+  {
     "id": 1783758545245,
     "date": "2026-07-11",
     "start": "08:00",
