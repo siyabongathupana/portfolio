@@ -1,5 +1,17 @@
 [
   {
+    "id": 1784025292632,
+    "date": "2026-07-14",
+    "start": "12:00",
+    "end": "12:26",
+    "hours": 0.43,
+    "project": "Other",
+    "category": "Admin",
+    "billable": "no",
+    "notes": "",
+    "updatedAt": 1784025292632
+  },
+  {
     "id": 1784024744648,
     "date": "2026-07-14",
     "start": "11:17",
