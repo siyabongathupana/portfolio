@@ -19,9 +19,9 @@
     "hours": 1,
     "project": "Other",
     "category": "Meetings",
-    "billable": "yes",
+    "billable": "no",
     "notes": "Study Aid Meeting with Grant",
-    "updatedAt": 1783950237422
+    "updatedAt": 1784012900054
   },
   {
     "id": 1783919136649,
