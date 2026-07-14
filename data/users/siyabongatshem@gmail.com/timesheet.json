@@ -1,5 +1,17 @@
 [
   {
+    "id": 1784020701569,
+    "date": "2026-07-14",
+    "start": "10:43",
+    "end": "11:17",
+    "hours": 0.57,
+    "project": "Omnia Phase 3",
+    "category": "Other",
+    "billable": "yes",
+    "notes": "Making Fan Filters for Shimane",
+    "updatedAt": 1784020701569
+  },
+  {
     "id": 1784017853463,
     "date": "2026-07-14",
     "start": "09:45",
