@@ -79,9 +79,9 @@
     "hours": 0.9,
     "project": "Steam station 2",
     "category": "Training",
-    "billable": "no",
+    "billable": "yes",
     "notes": "EOJ",
-    "updatedAt": 1784030711816
+    "updatedAt": 1784032329152
   },
   {
     "id": 1783946218850,
