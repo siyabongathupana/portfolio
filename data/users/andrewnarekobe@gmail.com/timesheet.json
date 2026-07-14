@@ -1,5 +1,17 @@
 [
   {
+    "id": 1784019204651,
+    "date": "2026-07-13",
+    "start": "08:00",
+    "end": "09:30",
+    "hours": 1.5,
+    "project": "Others",
+    "category": "Training",
+    "billable": "no",
+    "notes": "Leaning abt bundle connection on eplan",
+    "updatedAt": 1784019204651
+  },
+  {
     "id": 1783949845251,
     "date": "2026-07-13",
     "start": "12:50",
