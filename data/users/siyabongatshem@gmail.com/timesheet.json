@@ -1,5 +1,17 @@
 [
   {
+    "id": 1784119001334,
+    "date": "2026-07-15",
+    "start": "09:00",
+    "end": "09:30",
+    "hours": 0.5,
+    "project": "Other",
+    "category": "Meetings",
+    "billable": "no",
+    "notes": "Meeting with Grant",
+    "updatedAt": 1784119001334
+  },
+  {
     "id": 1784102157207,
     "date": "2026-07-15",
     "start": "09:30",
