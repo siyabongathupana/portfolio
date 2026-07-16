@@ -1,5 +1,17 @@
 [
   {
+    "id": 1784185179564,
+    "date": "2026-07-13",
+    "start": "13:00",
+    "end": "14:36",
+    "hours": 1.6,
+    "project": "Steam station 2",
+    "category": "Documentation",
+    "billable": "yes",
+    "notes": "",
+    "updatedAt": 1784185179564
+  },
+  {
     "id": 1784184563550,
     "date": "2026-07-15",
     "start": "13:35",
@@ -113,11 +125,11 @@
     "start": "14:36",
     "end": "15:30",
     "hours": 0.9,
-    "project": "Steam station 2",
+    "project": "Trainng",
     "category": "Training",
     "billable": "yes",
-    "notes": "EOJ",
-    "updatedAt": 1784184790207
+    "notes": "",
+    "updatedAt": 1784185142632
   },
   {
     "id": 1783946218850,
