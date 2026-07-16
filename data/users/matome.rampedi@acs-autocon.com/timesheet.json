@@ -31,9 +31,9 @@
     "hours": 6.25,
     "project": "Admin",
     "category": "Admin",
-    "billable": "yes",
+    "billable": "no",
     "notes": "medicals and car admin",
-    "updatedAt": 1784184510679
+    "updatedAt": 1784185312491
   },
   {
     "id": 1784036022763,
@@ -127,9 +127,9 @@
     "hours": 0.9,
     "project": "Trainng",
     "category": "Training",
-    "billable": "yes",
+    "billable": "no",
     "notes": "",
-    "updatedAt": 1784185142632
+    "updatedAt": 1784185191681
   },
   {
     "id": 1783946218850,
