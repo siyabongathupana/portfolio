@@ -1,7 +1,7 @@
 [
   {
     "id": 1784186784048,
-    "date": "2026-07-13",
+    "date": "2026-07-16",
     "start": "09:26",
     "end": "12:00",
     "hours": 2.57,
@@ -9,7 +9,7 @@
     "category": "Documentation",
     "billable": "yes",
     "notes": "",
-    "updatedAt": 1784186784048
+    "updatedAt": 1784187281437
   },
   {
     "id": 1784184563550,
