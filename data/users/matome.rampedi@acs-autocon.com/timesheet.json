@@ -2,14 +2,14 @@
   {
     "id": 1784210683576,
     "date": "2026-07-16",
-    "start": "13:00",
+    "start": "12:45",
     "end": "16:00",
-    "hours": 3,
+    "hours": 3.25,
     "project": "Steam station 2",
     "category": "Other",
     "billable": "no",
     "notes": "",
-    "updatedAt": 1784210683576
+    "updatedAt": 1784210841526
   },
   {
     "id": 1784200072346,
