@@ -1,15 +1,15 @@
 [
   {
-    "id": 1784187457253,
-    "date": "2026-07-13",
-    "start": "12:00",
-    "end": "12:30",
-    "hours": 0.5,
+    "id": 1784187561306,
+    "date": "2026-07-15",
+    "start": "12:35",
+    "end": "13:10",
+    "hours": 0.58,
     "project": "Admin",
     "category": "Other",
     "billable": "no",
     "notes": "lunch",
-    "updatedAt": 1784187457253
+    "updatedAt": 1784187561306
   },
   {
     "id": 1784186784048,
@@ -130,6 +130,18 @@
     "billable": "no",
     "notes": "coffee",
     "updatedAt": 1784010429542
+  },
+  {
+    "id": 1784187457253,
+    "date": "2026-07-13",
+    "start": "12:00",
+    "end": "12:30",
+    "hours": 0.5,
+    "project": "Admin",
+    "category": "Other",
+    "billable": "no",
+    "notes": "lunch",
+    "updatedAt": 1784187457253
   },
   {
     "id": 1784185179564,
