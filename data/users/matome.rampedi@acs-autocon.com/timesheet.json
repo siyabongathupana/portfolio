@@ -1,15 +1,15 @@
 [
   {
-    "id": 1784185179564,
+    "id": 1784186784048,
     "date": "2026-07-13",
-    "start": "13:00",
-    "end": "14:36",
-    "hours": 1.6,
+    "start": "09:26",
+    "end": "12:00",
+    "hours": 2.57,
     "project": "Steam station 2",
     "category": "Documentation",
     "billable": "yes",
     "notes": "",
-    "updatedAt": 1784185179564
+    "updatedAt": 1784186784048
   },
   {
     "id": 1784184563550,
@@ -118,6 +118,18 @@
     "billable": "no",
     "notes": "coffee",
     "updatedAt": 1784010429542
+  },
+  {
+    "id": 1784185179564,
+    "date": "2026-07-13",
+    "start": "13:00",
+    "end": "14:36",
+    "hours": 1.6,
+    "project": "Steam station 2",
+    "category": "Documentation",
+    "billable": "yes",
+    "notes": "",
+    "updatedAt": 1784185179564
   },
   {
     "id": 1783950607248,
