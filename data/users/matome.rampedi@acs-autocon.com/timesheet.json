@@ -53,7 +53,7 @@
   },
   {
     "id": 1784272809436,
-    "date": "2026-07-16",
+    "date": "2026-07-17",
     "start": "08:25",
     "end": "09:19",
     "hours": 0.9,
@@ -61,7 +61,7 @@
     "category": "Other",
     "billable": "no",
     "notes": "meeting",
-    "updatedAt": 1784272809436,
+    "updatedAt": 1784287663904,
     "weekKey": "2026-W29"
   },
   {
@@ -83,11 +83,11 @@
     "start": "08:20",
     "end": "09:26",
     "hours": 1.1,
-    "project": "Admin",
+    "project": "Trainng",
     "category": "Training",
     "billable": "no",
     "notes": "",
-    "updatedAt": 1784266850107,
+    "updatedAt": 1784287289026,
     "weekKey": "2026-W29"
   },
   {
@@ -226,11 +226,11 @@
     "start": "10:56",
     "end": "12:00",
     "hours": 1.07,
-    "project": "Admin",
+    "project": "Trainng",
     "category": "Training",
     "billable": "no",
     "notes": "",
-    "updatedAt": 1784030338243,
+    "updatedAt": 1784287268649,
     "weekKey": "2026-W29"
   },
   {
