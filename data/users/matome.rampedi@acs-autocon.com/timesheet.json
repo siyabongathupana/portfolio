@@ -9,7 +9,8 @@
     "category": "Training",
     "billable": "no",
     "notes": "",
-    "updatedAt": 1784286313633
+    "updatedAt": 1784286313633,
+    "weekKey": "2026-W29"
   },
   {
     "id": 1784286180770,
@@ -21,7 +22,8 @@
     "category": "Other",
     "billable": "no",
     "notes": "",
-    "updatedAt": 1784286180770
+    "updatedAt": 1784286180770,
+    "weekKey": "2026-W29"
   },
   {
     "id": 1784286015264,
@@ -33,7 +35,8 @@
     "category": "Other",
     "billable": "no",
     "notes": "lunch",
-    "updatedAt": 1784286015264
+    "updatedAt": 1784286015264,
+    "weekKey": "2026-W29"
   },
   {
     "id": 1784281701066,
@@ -45,7 +48,8 @@
     "category": "Meetings",
     "billable": "yes",
     "notes": "",
-    "updatedAt": 1784286086644
+    "updatedAt": 1784286086644,
+    "weekKey": "2026-W29"
   },
   {
     "id": 1784272809436,
@@ -57,7 +61,8 @@
     "category": "Other",
     "billable": "no",
     "notes": "meeting",
-    "updatedAt": 1784272809436
+    "updatedAt": 1784272809436,
+    "weekKey": "2026-W29"
   },
   {
     "id": 1784266938945,
@@ -69,7 +74,8 @@
     "category": "Other",
     "billable": "no",
     "notes": "lunch",
-    "updatedAt": 1784266938945
+    "updatedAt": 1784266938945,
+    "weekKey": "2026-W29"
   },
   {
     "id": 1784266850107,
@@ -81,7 +87,8 @@
     "category": "Training",
     "billable": "no",
     "notes": "",
-    "updatedAt": 1784266850107
+    "updatedAt": 1784266850107,
+    "weekKey": "2026-W29"
   },
   {
     "id": 1784266806228,
@@ -93,7 +100,8 @@
     "category": "Other",
     "billable": "no",
     "notes": "coffee",
-    "updatedAt": 1784266806228
+    "updatedAt": 1784266806228,
+    "weekKey": "2026-W29"
   },
   {
     "id": 1784210683576,
@@ -105,7 +113,8 @@
     "category": "Other",
     "billable": "no",
     "notes": "",
-    "updatedAt": 1784210841526
+    "updatedAt": 1784210841526,
+    "weekKey": "2026-W29"
   },
   {
     "id": 1784200072346,
@@ -117,7 +126,8 @@
     "category": "Training",
     "billable": "no",
     "notes": "",
-    "updatedAt": 1784210765856
+    "updatedAt": 1784210765856,
+    "weekKey": "2026-W29"
   },
   {
     "id": 1784186784048,
@@ -129,7 +139,8 @@
     "category": "Documentation",
     "billable": "yes",
     "notes": "",
-    "updatedAt": 1784189098405
+    "updatedAt": 1784189098405,
+    "weekKey": "2026-W29"
   },
   {
     "id": 1784187561306,
@@ -141,7 +152,8 @@
     "category": "Other",
     "billable": "no",
     "notes": "lunch",
-    "updatedAt": 1784187561306
+    "updatedAt": 1784187561306,
+    "weekKey": "2026-W29"
   },
   {
     "id": 1784184563550,
@@ -153,7 +165,8 @@
     "category": "Training",
     "billable": "no",
     "notes": "",
-    "updatedAt": 1784184563550
+    "updatedAt": 1784184563550,
+    "weekKey": "2026-W29"
   },
   {
     "id": 1784184510679,
@@ -165,7 +178,8 @@
     "category": "Admin",
     "billable": "no",
     "notes": "medicals and car admin",
-    "updatedAt": 1784185312491
+    "updatedAt": 1784185312491,
+    "weekKey": "2026-W29"
   },
   {
     "id": 1784036022763,
@@ -177,7 +191,8 @@
     "category": "Training",
     "billable": "no",
     "notes": "",
-    "updatedAt": 1784036022763
+    "updatedAt": 1784036022763,
+    "weekKey": "2026-W29"
   },
   {
     "id": 1784032268427,
@@ -189,7 +204,8 @@
     "category": "Other",
     "billable": "no",
     "notes": "car from mico",
-    "updatedAt": 1784032268427
+    "updatedAt": 1784032268427,
+    "weekKey": "2026-W29"
   },
   {
     "id": 1784030532347,
@@ -201,7 +217,8 @@
     "category": "Other",
     "billable": "no",
     "notes": "Lunch",
-    "updatedAt": 1784030532347
+    "updatedAt": 1784030532347,
+    "weekKey": "2026-W29"
   },
   {
     "id": 1784030338243,
@@ -213,7 +230,8 @@
     "category": "Training",
     "billable": "no",
     "notes": "",
-    "updatedAt": 1784030338243
+    "updatedAt": 1784030338243,
+    "weekKey": "2026-W29"
   },
   {
     "id": 1784019386084,
@@ -225,7 +243,8 @@
     "category": "Documentation",
     "billable": "yes",
     "notes": "",
-    "updatedAt": 1784184930078
+    "updatedAt": 1784184930078,
+    "weekKey": "2026-W29"
   },
   {
     "id": 1784017422133,
@@ -233,11 +252,12 @@
     "start": "08:27",
     "end": "10:23",
     "hours": 1.93,
-    "project": "Admin",
+    "project": "Trainng",
     "category": "Training",
     "billable": "no",
     "notes": "",
-    "updatedAt": 1784017422133
+    "updatedAt": 1784287262730,
+    "weekKey": "2026-W29"
   },
   {
     "id": 1784010429542,
@@ -249,7 +269,8 @@
     "category": "Other",
     "billable": "no",
     "notes": "coffee",
-    "updatedAt": 1784010429542
+    "updatedAt": 1784010429542,
+    "weekKey": "2026-W29"
   },
   {
     "id": 1784187457253,
@@ -261,7 +282,8 @@
     "category": "Other",
     "billable": "no",
     "notes": "lunch",
-    "updatedAt": 1784187650003
+    "updatedAt": 1784187650003,
+    "weekKey": "2026-W29"
   },
   {
     "id": 1784185179564,
@@ -273,7 +295,8 @@
     "category": "Documentation",
     "billable": "yes",
     "notes": "",
-    "updatedAt": 1784185179564
+    "updatedAt": 1784185179564,
+    "weekKey": "2026-W29"
   },
   {
     "id": 1783950607248,
@@ -285,7 +308,8 @@
     "category": "Training",
     "billable": "no",
     "notes": "",
-    "updatedAt": 1784187396773
+    "updatedAt": 1784187396773,
+    "weekKey": "2026-W29"
   },
   {
     "id": 1783946218850,
@@ -297,6 +321,7 @@
     "category": "Documentation",
     "billable": "yes",
     "notes": "",
-    "updatedAt": 1784185118840
+    "updatedAt": 1784185118840,
+    "weekKey": "2026-W29"
   }
 ]
