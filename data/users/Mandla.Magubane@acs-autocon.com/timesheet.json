@@ -1,5 +1,41 @@
 [
   {
+    "id": 1784528287425,
+    "date": "2026-07-14",
+    "start": "06:30",
+    "end": "12:00",
+    "hours": 5.5,
+    "project": "Steam Station 2 DCS Replacement",
+    "category": "Site",
+    "billable": "yes",
+    "notes": "",
+    "updatedAt": 1784528287425
+  },
+  {
+    "id": 1784528256352,
+    "date": "2026-07-14",
+    "start": "12:30",
+    "end": "16:00",
+    "hours": 3.5,
+    "project": "Steam Station 2 DCS Replacement",
+    "category": "Documentation",
+    "billable": "yes",
+    "notes": "",
+    "updatedAt": 1784528256352
+  },
+  {
+    "id": 1784528226737,
+    "date": "2026-07-14",
+    "start": "07:00",
+    "end": "12:00",
+    "hours": 5,
+    "project": "Steam Station 2 DCS Replacement",
+    "category": "Documentation",
+    "billable": "yes",
+    "notes": "",
+    "updatedAt": 1784528226737
+  },
+  {
     "id": 1784528200841,
     "date": "2026-07-13",
     "start": "12:51",
