@@ -1,5 +1,17 @@
 [
   {
+    "id": 1784541120024,
+    "date": "2026-07-20",
+    "start": "09:00",
+    "end": "12:00",
+    "hours": 3,
+    "project": "Omnia PH3",
+    "category": "Implementation",
+    "billable": "yes",
+    "notes": "Omnia Turbine Speed Control URS Review",
+    "updatedAt": 1784541120024
+  },
+  {
     "id": 1784019204651,
     "date": "2026-07-13",
     "start": "08:00",
