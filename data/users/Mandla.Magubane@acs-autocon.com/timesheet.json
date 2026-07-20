@@ -1,5 +1,17 @@
 [
   {
+    "id": 1784529244797,
+    "date": "2026-07-16",
+    "start": "10:00",
+    "end": "12:45",
+    "hours": 2.75,
+    "project": "Steam Station 2 Effluent Upgrade",
+    "category": "Site",
+    "billable": "yes",
+    "notes": "",
+    "updatedAt": 1784529244797
+  },
+  {
     "id": 1784528744340,
     "date": "2026-07-17",
     "start": "13:00",
@@ -26,14 +38,14 @@
   {
     "id": 1784528432907,
     "date": "2026-07-16",
-    "start": "12:30",
+    "start": "13:30",
     "end": "17:30",
-    "hours": 5,
+    "hours": 4,
     "project": "Steam Station 2 DCS Replacement",
     "category": "Site",
     "billable": "yes",
     "notes": "",
-    "updatedAt": 1784528677401
+    "updatedAt": 1784529335177
   },
   {
     "id": 1784528418071,
