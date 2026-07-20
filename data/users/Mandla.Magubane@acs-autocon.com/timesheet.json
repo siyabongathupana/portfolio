@@ -1,15 +1,15 @@
 [
   {
-    "id": 1784529244797,
-    "date": "2026-07-16",
-    "start": "10:00",
-    "end": "12:45",
-    "hours": 2.75,
-    "project": "Steam Station 2 Effluent Upgrade",
-    "category": "Site",
-    "billable": "yes",
+    "id": 1784545697927,
+    "date": "2026-07-20",
+    "start": "07:45",
+    "end": "09:00",
+    "hours": 1.25,
+    "project": "Other",
+    "category": "Admin",
+    "billable": "no",
     "notes": "",
-    "updatedAt": 1784529244797
+    "updatedAt": 1784545697927
   },
   {
     "id": 1784528744340,
@@ -34,6 +34,18 @@
     "billable": "yes",
     "notes": "",
     "updatedAt": 1784528715632
+  },
+  {
+    "id": 1784529244797,
+    "date": "2026-07-16",
+    "start": "10:00",
+    "end": "12:45",
+    "hours": 2.75,
+    "project": "Steam Station 2 Effluent Upgrade",
+    "category": "Site",
+    "billable": "yes",
+    "notes": "",
+    "updatedAt": 1784529244797
   },
   {
     "id": 1784528432907,
