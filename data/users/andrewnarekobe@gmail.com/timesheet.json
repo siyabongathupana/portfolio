@@ -1,5 +1,17 @@
 [
   {
+    "id": 1784631753631,
+    "date": "2026-07-21",
+    "start": "09:40",
+    "end": "12:00",
+    "hours": 2.33,
+    "project": "Omnia PH3",
+    "category": "Implementation",
+    "billable": "yes",
+    "notes": "Adding sis",
+    "updatedAt": 1784631753631
+  },
+  {
     "id": 1784622663076,
     "date": "2026-07-21",
     "start": "09:30",
