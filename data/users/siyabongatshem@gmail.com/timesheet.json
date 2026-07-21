@@ -1,5 +1,17 @@
 [
   {
+    "id": 1784636430428,
+    "date": "2026-07-20",
+    "start": "13:30",
+    "end": "14:30",
+    "hours": 1,
+    "project": "Omnia Turbine Speed",
+    "category": "Meetings",
+    "billable": "yes",
+    "notes": "TQ Discussions",
+    "updatedAt": 1784636430428
+  },
+  {
     "id": 1784632134370,
     "date": "2026-07-17",
     "start": "14:30",
