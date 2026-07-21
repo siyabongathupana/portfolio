@@ -1,5 +1,17 @@
 [
   {
+    "id": 1784636627865,
+    "date": "2026-07-21",
+    "start": "07:45",
+    "end": "11:30",
+    "hours": 3.75,
+    "project": "Steam station 2",
+    "category": "Documentation",
+    "billable": "yes",
+    "notes": "",
+    "updatedAt": 1784636627865
+  },
+  {
     "id": 1784552055825,
     "date": "2026-07-20",
     "start": "12:00",
