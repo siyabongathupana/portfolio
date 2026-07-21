@@ -1,5 +1,17 @@
 [
   {
+    "id": 1784618866093,
+    "date": "2026-07-21",
+    "start": "06:48",
+    "end": "08:15",
+    "hours": 1.45,
+    "project": "MIBK 1&2",
+    "category": "Training",
+    "billable": "yes",
+    "notes": "updating tex on IO Drawing( will have to check project hours left)",
+    "updatedAt": 1784618866093
+  },
+  {
     "id": 1784555080480,
     "date": "2026-07-20",
     "start": "13:10",
