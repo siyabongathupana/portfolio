@@ -1,5 +1,17 @@
 [
   {
+    "id": 1784622663076,
+    "date": "2026-07-21",
+    "start": "09:30",
+    "end": "09:40",
+    "hours": 0.17,
+    "project": "Omnia PH3",
+    "category": "Training",
+    "billable": "no",
+    "notes": "discuss hot and cold start",
+    "updatedAt": 1784622663076
+  },
+  {
     "id": 1784619381498,
     "date": "2026-07-21",
     "start": "08:15",
