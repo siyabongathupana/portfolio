@@ -1,5 +1,17 @@
 [
   {
+    "id": 1784619381498,
+    "date": "2026-07-21",
+    "start": "08:15",
+    "end": "09:30",
+    "hours": 1.25,
+    "project": "Omnia PH3",
+    "category": "Training",
+    "billable": "no",
+    "notes": "discussing SIS CONFIGURATION",
+    "updatedAt": 1784619381498
+  },
+  {
     "id": 1784618866093,
     "date": "2026-07-21",
     "start": "06:48",
