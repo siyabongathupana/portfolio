@@ -1,17 +1,5 @@
 [
   {
-    "id": 1784751797511,
-    "date": "2026-07-22",
-    "start": "22:23",
-    "end": "12:12",
-    "hours": 13.82,
-    "project": "ATKSS",
-    "category": "Training",
-    "billable": "yes",
-    "notes": "TEST",
-    "updatedAt": 1784751797511
-  },
-  {
     "id": 1784724182442,
     "date": "2026-07-22",
     "start": "13:00",
