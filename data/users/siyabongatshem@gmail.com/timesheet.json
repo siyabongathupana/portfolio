@@ -1,15 +1,15 @@
 [
   {
-    "id": 1784704946874,
-    "date": "2026-07-20",
-    "start": "08:30",
-    "end": "12:00",
-    "hours": 3.5,
-    "project": "Other",
-    "category": "Training",
-    "billable": "no",
-    "notes": "",
-    "updatedAt": 1784704946874
+    "id": 1784714516929,
+    "date": "2026-07-22",
+    "start": "10:30",
+    "end": "11:20",
+    "hours": 0.83,
+    "project": "Omnia Turbine Speed",
+    "category": "Implementation",
+    "billable": "yes",
+    "notes": "Implementing Time Logic",
+    "updatedAt": 1784714516929
   },
   {
     "id": 1784703012444,
@@ -22,6 +22,18 @@
     "billable": "yes",
     "notes": "Implementing Changes & Documentation",
     "updatedAt": 1784703012444
+  },
+  {
+    "id": 1784704946874,
+    "date": "2026-07-20",
+    "start": "08:30",
+    "end": "12:00",
+    "hours": 3.5,
+    "project": "Other",
+    "category": "Training",
+    "billable": "no",
+    "notes": "",
+    "updatedAt": 1784704946874
   },
   {
     "id": 1784636430428,
