@@ -1,5 +1,17 @@
 [
   {
+    "id": 1784714564126,
+    "date": "2026-07-22",
+    "start": "11:30",
+    "end": "12:02",
+    "hours": 0.53,
+    "project": "Omnia Phase 3",
+    "category": "Other",
+    "billable": "yes",
+    "notes": "Looking for Charms(SIS)",
+    "updatedAt": 1784714649843
+  },
+  {
     "id": 1784714516929,
     "date": "2026-07-22",
     "start": "10:30",
