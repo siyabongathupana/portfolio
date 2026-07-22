@@ -96,18 +96,6 @@
     "updatedAt": 1784611790960
   },
   {
-    "id": 1784124726337,
-    "date": "2026-07-15",
-    "start": "15:32",
-    "end": "16:02",
-    "hours": 0.5,
-    "project": "Other",
-    "category": "Admin",
-    "billable": "no",
-    "notes": "Timesheets and Emails (copy)",
-    "updatedAt": 1784124726337
-  },
-  {
     "id": 1784124194637,
     "date": "2026-07-15",
     "start": "15:32",
