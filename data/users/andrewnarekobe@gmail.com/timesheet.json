@@ -1,5 +1,17 @@
 [
   {
+    "id": 1784808674906,
+    "date": "2026-07-23",
+    "start": "09:00",
+    "end": "12:30",
+    "hours": 3.5,
+    "project": "Omnia PH3",
+    "category": "Documentation",
+    "billable": "yes",
+    "notes": "SAT Document for Turbine speed control",
+    "updatedAt": 1784808674906
+  },
+  {
     "id": 1784631753631,
     "date": "2026-07-21",
     "start": "09:40",
