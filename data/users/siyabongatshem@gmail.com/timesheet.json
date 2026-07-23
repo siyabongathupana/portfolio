@@ -1,5 +1,17 @@
 [
   {
+    "id": 1784813741186,
+    "date": "2026-07-23",
+    "start": "08:40",
+    "end": "17:15",
+    "hours": 8.58,
+    "project": "Omnia Turbine Speed",
+    "category": "Documentation",
+    "billable": "yes",
+    "notes": "SFDS, Graphic (DO Buttons)",
+    "updatedAt": 1784819543702
+  },
+  {
     "id": 1784818606756,
     "date": "2026-07-22",
     "start": "12:02",
@@ -34,18 +46,6 @@
     "billable": "no",
     "notes": "",
     "updatedAt": 1784818397067
-  },
-  {
-    "id": 1784813741186,
-    "date": "2026-07-23",
-    "start": "08:40",
-    "end": "17:00",
-    "hours": 8.33,
-    "project": "Omnia Turbine Speed",
-    "category": "Documentation",
-    "billable": "yes",
-    "notes": "SFDS, Graphic (DO Buttons)",
-    "updatedAt": 1784818325527
   },
   {
     "id": 1784724182442,
