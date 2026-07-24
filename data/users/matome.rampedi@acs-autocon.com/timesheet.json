@@ -1,5 +1,41 @@
 [
   {
+    "id": 1784895925927,
+    "date": "2026-07-24",
+    "start": "12:40",
+    "end": "15:00",
+    "hours": 2.33,
+    "project": "Steam station 2",
+    "category": "Documentation",
+    "billable": "yes",
+    "notes": "",
+    "updatedAt": 1784895925927
+  },
+  {
+    "id": 1784895896449,
+    "date": "2026-07-24",
+    "start": "11:35",
+    "end": "12:00",
+    "hours": 0.42,
+    "project": "Steam station 2",
+    "category": "Documentation",
+    "billable": "yes",
+    "notes": "",
+    "updatedAt": 1784895896449
+  },
+  {
+    "id": 1784895872288,
+    "date": "2026-07-24",
+    "start": "10:30",
+    "end": "11:00",
+    "hours": 0.5,
+    "project": "Steam station 2",
+    "category": "Documentation",
+    "billable": "yes",
+    "notes": "",
+    "updatedAt": 1784895872288
+  },
+  {
     "id": 1784895851823,
     "date": "2026-07-24",
     "start": "07:30",
