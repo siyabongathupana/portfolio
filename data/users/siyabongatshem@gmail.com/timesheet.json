@@ -1,15 +1,15 @@
 [
   {
-    "id": 1784813741186,
-    "date": "2026-07-23",
-    "start": "08:40",
-    "end": "17:15",
-    "hours": 8.58,
-    "project": "Omnia Turbine Speed",
-    "category": "Documentation",
-    "billable": "yes",
-    "notes": "SFDS, Graphic (DO Buttons)",
-    "updatedAt": 1784819543702
+    "id": 1784892856212,
+    "date": "2026-07-20",
+    "start": "14:30",
+    "end": "17:30",
+    "hours": 3,
+    "project": "Other",
+    "category": "Training",
+    "billable": "no",
+    "notes": "",
+    "updatedAt": 1784892856212
   },
   {
     "id": 1784892142827,
@@ -22,6 +22,18 @@
     "billable": "no",
     "notes": "Site CFAT",
     "updatedAt": 1784892362121
+  },
+  {
+    "id": 1784813741186,
+    "date": "2026-07-23",
+    "start": "08:40",
+    "end": "17:15",
+    "hours": 8.58,
+    "project": "Omnia Turbine Speed",
+    "category": "Documentation",
+    "billable": "yes",
+    "notes": "SFDS, Graphic (DO Buttons)",
+    "updatedAt": 1784819543702
   },
   {
     "id": 1784818606756,
