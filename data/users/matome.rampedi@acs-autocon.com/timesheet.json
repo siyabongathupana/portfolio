@@ -1,5 +1,29 @@
 [
   {
+    "id": 1784870984779,
+    "date": "2026-07-23",
+    "start": "13:00",
+    "end": "15:45",
+    "hours": 2.75,
+    "project": "Admin",
+    "category": "Software",
+    "billable": "yes",
+    "notes": "",
+    "updatedAt": 1784870984779
+  },
+  {
+    "id": 1784870911707,
+    "date": "2026-07-23",
+    "start": "11:30",
+    "end": "12:00",
+    "hours": 0.5,
+    "project": "Admin",
+    "category": "Other",
+    "billable": "no",
+    "notes": "coffee",
+    "updatedAt": 1784870911707
+  },
+  {
     "id": 1784870891620,
     "date": "2026-07-23",
     "start": "07:20",
