@@ -119,6 +119,10 @@
     .custom-switch .custom-control-input:checked ~ .custom-control-label:before { background-color: #2fc7ff; }
     .btn-excel { background: #28a745; color: white; border: none; }
     .btn-excel:hover { background: #218838; color: white; }
+    .sync-status { font-size: 0.8rem; color: #6c757d; }
+    .sync-status.saving { color: #ffc107; }
+    .sync-status.saved { color: #28a745; }
+    .sync-status.error { color: #dc3545; }
     @media (max-width: 768px) {
       .timesheet-container { padding: 12px; margin: 10px; border-radius: 16px; }
       .quick-log-card { padding: 15px; }
@@ -280,10 +284,13 @@
   <div class="filter-bar">
     <div class="filter-controls">
       <label class="mb-0 mr-2">View:</label>
-      <select id="filterRange" class="form-control form-control-sm" style="width:110px;">
+      <select id="filterRange" class="form-control form-control-sm" style="width:130px;">
         <option value="day">Today</option>
         <option value="week" selected>This Week</option>
         <option value="month">This Month</option>
+        <option value="lastWeek">Last Week</option>
+        <option value="lastMonth">Last Month</option>
+        <option value="last30">Last 30 Days</option>
         <option value="all">All Time</option>
       </select>
       <label class="mb-0 mr-2 ml-2">Project:</label>
@@ -307,7 +314,9 @@
         <option>Other</option>
       </select>
     </div>
-    <div style="display: inline-flex; align-items: center; gap: 8px; margin-left: 15px;">
+    <div style="display: inline-flex; align-items: center; gap: 8px;">
+      <button id="saveToGithubBtn" class="btn btn-sm btn-outline-success" title="Force sync to GitHub"><i class="fa fa-cloud-upload"></i> Save</button>
+      <span id="syncStatus" class="sync-status">Synced</span>
       <div id="standaloneTrafficLight"></div>
       <button id="downloadRulesBtn" class="btn btn-sm btn-outline-info" title="Download traffic light rules">
         <i class="fa fa-download"></i>
@@ -391,7 +400,6 @@
             <li>📊 Detailed timesheet data table</li>
             <li>📈 6 interactive charts</li>
             <li>🔒 Password-protected worksheet</li>
-            <li>📋 Summary with KPI metrics</li>
           </ul>
         </div>
       </div>
