@@ -1,4 +1,8 @@
+// This code still has errors, to be fixed
 // timesheet.js – Optimistic UI with background sync + Yearly Calendar + Progress Loader
+// Enhanced with "Last Week", "Last Month", "Last 30 Days" filters, localStorage cache, manual sync, sync status feedback
+// FIXES: UTC timezone consistency, race-free force sync, status indicator improvements
+
 (function() {
   const user = window.SessionManager?.getCurrentUser();
   if (!user) {
@@ -43,6 +47,7 @@
   const TIMESHEET_PROJECTS_FILE = "timesheet_projects.json";
   const USER_META_FILE = "user_meta.json";
   const PREFS_FILE = "preferences.json";
+  const LOCAL_STORAGE_KEY = 'timesheet_entries_cache';
 
   let entries = [];
   let timesheetProjects = [];
@@ -57,6 +62,58 @@
   let _projectsLoaded = false;
   let _isSaving = false;
   let _saveQueue = [];
+  let _syncStatusTimeout = null;
+
+  // ======================== LOCAL STORAGE CACHE ========================
+  function saveToLocalStorage(entriesArray) {
+    try {
+      const data = {
+        entries: entriesArray,
+        timestamp: Date.now(),
+        version: '1.0'
+      };
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data));
+    } catch (e) {
+      console.warn('Failed to save timesheet to localStorage:', e);
+    }
+  }
+
+  function loadFromLocalStorage() {
+    try {
+      const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (!raw) return null;
+      const data = JSON.parse(raw);
+      if (data && Array.isArray(data.entries)) {
+        console.log(`📦 Loaded ${data.entries.length} entries from localStorage (cached at ${new Date(data.timestamp).toLocaleString()})`);
+        return data.entries;
+      }
+      return null;
+    } catch (e) {
+      console.warn('Failed to load timesheet from localStorage:', e);
+      return null;
+    }
+  }
+
+  // ======================== SYNC STATUS UI ========================
+  function updateSyncStatus(message, type = 'saved') {
+    const el = document.getElementById('syncStatus');
+    if (!el) return;
+    el.textContent = message;
+    el.className = 'sync-status';
+    if (type === 'saving') el.classList.add('saving');
+    else if (type === 'saved') el.classList.add('saved');
+    else if (type === 'error') el.classList.add('error');
+    // Only auto-revert if not "saving" – we don't want to revert while a save is ongoing
+    if (type !== 'saving') {
+      if (_syncStatusTimeout) clearTimeout(_syncStatusTimeout);
+      _syncStatusTimeout = setTimeout(() => {
+        if (el) {
+          el.textContent = 'Synced';
+          el.className = 'sync-status saved';
+        }
+      }, 4000);
+    }
+  }
 
   function showToast(message, type = "success") {
     const container = document.getElementById("toastContainer");
@@ -90,7 +147,6 @@
           </div>
         </div>
       `;
-      // Add styles
       const style = document.createElement('style');
       style.textContent = `
         .progress-overlay {
@@ -182,11 +238,12 @@
   }
 
   // ======================== DATA LOAD & SAVE ========================
-  async function loadTimesheet() {
+  async function loadTimesheet(useCache = true) {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(user.username);
     const path = `${dataPath}/users/${encUser}/${TIMESHEET_FILE}`;
     const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`;
+    let loadedFromGitHub = false;
     try {
       const resp = await githubFetchWithAuth(url, { headers: { Authorization: `token ${user.pat}`, Accept: 'application/vnd.github.v3+json' } });
       if (resp.ok) {
@@ -203,32 +260,74 @@
         entries = Array.isArray(parsed) ? parsed : [];
         entries = entries.map(e => ({ ...e, updatedAt: e.updatedAt || e.id }));
         entries.sort((a, b) => new Date(b.date) - new Date(a.date));
-      } else if (resp.status === 404) entries = [];
-      else throw new Error(`HTTP ${resp.status}`);
-    } catch(e) {
-      if (!e.message.includes("Token expired")) {
-        console.error("Failed to load timesheet:", e);
-        showToast("Could not load timesheet data. Using local cache.", "warning");
+        loadedFromGitHub = true;
+        saveToLocalStorage(entries);
+        updateSyncStatus('Synced', 'saved');
+      } else if (resp.status === 404) {
+        entries = [];
+        saveToLocalStorage(entries);
+        loadedFromGitHub = true;
+      } else {
+        throw new Error(`HTTP ${resp.status}`);
       }
+    } catch(e) {
+      if (e.message.includes("Token expired")) {
+        return;
+      }
+      console.warn('Failed to load from GitHub, trying localStorage:', e);
+      if (useCache) {
+        const cached = loadFromLocalStorage();
+        if (cached) {
+          entries = cached;
+          entries.sort((a, b) => new Date(b.date) - new Date(a.date));
+          showToast('Loaded from local cache (GitHub unavailable).', 'warning');
+          updateSyncStatus('Offline (cached)', 'error');
+        } else {
+          entries = [];
+          showToast('Could not load any data. Starting fresh.', 'error');
+          updateSyncStatus('No data', 'error');
+        }
+      } else {
+        entries = [];
+        showToast('Could not load data.', 'error');
+      }
+    }
+    if (loadedFromGitHub) {
+      saveToLocalStorage(entries);
     }
   }
 
-  // Background sync: push local entries to GitHub with retries
-  async function syncEntriesToGitHub(force = false) {
-    if (_isSaving && !force) {
-      return new Promise((resolve) => {
-        _saveQueue.push(resolve);
-      });
+  // ------------------ SYNC WITH RACE-FREE FORCE ------------------
+  async function syncEntriesToGitHub(force = false, showFeedback = false) {
+    // If a save is already in progress, wait for it if forced
+    if (_isSaving) {
+      if (force) {
+        // Wait for the current save to finish
+        while (_isSaving) {
+          await new Promise(r => setTimeout(r, 100));
+        }
+        // Then proceed (fall through)
+      } else {
+        if (showFeedback) showToast('Sync already in progress...', 'info');
+        return new Promise((resolve) => {
+          _saveQueue.push(resolve);
+        });
+      }
     }
+
     _isSaving = true;
+    if (showFeedback) updateSyncStatus('Saving...', 'saving');
     try {
       await _doSaveEntries(entries);
+      updateSyncStatus('Synced', 'saved');
+      showToast('Data saved to GitHub.', 'success');
       while (_saveQueue.length) {
         const resolve = _saveQueue.shift();
         resolve();
       }
     } catch (err) {
       console.error("Background sync failed:", err);
+      updateSyncStatus('Sync failed', 'error');
       showToast("⚠️ Could not save to GitHub. Your data is safe locally but not synced.", "error");
       while (_saveQueue.length) {
         const resolve = _saveQueue.shift();
@@ -265,6 +364,7 @@
         const putResp = await githubFetchWithAuth(putUrl, { method: 'PUT', headers: { Authorization: `token ${user.pat}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
         if (!putResp.ok) throw new Error(`GitHub API error: ${putResp.status}`);
         entries = [...dataToSave];
+        saveToLocalStorage(entries);
         return true;
       } catch (err) {
         lastError = err;
@@ -396,16 +496,13 @@
 
     const newEntry = { id: Date.now(), date, start, end, hours, project, category, billable, notes, updatedAt: Date.now() };
 
-    // 1. Optimistically add to local array
     entries = [newEntry, ...entries];
-
-    // 2. Immediately re-render UI
+    saveToLocalStorage(entries);
     renderHistory();
     updateSummaryAndProgress();
     updateCharts();
     showToast(duplicateData ? "Entry duplicated!" : "Entry saved locally.", "success");
 
-    // 3. Clear form (if not duplicate)
     if (!duplicateData) {
       document.getElementById('startTime').value = '';
       document.getElementById('endTime').value = '';
@@ -413,21 +510,21 @@
       document.getElementById('hoursAuto').value = '';
     }
 
-    // 4. Background sync to GitHub (don't await – let it run)
-    syncEntriesToGitHub().catch(err => console.warn("Background sync error:", err));
+    debouncedSync();
   }
 
-  // ======================== DELETE / EDIT / DUPLICATE – also optimistic ========================
+  // ======================== DELETE / EDIT / DUPLICATE ========================
   async function deleteEntry(id) {
     if (!confirm("Delete this entry?")) return;
     const deleted = entries.find(e => e.id == id);
     if (!deleted) return;
     entries = entries.filter(e => e.id != id);
+    saveToLocalStorage(entries);
     renderHistory();
     updateSummaryAndProgress();
     updateCharts();
     showToast("Entry deleted locally.", "success");
-    syncEntriesToGitHub().catch(err => console.warn("Background sync error:", err));
+    debouncedSync();
   }
 
   async function saveEdit() {
@@ -447,13 +544,14 @@
     if (index === -1) { showToast("Entry not found.", "error"); return; }
     const updatedEntry = { ...entries[index], date, start, end, hours, project, category, billable, notes, updatedAt: Date.now() };
     entries[index] = updatedEntry;
+    saveToLocalStorage(entries);
 
     renderHistory();
     updateSummaryAndProgress();
     updateCharts();
     $('#editModal').modal('hide');
     showToast("Entry updated locally.", "success");
-    syncEntriesToGitHub().catch(err => console.warn("Background sync error:", err));
+    debouncedSync();
   }
 
   async function duplicateEntry(entry) { await addEntry(entry); }
@@ -471,18 +569,49 @@
     $('#editModal').modal('show');
   }
 
+  // ======================== DEBOUNCED SYNC ========================
+  let _debounceTimer = null;
+  function debouncedSync() {
+    if (_debounceTimer) clearTimeout(_debounceTimer);
+    _debounceTimer = setTimeout(() => {
+      syncEntriesToGitHub(false, false).catch(err => console.warn("Sync error:", err));
+      _debounceTimer = null;
+    }, 3000);
+  }
+
   // ======================== FILTERS & RENDERING ========================
   function getFilteredEntries() {
     const range = document.getElementById('filterRange').value;
     const project = document.getElementById('filterProject').value;
     const category = document.getElementById('filterCategory').value;
     
-    const today = new Date();
+    // Use UTC date for all calculations to avoid timezone shifts
+    const now = new Date();
+    const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
     const todayYMD = formatDate(today);
     const thisMonthPrefix = todayYMD.substring(0, 7);
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setUTCDate(thirtyDaysAgo.getUTCDate() - 30);
+    
+    const thirtyDaysAgo = new Date(today);
+    thirtyDaysAgo.setUTCDate(today.getUTCDate() - 30);
     const thirtyDaysAgoStr = formatDate(thirtyDaysAgo);
+    
+    const todayDay = today.getUTCDay();
+    const currentMonday = new Date(today);
+    currentMonday.setUTCDate(today.getUTCDate() - (todayDay === 0 ? 6 : todayDay - 1));
+    currentMonday.setUTCHours(0,0,0,0);
+    const lastMonday = new Date(currentMonday);
+    lastMonday.setUTCDate(currentMonday.getUTCDate() - 7);
+    const lastSunday = new Date(lastMonday);
+    lastSunday.setUTCDate(lastMonday.getUTCDate() + 6);
+    const lastMondayStr = formatDate(lastMonday);
+    const lastSundayStr = formatDate(lastSunday);
+    
+    const lastMonth = new Date(today);
+    lastMonth.setUTCMonth(today.getUTCMonth() - 1);
+    const lastMonthStart = new Date(lastMonth.getUTCFullYear(), lastMonth.getUTCMonth(), 1);
+    const lastMonthEnd = new Date(lastMonth.getUTCFullYear(), lastMonth.getUTCMonth() + 1, 0);
+    const lastMonthStartStr = formatDate(lastMonthStart);
+    const lastMonthEndStr = formatDate(lastMonthEnd);
     
     let filtered = [...entries];
     if (range !== 'all') {
@@ -494,13 +623,8 @@
         if (range === 'week') {
           const d = new Date(entryDate);
           d.setUTCHours(0, 0, 0, 0);
-          const now = new Date();
-          now.setUTCHours(0, 0, 0, 0);
-          const day = now.getUTCDay();
-          const diff = (day === 0 ? 6 : day - 1);
-          const startOfWeek = new Date(now);
-          startOfWeek.setUTCDate(now.getUTCDate() - diff);
-          startOfWeek.setUTCHours(0, 0, 0, 0);
+          const startOfWeek = new Date(currentMonday);
+          startOfWeek.setUTCHours(0,0,0,0);
           const endOfWeek = new Date(startOfWeek);
           endOfWeek.setUTCDate(startOfWeek.getUTCDate() + 6);
           endOfWeek.setUTCHours(23, 59, 59, 999);
@@ -508,6 +632,12 @@
         }
         if (range === 'month') {
           return entryDate.substring(0, 7) === thisMonthPrefix;
+        }
+        if (range === 'lastWeek') {
+          return entryDate >= lastMondayStr && entryDate <= lastSundayStr;
+        }
+        if (range === 'lastMonth') {
+          return entryDate >= lastMonthStartStr && entryDate <= lastMonthEndStr;
         }
         if (range === 'last30') {
           return entryDate >= thirtyDaysAgoStr;
@@ -596,8 +726,8 @@
     document.getElementById('summaryCard').style.display = 'flex';
 
     const now = new Date();
-    const todayUTC = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
-    const todayStr = todayUTC.toISOString().split('T')[0];
+    const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    const todayStr = formatDate(todayUTC);
     const todayHours = entries.filter(e => e.date === todayStr).reduce((s,e) => s + e.hours, 0);
     
     const percent = Math.min(100, (todayHours / 8) * 100);
@@ -1569,8 +1699,8 @@
 
       // ===== 9. OVERTIME DAYS =====
       rowIdx = addSectionHeader("⚠️ OVERTIME DAYS (>8h)", rowIdx);
-      const overtimeDays = filtered.filter(e => e.hours > 8);
-      const overtimeTable = overtimeDays.map(e => [e.date, e.hours.toFixed(2)]);
+      const overtimeDaysList = filtered.filter(e => e.hours > 8);
+      const overtimeTable = overtimeDaysList.map(e => [e.date, e.hours.toFixed(2)]);
       if (overtimeTable.length === 0) overtimeTable.push(["None", ""]);
       rowIdx = addTwoColumnTable(overtimeTable, rowIdx, "Date", "Hours");
       rowIdx += 1;
@@ -1593,7 +1723,7 @@
       rowIdx = addSectionHeader("💚 PORTFOLIO HEALTH SCORE", rowIdx);
       let healthScore = 100;
       if (adminRatio > 15) healthScore -= 10;
-      if (overtimeDays.length > 3) healthScore -= 15;
+      if (overtimeDaysList.length > 3) healthScore -= 15;
       if (uniqueProjects === 0) healthScore -= 50;
       healthScore = Math.max(0, healthScore);
       const scoreCell = analysisSheet.getCell(`A${rowIdx}`);
@@ -1950,7 +2080,6 @@
       showToast("Excel generation failed: " + err.message, "error");
       hideProgressLoader();
     } finally {
-      // Ensure loader is hidden if something goes wrong
       setTimeout(hideProgressLoader, 3000);
     }
   }
@@ -2004,7 +2133,7 @@
   async function refreshView() {
     window.showLoading("Refreshing from GitHub...");
     try {
-      await loadTimesheet();
+      await loadTimesheet(true);
       await loadProjectsForTimesheet(false);
       renderHistory();
       updateSummaryAndProgress();
@@ -2033,10 +2162,24 @@
     document.getElementById('addEntryBtn').onclick = () => addEntry();
     document.getElementById('refreshHistoryBtn').onclick = () => refreshView();
     document.getElementById('printBtn').onclick = () => window.print();
-    document.getElementById('filterRange').onchange = () => { renderHistory(); updateSummaryAndProgress(); updateCharts(); };
+    document.getElementById('filterRange').onchange = () => { renderHistory(); updateSummaryAndProgress(); updateCharts(); localStorage.setItem('timesheet_filterRange', document.getElementById('filterRange').value); };
     document.getElementById('filterProject').onchange = () => { renderHistory(); updateSummaryAndProgress(); updateCharts(); };
     document.getElementById('filterCategory').onchange = () => { renderHistory(); updateSummaryAndProgress(); updateCharts(); };
     document.getElementById('saveNameBtn').onclick = async () => { const newName = document.getElementById('userFullName')?.value.trim(); if(!newName) return; window.showLoading("Saving name..."); try { await saveUserMeta(newName); showToast("Name saved."); } catch(err){ showToast("Failed: "+err.message,"error"); } finally{ window.hideLoading(); } };
+
+    // Manual sync button – now race-free
+    document.getElementById('saveToGithubBtn').addEventListener('click', async () => {
+      if (_isSaving) { showToast('Sync already in progress...', 'info'); return; }
+      window.showLoading('Saving to GitHub...');
+      try {
+        await syncEntriesToGitHub(true, true);
+        showToast('Data synced to GitHub.', 'success');
+      } catch (err) {
+        showToast('Sync failed: ' + err.message, 'error');
+      } finally {
+        window.hideLoading();
+      }
+    });
 
     const manageProjectsBtn = document.createElement('button');
     manageProjectsBtn.type = 'button';
@@ -2068,7 +2211,6 @@
     };
     document.getElementById('saveEditBtn').onclick = saveEdit;
 
-    // Delegated event listener for table actions
     document.getElementById('historyBody').addEventListener('click', function(e) {
       const target = e.target.closest('button');
       if (!target) return;
@@ -2090,8 +2232,7 @@
     document.getElementById('notificationsToggle').addEventListener('change', async (e) => { window.showLoading("Saving preference..."); try { await saveNotificationPreference(e.target.checked); showToast(e.target.checked ? "Notifications enabled" : "Notifications disabled"); } catch(err){ if(err.message.includes("401")){ showToast("Token expired. Please login again.","error"); window.SessionManager.logout(); setTimeout(()=>window.location.href="login.html",2000); } else showToast("Failed: "+err.message,"error"); e.target.checked = !e.target.checked; } finally{ window.hideLoading(); } });
 
     await loadUserMeta();
-    // Load entries from GitHub initially
-    await loadTimesheet();
+    await loadTimesheet(true);
     await loadProjectsForTimesheet(false);
     renderHistory();
     updateSummaryAndProgress();
@@ -2101,6 +2242,18 @@
     window.__timesheetProjectOptions = allProjectOptions;
     document.dispatchEvent(new Event('timesheetUpdated'));
     startAutoRefresh();
+
+    // Restore filter selection
+    const savedFilter = localStorage.getItem('timesheet_filterRange');
+    if (savedFilter) {
+      const select = document.getElementById('filterRange');
+      if (select && select.querySelector(`option[value="${savedFilter}"]`)) {
+        select.value = savedFilter;
+        renderHistory();
+        updateSummaryAndProgress();
+        updateCharts();
+      }
+    }
   }
 
   function showManageProjectsModal() {
