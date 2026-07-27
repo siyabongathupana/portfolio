@@ -1,15 +1,15 @@
 [
   {
     "id": 1785135583605,
-    "date": "2026-07-20",
+    "date": "2026-07-27",
     "start": "07:45",
     "end": "08:00",
     "hours": 0.25,
     "project": "Admin",
     "category": "Admin",
-    "billable": "yes",
+    "billable": "no",
     "notes": "coffee",
-    "updatedAt": 1785135583605
+    "updatedAt": 1785135728072
   },
   {
     "id": 1784895925927,
@@ -217,15 +217,15 @@
   },
   {
     "id": 1785135482793,
-    "date": "2026-07-20",
+    "date": "2026-07-27",
     "start": "08:00",
     "end": "08:30",
     "hours": 0.5,
     "project": "Admin",
     "category": "Admin",
-    "billable": "yes",
+    "billable": "no",
     "notes": "hours",
-    "updatedAt": 1785135482793
+    "updatedAt": 1785135635312
   },
   {
     "id": 1784552055825,
