@@ -1,5 +1,17 @@
 [
   {
+    "id": 1785186739806,
+    "date": "2026-07-27",
+    "start": "06:45",
+    "end": "18:55",
+    "hours": 12.17,
+    "project": "Omnia PH3",
+    "category": "Site",
+    "billable": "yes",
+    "notes": "Import and Loop Test for Turbine Speed Control",
+    "updatedAt": 1785186739806
+  },
+  {
     "id": 1784808674906,
     "date": "2026-07-23",
     "start": "09:00",
