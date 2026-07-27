@@ -2,14 +2,14 @@
   {
     "id": 1785153979279,
     "date": "2026-07-27",
-    "start": "08:40",
+    "start": "10:13",
     "end": "14:05",
-    "hours": 5.42,
+    "hours": 3.87,
     "project": "Omnia Turbine Speed",
     "category": "Other",
     "billable": "yes",
     "notes": "Changes (Time logics, from sec to min)",
-    "updatedAt": 1785153979279
+    "updatedAt": 1785154209630
   },
   {
     "id": 1785140062092,
