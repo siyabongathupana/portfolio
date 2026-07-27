@@ -1,5 +1,17 @@
 [
   {
+    "id": 1785140062092,
+    "date": "2026-07-27",
+    "start": "08:40",
+    "end": "10:13",
+    "hours": 1.55,
+    "project": "Other",
+    "category": "Training",
+    "billable": "yes",
+    "notes": "Corrosion and Erosion in Pipelines",
+    "updatedAt": 1785140062092
+  },
+  {
     "id": 1785079569966,
     "date": "2026-07-26",
     "start": "17:00",
@@ -9,7 +21,8 @@
     "category": "Implementation",
     "billable": "yes",
     "notes": "Backpunching",
-    "updatedAt": 1785092643526
+    "updatedAt": 1785092643526,
+    "weekKey": "2026-W30"
   },
   {
     "id": 1784892142827,
@@ -21,7 +34,8 @@
     "category": "CFAT",
     "billable": "no",
     "notes": "Site CFAT",
-    "updatedAt": 1784892362121
+    "updatedAt": 1784892362121,
+    "weekKey": "2026-W30"
   },
   {
     "id": 1784813741186,
@@ -33,7 +47,8 @@
     "category": "Documentation",
     "billable": "yes",
     "notes": "SFDS, Graphic (DO Buttons)",
-    "updatedAt": 1784819543702
+    "updatedAt": 1784819543702,
+    "weekKey": "2026-W30"
   },
   {
     "id": 1784818606756,
@@ -45,7 +60,8 @@
     "category": "Admin",
     "billable": "no",
     "notes": "",
-    "updatedAt": 1784818606756
+    "updatedAt": 1784818606756,
+    "weekKey": "2026-W30"
   },
   {
     "id": 1784818527444,
@@ -57,7 +73,8 @@
     "category": "Implementation",
     "billable": "yes",
     "notes": "",
-    "updatedAt": 1784818527444
+    "updatedAt": 1784818527444,
+    "weekKey": "2026-W30"
   },
   {
     "id": 1784818397067,
@@ -69,7 +86,8 @@
     "category": "Training",
     "billable": "no",
     "notes": "",
-    "updatedAt": 1784818397067
+    "updatedAt": 1784818397067,
+    "weekKey": "2026-W30"
   },
   {
     "id": 1784724182442,
@@ -81,7 +99,8 @@
     "category": "Implementation",
     "billable": "yes",
     "notes": "Implementing time logic",
-    "updatedAt": 1784724182442
+    "updatedAt": 1784724182442,
+    "weekKey": "2026-W30"
   },
   {
     "id": 1784714564126,
@@ -93,7 +112,8 @@
     "category": "Other",
     "billable": "yes",
     "notes": "Looking for Charms(SIS)",
-    "updatedAt": 1784714649843
+    "updatedAt": 1784714649843,
+    "weekKey": "2026-W30"
   },
   {
     "id": 1784714516929,
@@ -105,7 +125,8 @@
     "category": "Implementation",
     "billable": "yes",
     "notes": "Implementing Time Logic",
-    "updatedAt": 1784714516929
+    "updatedAt": 1784714516929,
+    "weekKey": "2026-W30"
   },
   {
     "id": 1784703012444,
@@ -117,7 +138,8 @@
     "category": "Software",
     "billable": "yes",
     "notes": "Implementing Changes & Documentation",
-    "updatedAt": 1784703012444
+    "updatedAt": 1784703012444,
+    "weekKey": "2026-W30"
   },
   {
     "id": 1784892856212,
@@ -129,7 +151,8 @@
     "category": "Training",
     "billable": "no",
     "notes": "",
-    "updatedAt": 1784892856212
+    "updatedAt": 1784892856212,
+    "weekKey": "2026-W30"
   },
   {
     "id": 1784704946874,
@@ -141,7 +164,8 @@
     "category": "Training",
     "billable": "no",
     "notes": "",
-    "updatedAt": 1784704946874
+    "updatedAt": 1784704946874,
+    "weekKey": "2026-W30"
   },
   {
     "id": 1784636430428,
@@ -153,7 +177,8 @@
     "category": "Meetings",
     "billable": "yes",
     "notes": "TQ Discussions",
-    "updatedAt": 1784636430428
+    "updatedAt": 1784636430428,
+    "weekKey": "2026-W30"
   },
   {
     "id": 1784632134370,
@@ -165,7 +190,8 @@
     "category": "Admin",
     "billable": "no",
     "notes": "",
-    "updatedAt": 1784632134370
+    "updatedAt": 1784632134370,
+    "weekKey": "2026-W29"
   },
   {
     "id": 1784632005162,
@@ -177,7 +203,8 @@
     "category": "Documentation",
     "billable": "yes",
     "notes": "",
-    "updatedAt": 1784632005162
+    "updatedAt": 1784632005162,
+    "weekKey": "2026-W29"
   },
   {
     "id": 1784612017765,
@@ -189,7 +216,8 @@
     "category": "Site",
     "billable": "yes",
     "notes": "Was on a call with Figson doing FO and History",
-    "updatedAt": 1784612017765
+    "updatedAt": 1784612017765,
+    "weekKey": "2026-W29"
   },
   {
     "id": 1784611853177,
@@ -201,7 +229,8 @@
     "category": "Admin",
     "billable": "no",
     "notes": "",
-    "updatedAt": 1784611853177
+    "updatedAt": 1784611853177,
+    "weekKey": "2026-W29"
   },
   {
     "id": 1784611790960,
@@ -213,7 +242,8 @@
     "category": "Other",
     "billable": "yes",
     "notes": "Switches",
-    "updatedAt": 1784611790960
+    "updatedAt": 1784611790960,
+    "weekKey": "2026-W29"
   },
   {
     "id": 1784124194637,
@@ -225,7 +255,8 @@
     "category": "Admin",
     "billable": "no",
     "notes": "Timesheets and Emails",
-    "updatedAt": 1784124194637
+    "updatedAt": 1784124194637,
+    "weekKey": "2026-W29"
   },
   {
     "id": 1784119001334,
@@ -237,7 +268,8 @@
     "category": "Meetings",
     "billable": "no",
     "notes": "Meeting with Grant",
-    "updatedAt": 1784119001334
+    "updatedAt": 1784119001334,
+    "weekKey": "2026-W29"
   },
   {
     "id": 1784102157207,
@@ -249,7 +281,8 @@
     "category": "Software",
     "billable": "yes",
     "notes": "First Outs, SIS Changes & Historian",
-    "updatedAt": 1784122879608
+    "updatedAt": 1784122879608,
+    "weekKey": "2026-W29"
   },
   {
     "id": 1784040318879,
@@ -261,7 +294,8 @@
     "category": "Admin",
     "billable": "no",
     "notes": "Timesheet and Backups",
-    "updatedAt": 1784040318879
+    "updatedAt": 1784040318879,
+    "weekKey": "2026-W29"
   },
   {
     "id": 1784035358118,
@@ -273,7 +307,8 @@
     "category": "Documentation",
     "billable": "yes",
     "notes": "SFDS",
-    "updatedAt": 1784039951296
+    "updatedAt": 1784039951296,
+    "weekKey": "2026-W29"
   },
   {
     "id": 1784025292632,
@@ -285,7 +320,8 @@
     "category": "Admin",
     "billable": "no",
     "notes": "Break",
-    "updatedAt": 1784035495746
+    "updatedAt": 1784035495746,
+    "weekKey": "2026-W29"
   },
   {
     "id": 1784024744648,
@@ -297,7 +333,8 @@
     "category": "Documentation",
     "billable": "yes",
     "notes": "SFDS",
-    "updatedAt": 1784024744648
+    "updatedAt": 1784024744648,
+    "weekKey": "2026-W29"
   },
   {
     "id": 1784020701569,
@@ -309,7 +346,8 @@
     "category": "Other",
     "billable": "yes",
     "notes": "Making Fan Filters for Shimane",
-    "updatedAt": 1784020701569
+    "updatedAt": 1784020701569,
+    "weekKey": "2026-W29"
   },
   {
     "id": 1784017853463,
@@ -321,7 +359,8 @@
     "category": "Documentation",
     "billable": "yes",
     "notes": "SFDS",
-    "updatedAt": 1784018633275
+    "updatedAt": 1784018633275,
+    "weekKey": "2026-W29"
   },
   {
     "id": 1784017809089,
@@ -333,7 +372,8 @@
     "category": "Meetings",
     "billable": "no",
     "notes": "Meeting with Grant",
-    "updatedAt": 1784017809089
+    "updatedAt": 1784017809089,
+    "weekKey": "2026-W29"
   },
   {
     "id": 1784017746565,
@@ -345,7 +385,8 @@
     "category": "Documentation",
     "billable": "yes",
     "notes": "Creating SFDS",
-    "updatedAt": 1784017746565
+    "updatedAt": 1784017746565,
+    "weekKey": "2026-W29"
   },
   {
     "id": 1784012743153,
@@ -357,7 +398,8 @@
     "category": "Graphics",
     "billable": "yes",
     "notes": "Linking Graphic and IFATing same time",
-    "updatedAt": 1784012743153
+    "updatedAt": 1784012743153,
+    "weekKey": "2026-W29"
   },
   {
     "id": 1783950237422,
@@ -369,7 +411,8 @@
     "category": "Meetings",
     "billable": "no",
     "notes": "Study Aid Meeting with Grant",
-    "updatedAt": 1784012900054
+    "updatedAt": 1784012900054,
+    "weekKey": "2026-W29"
   },
   {
     "id": 1783919136649,
@@ -381,7 +424,8 @@
     "category": "Implementation",
     "billable": "yes",
     "notes": "Graphic and  Modules",
-    "updatedAt": 1783950186354
+    "updatedAt": 1783950186354,
+    "weekKey": "2026-W29"
   },
   {
     "id": 1783769317475,
@@ -393,7 +437,8 @@
     "category": "Implementation",
     "billable": "yes",
     "notes": "Overtime- Review URS and Implement",
-    "updatedAt": 1783950328189
+    "updatedAt": 1783950328189,
+    "weekKey": "2026-W28"
   },
   {
     "id": 1783669897459,
@@ -405,7 +450,8 @@
     "category": "Back-Punching",
     "billable": "yes",
     "notes": "Going Through CFAT Punches",
-    "updatedAt": 1783670204848
+    "updatedAt": 1783670204848,
+    "weekKey": "2026-W28"
   },
   {
     "id": 1783608287993,
@@ -417,7 +463,8 @@
     "category": "Admin",
     "billable": "no",
     "notes": "Timesheets",
-    "updatedAt": 1783608287993
+    "updatedAt": 1783608287993,
+    "weekKey": "2026-W28"
   },
   {
     "id": 1783607062363,
@@ -429,7 +476,8 @@
     "category": "Training",
     "billable": "no",
     "notes": "Testing Jarrod's Equipment and Andrew's Serial Cards",
-    "updatedAt": 1783607232855
+    "updatedAt": 1783607232855,
+    "weekKey": "2026-W28"
   },
   {
     "id": 1783607170052,
@@ -441,7 +489,8 @@
     "category": "Other",
     "billable": "yes",
     "notes": "Tags & Checking (Fixing) Graphic references",
-    "updatedAt": 1783607319406
+    "updatedAt": 1783607319406,
+    "weekKey": "2026-W28"
   },
   {
     "id": 1783522868740,
@@ -453,7 +502,8 @@
     "category": "Training",
     "billable": "no",
     "notes": "Looking for SD plus, Serial card & 8 wide carrier",
-    "updatedAt": 1783522868740
+    "updatedAt": 1783522868740,
+    "weekKey": "2026-W28"
   },
   {
     "id": 1783521340888,
@@ -465,7 +515,8 @@
     "category": "Admin",
     "billable": "no",
     "notes": "",
-    "updatedAt": 1783521340888
+    "updatedAt": 1783521340888,
+    "weekKey": "2026-W28"
   },
   {
     "id": 1783517219830,
@@ -477,7 +528,8 @@
     "category": "Other",
     "billable": "yes",
     "notes": "Transferring Punches to Excel",
-    "updatedAt": 1783521264955
+    "updatedAt": 1783521264955,
+    "weekKey": "2026-W28"
   },
   {
     "id": 1783517072640,
@@ -489,7 +541,8 @@
     "category": "Admin",
     "billable": "no",
     "notes": "Preparing Shipment & Emails",
-    "updatedAt": 1783517072640
+    "updatedAt": 1783517072640,
+    "weekKey": "2026-W28"
   },
   {
     "id": 1783428519154,
@@ -501,7 +554,8 @@
     "category": "Meetings",
     "billable": "yes",
     "notes": "Omnia Back-Punching",
-    "updatedAt": 1783428668334
+    "updatedAt": 1783428668334,
+    "weekKey": "2026-W28"
   },
   {
     "id": 1783410771857,
@@ -513,7 +567,8 @@
     "category": "Training",
     "billable": "no",
     "notes": "Looking for Jarrod's Equipment (IS BASE and Terminals)",
-    "updatedAt": 1783410771857
+    "updatedAt": 1783410771857,
+    "weekKey": "2026-W28"
   },
   {
     "id": 1783347041554,
@@ -525,7 +580,8 @@
     "category": "Training",
     "billable": "no",
     "notes": "Looking for Jarrod's Equipment (1x CIOC, 12x CHARMS, 1x BASE)",
-    "updatedAt": 1783347278946
+    "updatedAt": 1783347278946,
+    "weekKey": "2026-W28"
   },
   {
     "id": 1783324373703,
@@ -537,7 +593,8 @@
     "category": "Meetings",
     "billable": "yes",
     "notes": "Back-punching Meeting",
-    "updatedAt": 1783346979243
+    "updatedAt": 1783346979243,
+    "weekKey": "2026-W28"
   },
   {
     "id": 1783323810329,
@@ -549,7 +606,8 @@
     "category": "Back-Punching",
     "billable": "yes",
     "notes": "Add more Pumps and Populate graphics",
-    "updatedAt": 1783323810329
+    "updatedAt": 1783323810329,
+    "weekKey": "2026-W28"
   },
   {
     "id": 1783322364525,
@@ -561,7 +619,8 @@
     "category": "Training",
     "billable": "no",
     "notes": "Discussions",
-    "updatedAt": 1783329155455
+    "updatedAt": 1783329155455,
+    "weekKey": "2026-W28"
   },
   {
     "id": 1783070885631,
@@ -573,7 +632,8 @@
     "category": "CFAT",
     "billable": "yes",
     "notes": "Modbus Mapping + Pump Graphic",
-    "updatedAt": 1783070945043
+    "updatedAt": 1783070945043,
+    "weekKey": "2026-W27"
   },
   {
     "id": 1782993278237,
@@ -598,7 +658,8 @@
     "category": "Back-Punching",
     "billable": "yes",
     "notes": "BackPunching",
-    "updatedAt": 1783030361383
+    "updatedAt": 1783030361383,
+    "weekKey": "2026-W27"
   },
   {
     "id": 1782800154531,
