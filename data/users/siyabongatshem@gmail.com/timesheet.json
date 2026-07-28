@@ -1,5 +1,17 @@
 [
   {
+    "id": 1785243463832,
+    "date": "2026-07-28",
+    "start": "11:00",
+    "end": "12:00",
+    "hours": 1,
+    "project": "Other",
+    "category": "Training",
+    "billable": "no",
+    "notes": "Control Loop Fundamentals",
+    "updatedAt": 1785243463832
+  },
+  {
     "id": 1785243376984,
     "date": "2026-07-28",
     "start": "10:00",
