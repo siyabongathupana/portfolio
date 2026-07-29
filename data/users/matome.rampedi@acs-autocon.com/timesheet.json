@@ -1,5 +1,17 @@
 [
   {
+    "id": 1785329977945,
+    "date": "2026-07-29",
+    "start": "09:30",
+    "end": "10:15",
+    "hours": 0.75,
+    "project": "Admin",
+    "category": "Meetings",
+    "billable": "yes",
+    "notes": "EOJ with clint",
+    "updatedAt": 1785329977945
+  },
+  {
     "id": 1785246367234,
     "date": "2026-07-28",
     "start": "08:20",
