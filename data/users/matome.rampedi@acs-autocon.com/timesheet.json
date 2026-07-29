@@ -1,5 +1,17 @@
 [
   {
+    "id": 1785330239937,
+    "date": "2026-07-29",
+    "start": "10:15",
+    "end": "10:30",
+    "hours": 0.25,
+    "project": "Steam station 2",
+    "category": "Admin",
+    "billable": "yes",
+    "notes": "EOJ docs BLR 10 and 13",
+    "updatedAt": 1785330239937
+  },
+  {
     "id": 1785330166053,
     "date": "2026-07-29",
     "start": "08:30",
