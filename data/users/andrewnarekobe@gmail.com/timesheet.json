@@ -1,15 +1,15 @@
 [
   {
-    "id": 1785186997763,
-    "date": "2026-07-24",
-    "start": "07:30",
-    "end": "17:16",
-    "hours": 9.77,
+    "id": 1785308517963,
+    "date": "2026-07-28",
+    "start": "08:00",
+    "end": "18:45",
+    "hours": 10.75,
     "project": "Omnia PH3",
     "category": "Site",
     "billable": "yes",
-    "notes": "CFAT ONSITE WITH SIYA ON TEAMS..POSSIBLE IMPORT",
-    "updatedAt": 1785186997763
+    "notes": "SAT and Commissiong Support",
+    "updatedAt": 1785308517963
   },
   {
     "id": 1785186739806,
@@ -22,6 +22,18 @@
     "billable": "yes",
     "notes": "Import and Loop Test for Turbine Speed Control",
     "updatedAt": 1785186739806
+  },
+  {
+    "id": 1785186997763,
+    "date": "2026-07-24",
+    "start": "07:30",
+    "end": "17:16",
+    "hours": 9.77,
+    "project": "Omnia PH3",
+    "category": "Site",
+    "billable": "yes",
+    "notes": "CFAT ONSITE WITH SIYA ON TEAMS..POSSIBLE IMPORT",
+    "updatedAt": 1785186997763
   },
   {
     "id": 1784808674906,
