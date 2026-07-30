@@ -15,13 +15,13 @@
     "id": 1785431587827,
     "date": "2026-07-31",
     "start": "13:00",
-    "end": "14:30",
-    "hours": 1.5,
+    "end": "15:00",
+    "hours": 2,
     "project": "Steam Station 2 DCS Replacement",
     "category": "Site",
     "billable": "yes",
     "notes": "",
-    "updatedAt": 1785431587827
+    "updatedAt": 1785432217721
   },
   {
     "id": 1785431573997,
