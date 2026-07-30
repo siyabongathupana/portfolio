@@ -1,5 +1,29 @@
 [
   {
+    "id": 1785421174846,
+    "date": "2026-07-30",
+    "start": "15:30",
+    "end": "16:00",
+    "hours": 0.5,
+    "project": "Admin",
+    "category": "Admin",
+    "billable": "no",
+    "notes": "",
+    "updatedAt": 1785421174846
+  },
+  {
+    "id": 1785421140269,
+    "date": "2026-07-30",
+    "start": "13:00",
+    "end": "15:30",
+    "hours": 2.5,
+    "project": "Steam station 2",
+    "category": "Documentation",
+    "billable": "yes",
+    "notes": "",
+    "updatedAt": 1785421140269
+  },
+  {
     "id": 1785421102108,
     "date": "2026-07-30",
     "start": "08:20",
