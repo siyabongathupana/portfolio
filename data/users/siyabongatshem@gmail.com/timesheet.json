@@ -1,5 +1,17 @@
 [
   {
+    "id": 1785413535336,
+    "date": "2026-07-30",
+    "start": "08:00",
+    "end": "16:30",
+    "hours": 8.5,
+    "project": "Sasol MIBK",
+    "category": "Back-Punching",
+    "billable": "yes",
+    "notes": "Hand-Switch logics for Pump Lineups",
+    "updatedAt": 1785413535336
+  },
+  {
     "id": 1785344147862,
     "date": "2026-07-29",
     "start": "08:30",
