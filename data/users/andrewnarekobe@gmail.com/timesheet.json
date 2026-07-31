@@ -1,5 +1,17 @@
 [
   {
+    "id": 1785480049917,
+    "date": "2026-07-30",
+    "start": "13:45",
+    "end": "15:45",
+    "hours": 2,
+    "project": "Others",
+    "category": "Implementation",
+    "billable": "yes",
+    "notes": "Assisting Stepf with Airliquid P&E dwg",
+    "updatedAt": 1785480049917
+  },
+  {
     "id": 1785479903445,
     "date": "2026-07-30",
     "start": "13:00",
