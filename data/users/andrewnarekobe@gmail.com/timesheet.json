@@ -1,5 +1,17 @@
 [
   {
+    "id": 1785479903445,
+    "date": "2026-07-30",
+    "start": "13:00",
+    "end": "13:45",
+    "hours": 0.75,
+    "project": "Others",
+    "category": "Training",
+    "billable": "no",
+    "notes": "Safety emerson video",
+    "updatedAt": 1785479903445
+  },
+  {
     "id": 1785479812376,
     "date": "2026-07-30",
     "start": "08:40",
