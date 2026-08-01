@@ -10,10 +10,11 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-    <!-- Bootstrap, Font Awesome -->
+    <!-- Bootstrap & Font Awesome (for UI) -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
 
     <script src="config.js"></script>
     <script src="crypto.js"></script>
@@ -21,168 +22,148 @@
     <script src="shared.js"></script>
 
     <style>
-        /* Dark theme base */
         body {
-            background: #0a1a1f;
+            background: #eef3fc;
             font-family: 'Inter', sans-serif;
             margin: 0;
             padding: 0;
             height: 100vh;
             display: flex;
             flex-direction: column;
-            color: #e0e8ee;
         }
-        .navbar {
-            background: #0b2b3b !important;
-            border-bottom: 1px solid #1a4d5f;
+
+        /* Navbar (reuse styles) */
+        .custom-nav-container {
+            background: #0b2b3b;
+            padding: 12px 0;
         }
         .navbar-brand span { color: #2fc7ff; }
-        .nav-link { color: rgba(255,255,255,0.8) !important; }
+        .nav-link { color: rgba(255,255,255,0.85) !important; }
         .nav-link:hover { color: #2fc7ff !important; }
 
-        /* Map wrapper */
+        /* Main layout: sidebar + map */
         .map-wrapper {
             display: flex;
             flex: 1;
             overflow: hidden;
-            position: relative;
         }
 
-        /* Side Panel (slides in) */
-        .side-panel {
-            position: absolute;
-            top: 0;
-            right: -480px;
-            width: 420px;
-            height: 100%;
-            background: rgba(11, 43, 59, 0.95);
-            backdrop-filter: blur(12px);
-            border-left: 1px solid #2fc7ff;
-            padding: 30px 24px;
+        /* Sidebar */
+        .map-sidebar {
+            width: 300px;
+            background: white;
+            border-right: 1px solid #e2e8f0;
+            padding: 20px 16px;
             overflow-y: auto;
-            transition: right 0.4s cubic-bezier(0.22, 1, 0.36, 1);
-            z-index: 1000;
-            box-shadow: -10px 0 40px rgba(0,0,0,0.6);
-            color: #e0e8ee;
+            flex-shrink: 0;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.03);
+            z-index: 10;
         }
-        .side-panel.open {
-            right: 0;
-        }
-        .side-panel .close-btn {
-            position: absolute;
-            top: 16px;
-            right: 20px;
-            font-size: 1.6rem;
-            cursor: pointer;
-            color: #8a9fb0;
-            transition: color 0.2s;
-        }
-        .side-panel .close-btn:hover { color: #2fc7ff; }
-        .side-panel h2 {
+        .map-sidebar h5 {
             font-weight: 700;
-            color: #2fc7ff;
-            margin-top: 10px;
-            font-size: 1.8rem;
+            color: #0b2b3b;
+            margin-bottom: 16px;
+            border-bottom: 2px solid #2fc7ff;
+            padding-bottom: 10px;
         }
-        .side-panel .detail-row {
+        .project-list-item {
+            padding: 10px 12px;
+            border-radius: 12px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            background: #f8fafc;
+            border-left: 4px solid #2fc7ff;
             display: flex;
             justify-content: space-between;
-            padding: 8px 0;
-            border-bottom: 1px solid rgba(255,255,255,0.06);
+            align-items: center;
         }
-        .side-panel .detail-label { color: #8a9fb0; font-weight: 500; }
-        .side-panel .detail-value { font-weight: 600; }
-        .side-panel .achievement-tag {
-            display: inline-block;
-            background: rgba(47,199,255,0.15);
-            color: #2fc7ff;
-            padding: 4px 14px;
-            border-radius: 40px;
-            font-size: 0.75rem;
-            margin: 4px 4px 0 0;
-            border: 1px solid rgba(47,199,255,0.2);
+        .project-list-item:hover {
+            background: #e6f7ff;
+            transform: translateX(4px);
         }
-        .side-panel .photo-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 8px;
-            margin-top: 12px;
+        .project-list-item .proj-name {
+            font-weight: 600;
+            font-size: 0.9rem;
         }
-        .side-panel .photo-grid img {
-            width: 100%;
-            height: 80px;
-            object-fit: cover;
-            border-radius: 8px;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-        .completion-ring {
-            display: inline-block;
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background: conic-gradient(#2fc7ff var(--pct, 0%), #1a3a44 var(--pct, 0%));
-            position: relative;
-        }
-        .completion-ring::after {
-            content: attr(data-label);
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
+        .project-list-item .proj-hours {
             font-size: 0.8rem;
-            font-weight: 700;
-            color: white;
+            color: #5a7d9a;
+            background: #e9ecef;
+            padding: 2px 10px;
+            border-radius: 20px;
+        }
+        .project-list-item .proj-location {
+            font-size: 0.7rem;
+            color: #8a9fb0;
+            margin-top: 2px;
         }
 
         /* Map container */
         #map {
             flex: 1;
             height: 100%;
-            background: #0a1a1f;
+            background: #eef3fc;
         }
 
-        /* Custom marker glow */
-        .custom-marker {
-            background: #2fc7ff;
-            border-radius: 50%;
-            border: 2px solid rgba(47,199,255,0.8);
-            box-shadow: 0 0 20px rgba(47,199,255,0.5);
-            transition: transform 0.2s;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #0a1a1f;
+        /* Popup custom styling */
+        .leaflet-popup-content {
+            font-family: 'Inter', sans-serif;
+            min-width: 200px;
+        }
+        .leaflet-popup-content h4 {
             font-weight: 700;
-            font-size: 10px;
+            color: #0b2b3b;
+            margin: 0 0 4px 0;
         }
-        .custom-marker:hover {
-            transform: scale(1.15);
-            box-shadow: 0 0 40px rgba(47,199,255,0.8);
+        .leaflet-popup-content .popup-detail {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            padding: 2px 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .leaflet-popup-content .popup-detail:last-child {
+            border-bottom: none;
+        }
+        .leaflet-popup-content .popup-label {
+            color: #5a7d9a;
+        }
+        .leaflet-popup-content .popup-value {
+            font-weight: 600;
+            color: #0b2b3b;
         }
 
-        /* Animated route line */
-        .animated-route {
-            stroke-dasharray: 10, 10;
-            animation: dash 2s linear infinite;
-        }
-        @keyframes dash {
-            to { stroke-dashoffset: -20; }
-        }
-
-        /* Toast */
-        .toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 1050; }
-        .toast { min-width: 250px; }
-
+        /* Responsive */
         @media (max-width: 768px) {
-            .side-panel { width: 100%; right: -100%; }
+            .map-sidebar {
+                width: 100%;
+                max-height: 200px;
+                border-right: none;
+                border-bottom: 1px solid #e2e8f0;
+            }
+            .map-wrapper {
+                flex-direction: column;
+            }
+            #map {
+                height: calc(100vh - 200px - 56px); /* adjust for navbar */
+            }
         }
+
+        /* Toast container */
+        .toast-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1050;
+        }
+        .toast { min-width: 250px; }
     </style>
 </head>
 <body>
 
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg">
+    <!-- ─── NAV ─── -->
+    <nav class="navbar navbar-expand-lg custom_nav-container">
         <div class="container">
             <a class="navbar-brand" href="index.html"><span>Your</span> Portfolio</a>
             <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navMap">
@@ -202,26 +183,32 @@
         </div>
     </nav>
 
-    <!-- Map Wrapper -->
+    <!-- ─── MAP WRAPPER ─── -->
     <div class="map-wrapper">
-        <div id="map"></div>
-
-        <!-- Side Panel -->
-        <div class="side-panel" id="sidePanel">
-            <div class="close-btn" id="closePanel">&times;</div>
-            <div id="panelContent">
-                <h2>Select a project</h2>
-                <p class="text-muted">Click a marker to see details.</p>
+        <!-- Sidebar -->
+        <div class="map-sidebar" id="sidebar">
+            <h5><i class="fa fa-globe"></i> Projects</h5>
+            <div id="projectList">
+                <div class="text-muted text-center py-3">Loading projects...</div>
+            </div>
+            <div class="mt-3 small text-muted">
+                <i class="fa fa-info-circle"></i> Click a project to zoom in
             </div>
         </div>
+
+        <!-- Map -->
+        <div id="map"></div>
     </div>
 
-    <footer style="background:#0b2b3b; color:#bdd3e0; text-align:center; padding:10px;">
+    <!-- ─── FOOTER (optional) ─── -->
+    <footer style="background:#0b2b3b; color:#bdd3e0; text-align:center; padding:10px; margin-top:0;">
         <p class="footer-status"><span id="footerStatus"></span></p>
     </footer>
 
+    <!-- ─── TOAST CONTAINER ─── -->
     <div class="toast-container" id="toastContainer"></div>
 
+    <!-- ─── SCRIPTS ─── -->
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
@@ -236,18 +223,44 @@
                 return;
             }
 
-            let map, markers = [], routeLine = null;
-            let projectData = [];
-            const homeBase = { lat: -26.2041, lng: 28.0473 }; // Johannesburg
+            // ── Data stores ──
+            let projects = {};        // from portfolio
+            let timesheetEntries = []; // from timesheet
+            let projectData = [];     // aggregated for map
+
+            // ── Coordinates for known clients ──
+            const locationMap = {
+                'Sasol': { lat: -26.2485, lng: 28.0763, city: 'Secunda, SA' },
+                'Omnia': { lat: -26.1447, lng: 28.2248, city: 'Johannesburg, SA' },
+                'Eskom': { lat: -26.2041, lng: 28.0473, city: 'Johannesburg, SA' },
+                'MIBK': { lat: 40.7128, lng: -74.0060, city: 'New York, USA' }, // placeholder
+                'Default': { lat: 0, lng: 0, city: 'Unknown' }
+            };
+
+            function getLocationForProject(projectName) {
+                // Try to match client name or project title
+                const lower = projectName.toLowerCase();
+                for (const [key, loc] of Object.entries(locationMap)) {
+                    if (lower.includes(key.toLowerCase())) {
+                        return loc;
+                    }
+                }
+                // Fallback: use a random location? Better to use default (0,0) or center of map
+                return locationMap['Default'];
+            }
 
             // ── Load data ──
             async function loadData() {
                 try {
+                    // Load projects from portfolio
                     const projData = await window.portfolioData.loadProjectsForView();
-                    let timesheetEntries = [];
-                    if (window.__timesheetEntries) {
+                    projects = projData;
+
+                    // Load timesheet entries from global or localStorage
+                    if (window.__timesheetEntries && Array.isArray(window.__timesheetEntries)) {
                         timesheetEntries = window.__timesheetEntries;
                     } else {
+                        // Try localStorage
                         const raw = localStorage.getItem('timesheet_entries_cache');
                         if (raw) {
                             const parsed = JSON.parse(raw);
@@ -257,222 +270,181 @@
                         }
                     }
 
-                    const aggregated = [];
-                    for (const [id, proj] of Object.entries(projData)) {
+                    // Aggregate: for each project in portfolio, get total hours, count, role from project metadata
+                    const aggregated = {};
+                    for (const [id, proj] of Object.entries(projects)) {
                         const title = proj.title || 'Unnamed';
+                        // Sum hours from timesheet entries that match this project (by title)
                         const entries = timesheetEntries.filter(e => e.project && e.project.toLowerCase() === title.toLowerCase());
                         const totalHours = entries.reduce((sum, e) => sum + (parseFloat(e.hours) || 0), 0);
                         const count = entries.length;
+                        // Get role from project (userRole) or from first entry's category?
                         const role = proj.userRole || (entries.length > 0 ? entries[0].category : 'N/A');
-                        // Use project metadata for location, fallback to client mapping
-                        let lat = parseFloat(proj.latitude);
-                        let lng = parseFloat(proj.longitude);
-                        let city = proj.city || '';
-                        let country = proj.country || '';
-                        // If no lat/lng, try to infer from client name
-                        if (!lat || !lng) {
-                            const client = proj.client || title;
-                            const inferred = getLocationForClient(client);
-                            lat = inferred.lat;
-                            lng = inferred.lng;
-                            city = city || inferred.city;
-                            country = country || inferred.country;
-                        }
-                        const achievements = proj.achievements || [];
-                        const photos = (proj.selectedImages || []).map(img => img.url).filter(Boolean);
                         const status = proj.status || 'N/A';
                         const client = proj.client || title;
-
-                        aggregated.push({
+                        // Location
+                        const loc = getLocationForProject(title);
+                        aggregated[id] = {
                             id,
                             title,
                             client,
-                            lat,
-                            lng,
-                            city,
-                            country,
                             totalHours,
                             count,
                             role,
                             status,
-                            achievements,
-                            photos,
-                            duration: proj.duration || 'N/A',
+                            lat: loc.lat,
+                            lng: loc.lng,
+                            city: loc.city,
                             proj
-                        });
+                        };
                     }
-                    // Sort by hours desc
-                    aggregated.sort((a,b) => b.totalHours - a.totalHours);
-                    projectData = aggregated;
-                    return aggregated;
+
+                    // Also include projects from timesheet that are not in portfolio? (optional)
+                    // We'll only include those in portfolio for now.
+
+                    projectData = Object.values(aggregated);
+                    // Sort by total hours descending
+                    projectData.sort((a, b) => b.totalHours - a.totalHours);
+
+                    return projectData;
                 } catch (err) {
-                    console.error(err);
+                    console.error('Error loading data:', err);
                     showToast('Failed to load data: ' + err.message, 'error');
                     return [];
                 }
             }
 
-            // ── Fallback location mapping ──
-            function getLocationForClient(client) {
-                const map = {
-                    'Sasol': { lat: -26.2485, lng: 28.0763, city: 'Secunda', country: 'South Africa' },
-                    'Omnia': { lat: -26.1447, lng: 28.2248, city: 'Johannesburg', country: 'South Africa' },
-                    'Eskom': { lat: -26.2041, lng: 28.0473, city: 'Johannesburg', country: 'South Africa' },
-                    'MIBK': { lat: 40.7128, lng: -74.0060, city: 'New York', country: 'USA' }
-                };
-                const lower = client.toLowerCase();
-                for (const [key, loc] of Object.entries(map)) {
-                    if (lower.includes(key.toLowerCase())) return loc;
-                }
-                return { lat: 0, lng: 0, city: 'Unknown', country: 'Unknown' };
-            }
-
             // ── Render map ──
+            let map = null;
+            let markers = [];
+
             function renderMap(data) {
-                if (!map) {
-                    map = L.map('map', {
-                        center: [-26, 28],
-                        zoom: 5,
-                        zoomControl: false,
-                        attributionControl: false
-                    });
-                    // Dark tile layer
-                    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-                        attribution: '&copy; OpenStreetMap, &copy; CartoDB'
-                    }).addTo(map);
-                }
-
-                // Clear old markers and routes
-                markers.forEach(m => map.removeLayer(m));
-                markers = [];
-                if (routeLine) { map.removeLayer(routeLine); routeLine = null; }
-
                 if (!data.length) {
-                    showToast('No projects with location data.', 'warning');
+                    document.getElementById('projectList').innerHTML = `
+                        <div class="text-muted text-center py-3">No projects with location data.</div>
+                    `;
+                    // Still show a world map with a default view
+                    if (!map) {
+                        map = L.map('map').setView([20, 0], 2);
+                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                            attribution: '&copy; OpenStreetMap contributors'
+                        }).addTo(map);
+                    }
                     return;
                 }
 
-                // Add markers
+                // Initialize map if not already
+                if (!map) {
+                    map = L.map('map').setView([20, 0], 2);
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        attribution: '&copy; OpenStreetMap contributors'
+                    }).addTo(map);
+                }
+
+                // Clear old markers
+                markers.forEach(m => map.removeLayer(m));
+                markers = [];
+
+                // Add markers for each project
                 data.forEach(proj => {
-                    if (!proj.lat || !proj.lng) return;
+                    if (proj.lat === 0 && proj.lng === 0) {
+                        // Skip if no location (use a fallback)
+                        return;
+                    }
+                    const marker = L.marker([proj.lat, proj.lng], {
+                        title: proj.title
+                    }).addTo(map);
 
-                    const radius = Math.max(8, Math.sqrt(proj.totalHours) * 2.5);
-                    const marker = L.divIcon({
-                        className: 'custom-marker',
-                        html: `<span style="font-size:${radius > 20 ? '12px' : '8px'}">${Math.round(proj.totalHours)}h</span>`,
-                        iconSize: [radius * 2, radius * 2],
-                        iconAnchor: [radius, radius]
+                    // Popup content
+                    const popupContent = `
+                        <div>
+                            <h4>${escapeHtml(proj.title)}</h4>
+                            <div class="popup-detail">
+                                <span class="popup-label">Client</span>
+                                <span class="popup-value">${escapeHtml(proj.client)}</span>
+                            </div>
+                            <div class="popup-detail">
+                                <span class="popup-label">Total Hours</span>
+                                <span class="popup-value">${proj.totalHours.toFixed(1)}</span>
+                            </div>
+                            <div class="popup-detail">
+                                <span class="popup-label">Entries</span>
+                                <span class="popup-value">${proj.count}</span>
+                            </div>
+                            <div class="popup-detail">
+                                <span class="popup-label">Role</span>
+                                <span class="popup-value">${escapeHtml(proj.role)}</span>
+                            </div>
+                            <div class="popup-detail">
+                                <span class="popup-label">Status</span>
+                                <span class="popup-value">${escapeHtml(proj.status)}</span>
+                            </div>
+                            <div class="popup-detail">
+                                <span class="popup-label">Location</span>
+                                <span class="popup-value">${escapeHtml(proj.city)}</span>
+                            </div>
+                        </div>
+                    `;
+                    marker.bindPopup(popupContent);
+
+                    // Store reference to project data
+                    marker._projectData = proj;
+
+                    // On click, zoom to marker
+                    marker.on('click', function() {
+                        map.flyTo(this.getLatLng(), 10, { duration: 1.5 });
                     });
 
-                    const m = L.marker([proj.lat, proj.lng], { icon: marker }).addTo(map);
-                    m._projectData = proj;
-
-                    m.on('click', function() {
-                        const p = this._projectData;
-                        openSidePanel(p);
-                        animateRoute(p.lat, p.lng);
-                        map.flyTo([p.lat, p.lng], 9, { duration: 1.2 });
-                    });
-
-                    markers.push(m);
+                    markers.push(marker);
                 });
 
-                // Fit bounds
+                // If we have markers, fit bounds
                 if (markers.length) {
                     const group = L.featureGroup(markers);
                     map.fitBounds(group.getBounds().pad(0.2));
                 }
+
+                // Update sidebar list
+                updateSidebar(data);
             }
 
-            // ── Animate route ──
-            function animateRoute(targetLat, targetLng) {
-                if (routeLine) { map.removeLayer(routeLine); routeLine = null; }
-                const points = [
-                    [homeBase.lat, homeBase.lng],
-                    [targetLat, targetLng]
-                ];
-                routeLine = L.polyline(points, {
-                    color: '#2fc7ff',
-                    weight: 4,
-                    opacity: 0.9,
-                    dashArray: '10, 10',
-                    className: 'animated-route'
-                }).addTo(map);
-                // Fly to the route
-                setTimeout(() => {
-                    map.flyToBounds(routeLine.getBounds(), { padding: [50, 50], duration: 1.5 });
-                }, 300);
-            }
-
-            // ── Side Panel ──
-            function openSidePanel(proj) {
-                const panel = document.getElementById('sidePanel');
-                const content = document.getElementById('panelContent');
-
-                const statusColor = proj.status === 'Completed' ? '#28a745' : (proj.status === 'Ongoing' ? '#2fc7ff' : '#ffc107');
-                const pct = proj.totalHours > 0 ? Math.min(100, (proj.totalHours / 400) * 100) : 0;
-
-                let achievementsHtml = proj.achievements && proj.achievements.length ?
-                    proj.achievements.map(a => `<span class="achievement-tag">${escapeHtml(a)}</span>`).join('') :
-                    '<span class="text-muted">None listed</span>';
-
-                let photosHtml = proj.photos && proj.photos.length ?
-                    proj.photos.slice(0, 6).map(url => `<img src="${url}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2280%22 height=%2280%22%3E%3Crect fill=%22%23333%22 width=%2280%22 height=%2280%22/%3E%3Ctext x=%2250%%22 y=%2250%%22 fill=%22%23666%22 text-anchor=%22middle%22 dy=%22.3em%22 font-size=%2212%22%3ENo image%3C/text%3E%3C/svg%3E'">`).join('') :
-                    '<span class="text-muted">No photos</span>';
-
-                content.innerHTML = `
-                    <div class="close-btn" id="closePanel">&times;</div>
-                    <h2>${escapeHtml(proj.title)}</h2>
-                    <div style="display:flex; align-items:center; gap:16px; margin: 12px 0 20px;">
-                        <div class="completion-ring" style="--pct: ${pct}%;" data-label="${Math.round(pct)}%"></div>
-                        <div>
-                            <div style="font-size:0.9rem; color:#8a9fb0;">Completion</div>
-                            <div style="font-weight:700;">${Math.round(pct)}%</div>
+            function updateSidebar(data) {
+                const container = document.getElementById('projectList');
+                if (!data.length) {
+                    container.innerHTML = `<div class="text-muted text-center py-3">No projects.</div>`;
+                    return;
+                }
+                let html = '';
+                data.forEach(proj => {
+                    html += `
+                        <div class="project-list-item" data-id="${proj.id}">
+                            <div>
+                                <div class="proj-name">${escapeHtml(proj.title)}</div>
+                                <div class="proj-location"><i class="fa fa-map-marker"></i> ${escapeHtml(proj.city)}</div>
+                            </div>
+                            <div class="proj-hours">${proj.totalHours.toFixed(1)}h</div>
                         </div>
-                    </div>
-                    <div class="detail-row"><span class="detail-label">🏭 Client</span><span class="detail-value">${escapeHtml(proj.client)}</span></div>
-                    <div class="detail-row"><span class="detail-label">📍 Location</span><span class="detail-value">${escapeHtml(proj.city)}, ${escapeHtml(proj.country)}</span></div>
-                    <div class="detail-row"><span class="detail-label">⏱ Hours</span><span class="detail-value">${proj.totalHours.toFixed(1)}</span></div>
-                    <div class="detail-row"><span class="detail-label">📅 Duration</span><span class="detail-value">${escapeHtml(proj.duration)}</span></div>
-                    <div class="detail-row"><span class="detail-label">👨 Role</span><span class="detail-value">${escapeHtml(proj.role)}</span></div>
-                    <div class="detail-row"><span class="detail-label">⭐ Status</span><span class="detail-value" style="color:${statusColor};">${escapeHtml(proj.status)}</span></div>
-                    <div class="detail-row"><span class="detail-label">📋 Entries</span><span class="detail-value">${proj.count}</span></div>
-
-                    <div style="margin-top:20px;">
-                        <div style="font-weight:600; color:#2fc7ff; margin-bottom:8px;">🏅 Achievements</div>
-                        <div>${achievementsHtml}</div>
-                    </div>
-
-                    ${proj.photos && proj.photos.length ? `
-                    <div style="margin-top:20px;">
-                        <div style="font-weight:600; color:#2fc7ff; margin-bottom:8px;">📸 Photos</div>
-                        <div class="photo-grid">${photosHtml}</div>
-                    </div>
-                    ` : ''}
-
-                    <div style="margin-top:24px;">
-                        <button class="btn btn-sm btn-outline-info" onclick="window.location.href='project-details.html?id=${proj.id}'">
-                            <i class="fa fa-external-link"></i> View Full Project
-                        </button>
-                    </div>
-                `;
-
-                panel.classList.add('open');
-
-                // Close button
-                document.getElementById('closePanel').addEventListener('click', function() {
-                    panel.classList.remove('open');
+                    `;
                 });
-                // Click outside to close
-                document.addEventListener('click', function outside(e) {
-                    if (panel.classList.contains('open') && !panel.contains(e.target) && e.target.id !== 'map') {
-                        panel.classList.remove('open');
-                        document.removeEventListener('click', outside);
-                    }
+                container.innerHTML = html;
+
+                // Add click listeners to zoom to marker
+                container.querySelectorAll('.project-list-item').forEach(el => {
+                    el.addEventListener('click', function() {
+                        const id = this.dataset.id;
+                        const proj = data.find(p => p.id === id);
+                        if (!proj) return;
+                        // Find marker for this project
+                        const marker = markers.find(m => m._projectData && m._projectData.id === id);
+                        if (marker) {
+                            map.flyTo(marker.getLatLng(), 10, { duration: 1.5 });
+                            marker.openPopup();
+                        }
+                    });
                 });
             }
 
-            // ── Toast ──
+            // ── Toast helper ──
             function showToast(msg, type) {
                 let container = document.getElementById('toastContainer');
                 if (!container) {
@@ -500,7 +472,7 @@
 
             // ── Init ──
             async function init() {
-                window.showLoading('Loading map...');
+                window.showLoading('Loading map data...');
                 try {
                     const data = await loadData();
                     renderMap(data);
@@ -508,13 +480,15 @@
                     document.getElementById('footerStatus').innerHTML = document.getElementById('userFooterStatus')?.innerHTML || '';
                 } catch (err) {
                     console.error(err);
-                    showToast('Error: ' + err.message, 'error');
+                    showToast('Error loading map: ' + err.message, 'error');
                 } finally {
                     window.hideLoading();
                 }
             }
 
+            // ── Listen for timesheet updates ──
             document.addEventListener('timesheetUpdated', async () => {
+                // Reload data and update map
                 const data = await loadData();
                 renderMap(data);
             });
