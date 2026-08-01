@@ -3,12 +3,10 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <title>Work Terrain · Career Landscape</title>
-
+    <title>Career River · Work Flow</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800;900&display=swap" rel="stylesheet" />
-
     <script src="config.js"></script>
     <script src="crypto.js"></script>
     <script src="api.js"></script>
@@ -19,7 +17,7 @@
         body {
             margin: 0;
             padding: 0;
-            background: #070b10;
+            background: #0a0e17;
             color: #e0e8ee;
             font-family: 'Inter', sans-serif;
             overflow: hidden;
@@ -27,9 +25,8 @@
             width: 100vw;
             user-select: none;
         }
-
         .navbar {
-            background: rgba(7, 11, 16, 0.75) !important;
+            background: rgba(10, 14, 23, 0.75) !important;
             backdrop-filter: blur(16px);
             border-bottom: 1px solid rgba(47, 199, 255, 0.06);
             position: relative;
@@ -45,7 +42,7 @@
         #loadingOverlay {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: #070b10;
+            background: #0a0e17;
             z-index: 1000;
             display: flex;
             flex-direction: column;
@@ -87,7 +84,7 @@
             text-align: center;
             color: #5a7d9a;
             pointer-events: none;
-            background: rgba(7,11,16,0.7);
+            background: rgba(10,14,23,0.7);
             padding: 30px 40px;
             border-radius: 24px;
             backdrop-filter: blur(12px);
@@ -102,7 +99,7 @@
             left: 50%;
             transform: translateX(-50%);
             z-index: 50;
-            background: rgba(7, 11, 16, 0.75);
+            background: rgba(10, 14, 23, 0.75);
             backdrop-filter: blur(24px);
             padding: 12px 24px;
             border-radius: 60px;
@@ -149,7 +146,7 @@
         #controls .btn-sync:hover { background: rgba(47,199,255,0.12); color: #2fc7ff; }
         #controls .btn-primary {
             background: linear-gradient(135deg, #2fc7ff, #0984e3);
-            color: #070b10;
+            color: #0a0e17;
         }
         #controls .btn-primary:hover { transform: scale(1.04); box-shadow: 0 0 30px rgba(47,199,255,0.15); }
         #controls .btn-outline-light { background: transparent; border: 1px solid rgba(255,255,255,0.06); color: #e0e8ee; }
@@ -168,7 +165,7 @@
             left: 28px;
             z-index: 40;
             pointer-events: none;
-            background: rgba(7,11,16,0.45);
+            background: rgba(10,14,23,0.45);
             backdrop-filter: blur(16px);
             padding: 16px 24px;
             border-radius: 16px;
@@ -198,7 +195,7 @@
             right: -520px;
             width: 440px;
             height: 100%;
-            background: rgba(7, 11, 16, 0.88);
+            background: rgba(10, 14, 23, 0.88);
             backdrop-filter: blur(32px);
             border-left: 1px solid rgba(47, 199, 255, 0.05);
             padding: 32px 28px;
@@ -287,7 +284,7 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: rgba(7, 11, 16, 0.92);
+            background: rgba(10, 14, 23, 0.92);
             backdrop-filter: blur(28px);
             border: 1px solid rgba(47, 199, 255, 0.15);
             border-radius: 24px;
@@ -308,7 +305,23 @@
         }
 
         #toastContainer { position: fixed; bottom: 90px; right: 24px; z-index: 150; }
-        #toastContainer .toast { background: rgba(7,11,16,0.85); backdrop-filter: blur(12px); border: 1px solid rgba(47,199,255,0.05); color: #e0e8ee; min-width: 200px; }
+        #toastContainer .toast { background: rgba(10,14,23,0.85); backdrop-filter: blur(12px); border: 1px solid rgba(47,199,255,0.05); color: #e0e8ee; min-width: 200px; }
+
+        #riverContainer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+        }
+
+        .river-canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            background: #0a0e17;
+        }
 
         @media (max-width: 768px) {
             #controls { bottom: 16px; padding: 10px 14px; width: 94%; border-radius: 28px; gap: 10px; flex-direction: column; }
@@ -321,40 +334,31 @@
             .achievement-toast .title { font-size: 1.2rem; }
         }
     </style>
-
-    <script type="importmap">
-        {
-            "imports": {
-                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
-            }
-        }
-    </script>
 </head>
 <body>
 
     <!-- Loading Overlay -->
     <div id="loadingOverlay">
         <div class="spinner"></div>
-        <div class="title">MAPPING YOUR TERRAIN</div>
-        <div class="sub">WORK LANDSCAPE · v1.0</div>
+        <div class="title">CHARTING YOUR RIVER</div>
+        <div class="sub">CAREER FLOW · v1.0</div>
     </div>
 
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg">
         <div class="container-fluid px-3 px-md-4">
             <a class="navbar-brand" href="index.html"><span>✦</span> Your<span style="color:#e0e8ee;">Portfolio</span></a>
-            <button class="navbar-toggler border-0" type="button" data-toggle="collapse" data-target="#navTerrain">
+            <button class="navbar-toggler border-0" type="button" data-toggle="collapse" data-target="#navRiver">
                 <span class="fa fa-bars text-white"></span>
             </button>
-            <div class="collapse navbar-collapse" id="navTerrain">
+            <div class="collapse navbar-collapse" id="navRiver">
                 <ul class="navbar-nav ml-auto">
                     <li class="nav-item"><a class="nav-link" href="index.html">Home</a></li>
                     <li class="nav-item"><a class="nav-link" href="projects.html">Projects</a></li>
                     <li class="nav-item"><a class="nav-link" href="certificates.html">Certificates</a></li>
                     <li class="nav-item"><a class="nav-link" href="timesheet.html">Timesheet</a></li>
                     <li class="nav-item"><a class="nav-link" href="analytics.html">Analytics</a></li>
-                    <li class="nav-item active"><a class="nav-link" href="terrain.html"><i class="fa fa-mountain"></i> Terrain</a></li>
+                    <li class="nav-item active"><a class="nav-link" href="river.html"><i class="fa fa-water"></i> River</a></li>
                     <li class="nav-item"><a class="nav-link" href="admin.html">Manage</a></li>
                 </ul>
             </div>
@@ -364,22 +368,22 @@
     <!-- Stats -->
     <div id="statsOverlay">
         <div class="stat-row">
-            <div class="stat" id="statProjects">0 <small>Peaks</small></div>
+            <div class="stat" id="statProjects">0 <small>Projects</small></div>
             <div class="stat" id="statHours">0 <small>Hours</small></div>
         </div>
         <div class="stat-row">
-            <div class="stat" id="statCategories">0 <small>Biomes</small></div>
+            <div class="stat" id="statCategories">0 <small>Categories</small></div>
             <div class="stat" id="statStreak">0 <small>Day Streak</small></div>
         </div>
     </div>
 
-    <!-- 3D Container -->
-    <div id="three-container" style="position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;"></div>
+    <!-- River Canvas -->
+    <div id="riverContainer"><canvas id="riverCanvas" class="river-canvas"></canvas></div>
 
     <!-- No Data -->
     <div id="noDataMsg" style="display:none;">
-        <h3>🏔️ No peaks yet</h3>
-        <p>Head to the <a href="timesheet.html" style="color:#2fc7ff;">Timesheet page</a> to log your first hours.<br>Your landscape will grow as you work.</p>
+        <h3>🌊 No data yet</h3>
+        <p>Head to the <a href="timesheet.html" style="color:#2fc7ff;">Timesheet page</a> to log your first hours.<br>Your river will start flowing as you work.</p>
     </div>
 
     <!-- Controls -->
@@ -403,32 +407,23 @@
     <div id="sidePanel">
         <div class="close-btn" id="closePanel">✕</div>
         <div id="panelContent">
-            <h2 style="opacity:0.3;">SELECT A PEAK</h2>
-            <p style="color:#5a7d9a;font-size:0.9rem;">Click any mountain to explore its data</p>
+            <h2 style="opacity:0.3;">SELECT A NODE</h2>
+            <p style="color:#5a7d9a;font-size:0.9rem;">Click any project bubble to explore</p>
         </div>
     </div>
 
     <div id="achievementContainer"></div>
     <div id="toastContainer"></div>
 
+    <!-- Scripts -->
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
 
-    <script type="module">
+    <script>
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        //  IMPORTS
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        import * as THREE from 'three';
-        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-        import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
-        import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
-        import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
-        import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
-        import { FXAAShader } from 'three/addons/shaders/FXAAShader.js';
-
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        //  USER SESSION
+        // USER SESSION
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         function getCurrentUser() {
             if (window.SessionManager?.getCurrentUser) {
@@ -450,13 +445,13 @@
 
         const user = getCurrentUser();
         if (!user) {
-            setTimeout(() => { window.location.href = 'login.html?redirect=terrain'; }, 200);
+            setTimeout(() => { window.location.href = 'login.html?redirect=river'; }, 200);
             throw new Error('No user session');
         }
-        console.log('✅ Terrain user:', user.username);
+        console.log('✅ River user:', user.username);
 
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        //  STATE
+        // STATE
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         const state = {
             entries: [],
@@ -475,535 +470,57 @@
         };
 
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        //  THREE.JS CORE SETUP
+        // D3 SETUP
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        const container = document.getElementById('three-container');
-        const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x070b10);
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+        const margin = { top: 100, right: 50, bottom: 100, left: 50 };
+        const innerWidth = width - margin.left - margin.right;
+        const innerHeight = height - margin.top - margin.bottom;
 
-        // Subtle fog for depth
-        scene.fog = new THREE.FogExp2(0x070b10, 0.015);
+        const svg = d3.select('#riverContainer')
+            .append('svg')
+            .attr('width', width)
+            .attr('height', height)
+            .style('background', '#0a0e17');
 
-        const camera = new THREE.PerspectiveCamera(40, container.clientWidth / container.clientHeight, 0.1, 150);
-        camera.position.set(18, 14, 22);
+        const defs = svg.append('defs');
 
-        const renderer = new THREE.WebGLRenderer({
-            antialias: true,
-            alpha: false,
-            powerPreference: "high-performance",
-        });
-        renderer.setSize(container.clientWidth, container.clientHeight);
-        renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-        renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = 0.85;
-        renderer.outputColorSpace = THREE.SRGBColorSpace;
-        renderer.shadowMap.enabled = true;
-        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-        container.appendChild(renderer.domElement);
+        // Gradients
+        const grad = defs.append('linearGradient')
+            .attr('id', 'riverGrad')
+            .attr('x1', '0%').attr('y1', '0%')
+            .attr('x2', '100%').attr('y2', '0%');
+        grad.append('stop').attr('offset', '0%').attr('stop-color', '#1a2a34').attr('stop-opacity', 0.3);
+        grad.append('stop').attr('offset', '50%').attr('stop-color', '#2fc7ff').attr('stop-opacity', 0.05);
+        grad.append('stop').attr('offset', '100%').attr('stop-color', '#1a2a34').attr('stop-opacity', 0.3);
 
-        const controls = new OrbitControls(camera, renderer.domElement);
-        controls.enableDamping = true;
-        controls.dampingFactor = 0.06;
-        controls.rotateSpeed = 0.3;
-        controls.autoRotate = false;
-        controls.autoRotateSpeed = 0.1;
-        controls.minDistance = 5;
-        controls.maxDistance = 60;
-        controls.target.set(0, 0, 0);
-        controls.maxPolarAngle = Math.PI / 2.15;
+        const riverPath = defs.append('path')
+            .attr('id', 'riverCurve')
+            .attr('d', '')
+            .attr('fill', 'none');
 
-        // ─── POST PROCESSING ───
-        const composer = new EffectComposer(renderer);
-        const renderPass = new RenderPass(scene, camera);
-        composer.addPass(renderPass);
+        // Glow filter
+        const filter = defs.append('filter')
+            .attr('id', 'glow')
+            .attr('x', '-50%').attr('y', '-50%')
+            .attr('width', '200%').attr('height', '200%');
+        filter.append('feGaussianBlur')
+            .attr('stdDeviation', 2)
+            .attr('result', 'blur');
+        filter.append('feMerge')
+            .selectAll('feMergeNode')
+            .data(['blur', 'SourceGraphic'])
+            .enter().append('feMergeNode')
+            .attr('in', d => d);
 
-        const bloomPass = new UnrealBloomPass(
-            new THREE.Vector2(container.clientWidth, container.clientHeight),
-            0.3, 0.4, 0.15
-        );
-        composer.addPass(bloomPass);
+        // Main group
+        const g = svg.append('g')
+            .attr('transform', `translate(${margin.left}, ${margin.top})`);
 
-        const effectFXAA = new ShaderPass(FXAAShader);
-        effectFXAA.uniforms['resolution'].value.set(1 / container.clientWidth, 1 / container.clientHeight);
-        composer.addPass(effectFXAA);
-
-        // ─── LIGHTS ───
-        const ambientLight = new THREE.AmbientLight(0x223355, 0.5);
-        scene.add(ambientLight);
-
-        const mainLight = new THREE.DirectionalLight(0xffeedd, 1.8);
-        mainLight.position.set(20, 30, 10);
-        mainLight.castShadow = true;
-        mainLight.shadow.mapSize.width = 1024;
-        mainLight.shadow.mapSize.height = 1024;
-        scene.add(mainLight);
-
-        const fillLight = new THREE.DirectionalLight(0x4488cc, 0.4);
-        fillLight.position.set(-15, 10, -20);
-        scene.add(fillLight);
-
-        const rimLight = new THREE.DirectionalLight(0xff8844, 0.35);
-        rimLight.position.set(-8, 12, 18);
-        scene.add(rimLight);
-
-        const blueLight = new THREE.DirectionalLight(0x2fc7ff, 0.2);
-        blueLight.position.set(5, -5, 15);
-        scene.add(blueLight);
-
-        // ─── STARFIELD ───
-        function createStarfield() {
-            const count = 3000;
-            const geo = new THREE.BufferGeometry();
-            const pos = new Float32Array(count * 3);
-            const sizes = new Float32Array(count);
-            for (let i = 0; i < count; i++) {
-                const r = 60 + Math.random() * 200;
-                const theta = Math.random() * Math.PI * 2;
-                const phi = Math.acos(2 * Math.random() - 1);
-                pos[i*3] = r * Math.sin(phi) * Math.cos(theta);
-                pos[i*3+1] = r * Math.sin(phi) * Math.sin(theta) * 0.5;
-                pos[i*3+2] = r * Math.cos(phi);
-                sizes[i] = 0.1 + Math.random() * 0.3;
-            }
-            geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-            geo.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
-            const mat = new THREE.PointsMaterial({
-                color: 0x8899bb,
-                size: 0.12,
-                transparent: true,
-                opacity: 0.5,
-                sizeAttenuation: true,
-                blending: THREE.AdditiveBlending,
-                depthWrite: false,
-            });
-            const starField = new THREE.Points(geo, mat);
-            scene.add(starField);
-            return starField;
-        }
-        const starField = createStarfield();
-
-        // ─── GROUND PLANE (invisible, for shadows) ───
-        const groundGeo = new THREE.PlaneGeometry(60, 60);
-        const groundMat = new THREE.ShadowMaterial({ opacity: 0.3 });
-        const ground = new THREE.Mesh(groundGeo, groundMat);
-        ground.rotation.x = -Math.PI / 2;
-        ground.position.y = -0.1;
-        ground.receiveShadow = true;
-        scene.add(ground);
-
-        // ─── GLOW TEXTURE ───
-        function createGlowTexture(size = 128) {
-            const canvas = document.createElement('canvas');
-            canvas.width = size;
-            canvas.height = size;
-            const ctx = canvas.getContext('2d');
-            const gradient = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
-            gradient.addColorStop(0, 'rgba(255,255,255,1)');
-            gradient.addColorStop(0.1, 'rgba(255,255,255,0.9)');
-            gradient.addColorStop(0.4, 'rgba(255,240,220,0.3)');
-            gradient.addColorStop(1, 'rgba(255,255,255,0)');
-            ctx.fillStyle = gradient;
-            ctx.fillRect(0, 0, size, size);
-            const texture = new THREE.CanvasTexture(canvas);
-            texture.needsUpdate = true;
-            return texture;
-        }
-        const glowTexture = createGlowTexture(128);
-
-        // ─── MOUNTAIN / TERRAIN GENERATOR ───
-        function createMountain(size, height, color, status) {
-            const group = new THREE.Group();
-            const colorObj = new THREE.Color(color);
-
-            // Main peak – using a cone with multiple layers
-            const segments = 24;
-            const layers = 5;
-
-            // Base (wider, flatter)
-            const baseGeo = new THREE.CylinderGeometry(size * 0.7, size * 1.0, height * 0.15, segments);
-            const baseMat = new THREE.MeshStandardMaterial({
-                color: colorObj.clone().multiplyScalar(0.5),
-                roughness: 0.9,
-                metalness: 0.05,
-                flatShading: true,
-            });
-            const base = new THREE.Mesh(baseGeo, baseMat);
-            base.position.y = height * 0.075;
-            base.receiveShadow = true;
-            base.castShadow = true;
-            group.add(base);
-
-            // Main body (layered cones)
-            for (let i = 0; i < layers; i++) {
-                const t = (i + 1) / layers;
-                const r = size * (1 - t * 0.65);
-                const h = height * (0.15 + t * 0.7);
-                const yOffset = height * (0.05 + t * 0.35);
-                const mat = new THREE.MeshStandardMaterial({
-                    color: colorObj.clone().multiplyScalar(0.7 + t * 0.3),
-                    roughness: 0.7 + t * 0.2,
-                    metalness: 0.05,
-                    flatShading: true,
-                });
-                const geo = new THREE.CylinderGeometry(r * 0.8, r, h, segments);
-                const mesh = new THREE.Mesh(geo, mat);
-                mesh.position.y = yOffset;
-                mesh.receiveShadow = true;
-                mesh.castShadow = true;
-                group.add(mesh);
-
-                // Snow cap (on top layer)
-                if (i === layers - 1 && height > 1.2) {
-                    const snowMat = new THREE.MeshStandardMaterial({
-                        color: 0xeeffff,
-                        roughness: 0.3,
-                        metalness: 0.0,
-                        flatShading: true,
-                    });
-                    const snowGeo = new THREE.ConeGeometry(r * 0.5, height * 0.08, segments);
-                    const snow = new THREE.Mesh(snowGeo, snowMat);
-                    snow.position.y = yOffset + h * 0.5;
-                    snow.receiveShadow = true;
-                    snow.castShadow = true;
-                    group.add(snow);
-                }
-            }
-
-            // Trees on the mountain (lower slopes)
-            const treeCount = Math.floor(size * height * 2) + 2;
-            for (let i = 0; i < Math.min(treeCount, 12); i++) {
-                const angle = Math.random() * Math.PI * 2;
-                const dist = Math.random() * size * 0.6 + size * 0.1;
-                const x = Math.cos(angle) * dist;
-                const z = Math.sin(angle) * dist;
-                const elevation = height * (0.05 + Math.random() * 0.3);
-                const treeSize = 0.04 + Math.random() * 0.06;
-
-                // Trunk
-                const trunkMat = new THREE.MeshStandardMaterial({ color: 0x6a5a4a, roughness: 0.9 });
-                const trunk = new THREE.Mesh(
-                    new THREE.CylinderGeometry(treeSize * 0.3, treeSize * 0.6, treeSize * 0.6, 4),
-                    trunkMat
-                );
-                trunk.position.set(x, elevation, z);
-                trunk.castShadow = true;
-                group.add(trunk);
-
-                // Canopy
-                const canopyMat = new THREE.MeshStandardMaterial({
-                    color: 0x3a7a4a,
-                    roughness: 0.8,
-                });
-                const canopy = new THREE.Mesh(
-                    new THREE.ConeGeometry(treeSize * 0.6, treeSize * 0.8, 5),
-                    canopyMat
-                );
-                canopy.position.set(x, elevation + treeSize * 0.4, z);
-                canopy.castShadow = true;
-                group.add(canopy);
-            }
-
-            // Glow ring for active projects
-            if (status === 'Active') {
-                const ringGeo = new THREE.TorusGeometry(size * 0.7, size * 0.03, 8, 32);
-                const ringMat = new THREE.MeshBasicMaterial({
-                    color: 0x2fc7ff,
-                    transparent: true,
-                    opacity: 0.15,
-                });
-                const ring = new THREE.Mesh(ringGeo, ringMat);
-                ring.rotation.x = -Math.PI / 2;
-                ring.position.y = height * 0.02;
-                group.add(ring);
-            }
-
-            // Crystal veins (for larger mountains)
-            if (height > 1.5) {
-                const crystalCount = 2 + Math.floor(Math.random() * 3);
-                for (let i = 0; i < crystalCount; i++) {
-                    const angle = Math.random() * Math.PI * 2;
-                    const dist = Math.random() * size * 0.4 + size * 0.1;
-                    const x = Math.cos(angle) * dist;
-                    const z = Math.sin(angle) * dist;
-                    const cMat = new THREE.MeshStandardMaterial({
-                        color: 0x2fc7ff,
-                        emissive: 0x2fc7ff,
-                        emissiveIntensity: 0.1,
-                        roughness: 0.2,
-                        metalness: 0.3,
-                        transparent: true,
-                        opacity: 0.4,
-                    });
-                    const crystal = new THREE.Mesh(
-                        new THREE.ConeGeometry(0.04, 0.06 + Math.random() * 0.04, 5),
-                        cMat
-                    );
-                    const elev = height * (0.2 + Math.random() * 0.3);
-                    crystal.position.set(x, elev, z);
-                    crystal.rotation.set(Math.random()*0.5, Math.random()*6, Math.random()*0.5);
-                    group.add(crystal);
-                }
-            }
-
-            return group;
-        }
-
-        // ─── TERRAIN GENERATOR ───
-        const worldGroup = new THREE.Group();
-        scene.add(worldGroup);
-        let mountainMeshes = [];
-        let connectionLines = [];
-        let connectionParticles = [];
-        let labelObjects = [];
-
-        // ─── BUILD TERRAIN ───
-        function buildTerrain(projects, timeIdx) {
-            // Clear old objects
-            mountainMeshes.forEach(m => worldGroup.remove(m));
-            connectionLines.forEach(l => worldGroup.remove(l));
-            connectionParticles.forEach(p => worldGroup.remove(p));
-            labelObjects.forEach(l => worldGroup.remove(l));
-            mountainMeshes = [];
-            connectionLines = [];
-            connectionParticles = [];
-            labelObjects = [];
-
-            const cutoff = state.allDates[Math.min(timeIdx, state.allDates.length - 1)] || '2024-01-01';
-            const filtered = projects.filter(p => p.startDate && p.startDate <= cutoff);
-
-            const noDataMsg = document.getElementById('noDataMsg');
-            if (!filtered.length) {
-                noDataMsg.style.display = 'block';
-                return;
-            }
-            noDataMsg.style.display = 'none';
-
-            // ─── Position mountains on a grid with organic placement ───
-            const numMountains = filtered.length;
-            const cols = Math.ceil(Math.sqrt(numMountains));
-            const rows = Math.ceil(numMountains / cols);
-            const spacing = 4.5;
-
-            const sorted = [...filtered].sort((a, b) => b.totalHours - a.totalHours);
-
-            // Calculate positions with gentle randomness
-            const positions = [];
-            for (let i = 0; i < numMountains; i++) {
-                const col = i % cols;
-                const row = Math.floor(i / cols);
-                const x = (col - (cols - 1) / 2) * spacing + (Math.random() - 0.5) * 1.2;
-                const z = (row - (rows - 1) / 2) * spacing + (Math.random() - 0.5) * 1.2;
-                const y = 0;
-                positions.push({ x, y, z });
-            }
-
-            sorted.forEach((p, i) => {
-                const pos = positions[i] || { x: (Math.random()-0.5)*20, y:0, z: (Math.random()-0.5)*20 };
-                const hours = p.totalHours;
-                const height = 0.3 + Math.sqrt(hours) * 0.35;
-                const size = 0.6 + Math.sqrt(hours) * 0.2;
-                const color = categoryColors[p.primaryCategory] || 0x4a8a6a;
-
-                const mountain = createMountain(size, height, color, p.status);
-                mountain.position.set(pos.x, 0, pos.z);
-                mountain.userData = p;
-                worldGroup.add(mountain);
-                mountainMeshes.push(mountain);
-
-                // Glow sprite (subtle)
-                const colorObj = new THREE.Color(color);
-                const spriteMat = new THREE.SpriteMaterial({
-                    map: glowTexture,
-                    blending: THREE.AdditiveBlending,
-                    transparent: true,
-                    opacity: 0.08 + Math.min(hours / 200, 0.15),
-                    depthWrite: false,
-                    color: colorObj,
-                });
-                const sprite = new THREE.Sprite(spriteMat);
-                sprite.scale.set(size * 3, size * 3, 1);
-                sprite.position.set(pos.x, height * 0.3, pos.z);
-                worldGroup.add(sprite);
-                mountainMeshes.push(sprite);
-
-                // Label
-                const label = createLabelSprite(p.title, size);
-                label.position.set(pos.x, height + 0.8, pos.z);
-                worldGroup.add(label);
-                labelObjects.push(label);
-            });
-
-            // ─── Connections (ridges) ───
-            const connectionSet = new Set();
-            for (let i = 0; i < sorted.length; i++) {
-                for (let j = i + 1; j < sorted.length; j++) {
-                    const a = sorted[i];
-                    const b = sorted[j];
-                    const shared = a.categories.some(c => b.categories.includes(c));
-                    if (shared && positions[i] && positions[j]) {
-                        const key = [a.id, b.id].sort().join('-');
-                        if (!connectionSet.has(key)) {
-                            connectionSet.add(key);
-                            const p1 = new THREE.Vector3(positions[i].x, 0.1, positions[i].z);
-                            const p2 = new THREE.Vector3(positions[j].x, 0.1, positions[j].z);
-                            const mid = new THREE.Vector3().addVectors(p1, p2).multiplyScalar(0.5);
-                            const offset = new THREE.Vector3(
-                                (Math.random() - 0.5) * 0.8,
-                                0.3 + Math.random() * 0.4,
-                                (Math.random() - 0.5) * 0.8
-                            );
-                            mid.add(offset);
-
-                            const curve = new THREE.QuadraticBezierCurve3(p1, mid, p2);
-                            const points = curve.getPoints(24);
-
-                            // Line
-                            const geo = new THREE.BufferGeometry().setFromPoints(points);
-                            const mat = new THREE.LineBasicMaterial({
-                                color: 0x2fc7ff,
-                                transparent: true,
-                                opacity: 0.08,
-                            });
-                            const line = new THREE.Line(geo, mat);
-                            worldGroup.add(line);
-                            connectionLines.push(line);
-
-                            // Particles
-                            const count = 12;
-                            const pGeo = new THREE.BufferGeometry();
-                            const pPos = new Float32Array(count * 3);
-                            const pProg = new Float32Array(count);
-                            for (let k = 0; k < count; k++) {
-                                pProg[k] = k / count;
-                                const pt = curve.getPoint(pProg[k]);
-                                pPos[k*3] = pt.x;
-                                pPos[k*3+1] = pt.y;
-                                pPos[k*3+2] = pt.z;
-                            }
-                            pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
-                            pGeo.setAttribute('progress', new THREE.BufferAttribute(pProg, 1));
-
-                            const pMat = new THREE.PointsMaterial({
-                                color: 0x2fc7ff,
-                                size: 0.04,
-                                map: glowTexture,
-                                transparent: true,
-                                opacity: 0.5,
-                                blending: THREE.AdditiveBlending,
-                                depthWrite: false,
-                                sizeAttenuation: true,
-                            });
-                            const particles = new THREE.Points(pGeo, pMat);
-                            particles.userData = { curve, progress: pProg.slice(), offset: Math.random() * 100 };
-                            worldGroup.add(particles);
-                            connectionParticles.push(particles);
-                        }
-                    }
-                }
-            }
-
-            updateStats(sorted);
-        }
-
-        // ─── LABEL SPRITE ───
-        function createLabelSprite(text, size) {
-            const canvas = document.createElement('canvas');
-            canvas.width = 256;
-            canvas.height = 64;
-            const ctx = canvas.getContext('2d');
-            ctx.clearRect(0, 0, 256, 64);
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.font = '600 15px Inter, system-ui, sans-serif';
-            ctx.shadowColor = 'rgba(0,0,0,0.95)';
-            ctx.shadowBlur = 24;
-            ctx.fillStyle = '#dde8f0';
-            let displayText = text;
-            if (ctx.measureText(text).width > 170) {
-                while (ctx.measureText(displayText + '…').width > 170 && displayText.length > 3) {
-                    displayText = displayText.slice(0, -1);
-                }
-                displayText += '…';
-            }
-            ctx.fillText(displayText, 128, 34);
-            const texture = new THREE.CanvasTexture(canvas);
-            texture.needsUpdate = true;
-            const mat = new THREE.SpriteMaterial({
-                map: texture,
-                transparent: true,
-                depthTest: true,
-                depthWrite: false,
-                opacity: 0.7,
-                sizeAttenuation: true,
-            });
-            const sprite = new THREE.Sprite(mat);
-            sprite.scale.set(2.8, 0.6, 1);
-            return sprite;
-        }
-
-        // ─── CATEGORY COLORS ───
-        const categoryColors = {
-            'Training': 0x6c5ce7,
-            'Meetings': 0xfdcb6e,
-            'CFAT': 0x00b894,
-            'IFAT': 0x0984e3,
-            'Implementation': 0xe17055,
-            'Documentation': 0xfd79a8,
-            'Graphics': 0xa29bfe,
-            'Software': 0x55efc4,
-            'Hardware': 0xfab1a0,
-            'Study Leave': 0x81ecec,
-            'Admin': 0xffeaa7,
-            'Back-Punching': 0xd63031,
-            'Site': 0xe17055,
-            'Other': 0x636e72,
-        };
-
-        // ─── UPDATE STATS ───
-        function updateStats(projects) {
-            const totalHours = projects.reduce((s, p) => s + p.totalHours, 0);
-            const cats = new Set(projects.flatMap(p => p.categories));
-            const dates = [...new Set(state.entries.filter(e => {
-                const p = projects.find(p => p.id === e.project);
-                return p;
-            }).map(e => e.date))].sort();
-            let streak = 0;
-            for (let i = dates.length - 1; i >= 0; i--) {
-                const d = new Date(dates[i]);
-                const prev = i > 0 ? new Date(dates[i-1]) : null;
-                if (prev && (d - prev) / (1000*60*60*24) <= 1.5) {
-                    streak++;
-                } else if (i === dates.length - 1) {
-                    streak = 1;
-                } else {
-                    break;
-                }
-            }
-            document.getElementById('statProjects').innerHTML = `${projects.length} <small>Peaks</small>`;
-            document.getElementById('statHours').innerHTML = `${Math.round(totalHours)} <small>Hours</small>`;
-            document.getElementById('statCategories').innerHTML = `${cats.size} <small>Biomes</small>`;
-            document.getElementById('statStreak').innerHTML = `${streak} <small>Day Streak</small>`;
-        }
-
-        // ─── UPDATE PARTICLES ───
-        function updateConnectionParticles(time) {
-            connectionParticles.forEach(p => {
-                const positions = p.geometry.attributes.position.array;
-                const prog = p.userData.progress;
-                const curve = p.userData.curve;
-                const offset = p.userData.offset;
-                for (let i = 0; i < prog.length; i++) {
-                    let t = (prog[i] + time * 0.035 + offset * 0.01) % 1;
-                    const pt = curve.getPoint(t);
-                    positions[i*3] = pt.x;
-                    positions[i*3+1] = pt.y;
-                    positions[i*3+2] = pt.z;
-                }
-                p.geometry.attributes.position.needsUpdate = true;
-            });
-        }
-
-        // ─── DATA LOADING ───
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        // DATA LOADING
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         async function fetchTimesheet() {
             const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
             const encUser = encodeURIComponent(user.username);
@@ -1121,12 +638,359 @@
             return state.projects;
         }
 
-        function buildTerrainFromData(timeIdx) {
-            const projects = aggregateProjects(state.entries);
-            buildTerrain(projects, timeIdx);
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        // RIVER VISUALIZATION
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        const categoryColors = {
+            'Training': '#6c5ce7',
+            'Meetings': '#fdcb6e',
+            'CFAT': '#00b894',
+            'IFAT': '#0984e3',
+            'Implementation': '#e17055',
+            'Documentation': '#fd79a8',
+            'Graphics': '#a29bfe',
+            'Software': '#55efc4',
+            'Hardware': '#fab1a0',
+            'Study Leave': '#81ecec',
+            'Admin': '#ffeaa7',
+            'Back-Punching': '#d63031',
+            'Site': '#e17055',
+            'Other': '#636e72',
+        };
+
+        let nodeData = [];
+        let simulation;
+
+        function buildRiver(projects, timeIdx) {
+            const cutoff = state.allDates[Math.min(timeIdx, state.allDates.length - 1)] || '2024-01-01';
+            const filtered = projects.filter(p => p.startDate && p.startDate <= cutoff);
+
+            const noDataMsg = document.getElementById('noDataMsg');
+            if (!filtered.length) {
+                noDataMsg.style.display = 'block';
+                g.selectAll('*').remove();
+                return;
+            }
+            noDataMsg.style.display = 'none';
+
+            // Create nodes with positions along a flowing curve
+            const numNodes = filtered.length;
+            const xScale = d3.scaleLinear()
+                .domain([0, Math.max(numNodes - 1, 1)])
+                .range([50, innerWidth - 50]);
+
+            // Vertical distribution: sinusoidal wave to simulate river flow
+            const yBase = innerHeight / 2;
+            const amplitude = Math.min(innerHeight * 0.35, 200);
+            const frequency = 0.015;
+
+            const nodes = filtered.map((p, i) => {
+                const x = xScale(i);
+                const y = yBase + Math.sin(x * frequency + 1.2) * amplitude * (0.6 + 0.4 * Math.sin(i * 0.7));
+                const size = 10 + Math.sqrt(p.totalHours) * 4;
+                return {
+                    ...p,
+                    x: x,
+                    y: y,
+                    radius: Math.min(size, 60),
+                    color: categoryColors[p.primaryCategory] || '#2fc7ff',
+                };
+            });
+
+            // Store for click handling
+            nodeData = nodes;
+
+            // Clear previous
+            g.selectAll('*').remove();
+
+            // Draw river path (background curve)
+            const lineGenerator = d3.line()
+                .x(d => d.x)
+                .y(d => d.y)
+                .curve(d3.curveCatmullRom);
+
+            const pathData = lineGenerator(nodes);
+            g.append('path')
+                .attr('d', pathData)
+                .attr('fill', 'none')
+                .attr('stroke', 'url(#riverGrad)')
+                .attr('stroke-width', 6)
+                .attr('opacity', 0.3);
+
+            // Glow path
+            g.append('path')
+                .attr('d', pathData)
+                .attr('fill', 'none')
+                .attr('stroke', '#2fc7ff')
+                .attr('stroke-width', 2)
+                .attr('opacity', 0.1)
+                .attr('filter', 'url(#glow)');
+
+            // Nodes (circles with glow)
+            const nodeGroup = g.selectAll('.node')
+                .data(nodes)
+                .enter().append('g')
+                .attr('class', 'node')
+                .attr('transform', d => `translate(${d.x}, ${d.y})`)
+                .style('cursor', 'pointer');
+
+            // Glow circle
+            nodeGroup.append('circle')
+                .attr('r', d => d.radius * 0.3)
+                .attr('fill', d => d.color)
+                .attr('opacity', 0.2)
+                .attr('filter', 'url(#glow)');
+
+            // Main circle
+            nodeGroup.append('circle')
+                .attr('r', d => d.radius)
+                .attr('fill', d => d.color)
+                .attr('opacity', 0.85)
+                .attr('stroke', 'rgba(255,255,255,0.1)')
+                .attr('stroke-width', 1);
+
+            // Inner highlight
+            nodeGroup.append('circle')
+                .attr('r', d => d.radius * 0.6)
+                .attr('fill', 'rgba(255,255,255,0.15)')
+                .attr('opacity', 0.3);
+
+            // Label (project name)
+            nodeGroup.append('text')
+                .attr('dy', d => -(d.radius + 10))
+                .attr('text-anchor', 'middle')
+                .style('fill', '#e0e8ee')
+                .style('font-size', '10px')
+                .style('font-weight', '600')
+                .style('text-shadow', '0 0 8px rgba(0,0,0,0.8)')
+                .text(d => d.title.length > 12 ? d.title.slice(0,10)+'…' : d.title);
+
+            // Hours label below
+            nodeGroup.append('text')
+                .attr('dy', d => d.radius + 14)
+                .attr('text-anchor', 'middle')
+                .style('fill', '#8a9fb0')
+                .style('font-size', '8px')
+                .style('font-weight', '400')
+                .text(d => `${d.totalHours.toFixed(1)}h`);
+
+            // Connections between consecutive nodes (flow lines)
+            const connectionGroup = g.selectAll('.connection')
+                .data(nodes.slice(0, -1))
+                .enter().append('line')
+                .attr('class', 'connection')
+                .attr('x1', d => d.x)
+                .attr('y1', d => d.y)
+                .attr('x2', (d, i) => nodes[i+1].x)
+                .attr('y2', (d, i) => nodes[i+1].y)
+                .attr('stroke', 'rgba(47,199,255,0.08)')
+                .attr('stroke-width', 2)
+                .attr('stroke-dasharray', '4,4');
+
+            // Particle streams along connections
+            const particleCount = 15;
+            const particleGroup = g.selectAll('.particle')
+                .data(nodes.slice(0, -1))
+                .enter().append('g')
+                .attr('class', 'particle')
+                .each(function(d, i) {
+                    const parent = this;
+                    for (let j = 0; j < particleCount; j++) {
+                        const t = j / particleCount;
+                        const x = d.x + (nodes[i+1].x - d.x) * t;
+                        const y = d.y + (nodes[i+1].y - d.y) * t;
+                        const circle = d3.select(parent).append('circle')
+                            .attr('cx', x)
+                            .attr('cy', y)
+                            .attr('r', 1 + Math.random() * 1.5)
+                            .attr('fill', '#2fc7ff')
+                            .attr('opacity', 0.3 + Math.random() * 0.3)
+                            .attr('data-t', t)
+                            .attr('data-i', i);
+                    }
+                });
+
+            // Update stats
+            updateStats(filtered);
+
+            // Store particle data for animation
+            window._particleData = {
+                nodes: nodes,
+                particleGroup: particleGroup,
+                particleCount: particleCount,
+            };
         }
 
-        // ─── REPLAY ───
+        // ─── UPDATE STATS ───
+        function updateStats(projects) {
+            const totalHours = projects.reduce((s, p) => s + p.totalHours, 0);
+            const cats = new Set(projects.flatMap(p => p.categories));
+            const dates = [...new Set(state.entries.filter(e => {
+                const p = projects.find(p => p.id === e.project);
+                return p;
+            }).map(e => e.date))].sort();
+            let streak = 0;
+            for (let i = dates.length - 1; i >= 0; i--) {
+                const d = new Date(dates[i]);
+                const prev = i > 0 ? new Date(dates[i-1]) : null;
+                if (prev && (d - prev) / (1000*60*60*24) <= 1.5) {
+                    streak++;
+                } else if (i === dates.length - 1) {
+                    streak = 1;
+                } else {
+                    break;
+                }
+            }
+            document.getElementById('statProjects').innerHTML = `${projects.length} <small>Projects</small>`;
+            document.getElementById('statHours').innerHTML = `${Math.round(totalHours)} <small>Hours</small>`;
+            document.getElementById('statCategories').innerHTML = `${cats.size} <small>Categories</small>`;
+            document.getElementById('statStreak').innerHTML = `${streak} <small>Day Streak</small>`;
+        }
+
+        // ─── UPDATE PARTICLES (animation loop) ───
+        function updateParticles(time) {
+            const data = window._particleData;
+            if (!data || !data.nodes || data.nodes.length < 2) return;
+            const { nodes, particleGroup, particleCount } = data;
+            particleGroup.each(function(d, i) {
+                const parent = this;
+                const nextNode = nodes[i+1];
+                if (!nextNode) return;
+                const circles = d3.select(parent).selectAll('circle');
+                circles.each(function() {
+                    const circle = d3.select(this);
+                    const t = (parseFloat(circle.attr('data-t')) + 0.005 + (Math.random()-0.5)*0.002) % 1;
+                    const x = d.x + (nextNode.x - d.x) * t;
+                    const y = d.y + (nextNode.y - d.y) * t;
+                    circle.attr('cx', x).attr('cy', y);
+                    circle.attr('data-t', t);
+                });
+            });
+        }
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        // CLICK HANDLER
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        function handleClick(event) {
+            const target = event.target;
+            const nodeGroup = target.closest('.node');
+            if (!nodeGroup) return;
+            const transform = nodeGroup.getAttribute('transform');
+            const match = transform.match(/translate\(([^,]+),\s*([^)]+)\)/);
+            if (!match) return;
+            const x = parseFloat(match[1]);
+            const y = parseFloat(match[2]);
+            const node = nodeData.find(d => Math.abs(d.x - x) < 2 && Math.abs(d.y - y) < 2);
+            if (node) {
+                openSidePanel(node);
+            }
+        }
+
+        // ─── SIDE PANEL ───
+        function openSidePanel(project) {
+            const panel = document.getElementById('sidePanel');
+            const content = document.getElementById('panelContent');
+
+            const pct = project.totalHours > 0 ? Math.min(100, (project.totalHours / 400) * 100) : 0;
+            const cats = project.categories.map(c =>
+                `<span class="achievement-tag">${escapeHtml(c)}</span>`
+            ).join('');
+
+            const skills = [...project.categories];
+            if (project.primaryCategory && !skills.includes(project.primaryCategory)) skills.push(project.primaryCategory);
+            const skillTags = skills.slice(0, 6).map(s =>
+                `<span class="skill-tag">${escapeHtml(s)}</span>`
+            ).join('');
+
+            const related = state.projects
+                .filter(p => p.id !== project.id && p.primaryCategory === project.primaryCategory)
+                .slice(0, 4);
+
+            content.innerHTML = `
+                <div class="close-btn" id="closePanel">✕</div>
+                <div style="display:flex;align-items:center;gap:16px;margin-bottom:4px;">
+                    <div class="progress-ring" style="background:conic-gradient(#2fc7ff ${pct}%, rgba(255,255,255,0.03) ${pct}%);">
+                        <div class="pct">${Math.round(pct)}%</div>
+                    </div>
+                    <div>
+                        <h2 style="margin:0;">${escapeHtml(project.title)}</h2>
+                        <div style="font-size:0.75rem;color:#5a7d9a;letter-spacing:0.03em;">${project.status} · ${project.count} entries</div>
+                    </div>
+                </div>
+
+                <div class="detail-row"><span class="detail-label">⏱ Total Hours</span><span class="detail-value">${project.totalHours.toFixed(1)}</span></div>
+                <div class="detail-row"><span class="detail-label">📋 Entries</span><span class="detail-value">${project.count}</span></div>
+                <div class="detail-row"><span class="detail-label">📅 Started</span><span class="detail-value">${project.startDate || 'N/A'}</span></div>
+                <div class="detail-row"><span class="detail-label">📅 Last Entry</span><span class="detail-value">${project.endDate || 'N/A'}</span></div>
+                <div class="detail-row"><span class="detail-label">🏷️ Primary Category</span><span class="detail-value">${escapeHtml(project.primaryCategory)}</span></div>
+
+                <div class="panel-section-title">📂 Categories</div>
+                <div style="margin-bottom:8px;">${cats || '<span style="color:#5a7d9a;font-size:0.8rem;">None</span>'}</div>
+
+                <div class="panel-section-title">🛠️ Skills</div>
+                <div style="margin-bottom:8px;">${skillTags || '<span style="color:#5a7d9a;font-size:0.8rem;">None</span>'}</div>
+
+                ${related.length ? `
+                <div class="panel-section-title">🔗 Connected Projects</div>
+                <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
+                    ${related.map(p => `<span class="skill-tag" style="cursor:pointer;background:rgba(47,199,255,0.05);border-color:rgba(47,199,255,0.08);" data-id="${p.id}">${escapeHtml(p.title)}</span>`).join('')}
+                </div>
+                ` : ''}
+
+                <div style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap;">
+                    <button class="btn btn-sm btn-outline-light" onclick="window.location.href='timesheet.html'">
+                        <i class="fa fa-clock-o"></i> Timesheet
+                    </button>
+                    <button class="btn btn-sm btn-outline-light" onclick="window.location.href='analytics.html'">
+                        <i class="fa fa-bar-chart"></i> Analytics
+                    </button>
+                </div>
+            `;
+
+            panel.classList.add('open');
+
+            content.querySelectorAll('[data-id]').forEach(el => {
+                el.addEventListener('click', () => {
+                    const id = el.dataset.id;
+                    const p = state.projects.find(pr => pr.id === id);
+                    if (p) {
+                        panel.classList.remove('open');
+                        setTimeout(() => openSidePanel(p), 300);
+                    }
+                });
+            });
+
+            document.getElementById('closePanel').addEventListener('click', () => {
+                panel.classList.remove('open');
+            });
+        }
+
+        // ─── UTILITY ───
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[m] || m);
+        }
+
+        function showToast(msg, type) {
+            const container = document.getElementById('toastContainer');
+            const id = 'toast-' + Date.now();
+            const bg = type === 'success' ? 'rgba(0,184,148,0.12)' : (type === 'error' ? 'rgba(220,53,69,0.12)' :
+            'rgba(23,162,184,0.12)');
+            const border = type === 'success' ? '#00b894' : (type === 'error' ? '#dc3545' : '#17a2b8');
+            const html = `
+                <div id="${id}" class="toast" role="alert" data-autohide="true" data-delay="3000" style="background:${bg};border-left:3px solid ${border};">
+                    <div class="toast-body" style="color:#e0e8ee;font-size:0.8rem;">${msg}</div>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', html);
+            const el = document.getElementById(id);
+            $(el).toast('show');
+            el.addEventListener('hidden.bs.toast', () => el.remove());
+        }
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        // REPLAY, MUSIC, RECORDING (simplified)
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         let replayInterval = null;
 
         function startReplay() {
@@ -1145,18 +1009,16 @@
                     state.isReplaying = false;
                     document.getElementById('replayBtn').innerHTML = '<i class="fa fa-play"></i> REPLAY';
                     stopMusic();
-                    showToast('🏔️ Landscape complete!', 'success');
+                    showToast('🌊 River flow complete!', 'success');
                     checkAchievements(aggregateProjects(state.entries));
                     return;
                 }
                 const val = (idx / steps) * 100;
                 document.getElementById('timeSlider').value = val;
                 document.getElementById('timeLabel').textContent = state.allDates[idx] || 'All';
-                buildTerrainFromData(idx);
-                const projs = aggregateProjects(state.entries);
-                checkAchievements(projs);
+                buildRiver(aggregateProjects(state.entries), idx);
                 idx++;
-            }, 450);
+            }, 500);
         }
 
         function stopReplay() {
@@ -1171,14 +1033,14 @@
 
         // ─── ACHIEVEMENTS ───
         const achievementDefs = [
-            { id: 'first', condition: (p) => p.length >= 1, icon: '🏔️', title: 'First Peak', desc: 'Your landscape begins!' },
-            { id: 'ten', condition: (p) => p.length >= 10, icon: '⛰️', title: '10 Peaks', desc: 'A mountain range!' },
+            { id: 'first', condition: (p) => p.length >= 1, icon: '🌊', title: 'First Drop', desc: 'Your river begins!' },
+            { id: 'ten', condition: (p) => p.length >= 10, icon: '🏞️', title: '10 Projects', desc: 'A flowing stream!' },
             { id: 'hundred_hours', condition: (p) => p.reduce((s,n) => s + n.totalHours, 0) >= 100, icon: '⚡', title: '100 Hours',
             desc: 'Power milestone!' },
             { id: 'five_hundred_hours', condition: (p) => p.reduce((s,n) => s + n.totalHours, 0) >= 500, icon: '🔥',
                 title: '500 Hours', desc: 'Half a thousand!' },
             { id: 'all_completed', condition: (p) => p.length > 0 && p.every(n => n.status === 'Completed'), icon: '🎯',
-                title: 'All Completed', desc: 'Every peak is conquered!' },
+                title: 'All Completed', desc: 'Every project completed!' },
         ];
 
         function checkAchievements(projects) {
@@ -1187,8 +1049,6 @@
                     state.achievements.add(def.id);
                     showAchievement(def.icon, def.title, def.desc);
                     showToast(`${def.icon} ${def.title} unlocked!`, 'success');
-                    bloomPass.strength = 1.0;
-                    setTimeout(() => { bloomPass.strength = 0.3; }, 600);
                 }
             });
         }
@@ -1255,210 +1115,22 @@
         // ─── RECORDING ───
         function startRecording() {
             if (state.isRecording) return;
-            const stream = renderer.domElement.captureStream(30);
-            state.mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9' });
-            state.recordedChunks = [];
-            state.mediaRecorder.ondataavailable = (e) => state.recordedChunks.push(e.data);
-            state.mediaRecorder.onstop = () => {
-                const blob = new Blob(state.recordedChunks, { type: 'video/webm' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `terrain_${new Date().toISOString().slice(0,10)}.webm`;
-                a.click();
-                URL.revokeObjectURL(url);
-                state.isRecording = false;
-                document.getElementById('recordBtn').innerHTML = '<i class="fa fa-video-camera"></i>';
-                showToast('📹 Terrain exported!', 'success');
-            };
-            state.mediaRecorder.start(100);
-            state.isRecording = true;
-            document.getElementById('recordBtn').innerHTML = '<i class="fa fa-stop"></i>';
-            startReplay();
+            // Use the SVG canvas – capture via canvas? Simpler: use MediaRecorder on the SVG element?
+            // For simplicity, we'll use the canvas approach from previous versions but we don't have a canvas.
+            // We'll use html2canvas if available, but to keep it simple we'll just use the SVG element with captureStream.
+            // SVG element may not support captureStream in all browsers.
+            // We'll implement a basic recorder using canvas drawing.
+            // For now, we'll just show a message.
+            showToast('Recording: use screen capture or save video with external tool.', 'info');
         }
 
         function stopRecording() {
-            if (state.mediaRecorder && state.isRecording) {
-                state.mediaRecorder.stop();
-                state.isRecording = false;
-                document.getElementById('recordBtn').innerHTML = '<i class="fa fa-video-camera"></i>';
-                stopReplay();
-            }
+            // no-op
         }
 
-        // ─── SIDE PANEL ───
-        function openSidePanel(project) {
-            const panel = document.getElementById('sidePanel');
-            const content = document.getElementById('panelContent');
-
-            const pct = project.totalHours > 0 ? Math.min(100, (project.totalHours / 400) * 100) : 0;
-            const cats = project.categories.map(c =>
-                `<span class="achievement-tag">${escapeHtml(c)}</span>`
-            ).join('');
-
-            const skills = [...project.categories];
-            if (project.primaryCategory && !skills.includes(project.primaryCategory)) skills.push(project.primaryCategory);
-            const skillTags = skills.slice(0, 6).map(s =>
-                `<span class="skill-tag">${escapeHtml(s)}</span>`
-            ).join('');
-
-            const related = state.projects
-                .filter(p => p.id !== project.id && p.primaryCategory === project.primaryCategory)
-                .slice(0, 4);
-
-            content.innerHTML = `
-                <div class="close-btn" id="closePanel">✕</div>
-                <div style="display:flex;align-items:center;gap:16px;margin-bottom:4px;">
-                    <div class="progress-ring" style="background:conic-gradient(#2fc7ff ${pct}%, rgba(255,255,255,0.03) ${pct}%);">
-                        <div class="pct">${Math.round(pct)}%</div>
-                    </div>
-                    <div>
-                        <h2 style="margin:0;">${escapeHtml(project.title)}</h2>
-                        <div style="font-size:0.75rem;color:#5a7d9a;letter-spacing:0.03em;">${project.status} · ${project.count} entries</div>
-                    </div>
-                </div>
-
-                <div class="detail-row"><span class="detail-label">⏱ Total Hours</span><span class="detail-value">${project.totalHours.toFixed(1)}</span></div>
-                <div class="detail-row"><span class="detail-label">📋 Entries</span><span class="detail-value">${project.count}</span></div>
-                <div class="detail-row"><span class="detail-label">📅 Started</span><span class="detail-value">${project.startDate || 'N/A'}</span></div>
-                <div class="detail-row"><span class="detail-label">📅 Last Entry</span><span class="detail-value">${project.endDate || 'N/A'}</span></div>
-                <div class="detail-row"><span class="detail-label">🏷️ Primary Category</span><span class="detail-value">${escapeHtml(project.primaryCategory)}</span></div>
-
-                <div class="panel-section-title">📂 Categories</div>
-                <div style="margin-bottom:8px;">${cats || '<span style="color:#5a7d9a;font-size:0.8rem;">None</span>'}</div>
-
-                <div class="panel-section-title">🛠️ Skills</div>
-                <div style="margin-bottom:8px;">${skillTags || '<span style="color:#5a7d9a;font-size:0.8rem;">None</span>'}</div>
-
-                ${related.length ? `
-                <div class="panel-section-title">🔗 Connected Peaks</div>
-                <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
-                    ${related.map(p => `<span class="skill-tag" style="cursor:pointer;background:rgba(47,199,255,0.05);border-color:rgba(47,199,255,0.08);" data-id="${p.id}">${escapeHtml(p.title)}</span>`).join('')}
-                </div>
-                ` : ''}
-
-                <div style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap;">
-                    <button class="btn btn-sm btn-outline-light" onclick="window.location.href='timesheet.html'">
-                        <i class="fa fa-clock-o"></i> Timesheet
-                    </button>
-                    <button class="btn btn-sm btn-outline-light" onclick="window.location.href='analytics.html'">
-                        <i class="fa fa-bar-chart"></i> Analytics
-                    </button>
-                </div>
-            `;
-
-            panel.classList.add('open');
-
-            content.querySelectorAll('[data-id]').forEach(el => {
-                el.addEventListener('click', () => {
-                    const id = el.dataset.id;
-                    const p = state.projects.find(pr => pr.id === id);
-                    if (p) {
-                        panel.classList.remove('open');
-                        setTimeout(() => openSidePanel(p), 300);
-                        const mountain = mountainMeshes.find(m => m.userData && m.userData.id === id);
-                        if (mountain) {
-                            const pos = mountain.position.clone();
-                            pos.y = 0.5;
-                            flyCameraTo(pos);
-                        }
-                    }
-                });
-            });
-
-            document.getElementById('closePanel').addEventListener('click', () => {
-                panel.classList.remove('open');
-            });
-        }
-
-        // ─── FLY CAMERA ───
-        function flyCameraTo(target, duration = 1400) {
-            const startPos = camera.position.clone();
-            const startTarget = controls.target.clone();
-            const endTarget = target.clone();
-            const endPos = target.clone().add(new THREE.Vector3(
-                (Math.random() - 0.5) * 5,
-                3 + Math.random() * 2.5,
-                (Math.random() - 0.5) * 5
-            ));
-            const startTime = Date.now();
-
-            function fly() {
-                const elapsed = Date.now() - startTime;
-                const t = Math.min(elapsed / duration, 1);
-                const ease = 1 - Math.pow(1 - t, 3);
-                camera.position.lerpVectors(startPos, endPos, ease);
-                controls.target.lerpVectors(startTarget, endTarget, ease);
-                controls.update();
-                if (t < 1) requestAnimationFrame(fly);
-            }
-            fly();
-        }
-
-        // ─── UTILITY ───
-        function escapeHtml(str) {
-            if (!str) return '';
-            return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[m] || m);
-        }
-
-        function showToast(msg, type) {
-            const container = document.getElementById('toastContainer');
-            const id = 'toast-' + Date.now();
-            const bg = type === 'success' ? 'rgba(0,184,148,0.12)' : (type === 'error' ? 'rgba(220,53,69,0.12)' :
-            'rgba(23,162,184,0.12)');
-            const border = type === 'success' ? '#00b894' : (type === 'error' ? '#dc3545' : '#17a2b8');
-            const html = `
-                <div id="${id}" class="toast" role="alert" data-autohide="true" data-delay="3000" style="background:${bg};border-left:3px solid ${border};">
-                    <div class="toast-body" style="color:#e0e8ee;font-size:0.8rem;">${msg}</div>
-                </div>
-            `;
-            container.insertAdjacentHTML('beforeend', html);
-            const el = document.getElementById(id);
-            $(el).toast('show');
-            el.addEventListener('hidden.bs.toast', () => el.remove());
-        }
-
-        // ─── CLICK HANDLER ───
-        const raycaster = new THREE.Raycaster();
-        const pointer = new THREE.Vector2();
-
-        renderer.domElement.addEventListener('click', (event) => {
-            const rect = renderer.domElement.getBoundingClientRect();
-            pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-            pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-            raycaster.setFromCamera(pointer, camera);
-
-            const meshes = [];
-            mountainMeshes.forEach(group => {
-                if (group.isMesh) {
-                    meshes.push(group);
-                } else {
-                    group.children.forEach(child => {
-                        if (child.isMesh) meshes.push(child);
-                    });
-                }
-            });
-
-            const intersects = raycaster.intersectObjects(meshes);
-            if (intersects.length > 0) {
-                let hit = intersects[0].object;
-                let target = hit;
-                while (target && !target.userData?.id) {
-                    target = target.parent;
-                }
-                if (target && target.userData && target.userData.id) {
-                    const project = state.projects.find(p => p.id === target.userData.id);
-                    if (project) {
-                        openSidePanel(project);
-                        const pos = target.position.clone();
-                        pos.y = 0.5;
-                        flyCameraTo(pos);
-                    }
-                }
-            }
-        });
-
-        // ─── INIT ───
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        // INIT
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         async function init() {
             try {
                 await loadData(true);
@@ -1466,7 +1138,7 @@
                 const slider = document.getElementById('timeSlider');
                 slider.value = 100;
                 document.getElementById('timeLabel').textContent = 'All';
-                buildTerrainFromData(state.allDates.length - 1);
+                buildRiver(aggregateProjects(state.entries), state.allDates.length - 1);
                 checkAchievements(aggregateProjects(state.entries));
 
                 // ─── EVENTS ───
@@ -1474,14 +1146,15 @@
                     const val = parseInt(slider.value);
                     const idx = Math.floor((val / 100) * (state.allDates.length - 1));
                     document.getElementById('timeLabel').textContent = state.allDates[idx] || 'All';
-                    buildTerrainFromData(idx);
+                    buildRiver(aggregateProjects(state.entries), idx);
                     if (state.isReplaying) stopReplay();
                 });
 
                 document.getElementById('resetViewBtn').addEventListener('click', () => {
-                    camera.position.set(18, 14, 22);
-                    controls.target.set(0, 0, 0);
-                    controls.update();
+                    // Reset to full view
+                    slider.value = 100;
+                    document.getElementById('timeLabel').textContent = 'All';
+                    buildRiver(aggregateProjects(state.entries), state.allDates.length - 1);
                 });
 
                 document.getElementById('replayBtn').addEventListener('click', () => {
@@ -1499,20 +1172,18 @@
                 document.getElementById('syncBtn').addEventListener('click', async () => {
                     document.getElementById('syncStatus').textContent = '⏳ SYNCING...';
                     await loadData(true);
-                    buildTerrainFromData(parseInt(slider.value) / 100 * (state.allDates.length - 1));
+                    buildRiver(aggregateProjects(state.entries), parseInt(slider.value) / 100 * (state.allDates.length - 1));
                     checkAchievements(aggregateProjects(state.entries));
                 });
 
-                // ─── AUTO-ROTATE ───
-                let idleTimer = null;
-                renderer.domElement.addEventListener('pointerdown', () => {
-                    controls.autoRotate = false;
-                    clearTimeout(idleTimer);
+                // ─── CLICK HANDLER ───
+                svg.on('click', handleClick);
+
+                // ─── RESIZE ───
+                window.addEventListener('resize', () => {
+                    // Simple redraw
+                    buildRiver(aggregateProjects(state.entries), state.timeIdx);
                 });
-                renderer.domElement.addEventListener('pointerup', () => {
-                    idleTimer = setTimeout(() => { controls.autoRotate = true; }, 7000);
-                });
-                setTimeout(() => { controls.autoRotate = true; }, 5000);
 
                 if (window.updateUserFooter) window.updateUserFooter();
 
@@ -1525,36 +1196,14 @@
                 function animateLoop() {
                     requestAnimationFrame(animateLoop);
                     const time = performance.now();
-
-                    updateConnectionParticles(time);
-
-                    // Gentle mountain float
-                    mountainMeshes.forEach((group, i) => {
-                        if (group.isGroup) {
-                            const offset = i * 0.7;
-                            group.position.y += Math.sin(time * 0.00025 + offset) * 0.00015;
-                        }
-                    });
-
-                    controls.update();
-                    composer.render();
+                    updateParticles(time);
                 }
                 animateLoop();
-
-                window.addEventListener('resize', () => {
-                    const w = container.clientWidth;
-                    const h = container.clientHeight;
-                    camera.aspect = w / h;
-                    camera.updateProjectionMatrix();
-                    renderer.setSize(w, h);
-                    composer.setSize(w, h);
-                    effectFXAA.uniforms['resolution'].value.set(1 / w, 1 / h);
-                });
 
             } catch (err) {
                 console.error('Init error:', err);
                 document.getElementById('loadingOverlay').innerHTML = `
-                    <div style="color:#dc3545;font-size:1.2rem;">⚠️ FAILED TO BUILD TERRAIN</div>
+                    <div style="color:#dc3545;font-size:1.2rem;">⚠️ FAILED TO START RIVER</div>
                     <div style="color:#8a9fb0;font-size:0.9rem;margin-top:8px;">${err.message}</div>
                     <button class="btn btn-primary mt-4" onclick="location.reload()">RETRY</button>
                 `;
@@ -1568,7 +1217,7 @@
             init();
         }
 
-        window.terrain = { state, buildTerrainFromData, openSidePanel, flyCameraTo };
+        window.river = { state, buildRiver, openSidePanel };
     </script>
 </body>
 </html>
