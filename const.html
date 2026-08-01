@@ -4,14 +4,20 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Career Galaxy | Timesheet</title>
-    <link rel="icon" type="image/png" href="favicon.png" />
 
-    <!-- Bootstrap & Font Awesome -->
+    <!-- Bootstrap & Font Awesome (lightweight UI) -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800;900&display=swap" rel="stylesheet" />
 
+    <!-- Core config scripts (needed for REPO_CONFIG and user PAT) -->
+    <script src="config.js"></script>
+    <script src="crypto.js"></script>
+    <script src="api.js"></script>
+    <script src="shared.js"></script>
+
     <style>
+        /* ── Reset & base ── */
         * { box-sizing: border-box; }
         body {
             margin: 0;
@@ -262,6 +268,7 @@
         }
     </style>
 
+    <!-- Three.js modules (imported in script) -->
     <script type="importmap">
         {
             "imports": {
@@ -353,6 +360,41 @@
         import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        // ROBUST USER SESSION (fixes redirect loop)
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        function getCurrentUser() {
+            // Try SessionManager first
+            if (window.SessionManager && typeof window.SessionManager.getCurrentUser === 'function') {
+                const user = window.SessionManager.getCurrentUser();
+                if (user) return user;
+            }
+            // Fallback: read directly from sessionStorage
+            try {
+                const stored = sessionStorage.getItem('portfolioUser');
+                if (stored) {
+                    const data = JSON.parse(stored);
+                    if (data.timestamp && Date.now() - data.timestamp < 24 * 60 * 60 * 1000) {
+                        return data;
+                    } else {
+                        sessionStorage.removeItem('portfolioUser');
+                    }
+                }
+            } catch (e) { /* ignore */ }
+            return null;
+        }
+
+        const user = getCurrentUser();
+        if (!user) {
+            console.warn('No user session – redirecting to login');
+            // Use location.href with a small delay to allow any queued logs
+            setTimeout(() => {
+                window.location.href = 'login.html?redirect=galaxy';
+            }, 100);
+            return;
+        }
+        console.log('✅ Galaxy user:', user.username);
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         // STATE
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         const state = {
@@ -365,6 +407,7 @@
             recordedChunks: [],
             audioCtx: null,
             musicNodes: [],
+            musicGain: null,
             isMuted: false,
             achievements: new Set(),
             currentTimeIdx: 0,
@@ -398,24 +441,17 @@
         controls.maxDistance = 80;
         controls.target.set(0, 0, 0);
 
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        // POST-PROCESSING (Bloom)
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        // ── Post-processing (Bloom) ──
         const composer = new EffectComposer(renderer);
         const renderPass = new RenderPass(scene, camera);
         composer.addPass(renderPass);
-
         const bloomPass = new UnrealBloomPass(
             new THREE.Vector2(container.clientWidth, container.clientHeight),
-            0.6,  // strength
-            0.4,  // radius
-            0.2   // threshold
+            0.6, 0.4, 0.2
         );
         composer.addPass(bloomPass);
 
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        // SCENE OBJECTS
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        // ── Scene objects ──
         const galaxyGroup = new THREE.Group();
         scene.add(galaxyGroup);
 
@@ -428,7 +464,6 @@
             const count = 6000;
             const geo = new THREE.BufferGeometry();
             const pos = new Float32Array(count * 3);
-            const sizes = new Float32Array(count);
             for (let i = 0; i < count; i++) {
                 const r = 50 + Math.random() * 150;
                 const theta = Math.random() * Math.PI * 2;
@@ -436,10 +471,8 @@
                 pos[i*3] = r * Math.sin(phi) * Math.cos(theta);
                 pos[i*3+1] = r * Math.sin(phi) * Math.sin(theta) * 0.5;
                 pos[i*3+2] = r * Math.cos(phi);
-                sizes[i] = 0.1 + Math.random() * 0.4;
             }
             geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-            geo.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
             const mat = new THREE.PointsMaterial({
                 color: 0x8899bb,
                 size: 0.15,
@@ -456,7 +489,6 @@
 
         // ── Galaxy Core ──
         function createCore() {
-            // Glow sphere
             const coreGeo = new THREE.SphereGeometry(1.8, 32, 32);
             const coreMat = new THREE.MeshBasicMaterial({
                 color: 0x2fc7ff,
@@ -466,7 +498,6 @@
             coreGlow = new THREE.Mesh(coreGeo, coreMat);
             galaxyGroup.add(coreGlow);
 
-            // Core particle halo
             const count = 800;
             const geo = new THREE.BufferGeometry();
             const pos = new Float32Array(count * 3);
@@ -499,7 +530,7 @@
         }
         createCore();
 
-        // ── Nebula clouds (per category) ──
+        // ── Category colours ──
         const categoryColors = {
             'Training': 0x6c5ce7,
             'Meetings': 0xfdcb6e,
@@ -516,10 +547,9 @@
             'Site': 0xe17055,
             'Other': 0x636e72,
         };
-        const categoryPositions = {};
 
+        // ── Nebula clouds ──
         function createNebulaClouds(projects) {
-            // Remove old clouds
             nebulaClouds.forEach(c => galaxyGroup.remove(c));
             nebulaClouds = [];
 
@@ -561,11 +591,10 @@
                 const cloud = new THREE.Points(geo, mat);
                 galaxyGroup.add(cloud);
                 nebulaClouds.push(cloud);
-                categoryPositions[cat] = { angle, radius };
             });
         }
 
-        // ── Build galaxy from projects ──
+        // ── Build galaxy ──
         function buildGalaxy(projects, timeIdx) {
             // Clear old objects
             projectMeshes.forEach(m => galaxyGroup.remove(m));
@@ -581,19 +610,13 @@
             const filtered = projects.filter(p => p.startDate && p.startDate <= cutoff);
 
             if (!filtered.length) {
-                // Show empty state
-                const emptyText = document.createElement('div');
-                emptyText.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#5a7d9a;font-size:1.2rem;pointer-events:none;z-index:10;';
-                emptyText.textContent = '✦ No projects in this time period';
-                document.body.appendChild(emptyText);
-                setTimeout(() => emptyText.remove(), 2000);
+                // Empty state – just show core
                 return;
             }
 
-            // Create nebula clouds based on categories present
             createNebulaClouds(filtered);
 
-            // Distribute projects on spiral arms
+            // Distribute on spiral arms
             const numProjects = filtered.length;
             const arms = 4;
             const armAngleOffset = Math.PI * 2 / arms;
@@ -621,17 +644,13 @@
                 const baseAngle = catAngleMap[cat] || (i * 0.5);
                 const armIndex = Math.floor(i / (numProjects / arms));
                 const armAngle = armIndex * armAngleOffset + baseAngle * 0.3;
-
-                // Spiral: radius increases with index, with some randomness
                 const t = i / Math.max(numProjects - 1, 1);
                 const radius = minRadius + t * t * (maxRadius - minRadius);
                 const angle = armAngle + t * 2.5 + (Math.random() - 0.5) * 0.3;
                 const yOffset = (Math.random() - 0.5) * 0.8 * (1 - t * 0.5);
-
                 const x = Math.cos(angle) * radius;
                 const z = Math.sin(angle) * radius;
                 const y = yOffset * 0.6;
-
                 p._pos = new THREE.Vector3(x, y, z);
                 p._radius = size;
                 p._angle = angle;
@@ -642,8 +661,6 @@
             filtered.forEach((p) => {
                 const pos = p._pos;
                 const size = p._radius;
-
-                // Main sphere
                 const color = new THREE.Color(categoryColors[p.primaryCategory] || 0x2fc7ff);
                 const mat = new THREE.MeshStandardMaterial({
                     color: color,
@@ -659,7 +676,7 @@
                 galaxyGroup.add(mesh);
                 projectMeshes.push(mesh);
 
-                // Glow sprite (halo)
+                // Glow sprite
                 const spriteMap = createGlowSprite(color);
                 const spriteMat = new THREE.SpriteMaterial({
                     map: spriteMap,
@@ -671,26 +688,23 @@
                 const sprite = new THREE.Sprite(spriteMat);
                 sprite.scale.set(size * 5, size * 5, 1);
                 sprite.position.copy(pos);
-                sprite.userData = { isGlow: true };
                 galaxyGroup.add(sprite);
                 projectMeshes.push(sprite);
 
-                // Label (CSS2DRenderer alternative: use sprite with text? We'll use Three.js Sprite with canvas)
+                // Label
                 const label = createLabelSprite(p.title, size);
                 label.position.set(pos.x, pos.y + size * 1.8 + 0.6, pos.z);
-                label.userData = { isLabel: true };
                 galaxyGroup.add(label);
                 labelObjects.push(label);
             });
 
-            // ── Curved energy links ──
+            // Curved energy links
             const linkMat = new THREE.LineBasicMaterial({
                 color: 0x2fc7ff,
                 transparent: true,
                 opacity: 0.15,
             });
 
-            // Build links between projects that share categories
             const linkSet = new Set();
             for (let i = 0; i < filtered.length; i++) {
                 for (let j = i + 1; j < filtered.length; j++) {
@@ -710,15 +724,12 @@
                                 (Math.random() - 0.5) * 1.5
                             );
                             mid.add(offset);
-
                             const curve = new THREE.QuadraticBezierCurve3(p1, mid, p2);
                             const points = curve.getPoints(20);
                             const geo = new THREE.BufferGeometry().setFromPoints(points);
                             const line = new THREE.Line(geo, linkMat.clone());
                             galaxyGroup.add(line);
                             linkLines.push(line);
-
-                            // Energy particles along the curve
                             createEnergyParticles(curve, a, b);
                         }
                     }
@@ -728,7 +739,6 @@
             updateStats(filtered);
         }
 
-        // ── Glow sprite texture ──
         function createGlowSprite(color) {
             const canvas = document.createElement('canvas');
             canvas.width = 128;
@@ -741,11 +751,9 @@
             gradient.addColorStop(1, `rgba(${c.r*255|0},${c.g*255|0},${c.b*255|0},0)`);
             ctx.fillStyle = gradient;
             ctx.fillRect(0, 0, 128, 128);
-            const texture = new THREE.CanvasTexture(canvas);
-            return texture;
+            return new THREE.CanvasTexture(canvas);
         }
 
-        // ── Label sprite ──
         function createLabelSprite(text, size) {
             const canvas = document.createElement('canvas');
             canvas.width = 256;
@@ -758,10 +766,9 @@
             ctx.shadowColor = 'rgba(0,0,0,0.8)';
             ctx.shadowBlur = 12;
             ctx.fillStyle = '#e0e8ee';
-            const maxWidth = 220;
             let displayText = text;
-            if (ctx.measureText(text).width > maxWidth) {
-                while (ctx.measureText(displayText + '…').width > maxWidth && displayText.length > 3) {
+            if (ctx.measureText(text).width > 220) {
+                while (ctx.measureText(displayText + '…').width > 220 && displayText.length > 3) {
                     displayText = displayText.slice(0, -1);
                 }
                 displayText += '…';
@@ -782,7 +789,6 @@
             return sprite;
         }
 
-        // ── Energy particles along curves ──
         function createEnergyParticles(curve, a, b) {
             const count = 15;
             const geo = new THREE.BufferGeometry();
@@ -813,7 +819,6 @@
             energyParticles.push(particles);
         }
 
-        // ── Update energy particles (animate along curves) ──
         function updateEnergyParticles(time) {
             energyParticles.forEach(p => {
                 const positions = p.geometry.attributes.position.array;
@@ -831,7 +836,7 @@
             });
         }
 
-        // ── Stats ──
+        // ── Stats update ──
         function updateStats(projects) {
             const totalHours = projects.reduce((s, p) => s + p.totalHours, 0);
             const cats = new Set(projects.flatMap(p => p.categories));
@@ -862,11 +867,6 @@
         // ──────────────────────────────────────────────────────
         // DATA LOADING (GitHub)
         // ──────────────────────────────────────────────────────
-        const user = window.SessionManager?.getCurrentUser();
-        if (!user) {
-            window.location.href = 'login.html?redirect=galaxy';
-        }
-
         async function fetchTimesheet() {
             const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
             const encUser = encodeURIComponent(user.username);
@@ -900,7 +900,6 @@
             localStorage.setItem('timesheet_entries_cache', JSON.stringify({ entries, timestamp: Date.now() }));
         }
 
-        // ── Aggregate projects from entries ──
         function aggregateProjects(entries) {
             const map = new Map();
             entries.forEach(e => {
@@ -949,7 +948,7 @@
         }
 
         async function loadData(showLoading = true) {
-            if (showLoading) window.showLoading('Fetching from GitHub...');
+            if (showLoading && window.showLoading) window.showLoading('Fetching from GitHub...');
             try {
                 const entries = await fetchTimesheet();
                 if (entries.length) {
@@ -974,10 +973,9 @@
                     state.entries = [];
                 }
             } finally {
-                if (showLoading) window.hideLoading();
+                if (showLoading && window.hideLoading) window.hideLoading();
             }
 
-            // Extract dates
             const dateSet = new Set();
             state.entries.forEach(e => { if (e.date) dateSet.add(e.date); });
             state.allDates = Array.from(dateSet).sort();
@@ -991,7 +989,7 @@
         }
 
         // ──────────────────────────────────────────────────────
-        // GALAXY BUILD
+        // BUILD GALAXY FROM DATA
         // ──────────────────────────────────────────────────────
         function buildGalaxyFromData(timeIdx) {
             const projects = aggregateProjects(state.entries);
@@ -1010,9 +1008,7 @@
             const steps = state.allDates.length;
             if (!steps) { state.isReplaying = false; return; }
 
-            // Play music
             playMusic();
-
             document.getElementById('replayBtn').innerHTML = '<i class="fa fa-stop"></i> Stop';
 
             replayInterval = setInterval(() => {
@@ -1022,7 +1018,6 @@
                     document.getElementById('replayBtn').innerHTML = '<i class="fa fa-play"></i> Replay';
                     stopMusic();
                     showToast('🎉 Replay complete!', 'success');
-                    // Final achievement check
                     checkAchievements(aggregateProjects(state.entries));
                     return;
                 }
@@ -1063,8 +1058,8 @@
                     state.achievements.add(def.id);
                     showAchievement(def.icon, def.title, def.desc);
                     showToast(`${def.icon} ${def.title} unlocked!`, 'success');
-                    // Trigger galaxy flash effect
-                    triggerGalaxyFlash();
+                    bloomPass.strength = 1.5;
+                    setTimeout(() => { bloomPass.strength = 0.6; }, 600);
                 }
             });
         }
@@ -1082,13 +1077,8 @@
             setTimeout(() => { if (el.parentNode) el.remove(); }, 3500);
         }
 
-        function triggerGalaxyFlash() {
-            bloomPass.strength = 1.5;
-            setTimeout(() => { bloomPass.strength = 0.6; }, 600);
-        }
-
         // ──────────────────────────────────────────────────────
-        // MUSIC (Web Audio)
+        // MUSIC
         // ──────────────────────────────────────────────────────
         function playMusic() {
             if (state.audioCtx) return;
@@ -1098,6 +1088,7 @@
                 const gain = ctx.createGain();
                 gain.gain.value = 0.08;
                 gain.connect(ctx.destination);
+                state.musicGain = gain;
 
                 const freqs = [220, 330, 440, 550, 660];
                 const nodes = freqs.map(f => {
@@ -1112,7 +1103,6 @@
                     return osc;
                 });
                 state.musicNodes = nodes;
-                state.musicGain = gain;
             } catch(e) { console.warn('Music not supported', e); }
         }
 
@@ -1123,6 +1113,7 @@
                 try { state.audioCtx.close(); } catch(e) {}
                 state.audioCtx = null;
             }
+            state.musicGain = null;
         }
 
         function toggleMute() {
@@ -1181,14 +1172,12 @@
                 `<span class="achievement-tag">${escapeHtml(c)}</span>`
             ).join('');
 
-            // Generate "skills" from categories + primary
             const skills = [...project.categories];
             if (project.primaryCategory && !skills.includes(project.primaryCategory)) skills.push(project.primaryCategory);
             const skillTags = skills.slice(0, 6).map(s =>
                 `<span class="skill-tag">${escapeHtml(s)}</span>`
             ).join('');
 
-            // Related projects (same primary category)
             const related = state.projects
                 .filter(p => p.id !== project.id && p.primaryCategory === project.primaryCategory)
                 .slice(0, 4);
@@ -1236,7 +1225,6 @@
 
             panel.classList.add('open');
 
-            // Related project click
             content.querySelectorAll('[data-id]').forEach(el => {
                 el.addEventListener('click', () => {
                     const id = el.dataset.id;
@@ -1244,7 +1232,6 @@
                     if (p) {
                         panel.classList.remove('open');
                         setTimeout(() => openSidePanel(p), 300);
-                        // Fly camera to that project
                         const mesh = projectMeshes.find(m => m.userData && m.userData.id === id);
                         if (mesh) {
                             const pos = mesh.position.clone();
@@ -1254,13 +1241,11 @@
                 });
             });
 
-            // Close button
             document.getElementById('closePanel').addEventListener('click', () => {
                 panel.classList.remove('open');
             });
         }
 
-        // ── Fly camera to position ──
         function flyCameraTo(target, duration = 1200) {
             const startPos = camera.position.clone();
             const startTarget = controls.target.clone();
@@ -1275,7 +1260,7 @@
             function fly() {
                 const elapsed = Date.now() - startTime;
                 const t = Math.min(elapsed / duration, 1);
-                const ease = 1 - Math.pow(1 - t, 3); // easeOutCubic
+                const ease = 1 - Math.pow(1 - t, 3);
                 camera.position.lerpVectors(startPos, endPos, ease);
                 controls.target.lerpVectors(startTarget, endTarget, ease);
                 controls.update();
@@ -1309,7 +1294,7 @@
         }
 
         // ──────────────────────────────────────────────────────
-        // CLICK HANDLER (Raycaster)
+        // CLICK HANDLER
         // ──────────────────────────────────────────────────────
         const raycaster = new THREE.Raycaster();
         const pointer = new THREE.Vector2();
@@ -1328,7 +1313,6 @@
                     const project = state.projects.find(p => p.id === data.id);
                     if (project) {
                         openSidePanel(project);
-                        // Fly camera to it
                         const pos = obj.position.clone();
                         flyCameraTo(pos);
                     }
@@ -1340,32 +1324,23 @@
         // INIT
         // ──────────────────────────────────────────────────────
         async function init() {
-            window.showLoading('Building your galaxy...');
+            if (window.showLoading) window.showLoading('Building your galaxy...');
 
-            // Load data
             await loadData(true);
 
-            // Set slider to max
             const slider = document.getElementById('timeSlider');
             slider.value = 100;
             document.getElementById('timeLabel').textContent = 'All';
-
-            // Build initial galaxy
             buildGalaxyFromData(state.allDates.length - 1);
-
-            // Check initial achievements
             checkAchievements(aggregateProjects(state.entries));
 
-            // ── Controls events ──
+            // ── Events ──
             slider.addEventListener('input', () => {
                 const val = parseInt(slider.value);
                 const idx = Math.floor((val / 100) * (state.allDates.length - 1));
                 document.getElementById('timeLabel').textContent = state.allDates[idx] || 'All';
                 buildGalaxyFromData(idx);
-                if (state.isReplaying) {
-                    // If replaying, stop
-                    stopReplay();
-                }
+                if (state.isReplaying) stopReplay();
             });
 
             document.getElementById('resetViewBtn').addEventListener('click', () => {
@@ -1375,19 +1350,13 @@
             });
 
             document.getElementById('replayBtn').addEventListener('click', () => {
-                if (state.isReplaying) {
-                    stopReplay();
-                } else {
-                    startReplay();
-                }
+                if (state.isReplaying) stopReplay();
+                else startReplay();
             });
 
             document.getElementById('recordBtn').addEventListener('click', () => {
-                if (state.isRecording) {
-                    stopRecording();
-                } else {
-                    startRecording();
-                }
+                if (state.isRecording) stopRecording();
+                else startRecording();
             });
 
             document.getElementById('muteBtn').addEventListener('click', toggleMute);
@@ -1399,38 +1368,31 @@
                 checkAchievements(aggregateProjects(state.entries));
             });
 
-            // Auto-rotate when idle
+            // Auto-rotate
             let idleTimer = null;
             renderer.domElement.addEventListener('pointerdown', () => {
                 controls.autoRotate = false;
                 clearTimeout(idleTimer);
             });
             renderer.domElement.addEventListener('pointerup', () => {
-                idleTimer = setTimeout(() => {
-                    controls.autoRotate = true;
-                }, 5000);
+                idleTimer = setTimeout(() => { controls.autoRotate = true; }, 5000);
             });
-            // Start auto-rotate after 5s
             setTimeout(() => { controls.autoRotate = true; }, 5000);
 
-            window.updateUserFooter();
-            window.hideLoading();
+            if (window.updateUserFooter) window.updateUserFooter();
+            if (window.hideLoading) window.hideLoading();
 
-            // Animation loop
+            // ── Animation loop ──
             function animateLoop() {
                 requestAnimationFrame(animateLoop);
-
-                // Update energy particles
                 updateEnergyParticles(performance.now() / 1000);
 
-                // Pulse core
                 if (coreGlow) {
                     const pulse = 1 + Math.sin(performance.now() / 1500) * 0.05;
                     coreGlow.scale.set(pulse, pulse, pulse);
                     coreGlow.material.opacity = 0.4 + Math.sin(performance.now() / 2000) * 0.15;
                 }
 
-                // Rotate nebula clouds slowly
                 nebulaClouds.forEach((cloud, i) => {
                     cloud.rotation.y += 0.0003 * (i % 3 + 1);
                 });
@@ -1440,7 +1402,6 @@
             }
             animateLoop();
 
-            // Resize handler
             window.addEventListener('resize', () => {
                 const w = container.clientWidth;
                 const h = container.clientHeight;
@@ -1458,7 +1419,6 @@
             init();
         }
 
-        // Expose for global use
         window.galaxy = { state, buildGalaxyFromData, openSidePanel, flyCameraTo };
     </script>
 </body>
