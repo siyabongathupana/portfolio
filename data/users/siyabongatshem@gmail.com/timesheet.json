@@ -3,13 +3,13 @@
     "id": 1785769285744,
     "date": "2026-08-03",
     "start": "12:30",
-    "end": "17:01",
-    "hours": 4.52,
+    "end": "17:03",
+    "hours": 4.55,
     "project": "Sasol Boiler 5",
     "category": "Other",
     "billable": "yes",
     "notes": "Historization",
-    "updatedAt": 1785769285744
+    "updatedAt": 1785769385184
   },
   {
     "id": 1785769134897,
