@@ -17,7 +17,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
     <style>
-        /* ─── Same styles as before ─── */
+        /* ─── Minimal styles – same as before ─── */
         :root {
             --bg-primary: #0a0e17;
             --bg-card: #111927;
@@ -955,14 +955,11 @@
     <!-- ─── MAIN ─── -->
     <div class="study-container" id="app">
         <div id="contentArea">
-            <!-- Initial loading state -->
-            <div class="loading-spinner" id="initialLoading">
+            <!-- Immediate loading state -->
+            <div id="initialLoading" class="loading-spinner">
                 <div class="spinner"></div>
                 <div>Loading your study data...</div>
-                <div style="font-size:0.7rem;color:var(--text-secondary);margin-top:8px;">If this takes too long, click the button below.</div>
-                <button class="btn btn-force-show mt-3" id="forceShowBtn" style="display:none;">
-                    <i class="fa fa-forward"></i> Use Default Data
-                </button>
+                <div style="font-size:0.7rem;color:var(--text-secondary);margin-top:8px;">Please wait...</div>
             </div>
         </div>
     </div>
@@ -998,11 +995,6 @@
 
     <script>
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        //  CONSOLE LOG TO VERIFY SCRIPT LOADED
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        console.log('🚀 Study Manager script loaded successfully!');
-
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         //  USER SESSION
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         const ALLOWED_USER = 'siyabongatshem@gmail.com';
@@ -1025,74 +1017,23 @@
             return null;
         }
 
-        let user = null;
-        try {
-            user = getCurrentUser();
-            console.log('👤 User:', user ? user.username : 'No user');
-            if (!user) {
-                window.location.href = 'login.html?redirect=studies';
-                throw new Error('Redirecting to login');
-            }
-            if (user.username !== ALLOWED_USER) {
-                document.getElementById('contentArea').innerHTML = `
-                    <div class="access-denied">
-                        <div class="icon"><i class="fa fa-lock"></i></div>
-                        <h2>Access Restricted</h2>
-                        <p>This page is only available to the owner of this portfolio.</p>
-                        <button class="btn btn-primary-glow mt-3" onclick="window.location.href='index.html'">Go Home</button>
-                    </div>
-                `;
-                throw new Error('Access denied');
-            }
-            console.log('✅ Authorized user:', user.username);
-        } catch (e) {
-            if (!window.location.href.includes('login.html')) {
-                const area = document.getElementById('contentArea');
-                if (area) {
-                    area.innerHTML = `
-                        <div class="error-display">
-                            <div class="icon"><i class="fa fa-exclamation-circle"></i></div>
-                            <h3>Authentication Error</h3>
-                            <p>${e.message}</p>
-                            <button class="btn btn-primary-glow mt-3" onclick="window.location.href='login.html'">Go to Login</button>
-                        </div>
-                    `;
-                }
-            }
-            throw e;
+        const user = getCurrentUser();
+        if (!user) {
+            window.location.href = 'login.html?redirect=studies';
+            throw new Error('Redirecting to login');
         }
-
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        //  ENCRYPTION HELPERS
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        async function encryptData(data) {
-            const json = JSON.stringify(data);
-            const key = window.APP_CONFIG?.dogsname || 'default-key';
-            try {
-                const encrypted = await window.CryptoUtil.encrypt(json, key);
-                return encrypted;
-            } catch (e) {
-                console.warn('Encryption failed, using plain text:', e);
-                return json;
-            }
+        if (user.username !== ALLOWED_USER) {
+            document.getElementById('contentArea').innerHTML = `
+                <div class="access-denied">
+                    <div class="icon"><i class="fa fa-lock"></i></div>
+                    <h2>Access Restricted</h2>
+                    <p>This page is only available to the owner of this portfolio.</p>
+                    <button class="btn btn-primary-glow mt-3" onclick="window.location.href='index.html'">Go Home</button>
+                </div>
+            `;
+            throw new Error('Access denied');
         }
-
-        async function decryptData(encrypted) {
-            try {
-                if (typeof encrypted === 'string' && !encrypted.includes('"')) {
-                    return JSON.parse(encrypted);
-                }
-                const key = window.APP_CONFIG?.dogsname || 'default-key';
-                const decrypted = await window.CryptoUtil.decrypt(encrypted, key);
-                return JSON.parse(decrypted);
-            } catch (e) {
-                console.warn('Decryption failed, treating as plain JSON:', e);
-                if (typeof encrypted === 'string') {
-                    try { return JSON.parse(encrypted); } catch (e2) {}
-                }
-                return encrypted;
-            }
-        }
+        console.log('✅ Authorized user:', user.username);
 
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         //  STATE
@@ -1103,7 +1044,7 @@
         let gradeModalOpen = false;
 
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        //  DEFAULT DATA (same as before)
+        //  DEFAULT DATA (immediately available)
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         function getDefaultData() {
             return {
@@ -1549,141 +1490,13 @@
         }
 
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        //  GITHUB STORAGE - SIMPLIFIED
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        function getStudyPath() {
-            const { dataPath } = window.REPO_CONFIG || { dataPath: 'data' };
-            const encUser = encodeURIComponent(user.username);
-            return `${dataPath}/users/${encUser}/studies.enc`;
-        }
-
-        async function loadStudyData() {
-            try {
-                const { owner, repo, branch } = window.REPO_CONFIG || { owner: 'siyabongathupana', repo: 'portfolio',
-                    branch: 'main' };
-                const path = getStudyPath();
-                const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`;
-
-                console.log('📥 Fetching from:', url);
-
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 8000);
-
-                const response = await fetch(url, {
-                    headers: {
-                        Authorization: `token ${user.pat}`,
-                        Accept: 'application/vnd.github.v3+json'
-                    },
-                    signal: controller.signal
-                });
-
-                clearTimeout(timeoutId);
-
-                if (!response.ok) {
-                    if (response.status === 404) {
-                        console.log('📭 No file found, will use default data');
-                        return false;
-                    }
-                    if (response.status === 401 || response.status === 403) {
-                        console.warn('⚠️ GitHub token issue, using default data');
-                        return false;
-                    }
-                    throw new Error(`GitHub API error: ${response.status}`);
-                }
-
-                const data = await response.json();
-                if (!data || !data.content) {
-                    console.log('📭 No content, using default data');
-                    return false;
-                }
-
-                let parsed;
-                try {
-                    const content = atob(data.content.replace(/\n/g, ''));
-                    parsed = JSON.parse(content);
-                } catch (e) {
-                    console.warn('⚠️ Parse error, using default:', e);
-                    return false;
-                }
-
-                if (parsed && typeof parsed === 'object' && parsed.salt && parsed.iv && parsed.ciphertext) {
-                    try {
-                        const decrypted = await decryptData(parsed);
-                        if (decrypted && decrypted.years) {
-                            studyData = decrypted;
-                            console.log('✅ Study data loaded (decrypted) from GitHub');
-                            return true;
-                        }
-                    } catch (e) {
-                        console.warn('⚠️ Decryption failed, using default:', e);
-                        return false;
-                    }
-                } else if (parsed && parsed.years) {
-                    studyData = parsed;
-                    console.log('✅ Study data loaded (plain) from GitHub');
-                    return true;
-                }
-
-                return false;
-            } catch (e) {
-                if (e.name === 'AbortError') {
-                    console.warn('⚠️ Fetch timeout, using default data');
-                } else {
-                    console.error('❌ Load error:', e);
-                }
-                return false;
-            }
-        }
-
-        async function saveStudyDataWithRetry(attempt = 0, maxAttempts = 3) {
-            if (isSaving) {
-                await new Promise(r => setTimeout(r, 200));
-                return saveStudyDataWithRetry(attempt, maxAttempts);
-            }
-            isSaving = true;
-            try {
-                const { owner, repo, branch } = window.REPO_CONFIG || { owner: 'siyabongathupana', repo: 'portfolio',
-                    branch: 'main' };
-                const path = getStudyPath();
-                const encrypted = await encryptData(studyData);
-                const content = JSON.stringify(encrypted, null, 2);
-
-                let sha = null;
-                try {
-                    const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
-                    if (existing && existing.sha) sha = existing.sha;
-                } catch (e) {}
-
-                await GitHubAPI.updateFile(owner, repo, path, content, 'Update study data (encrypted)', branch, user.pat,
-                    sha);
-                console.log('✅ Study data saved (encrypted) to GitHub');
-                showToast('✅ Saved', 'success');
-                isSaving = false;
-                return true;
-            } catch (err) {
-                console.error('Save attempt failed:', err);
-                if (attempt < maxAttempts) {
-                    const delay = Math.pow(2, attempt) * 500;
-                    console.log(`Retrying in ${delay}ms (attempt ${attempt + 1}/${maxAttempts})`);
-                    await new Promise(r => setTimeout(r, delay));
-                    return saveStudyDataWithRetry(attempt + 1, maxAttempts);
-                } else {
-                    showToast('❌ Save failed: ' + err.message, 'error');
-                    isSaving = false;
-                    return false;
-                }
-            }
-        }
-
-        const saveStudyData = saveStudyDataWithRetry;
-
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        //  RENDER
+        //  RENDER (immediate, no waiting)
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         function render() {
             try {
                 renderStats();
                 renderTree();
+                console.log('✅ Rendered study data');
             } catch (e) {
                 console.error('Render error:', e);
                 const container = document.getElementById('treeContainer');
@@ -2579,6 +2392,163 @@
             }
         });
 
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //  ENCRYPTION HELPERS
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        async function encryptData(data) {
+            const json = JSON.stringify(data);
+            const key = window.APP_CONFIG?.dogsname || 'default-key';
+            try {
+                const encrypted = await window.CryptoUtil.encrypt(json, key);
+                return encrypted;
+            } catch (e) {
+                console.warn('Encryption failed, using plain text:', e);
+                return json;
+            }
+        }
+
+        async function decryptData(encrypted) {
+            try {
+                if (typeof encrypted === 'string' && !encrypted.includes('"')) {
+                    return JSON.parse(encrypted);
+                }
+                const key = window.APP_CONFIG?.dogsname || 'default-key';
+                const decrypted = await window.CryptoUtil.decrypt(encrypted, key);
+                return JSON.parse(decrypted);
+            } catch (e) {
+                console.warn('Decryption failed, treating as plain JSON:', e);
+                if (typeof encrypted === 'string') {
+                    try { return JSON.parse(encrypted); } catch (e2) {}
+                }
+                return encrypted;
+            }
+        }
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //  GITHUB STORAGE
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        function getStudyPath() {
+            const { dataPath } = window.REPO_CONFIG || { dataPath: 'data' };
+            const encUser = encodeURIComponent(user.username);
+            return `${dataPath}/users/${encUser}/studies.enc`;
+        }
+
+        async function loadStudyData() {
+            try {
+                const { owner, repo, branch } = window.REPO_CONFIG || { owner: 'siyabongathupana', repo: 'portfolio',
+                    branch: 'main' };
+                const path = getStudyPath();
+                const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`;
+
+                console.log('📥 Fetching from:', url);
+
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 6000);
+
+                const response = await fetch(url, {
+                    headers: {
+                        Authorization: `token ${user.pat}`,
+                        Accept: 'application/vnd.github.v3+json'
+                    },
+                    signal: controller.signal
+                });
+
+                clearTimeout(timeoutId);
+
+                if (!response.ok) {
+                    if (response.status === 404 || response.status === 401 || response.status === 403) {
+                        console.log('📭 No valid file, using default data');
+                        return false;
+                    }
+                    throw new Error(`GitHub API error: ${response.status}`);
+                }
+
+                const data = await response.json();
+                if (!data || !data.content) {
+                    console.log('📭 No content, using default data');
+                    return false;
+                }
+
+                let parsed;
+                try {
+                    const content = atob(data.content.replace(/\n/g, ''));
+                    parsed = JSON.parse(content);
+                } catch (e) {
+                    console.warn('⚠️ Parse error, using default:', e);
+                    return false;
+                }
+
+                if (parsed && typeof parsed === 'object' && parsed.salt && parsed.iv && parsed.ciphertext) {
+                    try {
+                        const decrypted = await decryptData(parsed);
+                        if (decrypted && decrypted.years) {
+                            studyData = decrypted;
+                            console.log('✅ Study data loaded (decrypted) from GitHub');
+                            return true;
+                        }
+                    } catch (e) {
+                        console.warn('⚠️ Decryption failed, using default:', e);
+                        return false;
+                    }
+                } else if (parsed && parsed.years) {
+                    studyData = parsed;
+                    console.log('✅ Study data loaded (plain) from GitHub');
+                    return true;
+                }
+
+                return false;
+            } catch (e) {
+                if (e.name === 'AbortError') {
+                    console.warn('⚠️ Fetch timeout, using default data');
+                } else {
+                    console.error('❌ Load error:', e);
+                }
+                return false;
+            }
+        }
+
+        async function saveStudyDataWithRetry(attempt = 0, maxAttempts = 3) {
+            if (isSaving) {
+                await new Promise(r => setTimeout(r, 200));
+                return saveStudyDataWithRetry(attempt, maxAttempts);
+            }
+            isSaving = true;
+            try {
+                const { owner, repo, branch } = window.REPO_CONFIG || { owner: 'siyabongathupana', repo: 'portfolio',
+                    branch: 'main' };
+                const path = getStudyPath();
+                const encrypted = await encryptData(studyData);
+                const content = JSON.stringify(encrypted, null, 2);
+
+                let sha = null;
+                try {
+                    const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
+                    if (existing && existing.sha) sha = existing.sha;
+                } catch (e) {}
+
+                await GitHubAPI.updateFile(owner, repo, path, content, 'Update study data (encrypted)', branch, user.pat,
+                    sha);
+                console.log('✅ Study data saved (encrypted) to GitHub');
+                showToast('✅ Saved', 'success');
+                isSaving = false;
+                return true;
+            } catch (err) {
+                console.error('Save attempt failed:', err);
+                if (attempt < maxAttempts) {
+                    const delay = Math.pow(2, attempt) * 500;
+                    console.log(`Retrying in ${delay}ms (attempt ${attempt + 1}/${maxAttempts})`);
+                    await new Promise(r => setTimeout(r, delay));
+                    return saveStudyDataWithRetry(attempt + 1, maxAttempts);
+                } else {
+                    showToast('❌ Save failed: ' + err.message, 'error');
+                    isSaving = false;
+                    return false;
+                }
+            }
+        }
+
+        const saveStudyData = saveStudyDataWithRetry;
+
         // ─── EXPORT TO EXCEL ───
         async function exportToExcel() {
             if (!studyData.years.length) {
@@ -2793,13 +2763,17 @@
         // ─── SYNC / RESET ───
         document.getElementById('syncBtn').addEventListener('click', async () => {
             showToast('🔄 Syncing...', 'info');
-            const loaded = await loadStudyData();
-            if (!loaded) {
-                studyData = getDefaultData();
-                await saveStudyData();
+            try {
+                const loaded = await loadStudyData();
+                if (!loaded) {
+                    // Keep existing data
+                }
+                render();
+                showToast('✅ Synced from GitHub', 'success');
+            } catch (e) {
+                showToast('❌ Sync failed: ' + e.message, 'error');
+                console.error(e);
             }
-            render();
-            showToast('✅ Synced from GitHub', 'success');
         });
 
         document.getElementById('resetBtn').addEventListener('click', () => {
@@ -2829,17 +2803,17 @@
         }
 
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        //  INIT
+        //  INIT – RENDER IMMEDIATELY, THEN SYNC IN BACKGROUND
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        let dataLoaded = false;
-
         async function init() {
-            console.log('📦 Initializing Study Manager...');
+            console.log('📦 Study Manager starting...');
 
             try {
                 const contentArea = document.getElementById('contentArea');
 
-                // Build the UI structure
+                // ─── 1. RENDER THE FULL UI WITH DEFAULT DATA IMMEDIATELY ───
+                studyData = getDefaultData();
+
                 contentArea.innerHTML = `
                     <div class="study-header">
                         <div>
@@ -2863,27 +2837,20 @@
                         <div class="stat-item"><div class="number red" id="statPending">0</div><div class="label">Pending</div></div>
                     </div>
 
-                    <div id="treeContainer">
-                        <div class="loading-spinner">
-                            <div class="spinner"></div>
-                            <div>Loading your study data...</div>
-                            <div style="font-size:0.7rem;color:var(--text-secondary);margin-top:8px;">Please wait...</div>
-                        </div>
-                    </div>
+                    <div id="treeContainer"></div>
 
                     <div class="text-center text-muted-light small py-4" style="border-top:1px solid var(--border-subtle);margin-top:20px;">
                         <span id="footerStatus"></span>
                     </div>
                 `;
 
-                // Re-bind event listeners
+                // ─── 2. RE-BIND EVENT LISTENERS ───
                 document.getElementById('syncBtn').addEventListener('click', async () => {
                     showToast('🔄 Syncing...', 'info');
                     try {
                         const loaded = await loadStudyData();
                         if (!loaded) {
-                            studyData = getDefaultData();
-                            await saveStudyData();
+                            // keep existing
                         }
                         render();
                         showToast('✅ Synced from GitHub', 'success');
@@ -2907,35 +2874,29 @@
                 document.getElementById('addYearBtn').addEventListener('click', window.addYear);
                 document.getElementById('exportBtn').addEventListener('click', exportToExcel);
 
-                // ─── LOAD DATA ───
-                console.log('⏳ Loading study data from GitHub...');
-
-                // Try to load from GitHub with timeout fallback
-                const loadPromise = loadStudyData();
-                const timeoutPromise = new Promise((resolve) => {
-                    setTimeout(() => {
-                        console.log('⏰ Load timeout, using default data');
-                        resolve(false);
-                    }, 8000);
-                });
-
-                const loaded = await Promise.race([loadPromise, timeoutPromise]);
-
-                if (!loaded) {
-                    console.log('📦 Using default data');
-                    studyData = getDefaultData();
-                    // Try to save the default data to GitHub (if possible)
-                    try {
-                        await saveStudyData();
-                    } catch (e) {
-                        console.warn('Could not save default data:', e);
-                    }
-                }
-
-                console.log('✅ Data ready, rendering...');
+                // ─── 3. RENDER IMMEDIATELY ───
                 render();
                 updateFooter();
-                console.log('✅ Study Manager ready!');
+                console.log('✅ Initial render complete (default data)');
+
+                // ─── 4. TRY TO LOAD FROM GITHUB IN THE BACKGROUND ───
+                setTimeout(async () => {
+                    try {
+                        console.log('⏳ Background sync: loading from GitHub...');
+                        const loaded = await loadStudyData();
+                        if (loaded) {
+                            render();
+                            console.log('✅ Background sync: loaded data from GitHub');
+                            showToast('✅ Synced with GitHub', 'success');
+                        } else {
+                            // If no data on GitHub, save default data
+                            await saveStudyData();
+                            console.log('💾 Background sync: saved default data to GitHub');
+                        }
+                    } catch (e) {
+                        console.warn('⚠️ Background sync failed:', e);
+                    }
+                }, 500);
 
                 // Auto-save on visibility change
                 document.addEventListener('visibilitychange', () => {
