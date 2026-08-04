@@ -3,13 +3,13 @@
     "id": 1785841737892,
     "date": "2026-08-04",
     "start": "12:30",
-    "end": "13:53",
-    "hours": 1.38,
+    "end": "14:22",
+    "hours": 1.87,
     "project": "Sasol MIBK",
     "category": "Back-Punching",
     "billable": "yes",
     "notes": "Fixing HandSwitches for LineUps",
-    "updatedAt": 1785844448179
+    "updatedAt": 1785846095484
   },
   {
     "id": 1785841531369,
