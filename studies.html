@@ -17,7 +17,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
     <style>
-        /* ─── same base styles, with mobile improvements ─── */
+        /* ─── Base Styles ─── */
         :root {
             --bg-primary: #0a0e17;
             --bg-card: #111927;
@@ -564,7 +564,6 @@
             background: rgba(47,199,255,0.05);
         }
 
-        /* ─── Grade Modal ─── */
         .grade-modal .modal-box {
             max-width: 680px;
         }
@@ -688,7 +687,6 @@
             color: var(--red);
         }
 
-        /* ─── Modal common ─── */
         .modal-custom {
             display: none;
             position: fixed;
@@ -871,6 +869,54 @@
             color: var(--text-secondary);
             max-width: 500px;
         }
+
+        /* ─── Error display ─── */
+        .error-display {
+            padding: 40px;
+            text-align: center;
+            color: var(--red);
+            background: rgba(225,112,85,0.08);
+            border-radius: 16px;
+            border: 1px solid var(--red);
+            margin: 40px 0;
+        }
+        .error-display .icon {
+            font-size: 3rem;
+            margin-bottom: 16px;
+        }
+        .error-display h3 {
+            color: var(--red);
+        }
+        .error-display pre {
+            background: rgba(0,0,0,0.3);
+            padding: 16px;
+            border-radius: 8px;
+            text-align: left;
+            max-height: 200px;
+            overflow: auto;
+            font-size: 0.8rem;
+        }
+
+        .loading-spinner {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 80px 20px;
+            color: var(--text-secondary);
+        }
+        .loading-spinner .spinner {
+            width: 48px;
+            height: 48px;
+            border: 3px solid var(--border-subtle);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 16px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
@@ -899,11 +945,15 @@
     <!-- ─── MAIN ─── -->
     <div class="study-container" id="app">
         <div id="contentArea">
-            <!-- content will be rendered here -->
+            <!-- Initial loading state -->
+            <div class="loading-spinner" id="initialLoading">
+                <div class="spinner"></div>
+                <div>Loading your study data...</div>
+            </div>
         </div>
     </div>
 
-    <!-- ─── GENERIC MODAL ─── -->
+    <!-- ─── MODALS ─── -->
     <div class="modal-custom" id="genericModal">
         <div class="modal-box">
             <h3 id="modalTitle">Add Item</h3>
@@ -915,7 +965,6 @@
         </div>
     </div>
 
-    <!-- ─── GRADE MODAL ─── -->
     <div class="modal-custom grade-modal" id="gradeModal">
         <div class="modal-box">
             <h3 id="gradeModalTitle">📊 Grade Calculator</h3>
@@ -926,7 +975,6 @@
         </div>
     </div>
 
-    <!-- ─── TOAST ─── -->
     <div class="toast-container" id="toastContainer"></div>
 
     <!-- ─── SCRIPTS ─── -->
@@ -936,16 +984,16 @@
 
     <script>
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        //  USER SESSION & ACCESS CONTROL
+        //  USER SESSION & ACCESS CONTROL (with error handling)
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         const ALLOWED_USER = 'siyabongatshem@gmail.com';
 
         function getCurrentUser() {
-            if (window.SessionManager?.getCurrentUser) {
-                const u = window.SessionManager.getCurrentUser();
-                if (u) return u;
-            }
             try {
+                if (window.SessionManager?.getCurrentUser) {
+                    const u = window.SessionManager.getCurrentUser();
+                    if (u) return u;
+                }
                 const stored = sessionStorage.getItem('portfolioUser');
                 if (stored) {
                     const data = JSON.parse(stored);
@@ -954,42 +1002,62 @@
                     }
                     sessionStorage.removeItem('portfolioUser');
                 }
-            } catch {}
+            } catch (e) { console.warn('User session error:', e); }
             return null;
         }
 
-        const user = getCurrentUser();
-        if (!user) {
-            setTimeout(() => { window.location.href = 'login.html?redirect=studies'; }, 200);
-            throw new Error('No user session');
+        // Check user immediately
+        let user = null;
+        try {
+            user = getCurrentUser();
+            if (!user) {
+                // Redirect to login
+                window.location.href = 'login.html?redirect=studies';
+                throw new Error('Redirecting to login');
+            }
+            if (user.username !== ALLOWED_USER) {
+                document.getElementById('contentArea').innerHTML = `
+                    <div class="access-denied">
+                        <div class="icon"><i class="fa fa-lock"></i></div>
+                        <h2>Access Restricted</h2>
+                        <p>This page is only available to the owner of this portfolio.</p>
+                        <button class="btn btn-primary-glow mt-3" onclick="window.location.href='index.html'">Go Home</button>
+                    </div>
+                `;
+                throw new Error('Access denied');
+            }
+            console.log('✅ Study Manager user:', user.username);
+        } catch (e) {
+            // If we're already on the page and it's not a redirect, show error
+            if (!window.location.href.includes('login.html')) {
+                const area = document.getElementById('contentArea');
+                if (area) {
+                    area.innerHTML = `
+                        <div class="error-display">
+                            <div class="icon"><i class="fa fa-exclamation-circle"></i></div>
+                            <h3>Authentication Error</h3>
+                            <p>${e.message}</p>
+                            <button class="btn btn-primary-glow mt-3" onclick="window.location.href='login.html'">Go to Login</button>
+                        </div>
+                    `;
+                }
+            }
+            // Re-throw to stop execution
+            throw e;
         }
-
-        if (user.username !== ALLOWED_USER) {
-            document.getElementById('contentArea').innerHTML = `
-                <div class="access-denied">
-                    <div class="icon"><i class="fa fa-lock"></i></div>
-                    <h2>Access Restricted</h2>
-                    <p>This page is only available to the owner of this portfolio. Please log in with the correct account.</p>
-                    <button class="btn btn-primary-glow mt-3" onclick="window.location.href='index.html'">Go Home</button>
-                </div>
-            `;
-            throw new Error('Access denied');
-        }
-
-        console.log('✅ Study Manager user:', user.username);
 
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         //  ENCRYPTION
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         async function encryptData(data) {
             const json = JSON.stringify(data);
-            const key = window.APP_CONFIG.dogsname;
+            const key = window.APP_CONFIG?.dogsname || 'default-key';
             const encrypted = await window.CryptoUtil.encrypt(json, key);
             return encrypted;
         }
 
         async function decryptData(encrypted) {
-            const key = window.APP_CONFIG.dogsname;
+            const key = window.APP_CONFIG?.dogsname || 'default-key';
             const decrypted = await window.CryptoUtil.decrypt(encrypted, key);
             return JSON.parse(decrypted);
         }
@@ -1000,15 +1068,14 @@
         let studyData = { years: [] };
         let expanded = {};
         let isSaving = false;
-        // For grade modal live updates without full re-render
         let gradeModalOpen = false;
-        let gradeUnitRef = null; // {yi, si, ui}
+        let gradeUnitRef = null;
 
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        //  GITHUB STORAGE (encrypted) with retry & SHA conflict handling
+        //  GITHUB STORAGE
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         function getStudyPath() {
-            const { dataPath } = window.REPO_CONFIG;
+            const { dataPath } = window.REPO_CONFIG || { dataPath: 'data' };
             const encUser = encodeURIComponent(user.username);
             return `${dataPath}/users/${encUser}/studies.enc`;
         }
@@ -1020,7 +1087,8 @@
             }
             isSaving = true;
             try {
-                const { owner, repo, branch } = window.REPO_CONFIG;
+                const { owner, repo, branch } = window.REPO_CONFIG || { owner: 'siyabongathupana', repo: 'portfolio',
+                    branch: 'main' };
                 const path = getStudyPath();
                 const encrypted = await encryptData(studyData);
                 const content = JSON.stringify(encrypted, null, 2);
@@ -1045,7 +1113,7 @@
                     await new Promise(r => setTimeout(r, delay));
                     return saveStudyDataWithRetry(attempt + 1, maxAttempts);
                 } else {
-                    showToast('❌ Save failed after multiple attempts: ' + err.message, 'error');
+                    showToast('❌ Save failed: ' + err.message, 'error');
                     isSaving = false;
                     return false;
                 }
@@ -1056,7 +1124,8 @@
 
         async function loadStudyData() {
             try {
-                const { owner, repo, branch } = window.REPO_CONFIG;
+                const { owner, repo, branch } = window.REPO_CONFIG || { owner: 'siyabongathupana', repo: 'portfolio',
+                    branch: 'main' };
                 const path = getStudyPath();
                 const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
                 if (file && file.content) {
@@ -1533,50 +1602,81 @@
         //  RENDER
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         function render() {
-            renderStats();
-            renderTree();
+            try {
+                renderStats();
+                renderTree();
+            } catch (e) {
+                console.error('Render error:', e);
+                const container = document.getElementById('treeContainer');
+                if (container) {
+                    container.innerHTML = `
+                        <div class="error-display">
+                            <div class="icon"><i class="fa fa-exclamation-circle"></i></div>
+                            <h3>Render Error</h3>
+                            <p>${e.message}</p>
+                            <pre>${e.stack}</pre>
+                        </div>
+                    `;
+                }
+            }
         }
 
         function renderStats() {
-            let totalYears = studyData.years.length;
-            let totalUnits = 0,
-                totalWeeks = 0,
-                totalTopics = 0,
-                doneTopics = 0;
-            let totalAssignments = 0,
-                pendingAssignments = 0;
+            try {
+                let totalYears = studyData.years.length;
+                let totalUnits = 0,
+                    totalWeeks = 0,
+                    totalTopics = 0,
+                    doneTopics = 0;
+                let totalAssignments = 0,
+                    pendingAssignments = 0;
 
-            studyData.years.forEach(y => {
-                y.semesters.forEach(s => {
-                    s.units.forEach(u => {
-                        totalUnits++;
-                        (u.weeks || []).forEach(w => {
-                            totalWeeks++;
-                            (w.topics || []).forEach(t => {
-                                totalTopics++;
-                                if (t.completed) doneTopics++;
-                            });
-                            (w.assignments || []).forEach(a => {
-                                totalAssignments++;
-                                if (a.status === 'pending' || a.status === 'in-progress')
-                                    pendingAssignments++;
+                studyData.years.forEach(y => {
+                    y.semesters.forEach(s => {
+                        s.units.forEach(u => {
+                            totalUnits++;
+                            (u.weeks || []).forEach(w => {
+                                totalWeeks++;
+                                (w.topics || []).forEach(t => {
+                                    totalTopics++;
+                                    if (t.completed) doneTopics++;
+                                });
+                                (w.assignments || []).forEach(a => {
+                                    totalAssignments++;
+                                    if (a.status === 'pending' || a.status === 'in-progress')
+                                        pendingAssignments++;
+                                });
                             });
                         });
                     });
                 });
-            });
 
-            document.getElementById('statYears').textContent = totalYears;
-            document.getElementById('statUnits').textContent = totalUnits;
-            document.getElementById('statWeeks').textContent = totalWeeks;
-            document.getElementById('statTopicsDone').textContent = doneTopics + '/' + totalTopics;
-            document.getElementById('statAssignments').textContent = totalAssignments;
-            document.getElementById('statPending').textContent = pendingAssignments;
+                document.getElementById('statYears').textContent = totalYears;
+                document.getElementById('statUnits').textContent = totalUnits;
+                document.getElementById('statWeeks').textContent = totalWeeks;
+                document.getElementById('statTopicsDone').textContent = doneTopics + '/' + totalTopics;
+                document.getElementById('statAssignments').textContent = totalAssignments;
+                document.getElementById('statPending').textContent = pendingAssignments;
+            } catch (e) {
+                console.warn('Stats render error:', e);
+            }
         }
 
         function renderTree() {
             const container = document.getElementById('treeContainer');
+            if (!container) return;
             container.innerHTML = '';
+
+            if (!studyData.years || studyData.years.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center text-muted-light py-5">
+                        <i class="fa fa-graduation-cap" style="font-size:3rem;display:block;margin-bottom:12px;opacity:0.3;"></i>
+                        <h4>No study data yet</h4>
+                        <p>Add a year using the "Add Year" button above.</p>
+                    </div>
+                `;
+                return;
+            }
 
             studyData.years.forEach((year, yi) => {
                 const yearKey = `year_${yi}`;
@@ -1791,7 +1891,7 @@
         }
 
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        //  GRADE CALCULATOR – IMPROVED (no re-render, live updates)
+        //  GRADE CALCULATOR
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         function calculateUnitGrade(unit) {
             const allAssignments = [];
@@ -1839,7 +1939,6 @@
             const body = document.getElementById('gradeModalBody');
             let html = '';
 
-            // Summary cards
             let gradeDisplay = 'N/A',
                 gradeColor = 'red',
                 gradeValue = 0;
@@ -1892,7 +1991,6 @@
                 });
                 html += `</div>`;
 
-                // What-if
                 const currentGrade = result.grade;
                 const missingWeight = result.missingMarks || 0;
                 const achievedWeight = result.achievedWeight || 0;
@@ -1919,7 +2017,6 @@
             body.innerHTML = html;
             document.getElementById('gradeModalTitle').textContent = `📊 Grade Calculator – ${unit.code} ${unit.name}`;
 
-            // Auto-calculate what-if on load
             if (result && result.grade !== null) {
                 setTimeout(() => {
                     const targetInput = document.getElementById('targetGradeInput');
@@ -1928,7 +2025,6 @@
             }
         }
 
-        // Update grade mark – saves and updates modal in-place
         window.updateGradeMark = function(input) {
             const yi = parseInt(input.dataset.yi);
             const si = parseInt(input.dataset.si);
@@ -1938,7 +2034,6 @@
             const unit = studyData.years[yi]?.semesters[si]?.units[ui];
             if (!unit) return;
 
-            // Find the assignment by flattening weeks and assignments
             const flatAssignments = [];
             (unit.weeks || []).forEach(week => {
                 (week.assignments || []).forEach(ass => {
@@ -1948,12 +2043,9 @@
             if (idx < flatAssignments.length) {
                 const ass = flatAssignments[idx];
                 ass.marks = input.value;
-                // Save after update
                 saveStudyData().then(() => {
-                    // Re-render the modal content (in-place update)
                     if (gradeModalOpen) {
                         renderGradeModal(yi, si, ui);
-                        // Restore focus
                         const newInput = document.querySelector(`.marks-input[data-yi="${yi}"][data-si="${si}"][data-ui="${ui}"][data-idx="${idx}"]`);
                         if (newInput) newInput.focus();
                     }
@@ -1962,7 +2054,6 @@
             }
         };
 
-        // What-if calculation – now uses live values from the modal
         window.updateWhatIf = function(yi, si, ui, target) {
             const unit = studyData.years[yi]?.semesters[si]?.units[ui];
             if (!unit) return;
@@ -2014,7 +2105,6 @@
             modal.classList.add('open');
         };
 
-        // ─── GRADE MODAL CLOSE ───
         document.getElementById('gradeModalClose').addEventListener('click', () => {
             document.getElementById('gradeModal').classList.remove('open');
             gradeModalOpen = false;
@@ -2064,9 +2154,8 @@
         }
 
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        //  CRUD OPERATIONS (unchanged)
+        //  CRUD OPERATIONS
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        // Years
         window.addYear = function() {
             openModal('Add Year', `
                 <div class="form-group">
@@ -2102,7 +2191,6 @@
             saveStudyData().then(render);
         };
 
-        // Semesters
         window.addSemester = function(yi) {
             openModal('Add Semester', `
                 <div class="form-group">
@@ -2138,7 +2226,6 @@
             saveStudyData().then(render);
         };
 
-        // Units
         window.addUnit = function(yi, si) {
             openModal('Add Unit', `
                 <div class="form-group">
@@ -2196,7 +2283,6 @@
             saveStudyData().then(render);
         };
 
-        // Weeks
         window.addWeek = function(yi, si, ui) {
             openModal('Add Week', `
                 <div class="form-group">
@@ -2233,7 +2319,6 @@
             saveStudyData().then(render);
         };
 
-        // Topics
         window.addTopic = function(yi, si, ui, wi) {
             openModal('Add Topic', `
                 <div class="form-group">
@@ -2271,7 +2356,6 @@
             saveStudyData().then(render);
         };
 
-        // Subtopics
         window.addSubtopic = function(yi, si, ui, wi, ti) {
             openModal('Add Subtopic', `
                 <div class="form-group">
@@ -2302,7 +2386,6 @@
             saveStudyData().then(render);
         };
 
-        // Assignments
         window.addAssignment = function(yi, si, ui, wi) {
             openModal('Add Assignment', `
                 <div class="form-group">
@@ -2419,7 +2502,7 @@
             }
         });
 
-        // ─── EXPORT TO EXCEL (professional, with cover and grade summary) ───
+        // ─── EXPORT TO EXCEL ───
         async function exportToExcel() {
             if (!studyData.years.length) {
                 showToast('No data to export.', 'error');
@@ -2433,7 +2516,7 @@
                 workbook.creator = user.username;
                 workbook.created = new Date();
 
-                // ── Cover Sheet ──
+                // Cover Sheet
                 const cover = workbook.addWorksheet('Cover', {
                     pageSetup: { orientation: 'portrait', fitToPage: true }
                 });
@@ -2509,7 +2592,7 @@
                 });
                 cover.columns.forEach(col => { col.width = 25; });
 
-                // ── Data Sheet ──
+                // Data Sheet
                 const ws = workbook.addWorksheet('Full Data', {
                     pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, margins: {
                         left: 0.7, right: 0.7, top: 0.7, bottom: 0.7, header: 0.3, footer: 0.3
@@ -2675,81 +2758,99 @@
         //  INIT
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         async function init() {
-            const contentArea = document.getElementById('contentArea');
-            contentArea.innerHTML = `
-                <div class="study-header">
-                    <div>
-                        <h1><i class="fa fa-graduation-cap" style="font-size:1.8rem;margin-right:12px;background:linear-gradient(135deg,#fff,var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;"></i> Study Manager</h1>
-                        <div class="subtitle">Years → Semesters → Units → Weeks → Topics → Subtopics · <span id="userDisplay"></span></div>
+            try {
+                const contentArea = document.getElementById('contentArea');
+                contentArea.innerHTML = `
+                    <div class="study-header">
+                        <div>
+                            <h1><i class="fa fa-graduation-cap" style="font-size:1.8rem;margin-right:12px;background:linear-gradient(135deg,#fff,var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;"></i> Study Manager</h1>
+                            <div class="subtitle">Years → Semesters → Units → Weeks → Topics → Subtopics · <span id="userDisplay"></span></div>
+                        </div>
+                        <div class="actions">
+                            <button class="btn btn-sync" id="syncBtn"><i class="fa fa-cloud-download"></i> Sync</button>
+                            <button class="btn btn-excel" id="exportBtn"><i class="fa fa-file-excel-o"></i> Export</button>
+                            <button class="btn btn-success-glow" id="addYearBtn"><i class="fa fa-plus"></i> Add Year</button>
+                            <button class="btn btn-outline-light" id="resetBtn" style="border:1px solid var(--border-subtle);color:var(--text-secondary);"><i class="fa fa-refresh"></i> Reset</button>
+                        </div>
                     </div>
-                    <div class="actions">
-                        <button class="btn btn-sync" id="syncBtn"><i class="fa fa-cloud-download"></i> Sync</button>
-                        <button class="btn btn-excel" id="exportBtn"><i class="fa fa-file-excel-o"></i> Export</button>
-                        <button class="btn btn-success-glow" id="addYearBtn"><i class="fa fa-plus"></i> Add Year</button>
-                        <button class="btn btn-outline-light" id="resetBtn" style="border:1px solid var(--border-subtle);color:var(--text-secondary);"><i class="fa fa-refresh"></i> Reset</button>
+
+                    <div class="stats-bar" id="statsBar">
+                        <div class="stat-item"><div class="number blue" id="statYears">0</div><div class="label">Years</div></div>
+                        <div class="stat-item"><div class="number purple" id="statUnits">0</div><div class="label">Units</div></div>
+                        <div class="stat-item"><div class="number orange" id="statWeeks">0</div><div class="label">Weeks</div></div>
+                        <div class="stat-item"><div class="number green" id="statTopicsDone">0</div><div class="label">Topics Done</div></div>
+                        <div class="stat-item"><div class="number" id="statAssignments">0</div><div class="label">Assignments</div></div>
+                        <div class="stat-item"><div class="number red" id="statPending">0</div><div class="label">Pending</div></div>
                     </div>
-                </div>
 
-                <div class="stats-bar" id="statsBar">
-                    <div class="stat-item"><div class="number blue" id="statYears">0</div><div class="label">Years</div></div>
-                    <div class="stat-item"><div class="number purple" id="statUnits">0</div><div class="label">Units</div></div>
-                    <div class="stat-item"><div class="number orange" id="statWeeks">0</div><div class="label">Weeks</div></div>
-                    <div class="stat-item"><div class="number green" id="statTopicsDone">0</div><div class="label">Topics Done</div></div>
-                    <div class="stat-item"><div class="number" id="statAssignments">0</div><div class="label">Assignments</div></div>
-                    <div class="stat-item"><div class="number red" id="statPending">0</div><div class="label">Pending</div></div>
-                </div>
+                    <div id="treeContainer"></div>
 
-                <div id="treeContainer"></div>
+                    <div class="text-center text-muted-light small py-4" style="border-top:1px solid var(--border-subtle);margin-top:20px;">
+                        <span id="footerStatus"></span>
+                    </div>
+                `;
 
-                <div class="text-center text-muted-light small py-4" style="border-top:1px solid var(--border-subtle);margin-top:20px;">
-                    <span id="footerStatus"></span>
-                </div>
-            `;
+                // Re-bind event listeners
+                document.getElementById('syncBtn').addEventListener('click', async () => {
+                    showToast('🔄 Syncing...', 'info');
+                    const loaded = await loadStudyData();
+                    if (!loaded) {
+                        studyData = getDefaultData();
+                        await saveStudyData();
+                    }
+                    render();
+                    showToast('✅ Synced from GitHub', 'success');
+                });
 
-            // Re-bind event listeners
-            document.getElementById('syncBtn').addEventListener('click', async () => {
-                showToast('🔄 Syncing...', 'info');
+                document.getElementById('resetBtn').addEventListener('click', () => {
+                    if (!confirm('⚠️ Reset ALL data? This will restore the default study plan. Any custom data will be lost.'))
+                        return;
+                    studyData = getDefaultData();
+                    expanded = {};
+                    saveStudyData().then(() => {
+                        render();
+                        showToast('🔄 Reset to default', 'info');
+                    });
+                });
+
+                document.getElementById('addYearBtn').addEventListener('click', window.addYear);
+                document.getElementById('exportBtn').addEventListener('click', exportToExcel);
+
+                window.showLoading('Loading study data...');
                 const loaded = await loadStudyData();
                 if (!loaded) {
                     studyData = getDefaultData();
                     await saveStudyData();
                 }
+
+                document.getElementById('userDisplay').textContent = '🔒 ' + user.username;
+
                 render();
-                showToast('✅ Synced from GitHub', 'success');
-            });
+                updateFooter();
+                window.hideLoading();
 
-            document.getElementById('resetBtn').addEventListener('click', () => {
-                if (!confirm('⚠️ Reset ALL data? This will restore the default study plan. Any custom data will be lost.'))
-                    return;
-                studyData = getDefaultData();
-                expanded = {};
-                saveStudyData().then(() => {
-                    render();
-                    showToast('🔄 Reset to default', 'info');
+                document.addEventListener('visibilitychange', () => {
+                    if (document.hidden) {
+                        saveStudyData();
+                    }
                 });
-            });
 
-            document.getElementById('addYearBtn').addEventListener('click', window.addYear);
-            document.getElementById('exportBtn').addEventListener('click', exportToExcel);
-
-            window.showLoading('Loading study data...');
-            const loaded = await loadStudyData();
-            if (!loaded) {
-                studyData = getDefaultData();
-                await saveStudyData();
-            }
-
-            document.getElementById('userDisplay').textContent = '🔒 ' + user.username;
-
-            render();
-            updateFooter();
-            window.hideLoading();
-
-            document.addEventListener('visibilitychange', () => {
-                if (document.hidden) {
-                    saveStudyData();
+            } catch (err) {
+                console.error('Init error:', err);
+                const area = document.getElementById('contentArea');
+                if (area) {
+                    area.innerHTML = `
+                        <div class="error-display">
+                            <div class="icon"><i class="fa fa-exclamation-circle"></i></div>
+                            <h3>Initialization Error</h3>
+                            <p>${err.message}</p>
+                            <pre>${err.stack}</pre>
+                            <button class="btn btn-primary-glow mt-3" onclick="location.reload()">Retry</button>
+                        </div>
+                    `;
                 }
-            });
+                if (window.hideLoading) window.hideLoading();
+            }
         }
 
         // ─── START ───
