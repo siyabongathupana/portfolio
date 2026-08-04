@@ -17,7 +17,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
     <style>
-        /* ─── Base Styles ─── */
+        /* ─── All styles same as before ─── */
         :root {
             --bg-primary: #0a0e17;
             --bg-card: #111927;
@@ -870,7 +870,6 @@
             max-width: 500px;
         }
 
-        /* ─── Error display ─── */
         .error-display {
             padding: 40px;
             text-align: center;
@@ -917,6 +916,41 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
+
+        .loading-overlay-fallback {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(10,14,23,0.95);
+            backdrop-filter: blur(8px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            color: #e0e8ee;
+        }
+        .loading-overlay-fallback .spinner {
+            width: 60px;
+            height: 60px;
+            border: 3px solid rgba(47,199,255,0.1);
+            border-top-color: #2fc7ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        .loading-overlay-fallback .title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #2fc7ff;
+        }
+        .loading-overlay-fallback .sub {
+            font-size: 0.8rem;
+            color: #8a9fb0;
+            margin-top: 6px;
+        }
     </style>
 </head>
 <body>
@@ -949,6 +983,7 @@
             <div class="loading-spinner" id="initialLoading">
                 <div class="spinner"></div>
                 <div>Loading your study data...</div>
+                <div style="font-size:0.7rem;color:var(--text-secondary);margin-top:8px;">If this takes too long, check your internet connection.</div>
             </div>
         </div>
     </div>
@@ -984,13 +1019,18 @@
 
     <script>
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        //  USER SESSION & ACCESS CONTROL (with error handling)
+        //  SCRIPT START – Log to console for debugging
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        console.log('🚀 Study Manager script starting...');
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //  USER SESSION & ACCESS CONTROL
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         const ALLOWED_USER = 'siyabongatshem@gmail.com';
 
         function getCurrentUser() {
             try {
-                if (window.SessionManager?.getCurrentUser) {
+                if (window.SessionManager && typeof window.SessionManager.getCurrentUser === 'function') {
                     const u = window.SessionManager.getCurrentUser();
                     if (u) return u;
                 }
@@ -1010,8 +1050,8 @@
         let user = null;
         try {
             user = getCurrentUser();
+            console.log('👤 User check:', user ? user.username : 'No user');
             if (!user) {
-                // Redirect to login
                 window.location.href = 'login.html?redirect=studies';
                 throw new Error('Redirecting to login');
             }
@@ -1028,7 +1068,6 @@
             }
             console.log('✅ Study Manager user:', user.username);
         } catch (e) {
-            // If we're already on the page and it's not a redirect, show error
             if (!window.location.href.includes('login.html')) {
                 const area = document.getElementById('contentArea');
                 if (area) {
@@ -1042,7 +1081,6 @@
                     `;
                 }
             }
-            // Re-throw to stop execution
             throw e;
         }
 
@@ -1072,12 +1110,28 @@
         let gradeUnitRef = null;
 
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        //  GITHUB STORAGE
+        //  GITHUB STORAGE with timeout
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         function getStudyPath() {
             const { dataPath } = window.REPO_CONFIG || { dataPath: 'data' };
             const encUser = encodeURIComponent(user.username);
             return `${dataPath}/users/${encUser}/studies.enc`;
+        }
+
+        async function fetchWithTimeout(url, options, timeout = 15000) {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), timeout);
+            try {
+                const response = await fetch(url, {
+                    ...options,
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+                return response;
+            } catch (e) {
+                clearTimeout(timeoutId);
+                throw e;
+            }
         }
 
         async function saveStudyDataWithRetry(attempt = 0, maxAttempts = 5) {
@@ -1127,11 +1181,24 @@
                 const { owner, repo, branch } = window.REPO_CONFIG || { owner: 'siyabongathupana', repo: 'portfolio',
                     branch: 'main' };
                 const path = getStudyPath();
-                const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
-                if (file && file.content) {
+                const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`;
+                const resp = await fetchWithTimeout(url, {
+                    headers: { Authorization: `token ${user.pat}`, Accept: 'application/vnd.github.v3+json' }
+                }, 10000);
+
+                if (!resp.ok) {
+                    if (resp.status === 404) {
+                        console.log('No study file found, will create default');
+                        return false;
+                    }
+                    throw new Error(`GitHub API error: ${resp.status}`);
+                }
+
+                const data = await resp.json();
+                if (data && data.content) {
                     let parsed;
                     try {
-                        parsed = JSON.parse(file.content);
+                        parsed = JSON.parse(atob(data.content.replace(/\n/g, '')));
                     } catch (e) {
                         parsed = null;
                     }
@@ -1149,10 +1216,11 @@
                         return true;
                     }
                 }
+                return false;
             } catch (err) {
-                console.log('No existing study data, initializing...');
+                console.error('Load error:', err);
+                throw err;
             }
-            return false;
         }
 
         function getDefaultData() {
@@ -2755,16 +2823,19 @@
         }
 
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        //  INIT
+        //  INIT (with fallback loading)
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         async function init() {
+            console.log('📦 Initializing Study Manager...');
             try {
                 const contentArea = document.getElementById('contentArea');
+
+                // Build the UI structure first (so we have elements to update)
                 contentArea.innerHTML = `
                     <div class="study-header">
                         <div>
                             <h1><i class="fa fa-graduation-cap" style="font-size:1.8rem;margin-right:12px;background:linear-gradient(135deg,#fff,var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;"></i> Study Manager</h1>
-                            <div class="subtitle">Years → Semesters → Units → Weeks → Topics → Subtopics · <span id="userDisplay"></span></div>
+                            <div class="subtitle">Years → Semesters → Units → Weeks → Topics → Subtopics · <span id="userDisplay">🔒 ${user.username}</span></div>
                         </div>
                         <div class="actions">
                             <button class="btn btn-sync" id="syncBtn"><i class="fa fa-cloud-download"></i> Sync</button>
@@ -2783,7 +2854,12 @@
                         <div class="stat-item"><div class="number red" id="statPending">0</div><div class="label">Pending</div></div>
                     </div>
 
-                    <div id="treeContainer"></div>
+                    <div id="treeContainer">
+                        <div class="loading-spinner">
+                            <div class="spinner"></div>
+                            <div>Loading your study data...</div>
+                        </div>
+                    </div>
 
                     <div class="text-center text-muted-light small py-4" style="border-top:1px solid var(--border-subtle);margin-top:20px;">
                         <span id="footerStatus"></span>
@@ -2793,13 +2869,18 @@
                 // Re-bind event listeners
                 document.getElementById('syncBtn').addEventListener('click', async () => {
                     showToast('🔄 Syncing...', 'info');
-                    const loaded = await loadStudyData();
-                    if (!loaded) {
-                        studyData = getDefaultData();
-                        await saveStudyData();
+                    try {
+                        const loaded = await loadStudyData();
+                        if (!loaded) {
+                            studyData = getDefaultData();
+                            await saveStudyData();
+                        }
+                        render();
+                        showToast('✅ Synced from GitHub', 'success');
+                    } catch (e) {
+                        showToast('❌ Sync failed: ' + e.message, 'error');
+                        console.error(e);
                     }
-                    render();
-                    showToast('✅ Synced from GitHub', 'success');
                 });
 
                 document.getElementById('resetBtn').addEventListener('click', () => {
@@ -2816,19 +2897,21 @@
                 document.getElementById('addYearBtn').addEventListener('click', window.addYear);
                 document.getElementById('exportBtn').addEventListener('click', exportToExcel);
 
-                window.showLoading('Loading study data...');
+                // Now load data
+                console.log('⏳ Loading study data from GitHub...');
                 const loaded = await loadStudyData();
                 if (!loaded) {
+                    console.log('No data found, creating default...');
                     studyData = getDefaultData();
                     await saveStudyData();
                 }
 
-                document.getElementById('userDisplay').textContent = '🔒 ' + user.username;
-
+                console.log('✅ Data loaded, rendering...');
                 render();
                 updateFooter();
-                window.hideLoading();
+                console.log('✅ Study Manager ready');
 
+                // Auto-save on visibility change
                 document.addEventListener('visibilitychange', () => {
                     if (document.hidden) {
                         saveStudyData();
@@ -2836,10 +2919,10 @@
                 });
 
             } catch (err) {
-                console.error('Init error:', err);
-                const area = document.getElementById('contentArea');
-                if (area) {
-                    area.innerHTML = `
+                console.error('❌ Init error:', err);
+                const treeContainer = document.getElementById('treeContainer');
+                if (treeContainer) {
+                    treeContainer.innerHTML = `
                         <div class="error-display">
                             <div class="icon"><i class="fa fa-exclamation-circle"></i></div>
                             <h3>Initialization Error</h3>
@@ -2849,7 +2932,6 @@
                         </div>
                     `;
                 }
-                if (window.hideLoading) window.hideLoading();
             }
         }
 
