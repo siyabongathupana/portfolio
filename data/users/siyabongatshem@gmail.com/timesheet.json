@@ -1,5 +1,17 @@
 [
   {
+    "id": 1785832317075,
+    "date": "2026-08-04",
+    "start": "08:30",
+    "end": "10:30",
+    "hours": 2,
+    "project": "Sasol Boiler 5",
+    "category": "Documentation",
+    "billable": "yes",
+    "notes": "Report for Site Changes",
+    "updatedAt": 1785832317075
+  },
+  {
     "id": 1785769285744,
     "date": "2026-08-03",
     "start": "12:30",
