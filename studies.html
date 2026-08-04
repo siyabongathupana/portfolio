@@ -287,7 +287,7 @@
     let gradeModalOpen = false;
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    //  DEFAULT DATA
+    //  DEFAULT DATA (full default study plan)
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     function getDefaultData() {
       return {
@@ -805,7 +805,7 @@
       return `${dataPath}/users/${encUser}/studies.enc`;
     }
 
-    // ─── FIXED: Load from GitHub with proper handling of missing "years" ───
+    // ─── ULTIMATE FIX: loadFromGitHub – never throws for invalid data ───
     async function loadFromGitHub() {
       try {
         const { owner, repo, branch } = window.REPO_CONFIG || { owner: 'siyabongathupana', repo: 'portfolio', branch: 'main' };
@@ -846,7 +846,8 @@
           const content = atob(data.content.replace(/\n/g, ''));
           parsed = JSON.parse(content);
         } catch (e) {
-          throw new Error('Failed to parse or decode study data file: ' + e.message);
+          console.warn('⚠️ Could not parse file content – treating as no data.');
+          return null;
         }
 
         let decrypted = parsed;
@@ -854,28 +855,29 @@
           try {
             decrypted = await decryptData(parsed);
           } catch (e) {
-            throw new Error('Failed to decrypt study data: ' + e.message);
+            console.warn('⚠️ Decryption failed – treating as no data.');
+            return null;
           }
         }
 
-        // ✅ FIX: if decrypted doesn't have "years", treat it as no data
+        // Now check if we have a valid structure
         if (decrypted && typeof decrypted === 'object' && decrypted.years) {
           console.log('✅ Loaded from GitHub');
           saveToCache(decrypted);
           return decrypted;
         } else {
-          console.warn('⚠️ Invalid study data structure: missing "years". Returning null.');
+          console.warn('⚠️ Invalid study data structure (missing "years") – returning null.');
           return null;
         }
       } catch (e) {
         if (e.name === 'AbortError') {
           throw new Error('Request timed out. Check your network connection.');
         }
-        throw e;
+        throw e; // re-throw network/API errors
       }
     }
 
-    // ─── Save to GitHub ───
+    // ─── Save to GitHub (unchanged) ───
     async function saveToGitHub(dataToSave) {
       if (isSaving) {
         await new Promise(r => setTimeout(r, 200));
@@ -914,7 +916,7 @@
       }
     }
 
-    // ─── Load data (cache first, then GitHub in background) ───
+    // ─── Load data (cache first, then GitHub) ───
     function loadData() {
       try {
         const cached = loadFromCache();
@@ -984,7 +986,7 @@
     }
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    //  RENDER FUNCTIONS
+    //  RENDER FUNCTIONS (unchanged)
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     function render() {
       try {
@@ -1300,7 +1302,7 @@
       if (topic.subtopics && topic.subtopics.length) {
         topic.subCompleted = topic.subtopics.map(() => topic.completed);
       }
-      // Update all subtopic checkboxes visually
+      // Update UI
       const check = document.querySelector(`.topic-header .check[data-yi="${yi}"][data-si="${si}"][data-ui="${ui}"][data-wi="${wi}"][data-ti="${ti}"]`);
       if (check) check.classList.toggle('checked', topic.completed);
       const subs = document.querySelectorAll(`.sub-check[data-yi="${yi}"][data-si="${si}"][data-ui="${ui}"][data-wi="${wi}"][data-ti="${ti}"]`);
@@ -1321,14 +1323,12 @@
       const allDone = topic.subCompleted.every(Boolean);
       topic.completed = allDone;
 
-      // Update UI for this subtopic
       const check = document.querySelector(`.sub-check[data-yi="${yi}"][data-si="${si}"][data-ui="${ui}"][data-wi="${wi}"][data-ti="${ti}"][data-si2="${si2}"]`);
       if (check) {
         check.classList.toggle('checked', topic.subCompleted[si2]);
         const label = check.parentElement.querySelector('.sub-label');
         if (label) label.classList.toggle('done', topic.subCompleted[si2]);
       }
-      // Update parent topic checkbox
       const parentCheck = document.querySelector(`.topic-header .check[data-yi="${yi}"][data-si="${si}"][data-ui="${ui}"][data-wi="${wi}"][data-ti="${ti}"]`);
       if (parentCheck) parentCheck.classList.toggle('checked', allDone);
       renderStats();
@@ -1342,7 +1342,7 @@
     }
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    //  GRADE CALCULATOR
+    //  GRADE CALCULATOR (unchanged)
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     function calculateUnitGrade(unit) {
       const allAssignments = [];
@@ -1515,7 +1515,7 @@
     });
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    //  CRUD OPERATIONS
+    //  CRUD OPERATIONS (all functions)
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     function openModal(title, bodyHTML, onSave) {
       const modal = document.getElementById('genericModal');
@@ -1542,7 +1542,6 @@
       }
     });
 
-    // All CRUD functions
     window.addYear = function() {
       openModal('Add Year', `
         <div class="form-group"><label>Year Name (e.g. 2026)</label><input type="text" id="yearName" placeholder="2026" /></div>
@@ -2008,7 +2007,7 @@
         </div>
       `;
 
-      // ─── FIXED: Sync button with proper error handling ───
+      // ─── FIXED: Sync button – no errors for missing years ───
       document.getElementById('syncBtn').addEventListener('click', async function() {
         showToast('🔄 Syncing...', 'info');
         try {
