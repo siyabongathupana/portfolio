@@ -17,7 +17,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
-    /* ─── all styles (same as before) ─── */
+    /* ─── all styles (unchanged) ─── */
     :root { --bg-primary: #0a0e17; --bg-card: #111927; --border-subtle: rgba(47,199,255,0.08); --text-primary: #e0e8ee; --text-secondary: #8a9fb0; --accent: #2fc7ff; --green: #00b894; --orange: #fdcb6e; --red: #e17055; --purple: #a29bfe; }
     * { box-sizing: border-box; }
     body { background: var(--bg-primary); color: var(--text-primary); font-family: 'Inter', sans-serif; min-height: 100vh; }
@@ -287,7 +287,7 @@
     let gradeModalOpen = false;
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    //  DEFAULT DATA (your original data, kept as is)
+    //  DEFAULT DATA
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     function getDefaultData() {
       return {
@@ -743,7 +743,7 @@
     }
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    //  CACHE & SYNC (with robust error handling)
+    //  CACHE & SYNC
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     const CACHE_KEY = 'studies_data_cache';
 
@@ -805,7 +805,7 @@
       return `${dataPath}/users/${encUser}/studies.enc`;
     }
 
-    // ─── Load from GitHub with explicit errors ───
+    // ─── FIXED: Load from GitHub with proper handling of missing "years" ───
     async function loadFromGitHub() {
       try {
         const { owner, repo, branch } = window.REPO_CONFIG || { owner: 'siyabongathupana', repo: 'portfolio', branch: 'main' };
@@ -858,12 +858,14 @@
           }
         }
 
-        if (decrypted && decrypted.years) {
+        // ✅ FIX: if decrypted doesn't have "years", treat it as no data
+        if (decrypted && typeof decrypted === 'object' && decrypted.years) {
           console.log('✅ Loaded from GitHub');
           saveToCache(decrypted);
           return decrypted;
         } else {
-          throw new Error('Invalid study data structure: missing "years" property');
+          console.warn('⚠️ Invalid study data structure: missing "years". Returning null.');
+          return null;
         }
       } catch (e) {
         if (e.name === 'AbortError') {
@@ -912,7 +914,7 @@
       }
     }
 
-    // ─── Load data (cache first, then GitHub) ───
+    // ─── Load data (cache first, then GitHub in background) ───
     function loadData() {
       try {
         const cached = loadFromCache();
@@ -920,6 +922,7 @@
           studyData = cached;
           console.log('✅ Loaded from cache');
           render();
+          // Background sync
           setTimeout(async () => {
             try {
               const githubData = await loadFromGitHub();
@@ -988,7 +991,6 @@
         renderStats();
         renderTree();
         console.log('✅ Rendered');
-        // Hide loading spinner if present
         const loader = document.getElementById('initialLoading');
         if (loader) loader.style.display = 'none';
       } catch (e) {
@@ -1267,7 +1269,6 @@
                 weekDiv.querySelector('.level-body').appendChild(assSection);
               }
 
-              // Close week
               weekDiv.querySelector('.level-body').innerHTML += `</div>`;
               weekDiv.innerHTML += `</div>`;
               unitCard.querySelector('.level-body').appendChild(weekDiv);
@@ -1290,7 +1291,7 @@
     }
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    //  CHECKBOX TOGGLES (with immediate UI update)
+    //  CHECKBOX TOGGLES (instant)
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     function toggleTopicComplete(yi, si, ui, wi, ti) {
       const topic = getTopic(yi, si, ui, wi, ti);
@@ -1783,7 +1784,7 @@
       saveStudyData().then(render);
     };
 
-    // ─── EXPORT TO EXCEL (simplified, but full functionality preserved) ───
+    // ─── EXPORT TO EXCEL (simplified but fully functional) ───
     window.exportToExcel = async function() {
       if (!studyData.years.length) {
         showToast('No data to export.', 'error');
@@ -1860,11 +1861,37 @@
         });
         cover.columns.forEach(col => { col.width = 25; });
 
-        // Data sheet (simplified for brevity)
+        // Data sheet – add all assignments
         const ws = workbook.addWorksheet('Full Data', { pageSetup: { orientation: 'landscape', fitToPage: true } });
-        // ... full data export logic would go here, but we'll keep it minimal for this example
+        ws.mergeCells('A1:F1');
+        const wsTitle = ws.getCell('A1');
+        wsTitle.value = '📋 UNIT – ASSIGNMENT DETAILS';
+        wsTitle.font = { bold: true, size: 16, color: { argb: 'FF0B2B3B' } };
+        wsTitle.alignment = { horizontal: 'center' };
+        ws.getRow(1).height = 30;
 
-        // Dashboard with charts (using Chart.js)
+        const dataHeaders = ['Year', 'Semester', 'Unit', 'Week', 'Assignment', 'Due Date', 'Status', 'Marks', 'Weight %'];
+        const hRow = ws.addRow(dataHeaders);
+        hRow.eachCell(cell => {
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
+          cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+          cell.alignment = { horizontal: 'center' };
+        });
+
+        studyData.years.forEach(y => {
+          y.semesters.forEach(s => {
+            s.units.forEach(u => {
+              (u.weeks || []).forEach(w => {
+                (w.assignments || []).forEach(a => {
+                  ws.addRow([y.name, s.name, u.code + ' ' + u.name, 'Week ' + w.number, a.name, a.due || '', a.status, a.marks || '', a.weight || 0]);
+                });
+              });
+            });
+          });
+        });
+        ws.columns.forEach(col => col.width = 16);
+
+        // Dashboard with charts
         const dash = workbook.addWorksheet('Dashboard', { pageSetup: { orientation: 'landscape', fitToPage: true } });
         dash.mergeCells('A1:F1');
         const dashTitle = dash.getCell('A1');
@@ -1873,7 +1900,6 @@
         dashTitle.alignment = { horizontal: 'center', vertical: 'middle' };
         dash.getRow(1).height = 40;
 
-        // Generate charts (example with one chart)
         const unitNames = [];
         const topicCounts = [];
         studyData.years.forEach(y => {
@@ -1907,7 +1933,6 @@
           dash.addImage(imageId1, { tl: { col: 0, row: 3 }, ext: { width: 500, height: 300 } });
         } catch(e) { console.warn('Chart generation failed', e); }
 
-        // Save Excel
         const buffer = await workbook.xlsx.writeBuffer();
         const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
         saveAs(blob, `StudyPlan_${new Date().toISOString().slice(0,10)}.xlsx`);
@@ -1983,7 +2008,7 @@
         </div>
       `;
 
-      // Sync button with clear error handling
+      // ─── FIXED: Sync button with proper error handling ───
       document.getElementById('syncBtn').addEventListener('click', async function() {
         showToast('🔄 Syncing...', 'info');
         try {
@@ -1993,7 +2018,7 @@
             render();
             showToast('✅ Synced from GitHub', 'success');
           } else {
-            showToast('ℹ️ No study data file on GitHub. Keeping local data.', 'info');
+            showToast('ℹ️ No valid study data on GitHub. Keeping local data.', 'info');
           }
         } catch (err) {
           console.error('Sync error:', err);
