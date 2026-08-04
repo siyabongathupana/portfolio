@@ -287,7 +287,7 @@
     let gradeModalOpen = false;
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    //  DEFAULT DATA (full default study plan)
+    //  DEFAULT DATA (complete – all units with weeks/topics/assignments)
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     function getDefaultData() {
       return {
@@ -743,7 +743,7 @@
     }
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    //  CACHE & SYNC
+    //  CACHE & SYNC – PLAIN JSON (NO ENCRYPTION)
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     const CACHE_KEY = 'studies_data_cache';
 
@@ -752,7 +752,7 @@
         localStorage.setItem(CACHE_KEY, JSON.stringify({
           data: data,
           timestamp: Date.now(),
-          version: '1.0'
+          version: '2.0' // plain JSON
         }));
       } catch (e) {}
     }
@@ -771,43 +771,30 @@
       return null;
     }
 
-    async function encryptData(data) {
-      try {
-        const json = JSON.stringify(data);
-        const key = window.APP_CONFIG?.dogsname || 'default-key';
-        const encrypted = await window.CryptoUtil.encrypt(json, key);
-        return encrypted;
-      } catch (e) {
-        console.warn('Encryption failed, using plain:', e);
-        return data;
-      }
-    }
-
-    async function decryptData(encrypted) {
-      try {
-        if (typeof encrypted === 'object' && encrypted.salt && encrypted.iv && encrypted.ciphertext) {
-          const key = window.APP_CONFIG?.dogsname || 'default-key';
-          const decrypted = await window.CryptoUtil.decrypt(encrypted, key);
-          return JSON.parse(decrypted);
-        } else if (typeof encrypted === 'object' && encrypted.years) {
-          return encrypted;
-        }
-        return encrypted;
-      } catch (e) {
-        console.warn('Decryption failed, trying plain:', e);
-        return encrypted;
-      }
-    }
-
     function getStudyPath() {
       const { dataPath } = window.REPO_CONFIG || { dataPath: 'data' };
       const encUser = encodeURIComponent(user.username);
-      return `${dataPath}/users/${encUser}/studies.enc`;
+      return `${dataPath}/users/${encUser}/studies.json`;
     }
 
-    // ─── ULTIMATE FIX: loadFromGitHub – never throws for invalid data ───
+    // ─── Retry helper ───
+    async function retry(fn, retries = 3, delay = 1000) {
+      let lastError;
+      for (let i = 0; i < retries; i++) {
+        try {
+          return await fn();
+        } catch (err) {
+          lastError = err;
+          console.warn(`Retry ${i+1}/${retries} failed:`, err);
+          if (i < retries - 1) await new Promise(r => setTimeout(r, delay * (i + 1)));
+        }
+      }
+      throw lastError;
+    }
+
+    // ─── loadFromGitHub – plain JSON, with fallback for old encrypted files ───
     async function loadFromGitHub() {
-      try {
+      return retry(async () => {
         const { owner, repo, branch } = window.REPO_CONFIG || { owner: 'siyabongathupana', repo: 'portfolio', branch: 'main' };
         const path = getStudyPath();
         const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`;
@@ -850,34 +837,39 @@
           return null;
         }
 
-        let decrypted = parsed;
+        // Check if it's the old encrypted format
         if (parsed && typeof parsed === 'object' && parsed.salt && parsed.iv && parsed.ciphertext) {
+          console.log('🔐 Old encrypted file detected – attempting to decrypt...');
           try {
-            decrypted = await decryptData(parsed);
+            const key = window.APP_CONFIG?.dogsname || 'default-key';
+            const decryptedStr = await window.CryptoUtil.decrypt(parsed, key);
+            const decrypted = JSON.parse(decryptedStr);
+            if (decrypted && decrypted.years) {
+              console.log('✅ Decrypted successfully – will overwrite with plain JSON on next save.');
+              return decrypted;
+            } else {
+              console.warn('⚠️ Decrypted data missing "years" – returning null.');
+              return null;
+            }
           } catch (e) {
-            console.warn('⚠️ Decryption failed – treating as no data.');
+            console.warn('⚠️ Decryption failed – returning null.', e);
             return null;
           }
         }
 
-        // Now check if we have a valid structure
-        if (decrypted && typeof decrypted === 'object' && decrypted.years) {
-          console.log('✅ Loaded from GitHub');
-          saveToCache(decrypted);
-          return decrypted;
+        // Plain JSON – check for "years"
+        if (parsed && typeof parsed === 'object' && parsed.years) {
+          console.log('✅ Loaded from GitHub (plain JSON)');
+          saveToCache(parsed);
+          return parsed;
         } else {
           console.warn('⚠️ Invalid study data structure (missing "years") – returning null.');
           return null;
         }
-      } catch (e) {
-        if (e.name === 'AbortError') {
-          throw new Error('Request timed out. Check your network connection.');
-        }
-        throw e; // re-throw network/API errors
-      }
+      }, 3, 1500);
     }
 
-    // ─── Save to GitHub (unchanged) ───
+    // ─── Save to GitHub – plain JSON with retry ───
     async function saveToGitHub(dataToSave) {
       if (isSaving) {
         await new Promise(r => setTimeout(r, 200));
@@ -885,10 +877,15 @@
       }
       isSaving = true;
       try {
+        // Validate data
+        if (!dataToSave.years || !Array.isArray(dataToSave.years)) {
+          throw new Error('Invalid data structure: "years" must be an array.');
+        }
+
         const { owner, repo, branch } = window.REPO_CONFIG || { owner: 'siyabongathupana', repo: 'portfolio', branch: 'main' };
         const path = getStudyPath();
-        const encrypted = await encryptData(dataToSave);
-        const content = JSON.stringify(encrypted, null, 2);
+        const content = JSON.stringify(dataToSave, null, 2);
+        const encodedContent = btoa(unescape(encodeURIComponent(content)));
 
         let sha = null;
         try {
@@ -896,8 +893,11 @@
           if (existing && existing.sha) sha = existing.sha;
         } catch (e) {}
 
-        await GitHubAPI.updateFile(owner, repo, path, content, 'Update study data', branch, user.pat, sha);
-        console.log('✅ Saved to GitHub');
+        await retry(async () => {
+          await GitHubAPI.updateFile(owner, repo, path, content, 'Update study data (plain JSON)', branch, user.pat, sha);
+        }, 3, 1000);
+
+        console.log('✅ Saved to GitHub (plain JSON)');
         saveToCache(dataToSave);
         showToast('✅ Saved', 'success');
         isSaving = false;
@@ -986,7 +986,7 @@
     }
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    //  RENDER FUNCTIONS (unchanged)
+    //  RENDER FUNCTIONS
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     function render() {
       try {
@@ -1342,7 +1342,7 @@
     }
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    //  GRADE CALCULATOR (unchanged)
+    //  GRADE CALCULATOR
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     function calculateUnitGrade(unit) {
       const allAssignments = [];
@@ -1860,7 +1860,7 @@
         });
         cover.columns.forEach(col => { col.width = 25; });
 
-        // Data sheet – add all assignments
+        // Data sheet
         const ws = workbook.addWorksheet('Full Data', { pageSetup: { orientation: 'landscape', fitToPage: true } });
         ws.mergeCells('A1:F1');
         const wsTitle = ws.getCell('A1');
@@ -2007,7 +2007,7 @@
         </div>
       `;
 
-      // ─── FIXED: Sync button – no errors for missing years ───
+      // ─── Sync button ───
       document.getElementById('syncBtn').addEventListener('click', async function() {
         showToast('🔄 Syncing...', 'info');
         try {
