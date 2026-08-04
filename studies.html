@@ -16,7 +16,7 @@
     <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <style>
-        /* ─── All styles (minified) ─── */
+        /* ─── Same styles as before ─── */
         :root { --bg-primary: #0a0e17; --bg-card: #111927; --border-subtle: rgba(47,199,255,0.08); --text-primary: #e0e8ee; --text-secondary: #8a9fb0; --accent: #2fc7ff; --green: #00b894; --orange: #fdcb6e; --red: #e17055; --purple: #a29bfe; }
         * { box-sizing: border-box; }
         body { background: var(--bg-primary); color: var(--text-primary); font-family: 'Inter', sans-serif; min-height: 100vh; }
@@ -288,7 +288,7 @@
             let isSaving = false;
             let gradeModalOpen = false;
 
-            // ─── COMPLETE DEFAULT DATA (as before) ───
+            // ─── COMPLETE DEFAULT DATA (all 12 weeks, all subtopics) ───
             function getDefaultData() {
                 return {
                     years: [{
@@ -1859,7 +1859,8 @@
             window.deleteAssignment = deleteAssignment;
             window.exportToExcel = exportToExcel;
 
-            // ─── ATTACH STATIC LISTENERS (these elements exist in HTML) ───
+            // ─── ATTACH STATIC LISTENERS ───
+            // These elements exist in the static HTML
             document.getElementById('modalCancel').addEventListener('click', function() {
                 document.getElementById('genericModal').classList.remove('open');
             });
@@ -1882,48 +1883,78 @@
                 gradeModalOpen = false;
             });
 
-            // ─── SYNC / RESET BUTTONS ───
-            document.getElementById('syncBtn').addEventListener('click', async function() {
-                showToast('🔄 Syncing...', 'info');
-                try {
-                    const loaded = await loadStudyData();
-                    if (!loaded) {
-                        // keep existing
-                    }
-                    render();
-                    showToast('✅ Synced from GitHub', 'success');
-                } catch (e) {
-                    showToast('❌ Sync failed: ' + e.message, 'error');
-                    console.error(e);
-                }
-            });
-
-            document.getElementById('resetBtn').addEventListener('click', function() {
-                if (!confirm(
-                        '⚠️ Reset ALL data? This will restore the default study plan. Any custom data will be lost.'
-                        )) return;
-                studyData = getDefaultData();
-                expanded = {};
-                saveStudyData().then(() => {
-                    render();
-                    showToast('🔄 Reset to default', 'info');
-                });
-            });
-
-            document.getElementById('addYearBtn').addEventListener('click', addYear);
-            document.getElementById('exportBtn').addEventListener('click', exportToExcel);
-
-            // ─── INIT ───
+            // ─── INITIALIZE ───
             function init() {
                 console.log('📦 Study Manager initializing...');
-                // Set default data
-                studyData = getDefaultData();
+                // ─── 1. Replace contentArea with full UI ───
+                const contentArea = document.getElementById('contentArea');
+                contentArea.innerHTML = `
+                    <div class="study-header">
+                        <div>
+                            <h1><i class="fa fa-graduation-cap" style="font-size:1.8rem;margin-right:12px;background:linear-gradient(135deg,#fff,var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;"></i> Study Manager</h1>
+                            <div class="subtitle">Years → Semesters → Units → Weeks → Topics → Subtopics · <span id="userDisplay">🔒 ${user.username}</span></div>
+                        </div>
+                        <div class="actions">
+                            <button class="btn btn-sync" id="syncBtn"><i class="fa fa-cloud-download"></i> Sync</button>
+                            <button class="btn btn-excel" id="exportBtn"><i class="fa fa-file-excel-o"></i> Export</button>
+                            <button class="btn btn-success-glow" id="addYearBtn"><i class="fa fa-plus"></i> Add Year</button>
+                            <button class="btn btn-outline-light" id="resetBtn" style="border:1px solid var(--border-subtle);color:var(--text-secondary);"><i class="fa fa-refresh"></i> Reset</button>
+                        </div>
+                    </div>
 
-                // Render the UI
+                    <div class="stats-bar" id="statsBar">
+                        <div class="stat-item"><div class="number blue" id="statYears">0</div><div class="label">Years</div></div>
+                        <div class="stat-item"><div class="number purple" id="statUnits">0</div><div class="label">Units</div></div>
+                        <div class="stat-item"><div class="number orange" id="statWeeks">0</div><div class="label">Weeks</div></div>
+                        <div class="stat-item"><div class="number green" id="statTopicsDone">0</div><div class="label">Topics Done</div></div>
+                        <div class="stat-item"><div class="number" id="statAssignments">0</div><div class="label">Assignments</div></div>
+                        <div class="stat-item"><div class="number red" id="statPending">0</div><div class="label">Pending</div></div>
+                    </div>
+
+                    <div id="treeContainer"></div>
+
+                    <div class="text-center text-muted-light small py-4" style="border-top:1px solid var(--border-subtle);margin-top:20px;">
+                        <span id="footerStatus"></span>
+                    </div>
+                `;
+
+                // ─── 2. Re-bind listeners for buttons inside the replaced HTML ───
+                document.getElementById('syncBtn').addEventListener('click', async function() {
+                    showToast('🔄 Syncing...', 'info');
+                    try {
+                        const loaded = await loadStudyData();
+                        if (!loaded) {
+                            // keep existing
+                        }
+                        render();
+                        showToast('✅ Synced from GitHub', 'success');
+                    } catch (e) {
+                        showToast('❌ Sync failed: ' + e.message, 'error');
+                        console.error(e);
+                    }
+                });
+
+                document.getElementById('resetBtn').addEventListener('click', function() {
+                    if (!confirm(
+                            '⚠️ Reset ALL data? This will restore the default study plan. Any custom data will be lost.'
+                            )) return;
+                    studyData = getDefaultData();
+                    expanded = {};
+                    saveStudyData().then(() => {
+                        render();
+                        showToast('🔄 Reset to default', 'info');
+                    });
+                });
+
+                document.getElementById('addYearBtn').addEventListener('click', addYear);
+                document.getElementById('exportBtn').addEventListener('click', exportToExcel);
+
+                // ─── 3. Set default data and render ───
+                studyData = getDefaultData();
                 render();
                 console.log('✅ Initial render complete (full default data)');
 
-                // Background sync
+                // ─── 4. Background sync ───
                 setTimeout(async () => {
                     try {
                         console.log('⏳ Background sync: loading from GitHub...');
@@ -1941,7 +1972,7 @@
                     }
                 }, 500);
 
-                // Auto-save on visibility change
+                // ─── 5. Auto-save on visibility change ───
                 document.addEventListener('visibilitychange', function() {
                     if (document.hidden) {
                         saveStudyData();
@@ -1949,7 +1980,7 @@
                 });
             }
 
-            // Start
+            // ─── START ───
             init();
 
         }); // end document.ready
