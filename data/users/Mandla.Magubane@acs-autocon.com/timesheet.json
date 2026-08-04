@@ -1,5 +1,29 @@
 [
   {
+    "id": 1785842169171,
+    "date": "2026-08-05",
+    "start": "08:00",
+    "end": "16:00",
+    "hours": 8,
+    "project": "Other",
+    "category": "Other",
+    "billable": "no",
+    "notes": "On Leave - Family Resp",
+    "updatedAt": 1785842169171
+  },
+  {
+    "id": 1785842107227,
+    "date": "2026-08-04",
+    "start": "14:30",
+    "end": "15:00",
+    "hours": 0.5,
+    "project": "Other",
+    "category": "Admin",
+    "billable": "no",
+    "notes": "",
+    "updatedAt": 1785842107227
+  },
+  {
     "id": 1785842088219,
     "date": "2026-08-04",
     "start": "13:00",
