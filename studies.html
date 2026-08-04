@@ -13,9 +13,12 @@
     <script src="crypto.js"></script>
     <script src="api.js"></script>
     <script src="shared.js"></script>
+    <!-- ExcelJS for export -->
+    <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
     <style>
-        /* ─── Base ─── */
+        /* ─── same styles as before ─── */
         :root {
             --bg-primary: #0a0e17;
             --bg-card: #111927;
@@ -120,6 +123,15 @@
             box-shadow: 0 0 20px rgba(0,184,148,0.2);
             color: white;
         }
+        .btn-excel {
+            background: #28a745;
+            color: white;
+        }
+        .btn-excel:hover {
+            background: #218838;
+            transform: scale(1.03);
+            color: white;
+        }
 
         .stats-bar {
             display: grid;
@@ -158,7 +170,6 @@
         .stat-item .number.purple { color: var(--purple); }
         .stat-item .number.red { color: var(--red); }
 
-        /* ─── Level Sections ─── */
         .level-section {
             margin-bottom: 16px;
             border: 1px solid var(--border-subtle);
@@ -274,7 +285,6 @@
             transition: width 0.6s ease;
         }
 
-        /* ─── Topic / Subtopic ─── */
         .topic-item {
             margin-bottom: 8px;
             border: 1px solid var(--border-subtle);
@@ -432,7 +442,6 @@
             background: rgba(47,199,255,0.05);
         }
 
-        /* ─── Assignments ─── */
         .assignments-section {
             margin-top: 12px;
             padding-top: 12px;
@@ -541,7 +550,6 @@
             background: rgba(47,199,255,0.05);
         }
 
-        /* ─── Modal ─── */
         .modal-custom {
             display: none;
             position: fixed;
@@ -646,7 +654,6 @@
             box-shadow: 0 0 20px rgba(47,199,255,0.15);
         }
 
-        /* ─── Toast ─── */
         .toast-container {
             position: fixed;
             bottom: 24px;
@@ -676,7 +683,6 @@
             to { opacity: 1; transform: translateX(0); }
         }
 
-        /* ─── Responsive ─── */
         @media (max-width: 768px) {
             .study-container { padding: 0 12px 80px; }
             .study-header h1 { font-size: 1.5rem; }
@@ -703,6 +709,30 @@
         .flex-wrap { flex-wrap: wrap; }
         .cursor-pointer { cursor: pointer; }
         .no-select { user-select: none; }
+
+        /* Access denied */
+        .access-denied {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 80vh;
+            text-align: center;
+            padding: 20px;
+        }
+        .access-denied .icon {
+            font-size: 4rem;
+            color: var(--red);
+            margin-bottom: 20px;
+        }
+        .access-denied h2 {
+            font-weight: 700;
+            color: var(--red);
+        }
+        .access-denied p {
+            color: var(--text-secondary);
+            max-width: 500px;
+        }
     </style>
 </head>
 <body>
@@ -730,36 +760,8 @@
 
     <!-- ─── MAIN ─── -->
     <div class="study-container" id="app">
-
-        <!-- Header -->
-        <div class="study-header">
-            <div>
-                <h1><i class="fa fa-graduation-cap" style="font-size:1.8rem;margin-right:12px;background:linear-gradient(135deg,#fff,var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;"></i> Study Manager</h1>
-                <div class="subtitle">Years → Semesters → Units → Weeks → Topics → Subtopics · <span id="userDisplay"></span></div>
-            </div>
-            <div class="actions">
-                <button class="btn btn-sync" id="syncBtn"><i class="fa fa-cloud-download"></i> Sync</button>
-                <button class="btn btn-success-glow" id="addYearBtn"><i class="fa fa-plus"></i> Add Year</button>
-                <button class="btn btn-outline-light" id="resetBtn" style="border:1px solid var(--border-subtle);color:var(--text-secondary);"><i class="fa fa-refresh"></i> Reset</button>
-            </div>
-        </div>
-
-        <!-- Stats -->
-        <div class="stats-bar" id="statsBar">
-            <div class="stat-item"><div class="number blue" id="statYears">0</div><div class="label">Years</div></div>
-            <div class="stat-item"><div class="number purple" id="statUnits">0</div><div class="label">Units</div></div>
-            <div class="stat-item"><div class="number orange" id="statWeeks">0</div><div class="label">Weeks</div></div>
-            <div class="stat-item"><div class="number green" id="statTopicsDone">0</div><div class="label">Topics Done</div></div>
-            <div class="stat-item"><div class="number" id="statAssignments">0</div><div class="label">Assignments</div></div>
-            <div class="stat-item"><div class="number red" id="statPending">0</div><div class="label">Pending</div></div>
-        </div>
-
-        <!-- Main Tree -->
-        <div id="treeContainer"></div>
-
-        <!-- Footer -->
-        <div class="text-center text-muted-light small py-4" style="border-top:1px solid var(--border-subtle);margin-top:20px;">
-            <span id="footerStatus"></span>
+        <div id="contentArea">
+            <!-- content will be rendered here -->
         </div>
     </div>
 
@@ -785,8 +787,10 @@
 
     <script>
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        //  USER SESSION
+        //  USER SESSION & ACCESS CONTROL
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        const ALLOWED_USER = 'siyabongatshem@gmail.com';
+
         function getCurrentUser() {
             if (window.SessionManager?.getCurrentUser) {
                 const u = window.SessionManager.getCurrentUser();
@@ -810,9 +814,23 @@
             setTimeout(() => { window.location.href = 'login.html?redirect=studies'; }, 200);
             throw new Error('No user session');
         }
-        console.log('✅ Study Manager user:', user.username);
 
-        document.getElementById('userDisplay').textContent = '🔒 ' + user.username;
+        // Restrict to specific user
+        if (user.username !== ALLOWED_USER) {
+            document.getElementById('contentArea').innerHTML = `
+                <div class="access-denied">
+                    <div class="icon"><i class="fa fa-lock"></i></div>
+                    <h2>Access Restricted</h2>
+                    <p>This page is only available to the owner of this portfolio. Please log in with the correct account.</p>
+                    <button class="btn btn-primary-glow mt-3" onclick="window.location.href='index.html'">Go Home</button>
+                </div>
+            `;
+            // Also hide the navbar? We'll keep it but content is blocked.
+            // Stop further execution.
+            throw new Error('Access denied');
+        }
+
+        console.log('✅ Study Manager user:', user.username);
 
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         //  ENCRYPTION (using CryptoUtil with dogsname)
@@ -835,9 +853,10 @@
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         let studyData = { years: [] };
         let expanded = {}; // keys: 'year_0', 'semester_0_0', 'unit_0_0_0', 'week_0_0_0_0', 'topic_0_0_0_0_0'
+        let isSaving = false;
 
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        //  GITHUB STORAGE (encrypted)
+        //  GITHUB STORAGE (encrypted) with retry & SHA conflict handling
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         function getStudyPath() {
             const { dataPath } = window.REPO_CONFIG;
@@ -845,29 +864,55 @@
             return `${dataPath}/users/${encUser}/studies.enc`;
         }
 
-        async function saveStudyData() {
+        async function saveStudyDataWithRetry(attempt = 0, maxAttempts = 5) {
+            if (isSaving) {
+                // Queue or skip? We'll wait a bit and retry.
+                await new Promise(r => setTimeout(r, 200));
+                return saveStudyDataWithRetry(attempt, maxAttempts);
+            }
+            isSaving = true;
             try {
                 const { owner, repo, branch } = window.REPO_CONFIG;
                 const path = getStudyPath();
+
+                // 1. Encrypt data
                 const encrypted = await encryptData(studyData);
                 const content = JSON.stringify(encrypted, null, 2);
 
+                // 2. Get latest SHA (always fetch fresh)
                 let sha = null;
                 try {
                     const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
                     if (existing && existing.sha) sha = existing.sha;
-                } catch {}
+                } catch (e) {
+                    // File may not exist yet
+                }
 
+                // 3. Update with fresh SHA
                 await GitHubAPI.updateFile(owner, repo, path, content, 'Update study data (encrypted)', branch, user.pat,
                     sha);
+
                 console.log('✅ Study data saved (encrypted) to GitHub');
+                showToast('✅ Saved', 'success');
+                isSaving = false;
                 return true;
             } catch (err) {
-                console.error('Save failed:', err);
-                showToast('Failed to save: ' + err.message, 'error');
-                return false;
+                console.error('Save attempt failed:', err);
+                if (attempt < maxAttempts) {
+                    const delay = Math.pow(2, attempt) * 500 + Math.random() * 500;
+                    console.log(`Retrying in ${delay}ms (attempt ${attempt + 1}/${maxAttempts})`);
+                    await new Promise(r => setTimeout(r, delay));
+                    return saveStudyDataWithRetry(attempt + 1, maxAttempts);
+                } else {
+                    showToast('❌ Save failed after multiple attempts: ' + err.message, 'error');
+                    isSaving = false;
+                    return false;
+                }
             }
         }
+
+        // Alias for backward compatibility
+        const saveStudyData = saveStudyDataWithRetry;
 
         async function loadStudyData() {
             try {
@@ -875,7 +920,6 @@
                 const path = getStudyPath();
                 const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
                 if (file && file.content) {
-                    // Check if it's encrypted JSON or plain
                     let parsed;
                     try {
                         parsed = JSON.parse(file.content);
@@ -883,7 +927,6 @@
                         parsed = null;
                     }
                     if (parsed && typeof parsed === 'object' && parsed.salt && parsed.iv && parsed.ciphertext) {
-                        // It's encrypted
                         const decrypted = await decryptData(parsed);
                         if (decrypted && decrypted.years) {
                             studyData = decrypted;
@@ -891,11 +934,9 @@
                             return true;
                         }
                     } else if (parsed && parsed.years) {
-                        // Legacy plain JSON (for migration)
                         studyData = parsed;
                         console.log('✅ Study data loaded (plain) from GitHub');
-                        // Re-encrypt and save
-                        await saveStudyData();
+                        await saveStudyData(); // re-encrypt
                         return true;
                     }
                 }
@@ -2008,6 +2049,177 @@
             }
         });
 
+        // ─── EXPORT TO EXCEL ───
+        async function exportToExcel() {
+            if (!studyData.years.length) {
+                showToast('No data to export.', 'error');
+                return;
+            }
+
+            window.showLoading('Generating Excel...');
+            try {
+                const ExcelJS = window.ExcelJS;
+                const workbook = new ExcelJS.Workbook();
+                workbook.creator = 'Study Manager';
+                workbook.created = new Date();
+
+                const ws = workbook.addWorksheet('Study Plan', {
+                    pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, margins: {
+                        left: 0.7, right: 0.7, top: 0.7, bottom: 0.7, header: 0.3, footer: 0.3
+                    } }
+                });
+
+                // Headers
+                const headers = ['Year', 'Semester', 'Unit', 'Week', 'Topic', 'Subtopic', 'Completed', 'Assignment', 'Due Date',
+                    'Status', 'Marks', 'Weight'
+                ];
+                const headerRow = ws.addRow(headers);
+                headerRow.eachCell(cell => {
+                    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
+                    cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10 };
+                    cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+                    cell.border = {
+                        top: { style: 'thin' }, bottom: { style: 'thin' },
+                        left: { style: 'thin' }, right: { style: 'thin' }
+                    };
+                });
+                ws.getRow(1).height = 28;
+
+                let rowIndex = 2;
+                studyData.years.forEach(year => {
+                    year.semesters.forEach(sem => {
+                        sem.units.forEach(unit => {
+                            unit.weeks.forEach(week => {
+                                const topics = week.topics || [];
+                                const assignments = week.assignments || [];
+                                // If no topics and no assignments, still add a row for the week
+                                if (!topics.length && !assignments.length) {
+                                    ws.addRow([
+                                        year.name, sem.name, unit.code + ' ' + unit.name,
+                                        'Week ' + week.number,
+                                        '', '', '', '', '', '', '', ''
+                                    ]);
+                                    rowIndex++;
+                                    return;
+                                }
+                                // Topics
+                                topics.forEach(topic => {
+                                    const subTopics = topic.subtopics || [];
+                                    if (!subTopics.length) {
+                                        ws.addRow([
+                                            year.name, sem.name, unit.code + ' ' + unit.name,
+                                            'Week ' + week.number,
+                                            topic.name, '',
+                                            topic.completed ? 'Yes' : 'No',
+                                            '', '', '', '', ''
+                                        ]);
+                                        rowIndex++;
+                                    } else {
+                                        subTopics.forEach((sub, si) => {
+                                            const completed = (topic.subCompleted && topic
+                                                .subCompleted[si]) || false;
+                                            ws.addRow([
+                                                year.name, sem.name, unit.code + ' ' + unit
+                                                .name,
+                                                'Week ' + week.number,
+                                                topic.name, sub,
+                                                completed ? 'Yes' : 'No',
+                                                '', '', '', '', ''
+                                            ]);
+                                            rowIndex++;
+                                        });
+                                    }
+                                });
+                                // Assignments (add as separate rows)
+                                assignments.forEach(ass => {
+                                    ws.addRow([
+                                        year.name, sem.name, unit.code + ' ' + unit.name,
+                                        'Week ' + week.number,
+                                        '', '',
+                                        '', // topic completed not applicable
+                                        ass.name,
+                                        ass.due || '',
+                                        ass.status || 'pending',
+                                        ass.marks || '',
+                                        ass.weight || ''
+                                    ]);
+                                    rowIndex++;
+                                });
+                            });
+                        });
+                    });
+                });
+
+                // Auto-size columns
+                ws.columns.forEach(col => {
+                    let maxLength = 10;
+                    col.eachCell({ includeEmpty: true }, cell => {
+                        const val = cell.value ? cell.value.toString() : '';
+                        if (val.length > maxLength) maxLength = val.length;
+                    });
+                    col.width = Math.min(maxLength + 3, 40);
+                });
+
+                // Add a summary sheet
+                const summaryWs = workbook.addWorksheet('Summary', {
+                    pageSetup: { orientation: 'portrait', fitToPage: true }
+                });
+                summaryWs.addRow(['Study Plan Summary']).getCell(1).font = { bold: true, size: 16 };
+                summaryWs.addRow(['Generated: ' + new Date().toLocaleString()]);
+                summaryWs.addRow([]);
+                const totalYears = studyData.years.length;
+                let totalUnits = 0,
+                    totalWeeks = 0,
+                    totalTopics = 0,
+                    doneTopics = 0;
+                let totalAssignments = 0,
+                    pendingAss = 0;
+                studyData.years.forEach(y => {
+                    y.semesters.forEach(s => {
+                        s.units.forEach(u => {
+                            totalUnits++;
+                            (u.weeks || []).forEach(w => {
+                                totalWeeks++;
+                                (w.topics || []).forEach(t => {
+                                    totalTopics++;
+                                    if (t.completed) doneTopics++;
+                                });
+                                (w.assignments || []).forEach(a => {
+                                    totalAssignments++;
+                                    if (a.status === 'pending' || a.status ===
+                                        'in-progress') pendingAss++;
+                                });
+                            });
+                        });
+                    });
+                });
+                summaryWs.addRow(['Total Years', totalYears]);
+                summaryWs.addRow(['Total Units', totalUnits]);
+                summaryWs.addRow(['Total Weeks', totalWeeks]);
+                summaryWs.addRow(['Topics Completed', doneTopics + '/' + totalTopics]);
+                summaryWs.addRow(['Total Assignments', totalAssignments]);
+                summaryWs.addRow(['Pending Assignments', pendingAss]);
+                summaryWs.getRow(5).font = { bold: true };
+                summaryWs.getRow(6).font = { bold: true };
+                summaryWs.getRow(7).font = { bold: true };
+                summaryWs.getRow(8).font = { bold: true };
+                summaryWs.getRow(9).font = { bold: true };
+                summaryWs.getRow(10).font = { bold: true };
+
+                summaryWs.columns.forEach(col => { col.width = 25; });
+
+                const buffer = await workbook.xlsx.writeBuffer();
+                const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                saveAs(blob, `StudyPlan_${new Date().toISOString().slice(0,10)}.xlsx`);
+                showToast('✅ Excel exported successfully!', 'success');
+            } catch (err) {
+                console.error(err);
+                showToast('Export failed: ' + err.message, 'error');
+            } finally {
+                window.hideLoading();
+            }
+        }
+
         // ─── UTILITY ───
         function escapeHtml(str) {
             if (!str) return '';
@@ -2052,6 +2264,9 @@
 
         document.getElementById('addYearBtn').addEventListener('click', window.addYear);
 
+        // ─── EXPORT BUTTON ───
+        document.getElementById('exportBtn').addEventListener('click', exportToExcel);
+
         // ─── FOOTER ───
         function updateFooter() {
             if (window.updateUserFooter) {
@@ -2068,13 +2283,76 @@
         //  INIT
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         async function init() {
-            window.showLoading('Loading study data...');
+            // Build the UI (header + stats + tree) inside contentArea
+            const contentArea = document.getElementById('contentArea');
+            contentArea.innerHTML = `
+                <div class="study-header">
+                    <div>
+                        <h1><i class="fa fa-graduation-cap" style="font-size:1.8rem;margin-right:12px;background:linear-gradient(135deg,#fff,var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;"></i> Study Manager</h1>
+                        <div class="subtitle">Years → Semesters → Units → Weeks → Topics → Subtopics · <span id="userDisplay"></span></div>
+                    </div>
+                    <div class="actions">
+                        <button class="btn btn-sync" id="syncBtn"><i class="fa fa-cloud-download"></i> Sync</button>
+                        <button class="btn btn-excel" id="exportBtn"><i class="fa fa-file-excel-o"></i> Export</button>
+                        <button class="btn btn-success-glow" id="addYearBtn"><i class="fa fa-plus"></i> Add Year</button>
+                        <button class="btn btn-outline-light" id="resetBtn" style="border:1px solid var(--border-subtle);color:var(--text-secondary);"><i class="fa fa-refresh"></i> Reset</button>
+                    </div>
+                </div>
 
+                <div class="stats-bar" id="statsBar">
+                    <div class="stat-item"><div class="number blue" id="statYears">0</div><div class="label">Years</div></div>
+                    <div class="stat-item"><div class="number purple" id="statUnits">0</div><div class="label">Units</div></div>
+                    <div class="stat-item"><div class="number orange" id="statWeeks">0</div><div class="label">Weeks</div></div>
+                    <div class="stat-item"><div class="number green" id="statTopicsDone">0</div><div class="label">Topics Done</div></div>
+                    <div class="stat-item"><div class="number" id="statAssignments">0</div><div class="label">Assignments</div></div>
+                    <div class="stat-item"><div class="number red" id="statPending">0</div><div class="label">Pending</div></div>
+                </div>
+
+                <div id="treeContainer"></div>
+
+                <div class="text-center text-muted-light small py-4" style="border-top:1px solid var(--border-subtle);margin-top:20px;">
+                    <span id="footerStatus"></span>
+                </div>
+            `;
+
+            // Now re-attach event listeners (they are already global functions, but we need to re-bind)
+            // The buttons are re-created, so we need to re-attach listeners.
+            // We'll use event delegation or re-bind after render? Since the IDs are same, we can just
+            // re-assign after content is set.
+            document.getElementById('syncBtn').addEventListener('click', async () => {
+                showToast('🔄 Syncing...', 'info');
+                const loaded = await loadStudyData();
+                if (!loaded) {
+                    studyData = getDefaultData();
+                    await saveStudyData();
+                }
+                render();
+                showToast('✅ Synced from GitHub', 'success');
+            });
+
+            document.getElementById('resetBtn').addEventListener('click', () => {
+                if (!confirm('⚠️ Reset ALL data? This will restore the default study plan. Any custom data will be lost.'))
+                    return;
+                studyData = getDefaultData();
+                expanded = {};
+                saveStudyData().then(() => {
+                    render();
+                    showToast('🔄 Reset to default', 'info');
+                });
+            });
+
+            document.getElementById('addYearBtn').addEventListener('click', window.addYear);
+            document.getElementById('exportBtn').addEventListener('click', exportToExcel);
+
+            // Load data
+            window.showLoading('Loading study data...');
             const loaded = await loadStudyData();
             if (!loaded) {
                 studyData = getDefaultData();
                 await saveStudyData();
             }
+
+            document.getElementById('userDisplay').textContent = '🔒 ' + user.username;
 
             render();
             updateFooter();
