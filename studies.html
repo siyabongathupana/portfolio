@@ -15,7 +15,7 @@
     <script src="shared.js"></script>
 
     <style>
-        /* ─── Same base styles as before ─── */
+        /* ─── Base ─── */
         :root {
             --bg-primary: #0a0e17;
             --bg-card: #111927;
@@ -28,8 +28,10 @@
             --orange: #fdcb6e;
             --red: #e17055;
             --purple: #a29bfe;
+            --blue: #0984e3;
         }
 
+        * { box-sizing: border-box; }
         body {
             background: var(--bg-primary);
             color: var(--text-primary);
@@ -156,17 +158,17 @@
         .stat-item .number.purple { color: var(--purple); }
         .stat-item .number.red { color: var(--red); }
 
-        /* ─── Semester / Unit structure ─── */
-        .semester-section {
-            margin-bottom: 32px;
+        /* ─── Year / Semester / Unit / Week structure ─── */
+        .level-section {
+            margin-bottom: 24px;
             border: 1px solid var(--border-subtle);
-            border-radius: 20px;
+            border-radius: 16px;
             overflow: hidden;
             background: var(--bg-card);
         }
-        .semester-header {
-            padding: 16px 24px;
-            background: rgba(47,199,255,0.04);
+        .level-header {
+            padding: 14px 20px;
+            background: rgba(255,255,255,0.02);
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -174,178 +176,112 @@
             gap: 12px;
             border-bottom: 1px solid var(--border-subtle);
             cursor: pointer;
+            transition: 0.2s;
         }
-        .semester-header .semester-name {
+        .level-header:hover {
+            background: rgba(255,255,255,0.04);
+        }
+        .level-header .name {
             font-weight: 700;
-            font-size: 1.2rem;
+            font-size: 1.1rem;
         }
-        .semester-header .semester-meta {
+        .level-header .meta {
             font-size: 0.8rem;
             color: var(--text-secondary);
         }
-        .semester-header .actions {
+        .level-header .actions {
             display: flex;
-            gap: 8px;
+            gap: 6px;
         }
-        .semester-header .actions .btn {
+        .level-header .actions .btn {
             border-radius: 40px;
             font-size: 0.7rem;
             padding: 4px 14px;
             border: none;
             transition: 0.2s;
         }
-        .btn-add-unit {
+        .btn-add {
             background: rgba(255,255,255,0.04);
             color: var(--text-secondary);
             border: 1px dashed var(--border-subtle);
         }
-        .btn-add-unit:hover {
+        .btn-add:hover {
             border-color: var(--accent);
             color: var(--accent);
             background: rgba(47,199,255,0.05);
         }
-        .btn-del-semester {
-            background: rgba(225,112,85,0.1);
+        .btn-del {
+            background: rgba(225,112,85,0.08);
             color: var(--red);
         }
-        .btn-del-semester:hover {
-            background: rgba(225,112,85,0.2);
-            color: var(--red);
+        .btn-del:hover {
+            background: rgba(225,112,85,0.15);
+        }
+        .btn-edit {
+            background: rgba(47,199,255,0.06);
+            color: var(--accent);
+        }
+        .btn-edit:hover {
+            background: rgba(47,199,255,0.12);
         }
 
-        .unit-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 16px;
+        .level-body {
             padding: 16px 20px;
+            display: none;
+        }
+        .level-body.open {
+            display: block;
         }
 
-        .unit-card {
+        .child-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 12px;
+        }
+
+        .child-card {
             background: rgba(255,255,255,0.02);
-            border-radius: 16px;
+            border-radius: 12px;
             border: 1px solid var(--border-subtle);
-            padding: 16px 18px;
+            padding: 14px 16px;
             transition: 0.2s;
             cursor: pointer;
         }
-        .unit-card:hover {
+        .child-card:hover {
             border-color: rgba(47,199,255,0.2);
-            transform: translateY(-2px);
             background: rgba(255,255,255,0.04);
         }
-        .unit-card .unit-code {
-            font-weight: 800;
-            font-size: 0.8rem;
-            color: var(--accent);
-            letter-spacing: 0.04em;
-        }
-        .unit-card .unit-name {
+        .child-card .title {
             font-weight: 600;
             font-size: 0.95rem;
-            margin: 2px 0 6px;
         }
-        .unit-card .progress-track {
+        .child-card .sub {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+        .child-card .progress-track {
             height: 3px;
             background: rgba(255,255,255,0.06);
             border-radius: 4px;
             overflow: hidden;
-            margin: 8px 0;
+            margin: 8px 0 4px;
         }
-        .unit-card .progress-track .fill {
+        .child-card .progress-track .fill {
             height: 100%;
             border-radius: 4px;
             background: linear-gradient(90deg, var(--accent), var(--green));
             transition: width 0.6s ease;
         }
-        .unit-card .unit-meta {
-            font-size: 0.7rem;
-            color: var(--text-secondary);
-            display: flex;
-            justify-content: space-between;
-        }
-        .unit-card .unit-actions {
-            margin-top: 10px;
-            display: flex;
-            gap: 6px;
-            justify-content: flex-end;
-        }
-        .unit-card .unit-actions .btn {
-            border-radius: 40px;
-            font-size: 0.65rem;
-            padding: 2px 12px;
-            border: none;
-            transition: 0.2s;
-        }
-        .btn-edit-unit {
-            background: rgba(47,199,255,0.08);
-            color: var(--accent);
-        }
-        .btn-edit-unit:hover {
-            background: rgba(47,199,255,0.15);
-        }
-        .btn-del-unit {
-            background: rgba(225,112,85,0.08);
-            color: var(--red);
-        }
-        .btn-del-unit:hover {
-            background: rgba(225,112,85,0.15);
-        }
 
-        /* ─── Expanded unit detail (inside semester) ─── */
-        .unit-detail {
-            display: none;
-            padding: 0 20px 20px;
-            border-top: 1px solid var(--border-subtle);
-            margin-top: 12px;
-            animation: slideDown 0.3s ease;
-        }
-        .unit-detail.open {
-            display: block;
-        }
-        @keyframes slideDown {
-            from { opacity: 0; transform: translateY(-8px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .unit-detail .detail-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            padding: 12px 0 8px;
-            border-bottom: 1px solid var(--border-subtle);
-            margin-bottom: 16px;
-        }
-        .unit-detail .detail-header .left .code {
-            font-size: 0.8rem;
-            color: var(--text-secondary);
-        }
-        .unit-detail .detail-header .right .btn {
-            border-radius: 40px;
-            font-size: 0.7rem;
-            padding: 4px 14px;
-            border: none;
-            transition: 0.2s;
-        }
-        .btn-add-topic {
-            background: rgba(255,255,255,0.04);
-            color: var(--text-secondary);
-            border: 1px dashed var(--border-subtle);
-        }
-        .btn-add-topic:hover {
-            border-color: var(--accent);
-            color: var(--accent);
-            background: rgba(47,199,255,0.05);
-        }
-
-        .topic-group {
-            margin-bottom: 12px;
+        /* ─── Topic / Subtopic inside Week ─── */
+        .topic-item {
+            margin-bottom: 8px;
             border: 1px solid var(--border-subtle);
-            border-radius: 12px;
+            border-radius: 10px;
             overflow: hidden;
         }
         .topic-header {
-            padding: 10px 14px;
+            padding: 8px 14px;
             display: flex;
             align-items: center;
             gap: 12px;
@@ -356,40 +292,40 @@
         .topic-header:hover {
             background: rgba(255,255,255,0.04);
         }
-        .topic-header .checkbox-custom {
+        .topic-header .check {
             width: 18px;
             height: 18px;
-            border-radius: 5px;
+            border-radius: 4px;
             border: 2px solid rgba(255,255,255,0.12);
             display: flex;
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
             cursor: pointer;
-            background: transparent;
             transition: 0.2s;
+            background: transparent;
         }
-        .topic-header .checkbox-custom.checked {
+        .topic-header .check.checked {
             background: var(--green);
             border-color: var(--green);
         }
-        .topic-header .checkbox-custom.checked i {
+        .topic-header .check.checked i {
             color: #fff;
         }
-        .topic-header .checkbox-custom i {
+        .topic-header .check i {
             font-size: 11px;
             color: transparent;
         }
-        .topic-header .topic-name {
+        .topic-header .name {
             flex: 1;
             font-weight: 500;
             font-size: 0.9rem;
         }
-        .topic-header .topic-meta {
+        .topic-header .meta {
             font-size: 0.7rem;
             color: var(--text-secondary);
         }
-        .topic-header .topic-actions .btn {
+        .topic-header .actions .btn {
             border-radius: 40px;
             font-size: 0.6rem;
             padding: 2px 10px;
@@ -398,11 +334,11 @@
             background: transparent;
             color: var(--text-secondary);
         }
-        .topic-header .topic-actions .btn:hover {
+        .topic-header .actions .btn:hover {
             color: var(--accent);
             background: rgba(47,199,255,0.05);
         }
-        .topic-header .topic-actions .btn-del-topic:hover {
+        .topic-header .actions .btn-del:hover {
             color: var(--red);
             background: rgba(225,112,85,0.05);
         }
@@ -471,16 +407,17 @@
             background: rgba(225,112,85,0.05);
         }
 
+        /* ─── Assignments ─── */
         .assignments-section {
-            margin-top: 16px;
-            padding-top: 14px;
+            margin-top: 12px;
+            padding-top: 12px;
             border-top: 1px solid var(--border-subtle);
         }
         .assignments-section .section-title {
             font-weight: 700;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
             color: var(--text-primary);
-            margin-bottom: 10px;
+            margin-bottom: 8px;
             display: flex;
             align-items: center;
             gap: 10px;
@@ -494,10 +431,10 @@
             display: flex;
             align-items: center;
             gap: 12px;
-            padding: 8px 12px;
+            padding: 6px 12px;
             background: rgba(255,255,255,0.02);
-            border-radius: 10px;
-            margin-bottom: 6px;
+            border-radius: 8px;
+            margin-bottom: 4px;
             border: 1px solid transparent;
             transition: 0.2s;
             flex-wrap: wrap;
@@ -718,10 +655,10 @@
         @media (max-width: 768px) {
             .study-container { padding: 0 12px 80px; }
             .study-header h1 { font-size: 1.5rem; }
-            .unit-grid { grid-template-columns: 1fr; }
+            .child-grid { grid-template-columns: 1fr; }
             .stats-bar { grid-template-columns: repeat(3, 1fr); gap: 10px; }
             .stat-item .number { font-size: 1.2rem; }
-            .semester-header { flex-direction: column; align-items: stretch; }
+            .level-header { flex-direction: column; align-items: stretch; }
             .modal-custom .modal-box { padding: 20px; }
         }
         @media (max-width: 480px) {
@@ -771,27 +708,27 @@
         <div class="study-header">
             <div>
                 <h1><i class="fa fa-graduation-cap" style="font-size:1.8rem;margin-right:12px;background:linear-gradient(135deg,#fff,var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;"></i> Study Manager</h1>
-                <div class="subtitle">Fully dynamic – add semesters, units, topics, and assignments</div>
+                <div class="subtitle">Years → Semesters → Units → Weeks → Topics → Subtopics</div>
             </div>
             <div class="actions">
                 <button class="btn btn-sync" id="syncBtn"><i class="fa fa-cloud-download"></i> Sync</button>
-                <button class="btn btn-success-glow" id="addSemesterBtn"><i class="fa fa-plus"></i> Add Semester</button>
-                <button class="btn btn-outline-light" id="resetBtn" style="border:1px solid var(--border-subtle);color:var(--text-secondary);"><i class="fa fa-refresh"></i> Reset All</button>
+                <button class="btn btn-success-glow" id="addYearBtn"><i class="fa fa-plus"></i> Add Year</button>
+                <button class="btn btn-outline-light" id="resetBtn" style="border:1px solid var(--border-subtle);color:var(--text-secondary);"><i class="fa fa-refresh"></i> Reset</button>
             </div>
         </div>
 
         <!-- Stats -->
         <div class="stats-bar" id="statsBar">
-            <div class="stat-item"><div class="number blue" id="statSemesters">0</div><div class="label">Semesters</div></div>
+            <div class="stat-item"><div class="number blue" id="statYears">0</div><div class="label">Years</div></div>
             <div class="stat-item"><div class="number purple" id="statUnits">0</div><div class="label">Units</div></div>
-            <div class="stat-item"><div class="number green" id="statTopics">0</div><div class="label">Topics</div></div>
-            <div class="stat-item"><div class="number orange" id="statProgress">0%</div><div class="label">Overall Progress</div></div>
+            <div class="stat-item"><div class="number green" id="statWeeks">0</div><div class="label">Weeks</div></div>
+            <div class="stat-item"><div class="number orange" id="statTopics">0</div><div class="label">Topics</div></div>
             <div class="stat-item"><div class="number" id="statAssignments">0</div><div class="label">Assignments</div></div>
             <div class="stat-item"><div class="number red" id="statPending">0</div><div class="label">Pending</div></div>
         </div>
 
-        <!-- Semesters Container -->
-        <div id="semestersContainer"></div>
+        <!-- Main Tree -->
+        <div id="treeContainer"></div>
 
         <!-- Footer -->
         <div class="text-center text-muted-light small py-4" style="border-top:1px solid var(--border-subtle);margin-top:20px;">
@@ -851,8 +788,8 @@
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         //  STATE
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        let studyData = { semesters: [] };
-        let expandedUnits = {}; // track which units are expanded: { semesterIndex_unitIndex: true }
+        let studyData = { years: [] };
+        let expanded = {}; // track expanded items: 'year_0', 'semester_0_0', 'unit_0_0_0', 'week_0_0_0_0'
 
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         //  GITHUB STORAGE
@@ -892,7 +829,7 @@
                 const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
                 if (file && file.content) {
                     const parsed = JSON.parse(file.content);
-                    if (parsed && parsed.semesters) {
+                    if (parsed && parsed.years) {
                         studyData = parsed;
                         console.log('✅ Study data loaded from GitHub');
                         return true;
@@ -906,273 +843,385 @@
 
         function getDefaultData() {
             return {
-                semesters: [
-                    {
-                        name: '2026 Semester 1',
-                        units: [
-                            {
-                                code: 'BSC106',
-                                name: 'Engineering Mathematics 2',
-                                color: '#2fc7ff',
-                                topics: [
-                                    { name: 'Multivariable Calculus', subtopics: ['Functions of several variables',
+                years: [{
+                    name: '2026',
+                    semesters: [{
+                        name: 'Semester 2',
+                        units: [{
+                            code: 'BSC106',
+                            name: 'Engineering Mathematics 2',
+                            color: '#2fc7ff',
+                            weeks: [
+                                { number: 1, topics: [{ name: 'Multivariable Calculus',
+                                        subtopics: ['Functions of several variables',
                                             'Partial derivatives and Total differential',
                                             'Chain Rules for Differentiation',
                                             'Partial Derivatives of Higher Orders',
                                             'Differentiation of Implicit Functions'
-                                        ] },
-                                    { name: 'Integral Calculus', subtopics: ['Integration calculus',
-                                            'Double and Triple integrals', 'Areas and Volumes by integration',
+                                        ], completed: false, subCompleted: [] }],
+                                    assignments: [{ name: 'Quiz 1', due: '2026-08-10', status: 'pending',
+                                        marks: '', weight: 5 }] },
+                                { number: 2, topics: [{ name: 'Integral Calculus',
+                                        subtopics: ['Integration calculus',
+                                            'Double and Triple integrals',
+                                            'Areas and Volumes by integration',
                                             'Numerical Integration'
-                                        ] },
-                                    { name: 'Differential Equations', subtopics: ['Definitions',
+                                        ], completed: false, subCompleted: [] }],
+                                    assignments: [{ name: 'Quiz 2', due: '2026-08-17', status: 'pending',
+                                        marks: '', weight: 5 }] },
+                                { number: 3, topics: [{ name: 'Differential Equations',
+                                        subtopics: ['Definitions',
                                             'First-Order Differential Equations',
                                             'Second-Order Differential Equations',
                                             'Systems of first-order ODEs', 'Introduction to PDE'
-                                        ] },
-                                    { name: 'Numerical Methods', subtopics: ['Sources of errors',
-                                            'Solution of Nonlinear Equations', 'Interpolation and curve fitting',
+                                        ], completed: false, subCompleted: [] }],
+                                    assignments: [{ name: 'Quiz 3', due: '2026-08-24', status: 'pending',
+                                        marks: '', weight: 5 }] },
+                                { number: 4, topics: [{ name: 'Numerical Methods',
+                                        subtopics: ['Sources of errors',
+                                            'Solution of Nonlinear Equations',
+                                            'Interpolation and curve fitting',
                                             'Numerical differentiation'
-                                        ] },
-                                    { name: 'Linear Algebra', subtopics: ['Systems of linear equations and matrices',
+                                        ], completed: false, subCompleted: [] }],
+                                    assignments: [{ name: 'Quiz 4', due: '2026-08-31', status: 'pending',
+                                        marks: '', weight: 5 }] },
+                                { number: 5, topics: [{ name: 'Linear Algebra',
+                                        subtopics: ['Systems of linear equations and matrices',
                                             'Matrix factorisation, Gaussian elimination, LU decomposition',
                                             'Iterative methods: Gauss-Seidel and Jacobi',
                                             'Eigenvalues and Eigenvectors',
                                             'Geometrical Interpretation of Eigenvectors',
                                             'Applications of Eigenvalue Problems in Engineering',
                                             'Special matrices'
-                                        ] },
-                                    { name: 'Analytical Geometry', subtopics: ['Basics of Coordinates and Distance',
+                                        ], completed: false, subCompleted: [] }],
+                                    assignments: [{ name: 'Quiz 5', due: '2026-09-07', status: 'pending',
+                                        marks: '', weight: 5 }] },
+                                { number: 6, topics: [{ name: 'Analytical Geometry',
+                                        subtopics: ['Basics of Coordinates and Distance',
                                             'Equations of lines, circles, slopes, line intersections',
                                             'Polar and cylindrical coordinates',
                                             'Transformation of coordinates (Jacobian)'
-                                        ] },
-                                    { name: 'Vector Calculus', subtopics: ['Vector spaces',
-                                            'Vector differential calculus', 'Basic theorems of vector calculus'
-                                        ] },
-                                    { name: 'Fourier and Taylor Series', subtopics: ['Fourier Series',
+                                        ], completed: false, subCompleted: [] }],
+                                    assignments: [{ name: 'Quiz 6', due: '2026-09-14', status: 'pending',
+                                        marks: '', weight: 5 }] },
+                                { number: 7, topics: [{ name: 'Vector Calculus',
+                                        subtopics: ['Vector spaces',
+                                            'Vector differential calculus',
+                                            'Basic theorems of vector calculus'
+                                        ], completed: false, subCompleted: [] }],
+                                    assignments: [{ name: 'Quiz 7', due: '2026-09-21', status: 'pending',
+                                        marks: '', weight: 5 }] },
+                                { number: 8, topics: [{ name: 'Fourier and Taylor Series',
+                                        subtopics: ['Fourier Series',
                                             'Harmonic Analysis', 'Taylor series expansion'
-                                        ] }
-                                ],
-                                assignments: [
-                                    { name: 'Weekly Quizzes', due: '', status: 'pending', marks: '', weight: 10 },
-                                    { name: 'Test (Invigilated)', due: '', status: 'pending', marks: '', weight: 25 },
-                                    { name: 'Final Exam', due: '', status: 'pending', marks: '', weight: 65 }
-                                ]
-                            },
-                            {
-                                code: 'BSC104',
-                                name: 'Engineering Drawing and CAD',
-                                color: '#a29bfe',
-                                topics: [
-                                    { name: 'Introductory and Standard Information', subtopics: [
-                                            'Role of technical drawings', 'Standard abbreviations',
-                                            'Types of Lines', 'Lettering', 'Scales',
-                                            'Sizes of drawing sheet', 'Layout of drawing sheets', 'Dimensioning',
+                                        ], completed: false, subCompleted: [] }],
+                                    assignments: [{ name: 'Quiz 8', due: '2026-09-28', status: 'pending',
+                                        marks: '', weight: 5 }] }
+                            ]
+                        }, {
+                            code: 'BSC104',
+                            name: 'Engineering Drawing and CAD',
+                            color: '#a29bfe',
+                            weeks: [
+                                { number: 1, topics: [{ name: 'Introductory and Standard Information',
+                                        subtopics: ['Role of technical drawings',
+                                            'Standard abbreviations', 'Types of Lines',
+                                            'Lettering', 'Scales', 'Sizes of drawing sheet',
+                                            'Layout of drawing sheets', 'Dimensioning',
                                             'Engineering drawing standards'
-                                        ] },
-                                    { name: 'Sketching', subtopics: ['Sketching Tools and Materials',
+                                        ], completed: false, subCompleted: [] }],
+                                    assignments: [{ name: 'Portfolio Week 1', due: '2026-08-10',
+                                        status: 'pending', marks: '', weight: 2 }] },
+                                { number: 2, topics: [{ name: 'Sketching',
+                                        subtopics: ['Sketching Tools and Materials',
                                             'Sketching Straight Lines', 'Sketching Circular Lines',
                                             'Sketching Circles, Arcs, and ellipses',
                                             'Measurement Lines and Proportions',
                                             'Introduction to the Block Technique',
-                                            'Creating Multiview Sketches', 'Creating Isometric Sketches'
-                                        ] },
-                                    { name: 'Orthogonal Projection', subtopics: ['Principles of projection',
+                                            'Creating Multiview Sketches',
+                                            'Creating Isometric Sketches'
+                                        ], completed: false, subCompleted: [] }],
+                                    assignments: [{ name: 'Portfolio Week 2', due: '2026-08-17',
+                                        status: 'pending', marks: '', weight: 2 }] },
+                                { number: 3, topics: [{ name: 'Orthogonal Projection',
+                                        subtopics: ['Principles of projection',
                                             'Third-angle projection', 'First-angle projection',
                                             'Production of engineering drawings',
                                             'Introduction to CAD: Basic 2D entities'
-                                        ] },
-                                    { name: 'Isometric Projection', subtopics: ['Isometric projection principles',
+                                        ], completed: false, subCompleted: [] }],
+                                    assignments: [{ name: 'Portfolio Week 3', due: '2026-08-24',
+                                        status: 'pending', marks: '', weight: 2 }] },
+                                { number: 4, topics: [{ name: 'Isometric Projection',
+                                        subtopics: ['Isometric projection principles',
                                             'Making an isometric drawing',
                                             'Representation of details in pictorial drawings',
                                             'Introduction to CAD: Basic 3D models'
-                                        ] },
-                                    { name: 'Sections and Revolutions', subtopics: [
-                                            'Introduction to Sectional Views',
+                                        ], completed: false, subCompleted: [] }],
+                                    assignments: [{ name: 'Portfolio Week 4', due: '2026-08-31',
+                                        status: 'pending', marks: '', weight: 2 }] },
+                                { number: 5, topics: [{ name: 'Sections and Revolutions',
+                                        subtopics: ['Introduction to Sectional Views',
                                             'Cutting-Plane Lines and Sectional View Identification',
-                                            'Section Lines', 'Full Sections', 'Half Sections', 'Offset Sections',
-                                            'Aligned Sections', 'Un-sectioned Features',
-                                            'Intersections in Section', 'Broken-Out Sections',
-                                            'Auxiliary Sections', 'Conventional Revolutions',
+                                            'Section Lines', 'Full Sections', 'Half Sections',
+                                            'Offset Sections', 'Aligned Sections',
+                                            'Un-sectioned Features', 'Intersections in Section',
+                                            'Broken-Out Sections', 'Auxiliary Sections',
+                                            'Conventional Revolutions',
                                             'CAD: Drawings and section views'
-                                        ] },
-                                    { name: 'Working Drawings', subtopics: ['Introduction to Working Drawings',
+                                        ], completed: false, subCompleted: [] }],
+                                    assignments: [{ name: 'Portfolio Week 5', due: '2026-09-07',
+                                        status: 'pending', marks: '', weight: 2 }] },
+                                { number: 6, topics: [{ name: 'Working Drawings',
+                                        subtopics: ['Introduction to Working Drawings',
                                             'Detail Drawings', 'Assembly Drawings',
                                             'Types of Assembly Drawings', 'Identification Numbers',
                                             'Parts Lists', 'Purchase Parts', 'Engineering Changes',
-                                            'Drawing from a Prototype', 'Analysis of a Set of Working Drawings'
-                                        ] },
-                                    { name: 'CAD: Creating Simple Parts', subtopics: [
-                                            'CAD software demonstration', 'Creating simple parts'
-                                        ] },
-                                    { name: 'CAD: Creating Simple Assemblies', subtopics: [
-                                            'CAD software demonstration', 'Creating simple assemblies'
-                                        ] },
-                                    { name: 'CAD: Creating Drawings', subtopics: [
-                                            'CAD software demonstration', 'Creating drawings'
-                                        ] },
-                                    { name: 'Discipline-Specific Drawings', subtopics: [
-                                            'Creating a simple circuit', 'Creating a simple building plan'
-                                        ] },
-                                    { name: 'Interpreting Drawings', subtopics: ['Sample Drawings analysis'] },
-                                    { name: 'Product Development and Design', subtopics: [
+                                            'Drawing from a Prototype',
+                                            'Analysis of a Set of Working Drawings'
+                                        ], completed: false, subCompleted: [] }],
+                                    assignments: [{ name: 'Portfolio Week 6', due: '2026-09-14',
+                                        status: 'pending', marks: '', weight: 2 }] },
+                                { number: 7, topics: [{ name: 'CAD: Creating Simple Parts',
+                                        subtopics: ['CAD software demonstration',
+                                            'Creating simple parts'
+                                        ], completed: false, subCompleted: [] }],
+                                    assignments: [{ name: 'Portfolio Week 7', due: '2026-09-21',
+                                        status: 'pending', marks: '', weight: 2 }] },
+                                { number: 8, topics: [{ name: 'CAD: Creating Simple Assemblies',
+                                        subtopics: ['CAD software demonstration',
+                                            'Creating simple assemblies'
+                                        ], completed: false, subCompleted: [] }],
+                                    assignments: [{ name: 'Portfolio Week 8', due: '2026-09-28',
+                                        status: 'pending', marks: '', weight: 2 }] },
+                                { number: 9, topics: [{ name: 'CAD: Creating Drawings',
+                                        subtopics: ['CAD software demonstration',
+                                            'Creating drawings'
+                                        ], completed: false, subCompleted: [] }],
+                                    assignments: [{ name: 'Portfolio Week 9', due: '2026-10-05',
+                                        status: 'pending', marks: '', weight: 2 }] },
+                                { number: 10, topics: [{ name: 'Discipline-Specific Drawings',
+                                        subtopics: ['Creating a simple circuit',
+                                            'Creating a simple building plan'
+                                        ], completed: false, subCompleted: [] }],
+                                    assignments: [{ name: 'Portfolio Week 10', due: '2026-10-12',
+                                        status: 'pending', marks: '', weight: 2 }] },
+                                { number: 11, topics: [{ name: 'Interpreting Drawings',
+                                        subtopics: ['Sample Drawings analysis'],
+                                        completed: false, subCompleted: [] }],
+                                    assignments: [{ name: 'Portfolio Week 11', due: '2026-10-19',
+                                        status: 'pending', marks: '', weight: 2 }] },
+                                { number: 12, topics: [{ name: 'Product Development and Design',
+                                        subtopics: [
                                             'Planning and design as problem-solving processes',
                                             'Methodology for solving open-ended problems',
                                             'Engineering planning', 'The design process',
-                                            'Problem formulation phase', 'Feasibility study and concept design',
-                                            'Preliminary planning and design', 'Detailed planning and design',
+                                            'Problem formulation phase',
+                                            'Feasibility study and concept design',
+                                            'Preliminary planning and design',
+                                            'Detailed planning and design',
                                             'Implementation', 'The Solution-first strategy'
-                                        ] }
-                                ],
-                                assignments: [
-                                    { name: 'Portfolio Creation (Weekly)', due: '', status: 'pending', marks: '',
-                                        weight: 10 },
-                                    { name: 'Test (Invigilated)', due: '', status: 'pending', marks: '',
-                                    weight: 25 },
-                                    { name: 'CAD Practical Project', due: '', status: 'pending', marks: '',
-                                        weight: 25 },
-                                    { name: 'Final Exam', due: '', status: 'pending', marks: '', weight: 40 }
-                                ]
-                            }
-                        ]
-                    },
-                    {
-                        name: '2026 Semester 2',
-                        units: [
-                            {
-                                code: 'BSC107',
-                                name: 'Engineering Programming',
-                                color: '#55efc4',
-                                topics: [
-                                    { name: 'Overview of Engineering Programming', subtopics: [
-                                            'Computers: Hardware and Software',
+                                        ], completed: false, subCompleted: [] }],
+                                    assignments: [{ name: 'Portfolio Week 12', due: '2026-10-26',
+                                        status: 'pending', marks: '', weight: 2 }] }
+                            ]
+                        }, {
+                            code: 'BSC107',
+                            name: 'Engineering Programming',
+                            color: '#55efc4',
+                            weeks: [
+                                { number: 1, topics: [{ name: 'Overview of Engineering Programming',
+                                        subtopics: ['Computers: Hardware and Software',
                                             'Computer Organization (CU, ALU, registers, memory)',
                                             'Personal, Distributed and Client/Server Computing',
                                             'Machine, Assembly and High-Level Languages',
                                             'Cloud computing, IoT, Big data, ML',
                                             'The Software Development Method',
                                             'Professional Ethics for Programmers'
-                                        ] },
-                                    { name: 'Overview of C Language', subtopics: ['C Language Elements',
-                                            'Variable Declarations and Data Types', 'Executable Statements',
-                                            'General Form of a C Program', 'Arithmetic Expressions',
+                                        ], completed: false, subCompleted: [] }],
+                                    assignments: [{ name: 'Quiz 1', due: '2026-08-10', status: 'pending',
+                                        marks: '', weight: 2 }] },
+                                { number: 2, topics: [{ name: 'Overview of C Language',
+                                        subtopics: ['C Language Elements',
+                                            'Variable Declarations and Data Types',
+                                            'Executable Statements',
+                                            'General Form of a C Program',
+                                            'Arithmetic Expressions',
                                             'Formatting Numbers in Program Output',
                                             'Interactive Mode, Batch Mode, and Data Files'
-                                        ] },
-                                    { name: 'Top-Down Design with Functions', subtopics: [
-                                            'Building Programs from Existing Information',
-                                            'Library Functions (Math, Random)', 'Function Definitions',
-                                            'Function prototypes', 'Function call stack and activation records',
+                                        ], completed: false, subCompleted: [] }],
+                                    assignments: [{ name: 'Quiz 2', due: '2026-08-17', status: 'pending',
+                                        marks: '', weight: 2 }] },
+                                { number: 3, topics: [{ name: 'Top-Down Design with Functions',
+                                        subtopics: ['Building Programs from Existing Information',
+                                            'Library Functions (Math, Random)',
+                                            'Function Definitions', 'Function prototypes',
+                                            'Function call stack and activation records',
                                             'Headers', 'Top-Down Design and Structure Charts',
-                                            'Functions without Arguments', 'Functions with Input Arguments'
-                                        ] },
-                                    { name: 'Selection Structures: if and switch', subtopics: [
+                                            'Functions without Arguments',
+                                            'Functions with Input Arguments'
+                                        ], completed: false, subCompleted: [] }],
+                                    assignments: [{ name: 'Quiz 3', due: '2026-08-24', status: 'pending',
+                                        marks: '', weight: 2 }] },
+                                { number: 4, topics: [{ name: 'Selection Structures: if and switch',
+                                        subtopics: [
                                             'Control structures: sequence, selection, repetition',
                                             'Conditions: Relational, Equality, Logical Operators',
                                             'Operator Precedence', 'Writing Conditions in C',
-                                            'Comparing Characters', 'The if Statement', 'Compound Statements',
-                                            'Nested if and Multiple-Alternative Decisions', 'The switch Statement'
-                                        ] },
-                                    { name: 'Repetition, Loops and Recursion', subtopics: [
-                                            'Repetition in Programs', 'Counting Loops and the while Statement',
-                                            'Computing a Sum or Product in a Loop', 'The for Statement',
-                                            'Conditional Loops', 'Loop Design', 'Nested Loops',
-                                            'The do-while Statement', 'Iterative Approximations',
+                                            'Comparing Characters', 'The if Statement',
+                                            'Compound Statements',
+                                            'Nested if and Multiple-Alternative Decisions',
+                                            'The switch Statement'
+                                        ], completed: false, subCompleted: [] }],
+                                    assignments: [{ name: 'Quiz 4', due: '2026-08-31', status: 'pending',
+                                        marks: '', weight: 2 }] },
+                                { number: 5, topics: [{ name: 'Repetition, Loops and Recursion',
+                                        subtopics: ['Repetition in Programs',
+                                            'Counting Loops and the while Statement',
+                                            'Computing a Sum or Product in a Loop',
+                                            'The for Statement', 'Conditional Loops',
+                                            'Loop Design', 'Nested Loops',
+                                            'The do-while Statement',
+                                            'Iterative Approximations',
                                             'Recursion: Nature, Tracing, Mathematical Functions',
                                             'Recursion Example: Fibonacci Series'
-                                        ] },
-                                    { name: 'Arrays', subtopics: ['Declaring and Referencing Arrays',
-                                            'Array Subscripts', 'Using for Loops for Sequential Access',
-                                            'Array Elements as Function Arguments', 'Array Arguments',
-                                            'Searching and Sorting an Array', 'Parallel Arrays and Enumerated Types',
-                                            'Multidimensional Arrays', 'Graphics Programs with Arrays'
-                                        ] },
-                                    { name: 'Pointers, Modular Programming', subtopics: [
-                                            'Pointers and the Indirection Operator',
+                                        ], completed: false, subCompleted: [] }],
+                                    assignments: [{ name: 'Quiz 5', due: '2026-09-07', status: 'pending',
+                                        marks: '', weight: 2 }] },
+                                { number: 6, topics: [{ name: 'Arrays',
+                                        subtopics: ['Declaring and Referencing Arrays',
+                                            'Array Subscripts',
+                                            'Using for Loops for Sequential Access',
+                                            'Array Elements as Function Arguments',
+                                            'Array Arguments', 'Searching and Sorting an Array',
+                                            'Parallel Arrays and Enumerated Types',
+                                            'Multidimensional Arrays',
+                                            'Graphics Programs with Arrays'
+                                        ], completed: false, subCompleted: [] }],
+                                    assignments: [{ name: 'Quiz 6', due: '2026-09-14', status: 'pending',
+                                        marks: '', weight: 2 }] },
+                                { number: 7, topics: [{ name: 'Pointers, Modular Programming',
+                                        subtopics: ['Pointers and the Indirection Operator',
                                             'Functions with Output Parameters',
                                             'Multiple Calls to a Function', 'Scope of Names',
                                             'Debugging and Testing', 'Dynamic Data Structures',
                                             'Pointers to structures', 'Dynamic Memory Allocation'
-                                        ] },
-                                    { name: 'Strings', subtopics: ['String Basics', 'String Library Functions',
-                                            'Longer Strings: Concatenation', 'String Comparison',
-                                            'Arrays of Pointers', 'Character Operations',
+                                        ], completed: false, subCompleted: [] }],
+                                    assignments: [{ name: 'Quiz 7', due: '2026-09-21', status: 'pending',
+                                        marks: '', weight: 2 }] },
+                                { number: 8, topics: [{ name: 'Strings',
+                                        subtopics: ['String Basics', 'String Library Functions',
+                                            'Longer Strings: Concatenation',
+                                            'String Comparison', 'Arrays of Pointers',
+                                            'Character Operations',
                                             'String-to-Number and Number-to-String Conversions'
-                                        ] },
-                                    { name: 'Structures and File Processing', subtopics: [
-                                            'User-Defined Structure Types',
+                                        ], completed: false, subCompleted: [] }],
+                                    assignments: [{ name: 'Quiz 8', due: '2026-09-28', status: 'pending',
+                                        marks: '', weight: 2 }] },
+                                { number: 9, topics: [{ name: 'Structures and File Processing',
+                                        subtopics: ['User-Defined Structure Types',
                                             'Structure Type Data as Parameters',
-                                            'Functions with Structured Results', 'Input/Output Files',
-                                            'Binary Files', 'Procedural and Data Abstraction',
+                                            'Functions with Structured Results',
+                                            'Input/Output Files', 'Binary Files',
+                                            'Procedural and Data Abstraction',
                                             'Personal Libraries', 'Storage classes',
-                                            'Conditional compilation', 'Arguments to Function main'
-                                        ] },
-                                    { name: 'Introduction to MATLAB', subtopics: ['The MATLAB Environment',
-                                            'Variables and Arrays', 'Vectors, Matrices and Arrays',
-                                            'Multidimensional Arrays', 'Subarrays', 'Displaying Output Data',
-                                            'Data Files', 'Hierarchy of Operations', 'Built-in MATLAB Functions',
+                                            'Conditional compilation',
+                                            'Arguments to Function main'
+                                        ], completed: false, subCompleted: [] }],
+                                    assignments: [{ name: 'Quiz 9', due: '2026-10-05', status: 'pending',
+                                        marks: '', weight: 2 }] },
+                                { number: 10, topics: [{ name: 'Introduction to MATLAB',
+                                        subtopics: ['The MATLAB Environment',
+                                            'Variables and Arrays',
+                                            'Vectors, Matrices and Arrays',
+                                            'Multidimensional Arrays', 'Subarrays',
+                                            'Displaying Output Data', 'Data Files',
+                                            'Hierarchy of Operations',
+                                            'Built-in MATLAB Functions',
                                             'Introduction to Plotting'
-                                        ] },
-                                    { name: 'Numerical Analysis using MATLAB & Excel', subtopics: [
-                                            'Roots of Polynomials',
+                                        ], completed: false, subCompleted: [] }],
+                                    assignments: [{ name: 'Quiz 10', due: '2026-10-12', status: 'pending',
+                                        marks: '', weight: 2 }] },
+                                { number: 11, topics: [{ name: 'Numerical Analysis using MATLAB & Excel',
+                                        subtopics: ['Roots of Polynomials',
                                             'Polynomial Construction from Known Roots',
                                             'Evaluation of Polynomials', 'Rational Polynomials',
                                             'Root Approximation', 'Matrices and Determinants',
                                             'Functions and cell operations in Excel',
                                             'Mathematical problem solving using Excel',
-                                            'Numerical integration and differentiation using Excel', 'Macros'
-                                        ] },
-                                    { name: 'Introduction to Python', subtopics: ['Introduction to Python',
-                                            'Using the Python Interpreter', 'Control Flow Tools in Python',
-                                            'Data Structures', 'Modules', 'Input and Output', 'Classes',
-                                            'Using Python Standard Library'
-                                        ] }
-                                ],
-                                assignments: [
-                                    { name: 'Weekly Quizzes', due: '', status: 'pending', marks: '', weight: 10 },
-                                    { name: 'Test (Invigilated)', due: '', status: 'pending', marks: '',
-                                    weight: 25 },
-                                    { name: 'C Programming Project', due: '', status: 'pending', marks: '',
-                                        weight: 25 },
-                                    { name: 'Final Exam', due: '', status: 'pending', marks: '', weight: 40 }
-                                ]
-                            },
-                            {
-                                code: 'BIA109',
-                                name: 'Principles of Chemical and Process Engineering',
-                                color: '#fdcb6e',
-                                topics: [
-                                    { name: 'Chemical Reaction & Equilibrium', subtopics: [
-                                            'Evidence for a chemical reaction', 'Chemical equations',
-                                            'Reactions in which a solid forms', 'Reactions in aqueous solutions',
-                                            'Reactions of metals with non-metals', 'Chemical equilibrium'
-                                        ] },
-                                    { name: 'Phase Behaviour and Equation of State', subtopics: [
+                                            'Numerical integration and differentiation using Excel',
+                                            'Macros'
+                                        ], completed: false, subCompleted: [] }],
+                                    assignments: [{ name: 'Quiz 11', due: '2026-10-19', status: 'pending',
+                                        marks: '', weight: 2 }] },
+                                { number: 12, topics: [{ name: 'Introduction to Python',
+                                        subtopics: ['Introduction to Python',
+                                            'Using the Python Interpreter',
+                                            'Control Flow Tools in Python',
+                                            'Data Structures', 'Modules', 'Input and Output',
+                                            'Classes', 'Using Python Standard Library'
+                                        ], completed: false, subCompleted: [] }],
+                                    assignments: [{ name: 'Quiz 12', due: '2026-10-26', status: 'pending',
+                                        marks: '', weight: 2 }] }
+                            ]
+                        }, {
+                            code: 'BIA109',
+                            name: 'Chemical and Process Engineering',
+                            color: '#fdcb6e',
+                            weeks: [
+                                { number: 1, topics: [{ name: 'Chemical Reaction & Equilibrium',
+                                        subtopics: ['Evidence for a chemical reaction',
+                                            'Chemical equations',
+                                            'Reactions in which a solid forms',
+                                            'Reactions in aqueous solutions',
+                                            'Reactions of metals with non-metals',
+                                            'Chemical equilibrium'
+                                        ], completed: false, subCompleted: [] }],
+                                    assignments: [{ name: 'Quiz 1', due: '2026-08-10', status: 'pending',
+                                        marks: '', weight: 2 }] },
+                                { number: 2, topics: [{ name: 'Phase Behaviour and Equation of State',
+                                        subtopics: [
                                             'Single-Phase systems (solid, liquid, ideal gases)',
-                                            'Water and its phase changes', 'Intermolecular forces, pressure',
-                                            'Evaporation', 'Vapour pressure', 'Gas laws',
+                                            'Water and its phase changes',
+                                            'Intermolecular forces, pressure', 'Evaporation',
+                                            'Vapour pressure', 'Gas laws',
                                             'Principles of multiphase systems'
-                                        ] },
-                                    { name: 'Acids, Bases, Solutions', subtopics: ['Acids and bases',
-                                            'The pH scale', 'Buffered solutions', 'Solubility, mass percent',
-                                            'Molarity', 'Dilution', 'Fundamentals of Stoichiometry'
-                                        ] },
-                                    { name: 'Thermodynamics', subtopics: ['Thermodynamic states',
-                                            'Thermodynamic equilibrium', 'Laws of thermodynamics',
+                                        ], completed: false, subCompleted: [] }],
+                                    assignments: [{ name: 'Quiz 2', due: '2026-08-17', status: 'pending',
+                                        marks: '', weight: 2 }] },
+                                { number: 3, topics: [{ name: 'Acids, Bases, Solutions',
+                                        subtopics: ['Acids and bases', 'The pH scale',
+                                            'Buffered solutions', 'Solubility, mass percent',
+                                            'Molarity', 'Dilution',
+                                            'Fundamentals of Stoichiometry'
+                                        ], completed: false, subCompleted: [] }],
+                                    assignments: [{ name: 'Quiz 3', due: '2026-08-24', status: 'pending',
+                                        marks: '', weight: 2 }] },
+                                { number: 4, topics: [{ name: 'Thermodynamics',
+                                        subtopics: ['Thermodynamic states',
+                                            'Thermodynamic equilibrium',
+                                            'Laws of thermodynamics',
                                             'Thermodynamic properties (entropy, enthalpy)'
-                                        ] },
-                                    { name: 'Process Engineering', subtopics: ['Process engineering activities',
+                                        ], completed: false, subCompleted: [] }],
+                                    assignments: [{ name: 'Quiz 4', due: '2026-08-31', status: 'pending',
+                                        marks: '', weight: 2 }] },
+                                { number: 5, topics: [{ name: 'Process Engineering',
+                                        subtopics: ['Process engineering activities',
                                             'Front End Loading', 'Realization of a plant',
                                             'Batch and continuous processes',
                                             'Equipment used in process engineering'
-                                        ] },
-                                    { name: 'Process Documentation, Diagrams & Safety', subtopics: [
-                                            'Process and instrumentation diagrams', 'Process plant layout',
-                                            'Documentation', 'Site location and equipment spacing',
+                                        ], completed: false, subCompleted: [] }],
+                                    assignments: [{ name: 'Quiz 5', due: '2026-09-07', status: 'pending',
+                                        marks: '', weight: 2 }] },
+                                { number: 6, topics: [{ name: 'Process Documentation, Diagrams & Safety',
+                                        subtopics: ['Process and instrumentation diagrams',
+                                            'Process plant layout', 'Documentation',
+                                            'Site location and equipment spacing',
                                             'Process safety (HAZOP procedure and documentation)'
-                                        ] },
-                                    { name: 'Processes and Operations', subtopics: [
+                                        ], completed: false, subCompleted: [] }],
+                                    assignments: [{ name: 'Quiz 6', due: '2026-09-14', status: 'pending',
+                                        marks: '', weight: 2 }] },
+                                { number: 7, topics: [{ name: 'Processes and Operations',
+                                        subtopics: [
                                             'Process units: Divider, Mixer, Dryer, Filter',
                                             'Distillation column, Evaporator',
                                             'Dehumidification, Humidifier',
@@ -1180,44 +1229,58 @@
                                             'Condenser, Crystallizer, Reactors',
                                             'Batch reactor, CSTR and fluidized bed reactor',
                                             'Process Flow Diagram', 'Labelling a PFD'
-                                        ] },
-                                    { name: 'Material Balances', subtopics: ['Material balance fundamentals',
+                                        ], completed: false, subCompleted: [] }],
+                                    assignments: [{ name: 'Quiz 7', due: '2026-09-21', status: 'pending',
+                                        marks: '', weight: 2 }] },
+                                { number: 8, topics: [{ name: 'Material Balances',
+                                        subtopics: ['Material balance fundamentals',
                                             'Mass balance on steady-state processes',
                                             'Material balance on reactive systems',
                                             'Stoichiometry equation, coefficients, ratio',
-                                            'Combustion reactions', 'Multiple-unit process flowcharts'
-                                        ] },
-                                    { name: 'Energy Balances', subtopics: [
-                                            'Energy balance for closed and open systems', 'Steam turbine',
-                                            'Heaters and coolers', 'Compressors',
-                                            'Energy balance with reaction', 'Heat of reaction',
+                                            'Combustion reactions',
+                                            'Multiple-unit process flowcharts'
+                                        ], completed: false, subCompleted: [] }],
+                                    assignments: [{ name: 'Quiz 8', due: '2026-09-28', status: 'pending',
+                                        marks: '', weight: 2 }] },
+                                { number: 9, topics: [{ name: 'Energy Balances',
+                                        subtopics: [
+                                            'Energy balance for closed and open systems',
+                                            'Steam turbine', 'Heaters and coolers',
+                                            'Compressors',
+                                            'Energy balance with reaction',
+                                            'Heat of reaction',
                                             'Heats of formation and heat of combustion',
                                             'Energy balance for reactive processes',
                                             'Simultaneous material and energy balances'
-                                        ] },
-                                    { name: 'Sustainable Process Technology', subtopics: [
-                                            'Sustainable development', 'Chemicals from biomass', 'Biofuels',
-                                            'Process design issues', 'Environmental and economic challenges'
-                                        ] },
-                                    { name: 'Process Simulation in Chemical Engineering', subtopics: [
+                                        ], completed: false, subCompleted: [] }],
+                                    assignments: [{ name: 'Quiz 9', due: '2026-10-05', status: 'pending',
+                                        marks: '', weight: 2 }] },
+                                { number: 10, topics: [{ name: 'Sustainable Process Technology',
+                                        subtopics: ['Sustainable development',
+                                            'Chemicals from biomass', 'Biofuels',
+                                            'Process design issues',
+                                            'Environmental and economic challenges'
+                                        ], completed: false, subCompleted: [] }],
+                                    assignments: [{ name: 'Quiz 10', due: '2026-10-12', status: 'pending',
+                                        marks: '', weight: 2 }] },
+                                { number: 11, topics: [{ name: 'Process Simulation in Chemical Engineering',
+                                        subtopics: [
                                             'Chemical process simulators (Aspen Plus, Simulink)',
                                             'Computer-Aided Design', 'Process optimization',
                                             'Examples of simulation models'
-                                        ] },
-                                    { name: 'Unit Review', subtopics: ['Review of contents covered',
+                                        ], completed: false, subCompleted: [] }],
+                                    assignments: [{ name: 'Quiz 11', due: '2026-10-19', status: 'pending',
+                                        marks: '', weight: 2 }] },
+                                { number: 12, topics: [{ name: 'Unit Review',
+                                        subtopics: ['Review of contents covered',
                                             'Clarification of outstanding issues'
-                                        ] }
-                                ],
-                                assignments: [
-                                    { name: 'Weekly Quizzes', due: '', status: 'pending', marks: '', weight: 10 },
-                                    { name: 'Test (Invigilated)', due: '', status: 'pending', marks: '',
-                                    weight: 25 },
-                                    { name: 'Final Exam', due: '', status: 'pending', marks: '', weight: 65 }
-                                ]
-                            }
-                        ]
-                    }
-                ]
+                                        ], completed: false, subCompleted: [] }],
+                                    assignments: [{ name: 'Quiz 12', due: '2026-10-26', status: 'pending',
+                                        marks: '', weight: 2 }] }
+                            ]
+                        }]
+                    }]
+                }]
             };
         }
 
@@ -1226,280 +1289,336 @@
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         function render() {
             renderStats();
-            renderSemesters();
+            renderTree();
         }
 
         function renderStats() {
+            let totalYears = studyData.years.length;
             let totalUnits = 0,
-                totalTopics = 0,
-                doneTopics = 0;
+                totalWeeks = 0,
+                totalTopics = 0;
             let totalAssignments = 0,
                 pendingAssignments = 0;
 
-            studyData.semesters.forEach(sem => {
-                sem.units.forEach(unit => {
-                    totalUnits++;
-                    const topics = unit.topics || [];
-                    totalTopics += topics.length;
-                    const done = topics.filter(t => t.completed).length;
-                    doneTopics += done;
-                    const assignments = unit.assignments || [];
-                    totalAssignments += assignments.length;
-                    pendingAssignments += assignments.filter(a => a.status === 'pending' || a.status ===
-                        'in-progress').length;
+            studyData.years.forEach(y => {
+                y.semesters.forEach(s => {
+                    s.units.forEach(u => {
+                        totalUnits++;
+                        (u.weeks || []).forEach(w => {
+                            totalWeeks++;
+                            (w.topics || []).forEach(t => {
+                                totalTopics++;
+                            });
+                            (w.assignments || []).forEach(a => {
+                                totalAssignments++;
+                                if (a.status === 'pending' || a.status === 'in-progress')
+                                    pendingAssignments++;
+                            });
+                        });
+                    });
                 });
             });
 
-            const pct = totalTopics > 0 ? Math.round((doneTopics / totalTopics) * 100) : 0;
-
-            document.getElementById('statSemesters').textContent = studyData.semesters.length;
+            document.getElementById('statYears').textContent = totalYears;
             document.getElementById('statUnits').textContent = totalUnits;
+            document.getElementById('statWeeks').textContent = totalWeeks;
             document.getElementById('statTopics').textContent = totalTopics;
-            document.getElementById('statProgress').textContent = pct + '%';
             document.getElementById('statAssignments').textContent = totalAssignments;
             document.getElementById('statPending').textContent = pendingAssignments;
         }
 
-        function renderSemesters() {
-            const container = document.getElementById('semestersContainer');
+        function renderTree() {
+            const container = document.getElementById('treeContainer');
             container.innerHTML = '';
 
-            studyData.semesters.forEach((semester, sIdx) => {
-                const section = document.createElement('div');
-                section.className = 'semester-section';
+            studyData.years.forEach((year, yi) => {
+                const yearKey = `year_${yi}`;
+                const isOpen = expanded[yearKey] || false;
 
-                // Header
-                const header = document.createElement('div');
-                header.className = 'semester-header';
-                header.innerHTML = `
-                    <div>
-                        <div class="semester-name">${escapeHtml(semester.name)}</div>
-                        <div class="semester-meta">${semester.units.length} units</div>
+                const sec = document.createElement('div');
+                sec.className = 'level-section';
+                sec.innerHTML = `
+                    <div class="level-header" onclick="toggleExpand('${yearKey}')">
+                        <div>
+                            <div class="name">📅 ${escapeHtml(year.name)}</div>
+                            <div class="meta">${year.semesters.length} semesters</div>
+                        </div>
+                        <div class="actions">
+                            <button class="btn btn-add" onclick="event.stopPropagation();addSemester(${yi})"><i class="fa fa-plus"></i> Semester</button>
+                            <button class="btn btn-edit" onclick="event.stopPropagation();editYear(${yi})"><i class="fa fa-pencil"></i></button>
+                            <button class="btn btn-del" onclick="event.stopPropagation();deleteYear(${yi})"><i class="fa fa-trash"></i></button>
+                            <i class="fa fa-chevron-${isOpen ? 'up' : 'down'}" style="color:var(--text-secondary);"></i>
+                        </div>
                     </div>
-                    <div class="actions">
-                        <button class="btn btn-add-unit" onclick="addUnit(${sIdx})"><i class="fa fa-plus"></i> Unit</button>
-                        <button class="btn btn-del-semester" onclick="deleteSemester(${sIdx})"><i class="fa fa-trash"></i></button>
-                    </div>
+                    <div class="level-body ${isOpen ? 'open' : ''}">
                 `;
-                section.appendChild(header);
 
-                // Unit grid
-                const grid = document.createElement('div');
-                grid.className = 'unit-grid';
-                semester.units.forEach((unit, uIdx) => {
-                    const topics = unit.topics || [];
-                    const done = topics.filter(t => t.completed).length;
-                    const pct = topics.length > 0 ? Math.round((done / topics.length) * 100) : 0;
-                    const key = `${sIdx}_${uIdx}`;
-                    const isExpanded = expandedUnits[key] || false;
+                // Semesters
+                year.semesters.forEach((semester, si) => {
+                    const semKey = `semester_${yi}_${si}`;
+                    const semOpen = expanded[semKey] || false;
 
-                    const card = document.createElement('div');
-                    card.className = 'unit-card';
-                    card.innerHTML = `
-                        <div class="unit-code">${escapeHtml(unit.code || '')}</div>
-                        <div class="unit-name">${escapeHtml(unit.name || 'Untitled Unit')}</div>
-                        <div class="progress-track"><div class="fill" style="width:${pct}%"></div></div>
-                        <div class="unit-meta">
-                            <span>${done}/${topics.length} topics</span>
-                            <span>${pct}%</span>
+                    const semDiv = document.createElement('div');
+                    semDiv.className = 'level-section';
+                    semDiv.style.marginBottom = '12px';
+                    semDiv.innerHTML = `
+                        <div class="level-header" onclick="toggleExpand('${semKey}')">
+                            <div>
+                                <div class="name">📘 ${escapeHtml(semester.name)}</div>
+                                <div class="meta">${semester.units.length} units</div>
+                            </div>
+                            <div class="actions">
+                                <button class="btn btn-add" onclick="event.stopPropagation();addUnit(${yi}, ${si})"><i class="fa fa-plus"></i> Unit</button>
+                                <button class="btn btn-edit" onclick="event.stopPropagation();editSemester(${yi}, ${si})"><i class="fa fa-pencil"></i></button>
+                                <button class="btn btn-del" onclick="event.stopPropagation();deleteSemester(${yi}, ${si})"><i class="fa fa-trash"></i></button>
+                                <i class="fa fa-chevron-${semOpen ? 'up' : 'down'}" style="color:var(--text-secondary);"></i>
+                            </div>
                         </div>
-                        <div class="unit-actions">
-                            <button class="btn btn-edit-unit" onclick="editUnit(${sIdx}, ${uIdx})"><i class="fa fa-pencil"></i></button>
-                            <button class="btn btn-del-unit" onclick="deleteUnit(${sIdx}, ${uIdx})"><i class="fa fa-trash"></i></button>
-                            <button class="btn btn-outline-light" onclick="toggleUnitDetail(${sIdx}, ${uIdx})" style="border:1px solid var(--border-subtle);font-size:0.65rem;padding:2px 10px;">
-                                ${isExpanded ? 'Hide' : 'Expand'}
-                            </button>
-                        </div>
+                        <div class="level-body ${semOpen ? 'open' : ''}">
                     `;
-                    grid.appendChild(card);
 
-                    // Detail (expanded)
-                    const detail = document.createElement('div');
-                    detail.className = `unit-detail ${isExpanded ? 'open' : ''}`;
-                    detail.id = `detail_${sIdx}_${uIdx}`;
-                    detail.innerHTML = buildUnitDetail(sIdx, uIdx);
-                    grid.appendChild(detail);
-                });
-                section.appendChild(grid);
-                container.appendChild(section);
-            });
-        }
+                    // Units
+                    semester.units.forEach((unit, ui) => {
+                        const unitKey = `unit_${yi}_${si}_${ui}`;
+                        const unitOpen = expanded[unitKey] || false;
+                        const weeks = unit.weeks || [];
+                        const totalWeeks = weeks.length;
+                        const doneWeeks = weeks.filter(w => {
+                            const topics = w.topics || [];
+                            return topics.every(t => t.completed);
+                        }).length;
+                        const pct = totalWeeks > 0 ? Math.round((doneWeeks / totalWeeks) * 100) : 0;
 
-        function buildUnitDetail(sIdx, uIdx) {
-            const semester = studyData.semesters[sIdx];
-            if (!semester) return '';
-            const unit = semester.units[uIdx];
-            if (!unit) return '';
-
-            const topics = unit.topics || [];
-            const assignments = unit.assignments || [];
-
-            let html = `
-                <div class="detail-header">
-                    <div class="left">
-                        <div class="code">${escapeHtml(unit.code || '')} · ${escapeHtml(unit.name || '')}</div>
-                    </div>
-                    <div class="right">
-                        <button class="btn btn-add-topic" onclick="addTopic(${sIdx}, ${uIdx})"><i class="fa fa-plus"></i> Topic</button>
-                    </div>
-                </div>
-            `;
-
-            // Topics
-            topics.forEach((topic, tIdx) => {
-                const subTopics = topic.subtopics || [];
-                const subDone = (topic.subCompleted || []).filter(Boolean).length;
-                const allDone = subDone === subTopics.length && subTopics.length > 0;
-                const completed = topic.completed || false;
-
-                html += `
-                    <div class="topic-group">
-                        <div class="topic-header" onclick="toggleTopic(${sIdx}, ${uIdx}, ${tIdx})">
-                            <div class="checkbox-custom ${completed ? 'checked' : ''}" id="topicCheck_${sIdx}_${uIdx}_${tIdx}">
-                                <i class="fa fa-check"></i>
+                        const unitCard = document.createElement('div');
+                        unitCard.className = 'level-section';
+                        unitCard.style.marginBottom = '12px';
+                        unitCard.style.borderColor = unit.color ? `rgba(0,0,0,0.2)` : '';
+                        unitCard.style.borderLeft = unit.color ? `4px solid ${unit.color}` : '';
+                        unitCard.innerHTML = `
+                            <div class="level-header" onclick="toggleExpand('${unitKey}')">
+                                <div>
+                                    <div class="name">${escapeHtml(unit.code)} – ${escapeHtml(unit.name)}</div>
+                                    <div class="meta">${doneWeeks}/${totalWeeks} weeks · ${pct}%</div>
+                                </div>
+                                <div class="actions">
+                                    <button class="btn btn-add" onclick="event.stopPropagation();addWeek(${yi}, ${si}, ${ui})"><i class="fa fa-plus"></i> Week</button>
+                                    <button class="btn btn-edit" onclick="event.stopPropagation();editUnit(${yi}, ${si}, ${ui})"><i class="fa fa-pencil"></i></button>
+                                    <button class="btn btn-del" onclick="event.stopPropagation();deleteUnit(${yi}, ${si}, ${ui})"><i class="fa fa-trash"></i></button>
+                                    <i class="fa fa-chevron-${unitOpen ? 'up' : 'down'}" style="color:var(--text-secondary);"></i>
+                                </div>
                             </div>
-                            <div class="topic-name">${escapeHtml(topic.name || 'Untitled Topic')}</div>
-                            <div class="topic-meta">${subDone}/${subTopics.length}</div>
-                            <div class="topic-actions">
-                                <button class="btn" onclick="event.stopPropagation();editTopic(${sIdx}, ${uIdx}, ${tIdx})"><i class="fa fa-pencil"></i></button>
-                                <button class="btn btn-del-topic" onclick="event.stopPropagation();deleteTopic(${sIdx}, ${uIdx}, ${tIdx})"><i class="fa fa-trash"></i></button>
-                            </div>
-                        </div>
-                        <div class="subtopic-list ${completed ? 'open' : ''}">
-                            ${subTopics.map((sub, si) => {
-                                const checked = (topic.subCompleted && topic.subCompleted[si]) || false;
-                                return `
-                                    <div class="subtopic-item">
-                                        <div class="sub-check ${checked ? 'checked' : ''}" onclick="toggleSubtopic(${sIdx}, ${uIdx}, ${tIdx}, ${si})">
+                            <div class="level-body ${unitOpen ? 'open' : ''}">
+                        `;
+
+                        // Weeks
+                        weeks.forEach((week, wi) => {
+                            const weekKey = `week_${yi}_${si}_${ui}_${wi}`;
+                            const weekOpen = expanded[weekKey] || false;
+                            const topics = week.topics || [];
+                            const doneTopics = topics.filter(t => t.completed).length;
+                            const pctWeek = topics.length > 0 ? Math.round((doneTopics / topics.length) * 100) :
+                            0;
+
+                            const weekDiv = document.createElement('div');
+                            weekDiv.className = 'level-section';
+                            weekDiv.style.marginBottom = '8px';
+                            weekDiv.style.borderColor = 'var(--border-subtle)';
+                            weekDiv.innerHTML = `
+                                <div class="level-header" onclick="toggleExpand('${weekKey}')" style="padding:8px 14px;">
+                                    <div>
+                                        <div class="name">📌 Week ${week.number}</div>
+                                        <div class="meta">${doneTopics}/${topics.length} topics · ${pctWeek}%</div>
+                                    </div>
+                                    <div class="actions">
+                                        <button class="btn btn-add" onclick="event.stopPropagation();addTopic(${yi}, ${si}, ${ui}, ${wi})"><i class="fa fa-plus"></i> Topic</button>
+                                        <button class="btn btn-add" onclick="event.stopPropagation();addAssignment(${yi}, ${si}, ${ui}, ${wi})"><i class="fa fa-plus"></i> Assignment</button>
+                                        <button class="btn btn-edit" onclick="event.stopPropagation();editWeek(${yi}, ${si}, ${ui}, ${wi})"><i class="fa fa-pencil"></i></button>
+                                        <button class="btn btn-del" onclick="event.stopPropagation();deleteWeek(${yi}, ${si}, ${ui}, ${wi})"><i class="fa fa-trash"></i></button>
+                                        <i class="fa fa-chevron-${weekOpen ? 'up' : 'down'}" style="color:var(--text-secondary);"></i>
+                                    </div>
+                                </div>
+                                <div class="level-body ${weekOpen ? 'open' : ''}">
+                            `;
+
+                            // Topics
+                            topics.forEach((topic, ti) => {
+                                const subTopics = topic.subtopics || [];
+                                const subDone = (topic.subCompleted || []).filter(Boolean).length;
+                                const allDone = subDone === subTopics.length && subTopics.length > 0;
+                                const checked = topic.completed || false;
+
+                                const tDiv = document.createElement('div');
+                                tDiv.className = 'topic-item';
+                                tDiv.innerHTML = `
+                                    <div class="topic-header">
+                                        <div class="check ${checked ? 'checked' : ''}" onclick="toggleTopic(${yi}, ${si}, ${ui}, ${wi}, ${ti})">
                                             <i class="fa fa-check"></i>
                                         </div>
-                                        <div class="sub-label ${checked ? 'done' : ''}">${escapeHtml(sub)}</div>
-                                        <div class="sub-actions">
-                                            <button class="btn" onclick="deleteSubtopic(${sIdx}, ${uIdx}, ${tIdx}, ${si})"><i class="fa fa-times"></i></button>
+                                        <div class="name">${escapeHtml(topic.name)}</div>
+                                        <div class="meta">${subDone}/${subTopics.length}</div>
+                                        <div class="actions">
+                                            <button class="btn" onclick="event.stopPropagation();addSubtopic(${yi}, ${si}, ${ui}, ${wi}, ${ti})"><i class="fa fa-plus"></i></button>
+                                            <button class="btn" onclick="event.stopPropagation();editTopic(${yi}, ${si}, ${ui}, ${wi}, ${ti})"><i class="fa fa-pencil"></i></button>
+                                            <button class="btn btn-del" onclick="event.stopPropagation();deleteTopic(${yi}, ${si}, ${ui}, ${wi}, ${ti})"><i class="fa fa-trash"></i></button>
                                         </div>
                                     </div>
+                                    <div class="subtopic-list ${checked ? 'open' : ''}">
+                                        ${subTopics.map((sub, si2) => {
+                                            const subChecked = (topic.subCompleted && topic.subCompleted[si2]) || false;
+                                            return `
+                                                <div class="subtopic-item">
+                                                    <div class="sub-check ${subChecked ? 'checked' : ''}" onclick="toggleSubtopic(${yi}, ${si}, ${ui}, ${wi}, ${ti}, ${si2})">
+                                                        <i class="fa fa-check"></i>
+                                                    </div>
+                                                    <div class="sub-label ${subChecked ? 'done' : ''}">${escapeHtml(sub)}</div>
+                                                    <div class="sub-actions">
+                                                        <button class="btn" onclick="deleteSubtopic(${yi}, ${si}, ${ui}, ${wi}, ${ti}, ${si2})"><i class="fa fa-times"></i></button>
+                                                    </div>
+                                                </div>
+                                            `;
+                                        }).join('')}
+                                    </div>
                                 `;
-                            }).join('')}
-                            <div style="margin-top:6px;">
-                                <button class="btn btn-add-ass" onclick="addSubtopic(${sIdx}, ${uIdx}, ${tIdx})" style="font-size:0.7rem;padding:2px 12px;">
-                                    <i class="fa fa-plus"></i> Add Subtopic
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            });
+                                weekDiv.querySelector('.level-body').appendChild(tDiv);
+                            });
 
-            // Assignments
-            html += `
-                <div class="assignments-section">
-                    <div class="section-title">
-                        <i class="fa fa-tasks"></i> Assignments
-                        <button class="btn btn-add-ass" onclick="addAssignment(${sIdx}, ${uIdx})" style="margin-left:auto;">
-                            <i class="fa fa-plus"></i> Add
-                        </button>
-                    </div>
-            `;
+                            // Assignments for this week
+                            const assignments = week.assignments || [];
+                            if (assignments.length) {
+                                const assSection = document.createElement('div');
+                                assSection.className = 'assignments-section';
+                                assSection.innerHTML = `
+                                    <div class="section-title"><i class="fa fa-tasks"></i> Assignments</div>
+                                    ${assignments.map((a, ai) => {
+                                        const statusClass = a.status === 'pending' ? 'pending' :
+                                            a.status === 'in-progress' ? 'in-progress' : 'submitted';
+                                        const statusLabel = a.status === 'pending' ? 'Pending' :
+                                            a.status === 'in-progress' ? 'In Progress' : '✅ Submitted';
+                                        return `
+                                            <div class="assignment-item">
+                                                <div class="ass-name">${escapeHtml(a.name)}</div>
+                                                <div class="ass-due">${a.due || 'No due date'}</div>
+                                                <div class="ass-status ${statusClass}">${statusLabel}</div>
+                                                <div class="ass-marks">${a.marks || '—'}</div>
+                                                <div class="ass-actions">
+                                                    <button class="btn btn-edit-ass" onclick="editAssignment(${yi}, ${si}, ${ui}, ${wi}, ${ai})"><i class="fa fa-pencil"></i></button>
+                                                    <button class="btn btn-del-ass" onclick="deleteAssignment(${yi}, ${si}, ${ui}, ${wi}, ${ai})"><i class="fa fa-trash"></i></button>
+                                                </div>
+                                            </div>
+                                        `;
+                                    }).join('')}
+                                `;
+                                weekDiv.querySelector('.level-body').appendChild(assSection);
+                            }
 
-            if (assignments.length) {
-                assignments.forEach((ass, aIdx) => {
-                    const statusClass = ass.status === 'pending' ? 'pending' :
-                        ass.status === 'in-progress' ? 'in-progress' : 'submitted';
-                    const statusLabel = ass.status === 'pending' ? 'Pending' :
-                        ass.status === 'in-progress' ? 'In Progress' : '✅ Submitted';
-                    const marksDisplay = ass.marks ? ass.marks : '—';
-                    html += `
-                        <div class="assignment-item">
-                            <div class="ass-name">${escapeHtml(ass.name)}</div>
-                            <div class="ass-due">${ass.due || 'No due date'}</div>
-                            <div class="ass-status ${statusClass}">${statusLabel}</div>
-                            <div class="ass-marks">${marksDisplay}</div>
-                            <div class="ass-actions">
-                                <button class="btn btn-edit-ass" onclick="editAssignment(${sIdx}, ${uIdx}, ${aIdx})"><i class="fa fa-pencil"></i></button>
-                                <button class="btn btn-del-ass" onclick="deleteAssignment(${sIdx}, ${uIdx}, ${aIdx})"><i class="fa fa-trash"></i></button>
-                            </div>
-                        </div>
-                    `;
+                            weekDiv.querySelector('.level-body').innerHTML += `</div>`;
+                            weekDiv.querySelector('.level-body').innerHTML += `</div>`;
+                            weekDiv.innerHTML += `</div>`; // close week body
+
+                            unitCard.querySelector('.level-body').appendChild(weekDiv);
+                        });
+
+                        unitCard.querySelector('.level-body').innerHTML += `</div>`;
+                        unitCard.innerHTML += `</div>`;
+                        semDiv.querySelector('.level-body').appendChild(unitCard);
+                    });
+
+                    semDiv.querySelector('.level-body').innerHTML += `</div>`;
+                    semDiv.innerHTML += `</div>`;
+                    sec.querySelector('.level-body').appendChild(semDiv);
                 });
-            } else {
-                html += `<div class="text-muted-light" style="font-size:0.85rem;padding:8px 0;">No assignments added yet.</div>`;
-            }
 
-            html += `</div>`;
-            return html;
+                sec.querySelector('.level-body').innerHTML += `</div>`;
+                sec.innerHTML += `</div>`;
+                container.appendChild(sec);
+            });
         }
 
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        //  ACTIONS
+        //  EXPAND / COLLAPSE
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        window.toggleUnitDetail = function(sIdx, uIdx) {
-            const key = `${sIdx}_${uIdx}`;
-            expandedUnits[key] = !expandedUnits[key];
+        window.toggleExpand = function(key) {
+            expanded[key] = !expanded[key];
             render();
         };
 
-        window.toggleTopic = function(sIdx, uIdx, tIdx) {
-            const semester = studyData.semesters[sIdx];
-            if (!semester) return;
-            const unit = semester.units[uIdx];
-            if (!unit) return;
-            const topic = unit.topics[tIdx];
-            if (!topic) return;
-
-            const newState = !topic.completed;
-            topic.completed = newState;
-            if (topic.subtopics && topic.subtopics.length) {
-                topic.subCompleted = topic.subtopics.map(() => newState);
-            }
-            saveStudyData().then(() => {
-                render();
-                showToast(`${newState ? '✅' : '↩️'} ${topic.name}`, 'info');
-            });
-        };
-
-        window.toggleSubtopic = function(sIdx, uIdx, tIdx, si) {
-            const semester = studyData.semesters[sIdx];
-            if (!semester) return;
-            const unit = semester.units[uIdx];
-            if (!unit) return;
-            const topic = unit.topics[tIdx];
-            if (!topic) return;
-
-            if (!topic.subCompleted) topic.subCompleted = topic.subtopics.map(() => false);
-            topic.subCompleted[si] = !topic.subCompleted[si];
-            // Update topic completion
-            const allDone = topic.subCompleted.every(Boolean);
-            topic.completed = allDone;
-
-            saveStudyData().then(() => {
-                render();
-                showToast(`${topic.subCompleted[si] ? '✅' : '↩️'} Subtopic`, 'info');
-            });
-        };
-
-        // ─── Semester CRUD ───
-        window.addSemester = function() {
-            openModal('Add Semester', `
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //  CRUD OPERATIONS (with modals)
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        // Years
+        window.addYear = function() {
+            openModal('Add Year', `
                 <div class="form-group">
-                    <label>Semester Name</label>
-                    <input type="text" id="semesterName" placeholder="e.g. 2027 Semester 1" />
+                    <label>Year Name (e.g. 2026)</label>
+                    <input type="text" id="yearName" placeholder="2026" />
                 </div>
             `, () => {
-                const name = document.getElementById('semesterName').value.trim();
-                if (!name) { showToast('Please enter a name.', 'error'); return false; }
-                studyData.semesters.push({ name: name, units: [] });
+                const name = document.getElementById('yearName').value.trim();
+                if (!name) { showToast('Please enter a year name.', 'error'); return false; }
+                studyData.years.push({ name, semesters: [] });
                 return true;
             });
         };
 
-        window.deleteSemester = function(sIdx) {
-            if (!confirm(`Delete semester "${studyData.semesters[sIdx].name}" and all its units?`)) return;
-            studyData.semesters.splice(sIdx, 1);
+        window.editYear = function(yi) {
+            const year = studyData.years[yi];
+            openModal('Edit Year', `
+                <div class="form-group">
+                    <label>Year Name</label>
+                    <input type="text" id="yearName" value="${escapeHtml(year.name)}" />
+                </div>
+            `, () => {
+                const name = document.getElementById('yearName').value.trim();
+                if (!name) { showToast('Please enter a year name.', 'error'); return false; }
+                year.name = name;
+                return true;
+            });
+        };
+
+        window.deleteYear = function(yi) {
+            if (!confirm('Delete this year and all its semesters, units, weeks, topics, and assignments?')) return;
+            studyData.years.splice(yi, 1);
             saveStudyData().then(render);
         };
 
-        // ─── Unit CRUD ───
-        window.addUnit = function(sIdx) {
+        // Semesters
+        window.addSemester = function(yi) {
+            openModal('Add Semester', `
+                <div class="form-group">
+                    <label>Semester Name (e.g. Semester 2)</label>
+                    <input type="text" id="semesterName" placeholder="Semester 2" />
+                </div>
+            `, () => {
+                const name = document.getElementById('semesterName').value.trim();
+                if (!name) { showToast('Please enter a semester name.', 'error'); return false; }
+                studyData.years[yi].semesters.push({ name, units: [] });
+                return true;
+            });
+        };
+
+        window.editSemester = function(yi, si) {
+            const sem = studyData.years[yi].semesters[si];
+            openModal('Edit Semester', `
+                <div class="form-group">
+                    <label>Semester Name</label>
+                    <input type="text" id="semesterName" value="${escapeHtml(sem.name)}" />
+                </div>
+            `, () => {
+                const name = document.getElementById('semesterName').value.trim();
+                if (!name) { showToast('Please enter a semester name.', 'error'); return false; }
+                sem.name = name;
+                return true;
+            });
+        };
+
+        window.deleteSemester = function(yi, si) {
+            if (!confirm('Delete this semester and all its units?')) return;
+            studyData.years[yi].semesters.splice(si, 1);
+            saveStudyData().then(render);
+        };
+
+        // Units
+        window.addUnit = function(yi, si) {
             openModal('Add Unit', `
                 <div class="form-group">
                     <label>Unit Code (e.g. BSC106)</label>
@@ -1510,40 +1629,33 @@
                     <input type="text" id="unitName" placeholder="Engineering Mathematics 2" />
                 </div>
                 <div class="form-group">
-                    <label>Color (hex code, optional)</label>
-                    <input type="text" id="unitColor" placeholder="#2fc7ff" value="#2fc7ff" />
+                    <label>Color (hex, optional)</label>
+                    <input type="text" id="unitColor" value="#2fc7ff" />
                 </div>
             `, () => {
                 const code = document.getElementById('unitCode').value.trim();
                 const name = document.getElementById('unitName').value.trim();
                 const color = document.getElementById('unitColor').value.trim() || '#2fc7ff';
                 if (!name) { showToast('Please enter a unit name.', 'error'); return false; }
-                studyData.semesters[sIdx].units.push({
-                    code: code,
-                    name: name,
-                    color: color,
-                    topics: [],
-                    assignments: []
-                });
+                studyData.years[yi].semesters[si].units.push({ code, name, color, weeks: [] });
                 return true;
             });
         };
 
-        window.editUnit = function(sIdx, uIdx) {
-            const unit = studyData.semesters[sIdx].units[uIdx];
-            if (!unit) return;
+        window.editUnit = function(yi, si, ui) {
+            const unit = studyData.years[yi].semesters[si].units[ui];
             openModal('Edit Unit', `
                 <div class="form-group">
                     <label>Unit Code</label>
-                    <input type="text" id="unitCode" value="${escapeHtml(unit.code || '')}" />
+                    <input type="text" id="unitCode" value="${escapeHtml(unit.code)}" />
                 </div>
                 <div class="form-group">
                     <label>Unit Name</label>
-                    <input type="text" id="unitName" value="${escapeHtml(unit.name || '')}" />
+                    <input type="text" id="unitName" value="${escapeHtml(unit.name)}" />
                 </div>
                 <div class="form-group">
                     <label>Color</label>
-                    <input type="text" id="unitColor" value="${escapeHtml(unit.color || '#2fc7ff')}" />
+                    <input type="text" id="unitColor" value="${escapeHtml(unit.color)}" />
                 </div>
             `, () => {
                 const code = document.getElementById('unitCode').value.trim();
@@ -1557,14 +1669,51 @@
             });
         };
 
-        window.deleteUnit = function(sIdx, uIdx) {
-            if (!confirm('Delete this unit and all its topics and assignments?')) return;
-            studyData.semesters[sIdx].units.splice(uIdx, 1);
+        window.deleteUnit = function(yi, si, ui) {
+            if (!confirm('Delete this unit and all its weeks, topics, and assignments?')) return;
+            studyData.years[yi].semesters[si].units.splice(ui, 1);
             saveStudyData().then(render);
         };
 
-        // ─── Topic CRUD ───
-        window.addTopic = function(sIdx, uIdx) {
+        // Weeks
+        window.addWeek = function(yi, si, ui) {
+            openModal('Add Week', `
+                <div class="form-group">
+                    <label>Week Number</label>
+                    <input type="number" id="weekNumber" min="1" step="1" value="1" />
+                </div>
+            `, () => {
+                const number = parseInt(document.getElementById('weekNumber').value);
+                if (!number || number < 1) { showToast('Please enter a valid week number.', 'error'); return false; }
+                const unit = studyData.years[yi].semesters[si].units[ui];
+                unit.weeks.push({ number, topics: [], assignments: [] });
+                return true;
+            });
+        };
+
+        window.editWeek = function(yi, si, ui, wi) {
+            const week = studyData.years[yi].semesters[si].units[ui].weeks[wi];
+            openModal('Edit Week', `
+                <div class="form-group">
+                    <label>Week Number</label>
+                    <input type="number" id="weekNumber" value="${week.number}" min="1" step="1" />
+                </div>
+            `, () => {
+                const number = parseInt(document.getElementById('weekNumber').value);
+                if (!number || number < 1) { showToast('Please enter a valid week number.', 'error'); return false; }
+                week.number = number;
+                return true;
+            });
+        };
+
+        window.deleteWeek = function(yi, si, ui, wi) {
+            if (!confirm('Delete this week and all its topics and assignments?')) return;
+            studyData.years[yi].semesters[si].units[ui].weeks.splice(wi, 1);
+            saveStudyData().then(render);
+        };
+
+        // Topics
+        window.addTopic = function(yi, si, ui, wi) {
             openModal('Add Topic', `
                 <div class="form-group">
                     <label>Topic Name</label>
@@ -1573,15 +1722,14 @@
             `, () => {
                 const name = document.getElementById('topicName').value.trim();
                 if (!name) { showToast('Please enter a topic name.', 'error'); return false; }
-                const unit = studyData.semesters[sIdx].units[uIdx];
-                unit.topics.push({ name: name, subtopics: [], completed: false, subCompleted: [] });
+                const week = studyData.years[yi].semesters[si].units[ui].weeks[wi];
+                week.topics.push({ name, subtopics: [], completed: false, subCompleted: [] });
                 return true;
             });
         };
 
-        window.editTopic = function(sIdx, uIdx, tIdx) {
-            const topic = studyData.semesters[sIdx].units[uIdx].topics[tIdx];
-            if (!topic) return;
+        window.editTopic = function(yi, si, ui, wi, ti) {
+            const topic = studyData.years[yi].semesters[si].units[ui].weeks[wi].topics[ti];
             openModal('Edit Topic', `
                 <div class="form-group">
                     <label>Topic Name</label>
@@ -1595,14 +1743,15 @@
             });
         };
 
-        window.deleteTopic = function(sIdx, uIdx, tIdx) {
+        window.deleteTopic = function(yi, si, ui, wi, ti) {
             if (!confirm('Delete this topic and all its subtopics?')) return;
-            studyData.semesters[sIdx].units[uIdx].topics.splice(tIdx, 1);
+            const week = studyData.years[yi].semesters[si].units[ui].weeks[wi];
+            week.topics.splice(ti, 1);
             saveStudyData().then(render);
         };
 
-        // ─── Subtopic CRUD ───
-        window.addSubtopic = function(sIdx, uIdx, tIdx) {
+        // Subtopics
+        window.addSubtopic = function(yi, si, ui, wi, ti) {
             openModal('Add Subtopic', `
                 <div class="form-group">
                     <label>Subtopic Name</label>
@@ -1611,34 +1760,53 @@
             `, () => {
                 const name = document.getElementById('subtopicName').value.trim();
                 if (!name) { showToast('Please enter a subtopic name.', 'error'); return false; }
-                const topic = studyData.semesters[sIdx].units[uIdx].topics[tIdx];
+                const topic = studyData.years[yi].semesters[si].units[ui].weeks[wi].topics[ti];
                 if (!topic.subtopics) topic.subtopics = [];
                 topic.subtopics.push(name);
-                if (!topic.subCompleted) topic.subCompleted = topic.subtopics.map(() => false);
-                else topic.subCompleted.push(false);
-                // Update completion status
+                if (!topic.subCompleted) topic.subCompleted = [];
+                topic.subCompleted.push(false);
+                // Auto-update topic completion
                 const allDone = topic.subCompleted.every(Boolean);
                 topic.completed = allDone;
                 return true;
             });
         };
 
-        window.deleteSubtopic = function(sIdx, uIdx, tIdx, si) {
+        window.deleteSubtopic = function(yi, si, ui, wi, ti, si2) {
             if (!confirm('Delete this subtopic?')) return;
-            const topic = studyData.semesters[sIdx].units[uIdx].topics[tIdx];
-            topic.subtopics.splice(si, 1);
-            topic.subCompleted.splice(si, 1);
+            const topic = studyData.years[yi].semesters[si].units[ui].weeks[wi].topics[ti];
+            topic.subtopics.splice(si2, 1);
+            topic.subCompleted.splice(si2, 1);
             const allDone = topic.subCompleted.every(Boolean);
             topic.completed = allDone;
             saveStudyData().then(render);
         };
 
-        // ─── Assignment CRUD ───
-        window.addAssignment = function(sIdx, uIdx) {
+        window.toggleTopic = function(yi, si, ui, wi, ti) {
+            const topic = studyData.years[yi].semesters[si].units[ui].weeks[wi].topics[ti];
+            topic.completed = !topic.completed;
+            if (topic.subtopics && topic.subtopics.length) {
+                topic.subCompleted = topic.subtopics.map(() => topic.completed);
+            }
+            saveStudyData().then(render);
+        };
+
+        window.toggleSubtopic = function(yi, si, ui, wi, ti, si2) {
+            const topic = studyData.years[yi].semesters[si].units[ui].weeks[wi].topics[ti];
+            if (!topic.subCompleted) topic.subCompleted = topic.subtopics.map(() => false);
+            topic.subCompleted[si2] = !topic.subCompleted[si2];
+            // Update topic completion
+            const allDone = topic.subCompleted.every(Boolean);
+            topic.completed = allDone;
+            saveStudyData().then(render);
+        };
+
+        // Assignments
+        window.addAssignment = function(yi, si, ui, wi) {
             openModal('Add Assignment', `
                 <div class="form-group">
                     <label>Assignment Name</label>
-                    <input type="text" id="assName" placeholder="e.g. Weekly Quiz" />
+                    <input type="text" id="assName" placeholder="e.g. Quiz 1" />
                 </div>
                 <div class="form-group">
                     <label>Due Date</label>
@@ -1658,7 +1826,7 @@
                 </div>
                 <div class="form-group">
                     <label>Weighting (%)</label>
-                    <input type="number" id="assWeight" placeholder="e.g. 25" min="0" max="100" />
+                    <input type="number" id="assWeight" placeholder="e.g. 5" min="0" max="100" />
                 </div>
             `, () => {
                 const name = document.getElementById('assName').value.trim();
@@ -1667,16 +1835,15 @@
                 const marks = document.getElementById('assMarks').value.trim();
                 const weight = parseFloat(document.getElementById('assWeight').value) || 0;
                 if (!name) { showToast('Please enter an assignment name.', 'error'); return false; }
-                const unit = studyData.semesters[sIdx].units[uIdx];
-                if (!unit.assignments) unit.assignments = [];
-                unit.assignments.push({ name, due, status, marks, weight });
+                const week = studyData.years[yi].semesters[si].units[ui].weeks[wi];
+                if (!week.assignments) week.assignments = [];
+                week.assignments.push({ name, due, status, marks, weight });
                 return true;
             });
         };
 
-        window.editAssignment = function(sIdx, uIdx, aIdx) {
-            const ass = studyData.semesters[sIdx].units[uIdx].assignments[aIdx];
-            if (!ass) return;
+        window.editAssignment = function(yi, si, ui, wi, ai) {
+            const ass = studyData.years[yi].semesters[si].units[ui].weeks[wi].assignments[ai];
             openModal('Edit Assignment', `
                 <div class="form-group">
                     <label>Assignment Name</label>
@@ -1696,7 +1863,7 @@
                 </div>
                 <div class="form-group">
                     <label>Marks</label>
-                    <input type="text" id="assMarks" value="${escapeHtml(ass.marks || '')}" placeholder="e.g. 85% or 42/50" />
+                    <input type="text" id="assMarks" value="${escapeHtml(ass.marks || '')}" />
                 </div>
                 <div class="form-group">
                     <label>Weighting (%)</label>
@@ -1718,9 +1885,10 @@
             });
         };
 
-        window.deleteAssignment = function(sIdx, uIdx, aIdx) {
+        window.deleteAssignment = function(yi, si, ui, wi, ai) {
             if (!confirm('Delete this assignment?')) return;
-            studyData.semesters[sIdx].units[uIdx].assignments.splice(aIdx, 1);
+            const week = studyData.years[yi].semesters[si].units[ui].weeks[wi];
+            week.assignments.splice(ai, 1);
             saveStudyData().then(render);
         };
 
@@ -1776,7 +1944,6 @@
             showToast('🔄 Syncing...', 'info');
             const loaded = await loadStudyData();
             if (!loaded) {
-                // If no data, initialize with default
                 studyData = getDefaultData();
                 await saveStudyData();
             }
@@ -1785,17 +1952,17 @@
         });
 
         document.getElementById('resetBtn').addEventListener('click', () => {
-            if (!confirm('⚠️ Reset ALL data? This will restore default semesters and units. Any custom data will be lost.'))
+            if (!confirm('⚠️ Reset ALL data? This will restore the default study plan. Any custom data will be lost.'))
                 return;
             studyData = getDefaultData();
-            expandedUnits = {};
+            expanded = {};
             saveStudyData().then(() => {
                 render();
                 showToast('🔄 Reset to default', 'info');
             });
         });
 
-        document.getElementById('addSemesterBtn').addEventListener('click', window.addSemester);
+        document.getElementById('addYearBtn').addEventListener('click', window.addYear);
 
         // ─── FOOTER ───
         function updateFooter() {
