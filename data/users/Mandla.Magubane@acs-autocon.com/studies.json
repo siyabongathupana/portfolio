@@ -21,10 +21,13 @@
                         "Partial derivatives and Total differential",
                         "Chain Rules for Differentiation",
                         "Partial Derivatives of Higher Orders",
-                        "Differentiation of Implicit Functions"
+                        "Differentiation of Implicit Functions",
+                        "Functions of Several Variables"
                       ],
                       "completed": false,
-                      "subCompleted": []
+                      "subCompleted": [
+                        false
+                      ]
                     }
                   ],
                   "assignments": [
