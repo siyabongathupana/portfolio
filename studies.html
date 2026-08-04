@@ -945,7 +945,9 @@
                                     tDiv.className = 'topic-item';
                                     tDiv.innerHTML = `
                                         <div class="topic-header" onclick="toggleTopicExpand('${topicKey}')">
-                                            <div class="check ${checked ? 'checked' : ''}" onclick="event.stopPropagation();toggleTopicComplete(${yi}, ${si}, ${ui}, ${wi}, ${ti})">
+                                            <div class="check ${checked ? 'checked' : ''}" 
+                                                 data-yi="${yi}" data-si="${si}" data-ui="${ui}" data-wi="${wi}" data-ti="${ti}"
+                                                 onclick="event.stopPropagation();toggleTopicComplete(${yi}, ${si}, ${ui}, ${wi}, ${ti})">
                                                 <i class="fa fa-check"></i>
                                             </div>
                                             <div class="name">${escapeHtml(topic.name)}</div>
@@ -962,7 +964,9 @@
                                                 const subChecked = (topic.subCompleted && topic.subCompleted[si2]) || false;
                                                 return `
                                                     <div class="subtopic-item">
-                                                        <div class="sub-check ${subChecked ? 'checked' : ''}" onclick="toggleSubtopic(${yi}, ${si}, ${ui}, ${wi}, ${ti}, ${si2})">
+                                                        <div class="sub-check ${subChecked ? 'checked' : ''}" 
+                                                             data-yi="${yi}" data-si="${si}" data-ui="${ui}" data-wi="${wi}" data-ti="${ti}" data-si2="${si2}"
+                                                             onclick="toggleSubtopic(${yi}, ${si}, ${ui}, ${wi}, ${ti}, ${si2})">
                                                             <i class="fa fa-check"></i>
                                                         </div>
                                                         <div class="sub-label ${subChecked ? 'done' : ''}">${escapeHtml(sub)}</div>
@@ -1033,7 +1037,74 @@
                 });
             }
 
-            // ─── GRADE CALCULATOR ───
+            // ─── INSTANT CHECKBOX TOGGLES (direct DOM update) ───
+            function toggleTopicComplete(yi, si, ui, wi, ti) {
+                const topic = getTopic(yi, si, ui, wi, ti);
+                if (!topic) return;
+                topic.completed = !topic.completed;
+                // Update all subtopics to match
+                if (topic.subtopics && topic.subtopics.length) {
+                    topic.subCompleted = topic.subtopics.map(() => topic.completed);
+                }
+                // Update DOM checkbox for topic
+                const topicCheck = document.querySelector(
+                    `.topic-header .check[data-yi="${yi}"][data-si="${si}"][data-ui="${ui}"][data-wi="${wi}"][data-ti="${ti}"]`
+                );
+                if (topicCheck) {
+                    topicCheck.classList.toggle('checked', topic.completed);
+                }
+                // Update subtopic checkboxes
+                const subChecks = document.querySelectorAll(
+                    `.sub-check[data-yi="${yi}"][data-si="${si}"][data-ui="${ui}"][data-wi="${wi}"][data-ti="${ti}"]`
+                );
+                subChecks.forEach(el => {
+                    el.classList.toggle('checked', topic.completed);
+                    const label = el.parentElement.querySelector('.sub-label');
+                    if (label) label.classList.toggle('done', topic.completed);
+                });
+                // Update stats
+                renderStats();
+                // Save in background
+                saveStudyData();
+            }
+
+            function toggleSubtopic(yi, si, ui, wi, ti, si2) {
+                const topic = getTopic(yi, si, ui, wi, ti);
+                if (!topic) return;
+                if (!topic.subCompleted) topic.subCompleted = topic.subtopics.map(() => false);
+                topic.subCompleted[si2] = !topic.subCompleted[si2];
+                const allDone = topic.subCompleted.every(Boolean);
+                topic.completed = allDone;
+
+                // Update DOM for subtopic
+                const subCheck = document.querySelector(
+                    `.sub-check[data-yi="${yi}"][data-si="${si}"][data-ui="${ui}"][data-wi="${wi}"][data-ti="${ti}"][data-si2="${si2}"]`
+                );
+                if (subCheck) {
+                    subCheck.classList.toggle('checked', topic.subCompleted[si2]);
+                    const label = subCheck.parentElement.querySelector('.sub-label');
+                    if (label) label.classList.toggle('done', topic.subCompleted[si2]);
+                }
+                // Update topic checkbox if all done
+                const topicCheck = document.querySelector(
+                    `.topic-header .check[data-yi="${yi}"][data-si="${si}"][data-ui="${ui}"][data-wi="${wi}"][data-ti="${ti}"]`
+                );
+                if (topicCheck) {
+                    topicCheck.classList.toggle('checked', allDone);
+                }
+                // Update stats
+                renderStats();
+                // Save in background
+                saveStudyData();
+            }
+
+            function getTopic(yi, si, ui, wi, ti) {
+                try {
+                    return studyData.years[yi].semesters[si].units[ui].weeks[wi].topics[ti];
+                } catch { return null; }
+            }
+
+            // ─── GRADE CALCULATOR ─── (unchanged)
             function calculateUnitGrade(unit) {
                 const allAssignments = [];
                 (unit.weeks || []).forEach(week => {
@@ -1137,32 +1208,8 @@
                 }
             }
 
-            // ─── COMPLETION TOGGLES ───
-            function toggleTopicComplete(yi, si, ui, wi, ti) {
-                const topic = getTopic(yi, si, ui, wi, ti);
-                if (!topic) return;
-                topic.completed = !topic.completed;
-                if (topic.subtopics && topic.subtopics.length) {
-                    topic.subCompleted = topic.subtopics.map(() => topic.completed);
-                }
-                saveStudyData().then(render);
-            }
-
-            function toggleSubtopic(yi, si, ui, wi, ti, si2) {
-                const topic = getTopic(yi, si, ui, wi, ti);
-                if (!topic) return;
-                if (!topic.subCompleted) topic.subCompleted = topic.subtopics.map(() => false);
-                topic.subCompleted[si2] = !topic.subCompleted[si2];
-                const allDone = topic.subCompleted.every(Boolean);
-                topic.completed = allDone;
-                saveStudyData().then(render);
-            }
-
-            function getTopic(yi, si, ui, wi, ti) {
-                try {
-                    return studyData.years[yi].semesters[si].units[ui].weeks[wi].topics[ti];
-                } catch { return null; }
-            }
+            // ─── OTHER FUNCTIONS (CRUD, Export, Encryption, etc.) unchanged ───
+            // (they remain exactly as before)
 
             // ─── CRUD OPERATIONS ───
             function addYear() {
@@ -1860,7 +1907,6 @@
             window.exportToExcel = exportToExcel;
 
             // ─── ATTACH STATIC LISTENERS ───
-            // These elements exist in the static HTML
             document.getElementById('modalCancel').addEventListener('click', function() {
                 document.getElementById('genericModal').classList.remove('open');
             });
@@ -1886,7 +1932,6 @@
             // ─── INITIALIZE ───
             function init() {
                 console.log('📦 Study Manager initializing...');
-                // ─── 1. Replace contentArea with full UI ───
                 const contentArea = document.getElementById('contentArea');
                 contentArea.innerHTML = `
                     <div class="study-header">
@@ -1918,7 +1963,6 @@
                     </div>
                 `;
 
-                // ─── 2. Re-bind listeners for buttons inside the replaced HTML ───
                 document.getElementById('syncBtn').addEventListener('click', async function() {
                     showToast('🔄 Syncing...', 'info');
                     try {
@@ -1949,12 +1993,10 @@
                 document.getElementById('addYearBtn').addEventListener('click', addYear);
                 document.getElementById('exportBtn').addEventListener('click', exportToExcel);
 
-                // ─── 3. Set default data and render ───
                 studyData = getDefaultData();
                 render();
                 console.log('✅ Initial render complete (full default data)');
 
-                // ─── 4. Background sync ───
                 setTimeout(async () => {
                     try {
                         console.log('⏳ Background sync: loading from GitHub...');
@@ -1972,7 +2014,6 @@
                     }
                 }, 500);
 
-                // ─── 5. Auto-save on visibility change ───
                 document.addEventListener('visibilitychange', function() {
                     if (document.hidden) {
                         saveStudyData();
@@ -1980,7 +2021,6 @@
                 });
             }
 
-            // ─── START ───
             init();
 
         }); // end document.ready
