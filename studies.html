@@ -158,22 +158,22 @@
         .stat-item .number.purple { color: var(--purple); }
         .stat-item .number.red { color: var(--red); }
 
-        /* ─── Year / Semester / Unit / Week structure ─── */
+        /* ─── Level Sections ─── */
         .level-section {
-            margin-bottom: 24px;
+            margin-bottom: 16px;
             border: 1px solid var(--border-subtle);
-            border-radius: 16px;
+            border-radius: 14px;
             overflow: hidden;
             background: var(--bg-card);
         }
         .level-header {
-            padding: 14px 20px;
+            padding: 12px 18px;
             background: rgba(255,255,255,0.02);
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
-            gap: 12px;
+            gap: 10px;
             border-bottom: 1px solid var(--border-subtle);
             cursor: pointer;
             transition: 0.2s;
@@ -183,20 +183,21 @@
         }
         .level-header .name {
             font-weight: 700;
-            font-size: 1.1rem;
+            font-size: 1.05rem;
         }
         .level-header .meta {
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             color: var(--text-secondary);
         }
         .level-header .actions {
             display: flex;
-            gap: 6px;
+            gap: 5px;
+            flex-wrap: wrap;
         }
         .level-header .actions .btn {
             border-radius: 40px;
-            font-size: 0.7rem;
-            padding: 4px 14px;
+            font-size: 0.65rem;
+            padding: 3px 12px;
             border: none;
             transition: 0.2s;
         }
@@ -226,7 +227,7 @@
         }
 
         .level-body {
-            padding: 16px 20px;
+            padding: 14px 18px;
             display: none;
         }
         .level-body.open {
@@ -235,15 +236,15 @@
 
         .child-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-            gap: 12px;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 10px;
         }
 
         .child-card {
             background: rgba(255,255,255,0.02);
-            border-radius: 12px;
+            border-radius: 10px;
             border: 1px solid var(--border-subtle);
-            padding: 14px 16px;
+            padding: 12px 14px;
             transition: 0.2s;
             cursor: pointer;
         }
@@ -253,10 +254,10 @@
         }
         .child-card .title {
             font-weight: 600;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
         }
         .child-card .sub {
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             color: var(--text-secondary);
         }
         .child-card .progress-track {
@@ -264,7 +265,7 @@
             background: rgba(255,255,255,0.06);
             border-radius: 4px;
             overflow: hidden;
-            margin: 8px 0 4px;
+            margin: 6px 0 3px;
         }
         .child-card .progress-track .fill {
             height: 100%;
@@ -273,7 +274,7 @@
             transition: width 0.6s ease;
         }
 
-        /* ─── Topic / Subtopic inside Week ─── */
+        /* ─── Topic / Subtopic ─── */
         .topic-item {
             margin-bottom: 8px;
             border: 1px solid var(--border-subtle);
@@ -284,7 +285,7 @@
             padding: 8px 14px;
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
             cursor: pointer;
             transition: 0.2s;
             background: rgba(255,255,255,0.02);
@@ -341,6 +342,12 @@
         .topic-header .actions .btn-del:hover {
             color: var(--red);
             background: rgba(225,112,85,0.05);
+        }
+        .topic-header .expand-icon {
+            color: var(--text-secondary);
+            font-size: 0.7rem;
+            transition: 0.2s;
+            margin-left: 4px;
         }
 
         .subtopic-list {
@@ -405,6 +412,24 @@
         .subtopic-item .sub-actions .btn:hover {
             color: var(--red);
             background: rgba(225,112,85,0.05);
+        }
+
+        .subtopic-add-row {
+            margin-top: 6px;
+        }
+        .subtopic-add-row .btn {
+            border-radius: 40px;
+            font-size: 0.7rem;
+            padding: 2px 14px;
+            border: 1px dashed var(--border-subtle);
+            background: transparent;
+            color: var(--text-secondary);
+            transition: 0.2s;
+        }
+        .subtopic-add-row .btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: rgba(47,199,255,0.05);
         }
 
         /* ─── Assignments ─── */
@@ -659,11 +684,13 @@
             .stats-bar { grid-template-columns: repeat(3, 1fr); gap: 10px; }
             .stat-item .number { font-size: 1.2rem; }
             .level-header { flex-direction: column; align-items: stretch; }
+            .level-header .actions { justify-content: flex-start; }
             .modal-custom .modal-box { padding: 20px; }
+            .subtopic-list { padding: 0 10px 10px 30px; }
         }
         @media (max-width: 480px) {
             .stats-bar { grid-template-columns: repeat(2, 1fr); }
-            .study-header .actions .btn { font-size: 0.7rem; padding: 6px 14px; }
+            .study-header .actions .btn { font-size: 0.65rem; padding: 6px 12px; }
         }
 
         ::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -708,7 +735,7 @@
         <div class="study-header">
             <div>
                 <h1><i class="fa fa-graduation-cap" style="font-size:1.8rem;margin-right:12px;background:linear-gradient(135deg,#fff,var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;"></i> Study Manager</h1>
-                <div class="subtitle">Years → Semesters → Units → Weeks → Topics → Subtopics</div>
+                <div class="subtitle">Years → Semesters → Units → Weeks → Topics → Subtopics · <span id="userDisplay"></span></div>
             </div>
             <div class="actions">
                 <button class="btn btn-sync" id="syncBtn"><i class="fa fa-cloud-download"></i> Sync</button>
@@ -721,8 +748,8 @@
         <div class="stats-bar" id="statsBar">
             <div class="stat-item"><div class="number blue" id="statYears">0</div><div class="label">Years</div></div>
             <div class="stat-item"><div class="number purple" id="statUnits">0</div><div class="label">Units</div></div>
-            <div class="stat-item"><div class="number green" id="statWeeks">0</div><div class="label">Weeks</div></div>
-            <div class="stat-item"><div class="number orange" id="statTopics">0</div><div class="label">Topics</div></div>
+            <div class="stat-item"><div class="number orange" id="statWeeks">0</div><div class="label">Weeks</div></div>
+            <div class="stat-item"><div class="number green" id="statTopicsDone">0</div><div class="label">Topics Done</div></div>
             <div class="stat-item"><div class="number" id="statAssignments">0</div><div class="label">Assignments</div></div>
             <div class="stat-item"><div class="number red" id="statPending">0</div><div class="label">Pending</div></div>
         </div>
@@ -785,26 +812,45 @@
         }
         console.log('✅ Study Manager user:', user.username);
 
+        document.getElementById('userDisplay').textContent = '🔒 ' + user.username;
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //  ENCRYPTION (using CryptoUtil with dogsname)
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        async function encryptData(data) {
+            const json = JSON.stringify(data);
+            const key = window.APP_CONFIG.dogsname;
+            const encrypted = await window.CryptoUtil.encrypt(json, key);
+            return encrypted;
+        }
+
+        async function decryptData(encrypted) {
+            const key = window.APP_CONFIG.dogsname;
+            const decrypted = await window.CryptoUtil.decrypt(encrypted, key);
+            return JSON.parse(decrypted);
+        }
+
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         //  STATE
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         let studyData = { years: [] };
-        let expanded = {}; // track expanded items: 'year_0', 'semester_0_0', 'unit_0_0_0', 'week_0_0_0_0'
+        let expanded = {}; // keys: 'year_0', 'semester_0_0', 'unit_0_0_0', 'week_0_0_0_0', 'topic_0_0_0_0_0'
 
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        //  GITHUB STORAGE
+        //  GITHUB STORAGE (encrypted)
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         function getStudyPath() {
             const { dataPath } = window.REPO_CONFIG;
             const encUser = encodeURIComponent(user.username);
-            return `${dataPath}/users/${encUser}/studies.json`;
+            return `${dataPath}/users/${encUser}/studies.enc`;
         }
 
         async function saveStudyData() {
             try {
                 const { owner, repo, branch } = window.REPO_CONFIG;
                 const path = getStudyPath();
-                const content = JSON.stringify(studyData, null, 2);
+                const encrypted = await encryptData(studyData);
+                const content = JSON.stringify(encrypted, null, 2);
 
                 let sha = null;
                 try {
@@ -812,8 +858,9 @@
                     if (existing && existing.sha) sha = existing.sha;
                 } catch {}
 
-                await GitHubAPI.updateFile(owner, repo, path, studyData, 'Update study data', branch, user.pat, sha);
-                console.log('✅ Study data saved to GitHub');
+                await GitHubAPI.updateFile(owner, repo, path, content, 'Update study data (encrypted)', branch, user.pat,
+                    sha);
+                console.log('✅ Study data saved (encrypted) to GitHub');
                 return true;
             } catch (err) {
                 console.error('Save failed:', err);
@@ -828,10 +875,27 @@
                 const path = getStudyPath();
                 const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
                 if (file && file.content) {
-                    const parsed = JSON.parse(file.content);
-                    if (parsed && parsed.years) {
+                    // Check if it's encrypted JSON or plain
+                    let parsed;
+                    try {
+                        parsed = JSON.parse(file.content);
+                    } catch (e) {
+                        parsed = null;
+                    }
+                    if (parsed && typeof parsed === 'object' && parsed.salt && parsed.iv && parsed.ciphertext) {
+                        // It's encrypted
+                        const decrypted = await decryptData(parsed);
+                        if (decrypted && decrypted.years) {
+                            studyData = decrypted;
+                            console.log('✅ Study data loaded (decrypted) from GitHub');
+                            return true;
+                        }
+                    } else if (parsed && parsed.years) {
+                        // Legacy plain JSON (for migration)
                         studyData = parsed;
-                        console.log('✅ Study data loaded from GitHub');
+                        console.log('✅ Study data loaded (plain) from GitHub');
+                        // Re-encrypt and save
+                        await saveStudyData();
                         return true;
                     }
                 }
@@ -1296,7 +1360,8 @@
             let totalYears = studyData.years.length;
             let totalUnits = 0,
                 totalWeeks = 0,
-                totalTopics = 0;
+                totalTopics = 0,
+                doneTopics = 0;
             let totalAssignments = 0,
                 pendingAssignments = 0;
 
@@ -1308,6 +1373,7 @@
                             totalWeeks++;
                             (w.topics || []).forEach(t => {
                                 totalTopics++;
+                                if (t.completed) doneTopics++;
                             });
                             (w.assignments || []).forEach(a => {
                                 totalAssignments++;
@@ -1322,7 +1388,7 @@
             document.getElementById('statYears').textContent = totalYears;
             document.getElementById('statUnits').textContent = totalUnits;
             document.getElementById('statWeeks').textContent = totalWeeks;
-            document.getElementById('statTopics').textContent = totalTopics;
+            document.getElementById('statTopicsDone').textContent = doneTopics + '/' + totalTopics;
             document.getElementById('statAssignments').textContent = totalAssignments;
             document.getElementById('statPending').textContent = pendingAssignments;
         }
@@ -1447,11 +1513,14 @@
                                 const allDone = subDone === subTopics.length && subTopics.length > 0;
                                 const checked = topic.completed || false;
 
+                                const topicKey = `topic_${yi}_${si}_${ui}_${wi}_${ti}`;
+                                const topicExpanded = expanded[topicKey] || false;
+
                                 const tDiv = document.createElement('div');
                                 tDiv.className = 'topic-item';
                                 tDiv.innerHTML = `
-                                    <div class="topic-header">
-                                        <div class="check ${checked ? 'checked' : ''}" onclick="toggleTopic(${yi}, ${si}, ${ui}, ${wi}, ${ti})">
+                                    <div class="topic-header" onclick="toggleTopicExpand('${topicKey}')">
+                                        <div class="check ${checked ? 'checked' : ''}" onclick="event.stopPropagation();toggleTopicComplete(${yi}, ${si}, ${ui}, ${wi}, ${ti})">
                                             <i class="fa fa-check"></i>
                                         </div>
                                         <div class="name">${escapeHtml(topic.name)}</div>
@@ -1461,8 +1530,9 @@
                                             <button class="btn" onclick="event.stopPropagation();editTopic(${yi}, ${si}, ${ui}, ${wi}, ${ti})"><i class="fa fa-pencil"></i></button>
                                             <button class="btn btn-del" onclick="event.stopPropagation();deleteTopic(${yi}, ${si}, ${ui}, ${wi}, ${ti})"><i class="fa fa-trash"></i></button>
                                         </div>
+                                        <span class="expand-icon"><i class="fa fa-chevron-${topicExpanded ? 'up' : 'down'}"></i></span>
                                     </div>
-                                    <div class="subtopic-list ${checked ? 'open' : ''}">
+                                    <div class="subtopic-list ${topicExpanded ? 'open' : ''}">
                                         ${subTopics.map((sub, si2) => {
                                             const subChecked = (topic.subCompleted && topic.subCompleted[si2]) || false;
                                             return `
@@ -1477,6 +1547,9 @@
                                                 </div>
                                             `;
                                         }).join('')}
+                                        <div class="subtopic-add-row">
+                                            <button class="btn" onclick="addSubtopic(${yi}, ${si}, ${ui}, ${wi}, ${ti})"><i class="fa fa-plus"></i> Add subtopic</button>
+                                        </div>
                                     </div>
                                 `;
                                 weekDiv.querySelector('.level-body').appendChild(tDiv);
@@ -1487,34 +1560,35 @@
                             if (assignments.length) {
                                 const assSection = document.createElement('div');
                                 assSection.className = 'assignments-section';
-                                assSection.innerHTML = `
-                                    <div class="section-title"><i class="fa fa-tasks"></i> Assignments</div>
-                                    ${assignments.map((a, ai) => {
-                                        const statusClass = a.status === 'pending' ? 'pending' :
-                                            a.status === 'in-progress' ? 'in-progress' : 'submitted';
-                                        const statusLabel = a.status === 'pending' ? 'Pending' :
-                                            a.status === 'in-progress' ? 'In Progress' : '✅ Submitted';
-                                        return `
-                                            <div class="assignment-item">
-                                                <div class="ass-name">${escapeHtml(a.name)}</div>
-                                                <div class="ass-due">${a.due || 'No due date'}</div>
-                                                <div class="ass-status ${statusClass}">${statusLabel}</div>
-                                                <div class="ass-marks">${a.marks || '—'}</div>
-                                                <div class="ass-actions">
-                                                    <button class="btn btn-edit-ass" onclick="editAssignment(${yi}, ${si}, ${ui}, ${wi}, ${ai})"><i class="fa fa-pencil"></i></button>
-                                                    <button class="btn btn-del-ass" onclick="deleteAssignment(${yi}, ${si}, ${ui}, ${wi}, ${ai})"><i class="fa fa-trash"></i></button>
-                                                </div>
-                                            </div>
-                                        `;
-                                    }).join('')}
+                                let assHtml = `
+                                    <div class="section-title"><i class="fa fa-tasks"></i> Assignments
+                                        <button class="btn btn-add-ass" onclick="addAssignment(${yi}, ${si}, ${ui}, ${wi})"><i class="fa fa-plus"></i> Add</button>
+                                    </div>
                                 `;
+                                assignments.forEach((a, ai) => {
+                                    const statusClass = a.status === 'pending' ? 'pending' :
+                                        a.status === 'in-progress' ? 'in-progress' : 'submitted';
+                                    const statusLabel = a.status === 'pending' ? 'Pending' :
+                                        a.status === 'in-progress' ? 'In Progress' : '✅ Submitted';
+                                    assHtml += `
+                                        <div class="assignment-item">
+                                            <div class="ass-name">${escapeHtml(a.name)}</div>
+                                            <div class="ass-due">${a.due || 'No due date'}</div>
+                                            <div class="ass-status ${statusClass}">${statusLabel}</div>
+                                            <div class="ass-marks">${a.marks || '—'}</div>
+                                            <div class="ass-actions">
+                                                <button class="btn btn-edit-ass" onclick="editAssignment(${yi}, ${si}, ${ui}, ${wi}, ${ai})"><i class="fa fa-pencil"></i></button>
+                                                <button class="btn btn-del-ass" onclick="deleteAssignment(${yi}, ${si}, ${ui}, ${wi}, ${ai})"><i class="fa fa-trash"></i></button>
+                                            </div>
+                                        </div>
+                                    `;
+                                });
+                                assSection.innerHTML = assHtml;
                                 weekDiv.querySelector('.level-body').appendChild(assSection);
                             }
 
                             weekDiv.querySelector('.level-body').innerHTML += `</div>`;
-                            weekDiv.querySelector('.level-body').innerHTML += `</div>`;
-                            weekDiv.innerHTML += `</div>`; // close week body
-
+                            weekDiv.innerHTML += `</div>`;
                             unitCard.querySelector('.level-body').appendChild(weekDiv);
                         });
 
@@ -1542,8 +1616,42 @@
             render();
         };
 
+        window.toggleTopicExpand = function(key) {
+            expanded[key] = !expanded[key];
+            render();
+        };
+
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        //  CRUD OPERATIONS (with modals)
+        //  COMPLETION TOGGLES (separate from expand)
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        window.toggleTopicComplete = function(yi, si, ui, wi, ti) {
+            const topic = getTopic(yi, si, ui, wi, ti);
+            if (!topic) return;
+            topic.completed = !topic.completed;
+            if (topic.subtopics && topic.subtopics.length) {
+                topic.subCompleted = topic.subtopics.map(() => topic.completed);
+            }
+            saveStudyData().then(render);
+        };
+
+        window.toggleSubtopic = function(yi, si, ui, wi, ti, si2) {
+            const topic = getTopic(yi, si, ui, wi, ti);
+            if (!topic) return;
+            if (!topic.subCompleted) topic.subCompleted = topic.subtopics.map(() => false);
+            topic.subCompleted[si2] = !topic.subCompleted[si2];
+            const allDone = topic.subCompleted.every(Boolean);
+            topic.completed = allDone;
+            saveStudyData().then(render);
+        };
+
+        function getTopic(yi, si, ui, wi, ti) {
+            try {
+                return studyData.years[yi].semesters[si].units[ui].weeks[wi].topics[ti];
+            } catch { return null; }
+        }
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //  CRUD OPERATIONS
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         // Years
         window.addYear = function() {
@@ -1765,7 +1873,6 @@
                 topic.subtopics.push(name);
                 if (!topic.subCompleted) topic.subCompleted = [];
                 topic.subCompleted.push(false);
-                // Auto-update topic completion
                 const allDone = topic.subCompleted.every(Boolean);
                 topic.completed = allDone;
                 return true;
@@ -1777,25 +1884,6 @@
             const topic = studyData.years[yi].semesters[si].units[ui].weeks[wi].topics[ti];
             topic.subtopics.splice(si2, 1);
             topic.subCompleted.splice(si2, 1);
-            const allDone = topic.subCompleted.every(Boolean);
-            topic.completed = allDone;
-            saveStudyData().then(render);
-        };
-
-        window.toggleTopic = function(yi, si, ui, wi, ti) {
-            const topic = studyData.years[yi].semesters[si].units[ui].weeks[wi].topics[ti];
-            topic.completed = !topic.completed;
-            if (topic.subtopics && topic.subtopics.length) {
-                topic.subCompleted = topic.subtopics.map(() => topic.completed);
-            }
-            saveStudyData().then(render);
-        };
-
-        window.toggleSubtopic = function(yi, si, ui, wi, ti, si2) {
-            const topic = studyData.years[yi].semesters[si].units[ui].weeks[wi].topics[ti];
-            if (!topic.subCompleted) topic.subCompleted = topic.subtopics.map(() => false);
-            topic.subCompleted[si2] = !topic.subCompleted[si2];
-            // Update topic completion
             const allDone = topic.subCompleted.every(Boolean);
             topic.completed = allDone;
             saveStudyData().then(render);
