@@ -497,7 +497,7 @@
         {
           "code": "BIA109",
           "name": "Principles of Chemical and Process Engineering",
-          "color": "#fdcb6e",
+          "color": "#fucb6e",
           "topics": [
             {
               "name": "Chemical Reaction & Equilibrium",
@@ -639,7 +639,7 @@
             {
               "name": "Test (Invigilated)",
               "due": "",
-              "status": "pending",
+              "status": "submitted",
               "marks": "",
               "weight": 25
             },
