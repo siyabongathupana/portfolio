@@ -17,7 +17,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
-    /* ─── all styles (unchanged) ─── */
+    /* ─── Styles ─── */
     :root { --bg-primary: #0a0e17; --bg-card: #111927; --border-subtle: rgba(47,199,255,0.08); --text-primary: #e0e8ee; --text-secondary: #8a9fb0; --accent: #2fc7ff; --green: #00b894; --orange: #fdcb6e; --red: #e17055; --purple: #a29bfe; }
     * { box-sizing: border-box; }
     body { background: var(--bg-primary); color: var(--text-primary); font-family: 'Inter', sans-serif; min-height: 100vh; }
@@ -285,9 +285,10 @@
     let expanded = {};
     let isSaving = false;
     let gradeModalOpen = false;
+    let saveQueue = [];
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    //  DEFAULT DATA (complete – all units with weeks/topics/assignments)
+    //  DEFAULT DATA (full study plan)
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     function getDefaultData() {
       return {
@@ -752,7 +753,7 @@
         localStorage.setItem(CACHE_KEY, JSON.stringify({
           data: data,
           timestamp: Date.now(),
-          version: '2.0' // plain JSON
+          version: '2.0'
         }));
       } catch (e) {}
     }
@@ -777,7 +778,7 @@
       return `${dataPath}/users/${encUser}/studies.json`;
     }
 
-    // ─── Retry helper ───
+    // ─── Helper: retry with exponential backoff ───
     async function retry(fn, retries = 3, delay = 1000) {
       let lastError;
       for (let i = 0; i < retries; i++) {
@@ -785,14 +786,14 @@
           return await fn();
         } catch (err) {
           lastError = err;
-          console.warn(`Retry ${i+1}/${retries} failed:`, err);
+          console.warn(`Retry ${i+1}/${retries} failed:`, err.message);
           if (i < retries - 1) await new Promise(r => setTimeout(r, delay * (i + 1)));
         }
       }
       throw lastError;
     }
 
-    // ─── loadFromGitHub – plain JSON, with fallback for old encrypted files ───
+    // ─── Load from GitHub ───
     async function loadFromGitHub() {
       return retry(async () => {
         const { owner, repo, branch } = window.REPO_CONFIG || { owner: 'siyabongathupana', repo: 'portfolio', branch: 'main' };
@@ -837,7 +838,7 @@
           return null;
         }
 
-        // Check if it's the old encrypted format
+        // Check if it's the old encrypted format (has salt, iv, ciphertext)
         if (parsed && typeof parsed === 'object' && parsed.salt && parsed.iv && parsed.ciphertext) {
           console.log('🔐 Old encrypted file detected – attempting to decrypt...');
           try {
@@ -869,12 +870,15 @@
       }, 3, 1500);
     }
 
-    // ─── Save to GitHub – plain JSON with retry ───
+    // ─── Save to GitHub – plain JSON ───
     async function saveToGitHub(dataToSave) {
       if (isSaving) {
-        await new Promise(r => setTimeout(r, 200));
-        return saveToGitHub(dataToSave);
+        // Queue the save to run after current one finishes
+        return new Promise((resolve, reject) => {
+          saveQueue.push({ dataToSave, resolve, reject });
+        });
       }
+
       isSaving = true;
       try {
         // Validate data
@@ -884,35 +888,45 @@
 
         const { owner, repo, branch } = window.REPO_CONFIG || { owner: 'siyabongathupana', repo: 'portfolio', branch: 'main' };
         const path = getStudyPath();
-        const content = JSON.stringify(dataToSave, null, 2);
-        const encodedContent = btoa(unescape(encodeURIComponent(content)));
 
+        // Get current SHA
         let sha = null;
         try {
           const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
           if (existing && existing.sha) sha = existing.sha;
         } catch (e) {}
 
+        // Pass the OBJECT directly – GitHubAPI.updateFile will stringify it.
         await retry(async () => {
-          await GitHubAPI.updateFile(owner, repo, path, content, 'Update study data (plain JSON)', branch, user.pat, sha);
+          await GitHubAPI.updateFile(owner, repo, path, dataToSave, 'Update study data (plain JSON)', branch, user.pat, sha);
         }, 3, 1000);
 
         console.log('✅ Saved to GitHub (plain JSON)');
         saveToCache(dataToSave);
         showToast('✅ Saved', 'success');
         isSaving = false;
+
+        // Process any queued saves
+        while (saveQueue.length) {
+          const next = saveQueue.shift();
+          try {
+            await saveToGitHub(next.dataToSave);
+            next.resolve();
+          } catch (err) {
+            next.reject(err);
+          }
+        }
         return true;
       } catch (err) {
         console.error('Save failed:', err);
-        if (err.message && err.message.includes('does not match') && !err._retried) {
-          err._retried = true;
-          console.log('🔄 Retrying save...');
-          await new Promise(r => setTimeout(r, 500));
-          return saveToGitHub(dataToSave);
-        }
         showToast('❌ Save failed: ' + err.message, 'error');
         isSaving = false;
-        return false;
+        // Reject queued saves
+        while (saveQueue.length) {
+          const next = saveQueue.shift();
+          next.reject(err);
+        }
+        throw err;
       }
     }
 
@@ -1783,7 +1797,7 @@
       saveStudyData().then(render);
     };
 
-    // ─── EXPORT TO EXCEL (simplified but fully functional) ───
+    // ─── EXPORT TO EXCEL ───
     window.exportToExcel = async function() {
       if (!studyData.years.length) {
         showToast('No data to export.', 'error');
