@@ -89,6 +89,12 @@
                 "Fourier Series",
                 "Harmonic Analysis",
                 "Taylor series expansion"
+              ],
+              "completed": true,
+              "subCompleted": [
+                true,
+                true,
+                true
               ]
             }
           ],
