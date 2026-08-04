@@ -1,0 +1,644 @@
+{
+  "semesters": [
+    {
+      "name": "2026 Semester 1",
+      "units": [
+        {
+          "code": "BSC106",
+          "name": "Engineering Mathematics 2",
+          "color": "#2fc7ff",
+          "topics": [
+            {
+              "name": "Multivariable Calculus",
+              "subtopics": [
+                "Functions of several variables",
+                "Partial derivatives and Total differential",
+                "Chain Rules for Differentiation",
+                "Partial Derivatives of Higher Orders",
+                "Differentiation of Implicit Functions"
+              ]
+            },
+            {
+              "name": "Integral Calculus",
+              "subtopics": [
+                "Integration calculus",
+                "Double and Triple integrals",
+                "Areas and Volumes by integration",
+                "Numerical Integration"
+              ]
+            },
+            {
+              "name": "Differential Equations",
+              "subtopics": [
+                "Definitions",
+                "First-Order Differential Equations",
+                "Second-Order Differential Equations",
+                "Systems of first-order ODEs",
+                "Introduction to PDE"
+              ]
+            },
+            {
+              "name": "Numerical Methods",
+              "subtopics": [
+                "Sources of errors",
+                "Solution of Nonlinear Equations",
+                "Interpolation and curve fitting",
+                "Numerical differentiation"
+              ]
+            },
+            {
+              "name": "Linear Algebra",
+              "subtopics": [
+                "Systems of linear equations and matrices",
+                "Matrix factorisation, Gaussian elimination, LU decomposition",
+                "Iterative methods: Gauss-Seidel and Jacobi",
+                "Eigenvalues and Eigenvectors",
+                "Geometrical Interpretation of Eigenvectors",
+                "Applications of Eigenvalue Problems in Engineering",
+                "Special matrices"
+              ]
+            },
+            {
+              "name": "Analytical Geometry",
+              "subtopics": [
+                "Basics of Coordinates and Distance",
+                "Equations of lines, circles, slopes, line intersections",
+                "Polar and cylindrical coordinates",
+                "Transformation of coordinates (Jacobian)"
+              ]
+            },
+            {
+              "name": "Vector Calculus",
+              "subtopics": [
+                "Vector spaces",
+                "Vector differential calculus",
+                "Basic theorems of vector calculus"
+              ]
+            },
+            {
+              "name": "Fourier and Taylor Series",
+              "subtopics": [
+                "Fourier Series",
+                "Harmonic Analysis",
+                "Taylor series expansion"
+              ]
+            }
+          ],
+          "assignments": [
+            {
+              "name": "Weekly Quizzes",
+              "due": "",
+              "status": "pending",
+              "marks": "",
+              "weight": 10
+            },
+            {
+              "name": "Test (Invigilated)",
+              "due": "",
+              "status": "pending",
+              "marks": "",
+              "weight": 25
+            },
+            {
+              "name": "Final Exam",
+              "due": "",
+              "status": "pending",
+              "marks": "",
+              "weight": 65
+            }
+          ]
+        },
+        {
+          "code": "BSC104",
+          "name": "Engineering Drawing and CAD",
+          "color": "#a29bfe",
+          "topics": [
+            {
+              "name": "Introductory and Standard Information",
+              "subtopics": [
+                "Role of technical drawings",
+                "Standard abbreviations",
+                "Types of Lines",
+                "Lettering",
+                "Scales",
+                "Sizes of drawing sheet",
+                "Layout of drawing sheets",
+                "Dimensioning",
+                "Engineering drawing standards"
+              ]
+            },
+            {
+              "name": "Sketching",
+              "subtopics": [
+                "Sketching Tools and Materials",
+                "Sketching Straight Lines",
+                "Sketching Circular Lines",
+                "Sketching Circles, Arcs, and ellipses",
+                "Measurement Lines and Proportions",
+                "Introduction to the Block Technique",
+                "Creating Multiview Sketches",
+                "Creating Isometric Sketches"
+              ]
+            },
+            {
+              "name": "Orthogonal Projection",
+              "subtopics": [
+                "Principles of projection",
+                "Third-angle projection",
+                "First-angle projection",
+                "Production of engineering drawings",
+                "Introduction to CAD: Basic 2D entities"
+              ]
+            },
+            {
+              "name": "Isometric Projection",
+              "subtopics": [
+                "Isometric projection principles",
+                "Making an isometric drawing",
+                "Representation of details in pictorial drawings",
+                "Introduction to CAD: Basic 3D models"
+              ]
+            },
+            {
+              "name": "Sections and Revolutions",
+              "subtopics": [
+                "Introduction to Sectional Views",
+                "Cutting-Plane Lines and Sectional View Identification",
+                "Section Lines",
+                "Full Sections",
+                "Half Sections",
+                "Offset Sections",
+                "Aligned Sections",
+                "Un-sectioned Features",
+                "Intersections in Section",
+                "Broken-Out Sections",
+                "Auxiliary Sections",
+                "Conventional Revolutions",
+                "CAD: Drawings and section views"
+              ]
+            },
+            {
+              "name": "Working Drawings",
+              "subtopics": [
+                "Introduction to Working Drawings",
+                "Detail Drawings",
+                "Assembly Drawings",
+                "Types of Assembly Drawings",
+                "Identification Numbers",
+                "Parts Lists",
+                "Purchase Parts",
+                "Engineering Changes",
+                "Drawing from a Prototype",
+                "Analysis of a Set of Working Drawings"
+              ]
+            },
+            {
+              "name": "CAD: Creating Simple Parts",
+              "subtopics": [
+                "CAD software demonstration",
+                "Creating simple parts"
+              ]
+            },
+            {
+              "name": "CAD: Creating Simple Assemblies",
+              "subtopics": [
+                "CAD software demonstration",
+                "Creating simple assemblies"
+              ]
+            },
+            {
+              "name": "CAD: Creating Drawings",
+              "subtopics": [
+                "CAD software demonstration",
+                "Creating drawings"
+              ]
+            },
+            {
+              "name": "Discipline-Specific Drawings",
+              "subtopics": [
+                "Creating a simple circuit",
+                "Creating a simple building plan"
+              ]
+            },
+            {
+              "name": "Interpreting Drawings",
+              "subtopics": [
+                "Sample Drawings analysis"
+              ]
+            },
+            {
+              "name": "Product Development and Design",
+              "subtopics": [
+                "Planning and design as problem-solving processes",
+                "Methodology for solving open-ended problems",
+                "Engineering planning",
+                "The design process",
+                "Problem formulation phase",
+                "Feasibility study and concept design",
+                "Preliminary planning and design",
+                "Detailed planning and design",
+                "Implementation",
+                "The Solution-first strategy"
+              ]
+            }
+          ],
+          "assignments": [
+            {
+              "name": "Portfolio Creation (Weekly)",
+              "due": "",
+              "status": "pending",
+              "marks": "",
+              "weight": 10
+            },
+            {
+              "name": "Test (Invigilated)",
+              "due": "",
+              "status": "pending",
+              "marks": "",
+              "weight": 25
+            },
+            {
+              "name": "CAD Practical Project",
+              "due": "",
+              "status": "pending",
+              "marks": "",
+              "weight": 25
+            },
+            {
+              "name": "Final Exam",
+              "due": "",
+              "status": "pending",
+              "marks": "",
+              "weight": 40
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2026 Semester 2",
+      "units": [
+        {
+          "code": "BSC107",
+          "name": "Engineering Programming",
+          "color": "#55efc4",
+          "topics": [
+            {
+              "name": "Overview of Engineering Programming",
+              "subtopics": [
+                "Computers: Hardware and Software",
+                "Computer Organization (CU, ALU, registers, memory)",
+                "Personal, Distributed and Client/Server Computing",
+                "Machine, Assembly and High-Level Languages",
+                "Cloud computing, IoT, Big data, ML",
+                "The Software Development Method",
+                "Professional Ethics for Programmers"
+              ]
+            },
+            {
+              "name": "Overview of C Language",
+              "subtopics": [
+                "C Language Elements",
+                "Variable Declarations and Data Types",
+                "Executable Statements",
+                "General Form of a C Program",
+                "Arithmetic Expressions",
+                "Formatting Numbers in Program Output",
+                "Interactive Mode, Batch Mode, and Data Files"
+              ]
+            },
+            {
+              "name": "Top-Down Design with Functions",
+              "subtopics": [
+                "Building Programs from Existing Information",
+                "Library Functions (Math, Random)",
+                "Function Definitions",
+                "Function prototypes",
+                "Function call stack and activation records",
+                "Headers",
+                "Top-Down Design and Structure Charts",
+                "Functions without Arguments",
+                "Functions with Input Arguments"
+              ]
+            },
+            {
+              "name": "Selection Structures: if and switch",
+              "subtopics": [
+                "Control structures: sequence, selection, repetition",
+                "Conditions: Relational, Equality, Logical Operators",
+                "Operator Precedence",
+                "Writing Conditions in C",
+                "Comparing Characters",
+                "The if Statement",
+                "Compound Statements",
+                "Nested if and Multiple-Alternative Decisions",
+                "The switch Statement"
+              ]
+            },
+            {
+              "name": "Repetition, Loops and Recursion",
+              "subtopics": [
+                "Repetition in Programs",
+                "Counting Loops and the while Statement",
+                "Computing a Sum or Product in a Loop",
+                "The for Statement",
+                "Conditional Loops",
+                "Loop Design",
+                "Nested Loops",
+                "The do-while Statement",
+                "Iterative Approximations",
+                "Recursion: Nature, Tracing, Mathematical Functions",
+                "Recursion Example: Fibonacci Series"
+              ]
+            },
+            {
+              "name": "Arrays",
+              "subtopics": [
+                "Declaring and Referencing Arrays",
+                "Array Subscripts",
+                "Using for Loops for Sequential Access",
+                "Array Elements as Function Arguments",
+                "Array Arguments",
+                "Searching and Sorting an Array",
+                "Parallel Arrays and Enumerated Types",
+                "Multidimensional Arrays",
+                "Graphics Programs with Arrays"
+              ]
+            },
+            {
+              "name": "Pointers, Modular Programming",
+              "subtopics": [
+                "Pointers and the Indirection Operator",
+                "Functions with Output Parameters",
+                "Multiple Calls to a Function",
+                "Scope of Names",
+                "Debugging and Testing",
+                "Dynamic Data Structures",
+                "Pointers to structures",
+                "Dynamic Memory Allocation"
+              ]
+            },
+            {
+              "name": "Strings",
+              "subtopics": [
+                "String Basics",
+                "String Library Functions",
+                "Longer Strings: Concatenation",
+                "String Comparison",
+                "Arrays of Pointers",
+                "Character Operations",
+                "String-to-Number and Number-to-String Conversions"
+              ]
+            },
+            {
+              "name": "Structures and File Processing",
+              "subtopics": [
+                "User-Defined Structure Types",
+                "Structure Type Data as Parameters",
+                "Functions with Structured Results",
+                "Input/Output Files",
+                "Binary Files",
+                "Procedural and Data Abstraction",
+                "Personal Libraries",
+                "Storage classes",
+                "Conditional compilation",
+                "Arguments to Function main"
+              ]
+            },
+            {
+              "name": "Introduction to MATLAB",
+              "subtopics": [
+                "The MATLAB Environment",
+                "Variables and Arrays",
+                "Vectors, Matrices and Arrays",
+                "Multidimensional Arrays",
+                "Subarrays",
+                "Displaying Output Data",
+                "Data Files",
+                "Hierarchy of Operations",
+                "Built-in MATLAB Functions",
+                "Introduction to Plotting"
+              ]
+            },
+            {
+              "name": "Numerical Analysis using MATLAB & Excel",
+              "subtopics": [
+                "Roots of Polynomials",
+                "Polynomial Construction from Known Roots",
+                "Evaluation of Polynomials",
+                "Rational Polynomials",
+                "Root Approximation",
+                "Matrices and Determinants",
+                "Functions and cell operations in Excel",
+                "Mathematical problem solving using Excel",
+                "Numerical integration and differentiation using Excel",
+                "Macros"
+              ]
+            },
+            {
+              "name": "Introduction to Python",
+              "subtopics": [
+                "Introduction to Python",
+                "Using the Python Interpreter",
+                "Control Flow Tools in Python",
+                "Data Structures",
+                "Modules",
+                "Input and Output",
+                "Classes",
+                "Using Python Standard Library"
+              ]
+            }
+          ],
+          "assignments": [
+            {
+              "name": "Weekly Quizzes",
+              "due": "",
+              "status": "pending",
+              "marks": "",
+              "weight": 10
+            },
+            {
+              "name": "Test (Invigilated)",
+              "due": "",
+              "status": "pending",
+              "marks": "",
+              "weight": 25
+            },
+            {
+              "name": "C Programming Project",
+              "due": "",
+              "status": "pending",
+              "marks": "",
+              "weight": 25
+            },
+            {
+              "name": "Final Exam",
+              "due": "",
+              "status": "pending",
+              "marks": "",
+              "weight": 40
+            }
+          ]
+        },
+        {
+          "code": "BIA109",
+          "name": "Principles of Chemical and Process Engineering",
+          "color": "#fdcb6e",
+          "topics": [
+            {
+              "name": "Chemical Reaction & Equilibrium",
+              "subtopics": [
+                "Evidence for a chemical reaction",
+                "Chemical equations",
+                "Reactions in which a solid forms",
+                "Reactions in aqueous solutions",
+                "Reactions of metals with non-metals",
+                "Chemical equilibrium"
+              ]
+            },
+            {
+              "name": "Phase Behaviour and Equation of State",
+              "subtopics": [
+                "Single-Phase systems (solid, liquid, ideal gases)",
+                "Water and its phase changes",
+                "Intermolecular forces, pressure",
+                "Evaporation",
+                "Vapour pressure",
+                "Gas laws",
+                "Principles of multiphase systems"
+              ]
+            },
+            {
+              "name": "Acids, Bases, Solutions",
+              "subtopics": [
+                "Acids and bases",
+                "The pH scale",
+                "Buffered solutions",
+                "Solubility, mass percent",
+                "Molarity",
+                "Dilution",
+                "Fundamentals of Stoichiometry"
+              ]
+            },
+            {
+              "name": "Thermodynamics",
+              "subtopics": [
+                "Thermodynamic states",
+                "Thermodynamic equilibrium",
+                "Laws of thermodynamics",
+                "Thermodynamic properties (entropy, enthalpy)"
+              ]
+            },
+            {
+              "name": "Process Engineering",
+              "subtopics": [
+                "Process engineering activities",
+                "Front End Loading",
+                "Realization of a plant",
+                "Batch and continuous processes",
+                "Equipment used in process engineering"
+              ]
+            },
+            {
+              "name": "Process Documentation, Diagrams & Safety",
+              "subtopics": [
+                "Process and instrumentation diagrams",
+                "Process plant layout",
+                "Documentation",
+                "Site location and equipment spacing",
+                "Process safety (HAZOP procedure and documentation)"
+              ]
+            },
+            {
+              "name": "Processes and Operations",
+              "subtopics": [
+                "Process units: Divider, Mixer, Dryer, Filter",
+                "Distillation column, Evaporator",
+                "Dehumidification, Humidifier",
+                "Leaching and Extraction, Absorber",
+                "Condenser, Crystallizer, Reactors",
+                "Batch reactor, CSTR and fluidized bed reactor",
+                "Process Flow Diagram",
+                "Labelling a PFD"
+              ]
+            },
+            {
+              "name": "Material Balances",
+              "subtopics": [
+                "Material balance fundamentals",
+                "Mass balance on steady-state processes",
+                "Material balance on reactive systems",
+                "Stoichiometry equation, coefficients, ratio",
+                "Combustion reactions",
+                "Multiple-unit process flowcharts"
+              ]
+            },
+            {
+              "name": "Energy Balances",
+              "subtopics": [
+                "Energy balance for closed and open systems",
+                "Steam turbine",
+                "Heaters and coolers",
+                "Compressors",
+                "Energy balance with reaction",
+                "Heat of reaction",
+                "Heats of formation and heat of combustion",
+                "Energy balance for reactive processes",
+                "Simultaneous material and energy balances"
+              ]
+            },
+            {
+              "name": "Sustainable Process Technology",
+              "subtopics": [
+                "Sustainable development",
+                "Chemicals from biomass",
+                "Biofuels",
+                "Process design issues",
+                "Environmental and economic challenges"
+              ]
+            },
+            {
+              "name": "Process Simulation in Chemical Engineering",
+              "subtopics": [
+                "Chemical process simulators (Aspen Plus, Simulink)",
+                "Computer-Aided Design",
+                "Process optimization",
+                "Examples of simulation models"
+              ]
+            },
+            {
+              "name": "Unit Review",
+              "subtopics": [
+                "Review of contents covered",
+                "Clarification of outstanding issues"
+              ]
+            }
+          ],
+          "assignments": [
+            {
+              "name": "Weekly Quizzes",
+              "due": "",
+              "status": "pending",
+              "marks": "",
+              "weight": 10
+            },
+            {
+              "name": "Test (Invigilated)",
+              "due": "",
+              "status": "pending",
+              "marks": "",
+              "weight": 25
+            },
+            {
+              "name": "Final Exam",
+              "due": "",
+              "status": "pending",
+              "marks": "",
+              "weight": 65
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
