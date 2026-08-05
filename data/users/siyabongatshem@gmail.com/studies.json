@@ -1033,8 +1033,10 @@
                         "Reactions of metals with non-metals",
                         "Chemical equilibrium"
                       ],
-                      "completed": false,
-                      "subCompleted": []
+                      "completed": true,
+                      "subCompleted": [
+                        true
+                      ]
                     }
                   ],
                   "assignments": [
