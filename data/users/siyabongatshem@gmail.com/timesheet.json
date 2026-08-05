@@ -284,9 +284,9 @@
     "hours": 8,
     "project": "Omnia Turbine Speed",
     "category": "CFAT",
-    "billable": "no",
+    "billable": "yes",
     "notes": "Site CFAT",
-    "updatedAt": 1784892362121,
+    "updatedAt": 1785913895313,
     "weekKey": "2026-W30"
   },
   {
