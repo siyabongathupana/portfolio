@@ -1,5 +1,29 @@
 [
   {
+    "id": 1785996102368,
+    "date": "2026-08-05",
+    "start": "09:00",
+    "end": "09:30",
+    "hours": 0.5,
+    "project": "Steam station 2",
+    "category": "Meetings",
+    "billable": "yes",
+    "notes": "",
+    "updatedAt": 1785996102368
+  },
+  {
+    "id": 1785996061969,
+    "date": "2026-08-05",
+    "start": "11:00",
+    "end": "12:00",
+    "hours": 1,
+    "project": "Steam station 2",
+    "category": "Documentation",
+    "billable": "yes",
+    "notes": "",
+    "updatedAt": 1785996061969
+  },
+  {
     "id": 1785996040601,
     "date": "2026-08-05",
     "start": "10:45",
@@ -15,13 +39,13 @@
     "id": 1785996020466,
     "date": "2026-08-05",
     "start": "07:45",
-    "end": "10:45",
-    "hours": 3,
+    "end": "09:00",
+    "hours": 1.25,
     "project": "Steam station 2",
     "category": "Documentation",
     "billable": "yes",
     "notes": "",
-    "updatedAt": 1785996020466
+    "updatedAt": 1785996082705
   },
   {
     "id": 1785995975231,
