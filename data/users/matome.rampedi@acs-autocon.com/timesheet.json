@@ -1,5 +1,17 @@
 [
   {
+    "id": 1786087080130,
+    "date": "2026-08-07",
+    "start": "13:00",
+    "end": "15:50",
+    "hours": 2.83,
+    "project": "Steam station 2",
+    "category": "Documentation",
+    "billable": "yes",
+    "notes": "",
+    "updatedAt": 1786087080130
+  },
+  {
     "id": 1786023561335,
     "date": "2026-08-06",
     "start": "11:00",
@@ -9,7 +21,8 @@
     "category": "Documentation",
     "billable": "yes",
     "notes": "",
-    "updatedAt": 1786023561335
+    "updatedAt": 1786023561335,
+    "weekKey": "2026-W32"
   },
   {
     "id": 1786022437040,
@@ -21,7 +34,8 @@
     "category": "Other",
     "billable": "no",
     "notes": "",
-    "updatedAt": 1786022437040
+    "updatedAt": 1786022437040,
+    "weekKey": "2026-W32"
   },
   {
     "id": 1786022390185,
@@ -33,7 +47,8 @@
     "category": "Documentation",
     "billable": "yes",
     "notes": "",
-    "updatedAt": 1786022390185
+    "updatedAt": 1786022390185,
+    "weekKey": "2026-W32"
   },
   {
     "id": 1786022348721,
@@ -45,7 +60,8 @@
     "category": "Other",
     "billable": "no",
     "notes": "",
-    "updatedAt": 1786022348721
+    "updatedAt": 1786022348721,
+    "weekKey": "2026-W32"
   },
   {
     "id": 1785996191888,
@@ -57,7 +73,8 @@
     "category": "Documentation",
     "billable": "yes",
     "notes": "",
-    "updatedAt": 1786022194679
+    "updatedAt": 1786022194679,
+    "weekKey": "2026-W32"
   },
   {
     "id": 1785996125026,
@@ -69,7 +86,8 @@
     "category": "Documentation",
     "billable": "yes",
     "notes": "",
-    "updatedAt": 1785996125026
+    "updatedAt": 1785996125026,
+    "weekKey": "2026-W32"
   },
   {
     "id": 1785996102368,
@@ -81,7 +99,8 @@
     "category": "Meetings",
     "billable": "yes",
     "notes": "",
-    "updatedAt": 1785996102368
+    "updatedAt": 1785996102368,
+    "weekKey": "2026-W32"
   },
   {
     "id": 1785996061969,
@@ -93,7 +112,8 @@
     "category": "Documentation",
     "billable": "yes",
     "notes": "",
-    "updatedAt": 1785996061969
+    "updatedAt": 1785996061969,
+    "weekKey": "2026-W32"
   },
   {
     "id": 1785996040601,
@@ -105,7 +125,8 @@
     "category": "Other",
     "billable": "no",
     "notes": "",
-    "updatedAt": 1785996040601
+    "updatedAt": 1785996040601,
+    "weekKey": "2026-W32"
   },
   {
     "id": 1785996020466,
@@ -117,7 +138,8 @@
     "category": "Documentation",
     "billable": "yes",
     "notes": "",
-    "updatedAt": 1785996082705
+    "updatedAt": 1785996082705,
+    "weekKey": "2026-W32"
   },
   {
     "id": 1785995975231,
@@ -129,7 +151,8 @@
     "category": "Other",
     "billable": "no",
     "notes": "",
-    "updatedAt": 1785995975231
+    "updatedAt": 1785995975231,
+    "weekKey": "2026-W32"
   },
   {
     "id": 1785850165012,
@@ -141,7 +164,8 @@
     "category": "Other",
     "billable": "yes",
     "notes": "",
-    "updatedAt": 1785850165012
+    "updatedAt": 1785850165012,
+    "weekKey": "2026-W32"
   },
   {
     "id": 1785846426670,
@@ -153,7 +177,8 @@
     "category": "Other",
     "billable": "no",
     "notes": "coffee",
-    "updatedAt": 1785848075206
+    "updatedAt": 1785848075206,
+    "weekKey": "2026-W32"
   },
   {
     "id": 1785845898976,
@@ -165,7 +190,8 @@
     "category": "Other",
     "billable": "no",
     "notes": "",
-    "updatedAt": 1785845898976
+    "updatedAt": 1785845898976,
+    "weekKey": "2026-W32"
   },
   {
     "id": 1785845830727,
@@ -177,7 +203,8 @@
     "category": "Documentation",
     "billable": "yes",
     "notes": "",
-    "updatedAt": 1785845830727
+    "updatedAt": 1785845830727,
+    "weekKey": "2026-W32"
   },
   {
     "id": 1785845805599,
@@ -189,7 +216,8 @@
     "category": "Documentation",
     "billable": "yes",
     "notes": "",
-    "updatedAt": 1785845805599
+    "updatedAt": 1785845805599,
+    "weekKey": "2026-W32"
   },
   {
     "id": 1785766624856,
@@ -201,7 +229,8 @@
     "category": "Documentation",
     "billable": "yes",
     "notes": "",
-    "updatedAt": 1785766671927
+    "updatedAt": 1785766671927,
+    "weekKey": "2026-W32"
   },
   {
     "id": 1785765365391,
@@ -213,7 +242,8 @@
     "category": "Documentation",
     "billable": "yes",
     "notes": "EOJ",
-    "updatedAt": 1785765365391
+    "updatedAt": 1785765365391,
+    "weekKey": "2026-W32"
   },
   {
     "id": 1785765328014,
@@ -225,7 +255,8 @@
     "category": "Other",
     "billable": "no",
     "notes": "",
-    "updatedAt": 1785765328014
+    "updatedAt": 1785765328014,
+    "weekKey": "2026-W32"
   },
   {
     "id": 1785764725415,
@@ -237,7 +268,8 @@
     "category": "Documentation",
     "billable": "yes",
     "notes": "EOJ",
-    "updatedAt": 1785764725415
+    "updatedAt": 1785764725415,
+    "weekKey": "2026-W32"
   },
   {
     "id": 1785501565266,
