@@ -17,7 +17,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
-    /* ─── Styles ─── */
+    /* ─── all styles (unchanged) ─── */
     :root { --bg-primary: #0a0e17; --bg-card: #111927; --border-subtle: rgba(47,199,255,0.08); --text-primary: #e0e8ee; --text-secondary: #8a9fb0; --accent: #2fc7ff; --green: #00b894; --orange: #fdcb6e; --red: #e17055; --purple: #a29bfe; }
     * { box-sizing: border-box; }
     body { background: var(--bg-primary); color: var(--text-primary); font-family: 'Inter', sans-serif; min-height: 100vh; }
@@ -288,7 +288,7 @@
     let saveQueue = [];
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    //  DEFAULT DATA (full study plan)
+    //  DEFAULT DATA (full study plan – complete)
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     function getDefaultData() {
       return {
@@ -744,6 +744,26 @@
     }
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    //  HELPER: Recalculate a topic's completion from its subtopics
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    function recalcTopicCompletion(topic) {
+      if (!topic.subtopics || !topic.subCompleted) {
+        topic.completed = false;
+        return;
+      }
+      // Ensure subCompleted array matches subtopics length
+      while (topic.subCompleted.length < topic.subtopics.length) {
+        topic.subCompleted.push(false);
+      }
+      while (topic.subCompleted.length > topic.subtopics.length) {
+        topic.subCompleted.pop();
+      }
+      const allDone = topic.subCompleted.every(Boolean);
+      topic.completed = allDone;
+      return allDone;
+    }
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     //  CACHE & SYNC – PLAIN JSON (NO ENCRYPTION)
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     const CACHE_KEY = 'studies_data_cache';
@@ -838,7 +858,7 @@
           return null;
         }
 
-        // Check if it's the old encrypted format (has salt, iv, ciphertext)
+        // Check if it's the old encrypted format
         if (parsed && typeof parsed === 'object' && parsed.salt && parsed.iv && parsed.ciphertext) {
           console.log('🔐 Old encrypted file detected – attempting to decrypt...');
           try {
@@ -873,7 +893,6 @@
     // ─── Save to GitHub – plain JSON ───
     async function saveToGitHub(dataToSave) {
       if (isSaving) {
-        // Queue the save to run after current one finishes
         return new Promise((resolve, reject) => {
           saveQueue.push({ dataToSave, resolve, reject });
         });
@@ -889,14 +908,12 @@
         const { owner, repo, branch } = window.REPO_CONFIG || { owner: 'siyabongathupana', repo: 'portfolio', branch: 'main' };
         const path = getStudyPath();
 
-        // Get current SHA
         let sha = null;
         try {
           const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
           if (existing && existing.sha) sha = existing.sha;
         } catch (e) {}
 
-        // Pass the OBJECT directly – GitHubAPI.updateFile will stringify it.
         await retry(async () => {
           await GitHubAPI.updateFile(owner, repo, path, dataToSave, 'Update study data (plain JSON)', branch, user.pat, sha);
         }, 3, 1000);
@@ -906,7 +923,6 @@
         showToast('✅ Saved', 'success');
         isSaving = false;
 
-        // Process any queued saves
         while (saveQueue.length) {
           const next = saveQueue.shift();
           try {
@@ -921,7 +937,6 @@
         console.error('Save failed:', err);
         showToast('❌ Save failed: ' + err.message, 'error');
         isSaving = false;
-        // Reject queued saves
         while (saveQueue.length) {
           const next = saveQueue.shift();
           next.reject(err);
@@ -938,7 +953,6 @@
           studyData = cached;
           console.log('✅ Loaded from cache');
           render();
-          // Background sync
           setTimeout(async () => {
             try {
               const githubData = await loadFromGitHub();
@@ -955,7 +969,6 @@
           return true;
         }
 
-        // No cache – use default and try GitHub
         studyData = getDefaultData();
         render();
         setTimeout(async () => {
@@ -966,7 +979,6 @@
               render();
               console.log('✅ Loaded from GitHub');
             } else {
-              // Save default to GitHub
               await saveToGitHub(studyData);
             }
           } catch (err) {
@@ -1204,6 +1216,21 @@
               `;
 
               topics.forEach((topic, ti) => {
+                // Ensure subCompleted array is in sync
+                if (topic.subtopics && topic.subCompleted) {
+                  while (topic.subCompleted.length < topic.subtopics.length) {
+                    topic.subCompleted.push(false);
+                  }
+                  while (topic.subCompleted.length > topic.subtopics.length) {
+                    topic.subCompleted.pop();
+                  }
+                  // Recalc completion
+                  const allDone = topic.subCompleted.every(Boolean);
+                  topic.completed = allDone;
+                } else {
+                  topic.completed = false;
+                }
+
                 const subTopics = topic.subtopics || [];
                 const subDone = (topic.subCompleted || []).filter(Boolean).length;
                 const checked = topic.completed || false;
@@ -1307,24 +1334,21 @@
     }
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    //  CHECKBOX TOGGLES (instant)
+    //  CHECKBOX TOGGLES (with recalc)
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     function toggleTopicComplete(yi, si, ui, wi, ti) {
       const topic = getTopic(yi, si, ui, wi, ti);
       if (!topic) return;
+      // Toggle the topic completion
       topic.completed = !topic.completed;
+      // Sync all subtopics to match
       if (topic.subtopics && topic.subtopics.length) {
         topic.subCompleted = topic.subtopics.map(() => topic.completed);
+      } else {
+        topic.subCompleted = [];
       }
       // Update UI
-      const check = document.querySelector(`.topic-header .check[data-yi="${yi}"][data-si="${si}"][data-ui="${ui}"][data-wi="${wi}"][data-ti="${ti}"]`);
-      if (check) check.classList.toggle('checked', topic.completed);
-      const subs = document.querySelectorAll(`.sub-check[data-yi="${yi}"][data-si="${si}"][data-ui="${ui}"][data-wi="${wi}"][data-ti="${ti}"]`);
-      subs.forEach(el => {
-        el.classList.toggle('checked', topic.completed);
-        const label = el.parentElement.querySelector('.sub-label');
-        if (label) label.classList.toggle('done', topic.completed);
-      });
+      updateTopicUI(yi, si, ui, wi, ti, topic.completed);
       renderStats();
       saveStudyData();
     }
@@ -1334,19 +1358,34 @@
       if (!topic) return;
       if (!topic.subCompleted) topic.subCompleted = topic.subtopics.map(() => false);
       topic.subCompleted[si2] = !topic.subCompleted[si2];
-      const allDone = topic.subCompleted.every(Boolean);
-      topic.completed = allDone;
-
-      const check = document.querySelector(`.sub-check[data-yi="${yi}"][data-si="${si}"][data-ui="${ui}"][data-wi="${wi}"][data-ti="${ti}"][data-si2="${si2}"]`);
-      if (check) {
-        check.classList.toggle('checked', topic.subCompleted[si2]);
-        const label = check.parentElement.querySelector('.sub-label');
-        if (label) label.classList.toggle('done', topic.subCompleted[si2]);
-      }
-      const parentCheck = document.querySelector(`.topic-header .check[data-yi="${yi}"][data-si="${si}"][data-ui="${ui}"][data-wi="${wi}"][data-ti="${ti}"]`);
-      if (parentCheck) parentCheck.classList.toggle('checked', allDone);
+      // Recalc parent completion
+      recalcTopicCompletion(topic);
+      // Update UI for this subtopic and the parent
+      updateSubtopicUI(yi, si, ui, wi, ti, si2, topic.subCompleted[si2]);
+      updateTopicUI(yi, si, ui, wi, ti, topic.completed);
       renderStats();
       saveStudyData();
+    }
+
+    // ─── UI update helpers ───
+    function updateTopicUI(yi, si, ui, wi, ti, checked) {
+      const check = document.querySelector(`.topic-header .check[data-yi="${yi}"][data-si="${si}"][data-ui="${ui}"][data-wi="${wi}"][data-ti="${ti}"]`);
+      if (check) check.classList.toggle('checked', checked);
+      const subs = document.querySelectorAll(`.sub-check[data-yi="${yi}"][data-si="${si}"][data-ui="${ui}"][data-wi="${wi}"][data-ti="${ti}"]`);
+      subs.forEach(el => {
+        el.classList.toggle('checked', checked);
+        const label = el.parentElement.querySelector('.sub-label');
+        if (label) label.classList.toggle('done', checked);
+      });
+    }
+
+    function updateSubtopicUI(yi, si, ui, wi, ti, si2, checked) {
+      const check = document.querySelector(`.sub-check[data-yi="${yi}"][data-si="${si}"][data-ui="${ui}"][data-wi="${wi}"][data-ti="${ti}"][data-si2="${si2}"]`);
+      if (check) {
+        check.classList.toggle('checked', checked);
+        const label = check.parentElement.querySelector('.sub-label');
+        if (label) label.classList.toggle('done', checked);
+      }
     }
 
     function getTopic(yi, si, ui, wi, ti) {
@@ -1356,7 +1395,7 @@
     }
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    //  GRADE CALCULATOR
+    //  GRADE CALCULATOR (unchanged)
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     function calculateUnitGrade(unit) {
       const allAssignments = [];
@@ -1529,7 +1568,7 @@
     });
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    //  CRUD OPERATIONS (all functions)
+    //  CRUD OPERATIONS – now with recalc on subtopic changes
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     function openModal(title, bodyHTML, onSave) {
       const modal = document.getElementById('genericModal');
@@ -1556,6 +1595,7 @@
       }
     });
 
+    // ─── Years ───
     window.addYear = function() {
       openModal('Add Year', `
         <div class="form-group"><label>Year Name (e.g. 2026)</label><input type="text" id="yearName" placeholder="2026" /></div>
@@ -1585,6 +1625,7 @@
       saveStudyData().then(render);
     };
 
+    // ─── Semesters ───
     window.addSemester = function(yi) {
       openModal('Add Semester', `
         <div class="form-group"><label>Semester Name (e.g. Semester 2)</label><input type="text" id="semesterName" placeholder="Semester 2" /></div>
@@ -1614,6 +1655,7 @@
       saveStudyData().then(render);
     };
 
+    // ─── Units ───
     window.addUnit = function(yi, si) {
       openModal('Add Unit', `
         <div class="form-group"><label>Unit Code</label><input type="text" id="unitCode" placeholder="BSC106" /></div>
@@ -1653,6 +1695,7 @@
       saveStudyData().then(render);
     };
 
+    // ─── Weeks ───
     window.addWeek = function(yi, si, ui) {
       openModal('Add Week', `
         <div class="form-group"><label>Week Number</label><input type="number" id="weekNumber" min="1" step="1" value="1" /></div>
@@ -1683,6 +1726,7 @@
       saveStudyData().then(render);
     };
 
+    // ─── Topics ───
     window.addTopic = function(yi, si, ui, wi) {
       openModal('Add Topic', `
         <div class="form-group"><label>Topic Name</label><input type="text" id="topicName" placeholder="e.g. Multivariable Calculus" /></div>
@@ -1714,6 +1758,7 @@
       saveStudyData().then(render);
     };
 
+    // ─── Subtopics ───
     window.addSubtopic = function(yi, si, ui, wi, ti) {
       openModal('Add Subtopic', `
         <div class="form-group"><label>Subtopic Name</label><input type="text" id="subtopicName" placeholder="e.g. Partial derivatives" /></div>
@@ -1722,11 +1767,10 @@
         if (!name) { showToast('Please enter a subtopic name.', 'error'); return false; }
         const topic = studyData.years[yi].semesters[si].units[ui].weeks[wi].topics[ti];
         if (!topic.subtopics) topic.subtopics = [];
-        topic.subtopics.push(name);
         if (!topic.subCompleted) topic.subCompleted = [];
+        topic.subtopics.push(name);
         topic.subCompleted.push(false);
-        const allDone = topic.subCompleted.every(Boolean);
-        topic.completed = allDone;
+        recalcTopicCompletion(topic);
         return true;
       });
     };
@@ -1734,13 +1778,17 @@
     window.deleteSubtopic = function(yi, si, ui, wi, ti, si2) {
       if (!confirm('Delete this subtopic?')) return;
       const topic = studyData.years[yi].semesters[si].units[ui].weeks[wi].topics[ti];
-      topic.subtopics.splice(si2, 1);
-      topic.subCompleted.splice(si2, 1);
-      const allDone = topic.subCompleted.every(Boolean);
-      topic.completed = allDone;
+      if (topic.subtopics && topic.subtopics.length > si2) {
+        topic.subtopics.splice(si2, 1);
+        if (topic.subCompleted && topic.subCompleted.length > si2) {
+          topic.subCompleted.splice(si2, 1);
+        }
+        recalcTopicCompletion(topic);
+      }
       saveStudyData().then(render);
     };
 
+    // ─── Assignments ───
     window.addAssignment = function(yi, si, ui, wi) {
       openModal('Add Assignment', `
         <div class="form-group"><label>Assignment Name</label><input type="text" id="assName" placeholder="e.g. Quiz 1" /></div>
