@@ -1033,9 +1033,9 @@
                         "Reactions of metals with non-metals",
                         "Chemical equilibrium"
                       ],
-                      "completed": true,
+                      "completed": false,
                       "subCompleted": [
-                        true
+                        false
                       ]
                     }
                   ],
