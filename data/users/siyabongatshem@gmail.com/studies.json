@@ -26,7 +26,7 @@
                       "completed": false,
                       "subCompleted": [
                         null,
-                        true,
+                        false,
                         true,
                         true,
                         true
@@ -85,7 +85,12 @@
                         "Systems of first-order ODEs"
                       ],
                       "completed": false,
-                      "subCompleted": []
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
                     }
                   ],
                   "assignments": [
@@ -138,7 +143,12 @@
                         "Numerical differentiation"
                       ],
                       "completed": false,
-                      "subCompleted": []
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
                     }
                   ],
                   "assignments": [
@@ -162,7 +172,11 @@
                         "Iterative methods: Gauss-Seidel and Jacobi"
                       ],
                       "completed": false,
-                      "subCompleted": []
+                      "subCompleted": [
+                        false,
+                        false,
+                        false
+                      ]
                     }
                   ],
                   "assignments": [
@@ -187,7 +201,12 @@
                         "Special matrices"
                       ],
                       "completed": false,
-                      "subCompleted": []
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
                     }
                   ],
                   "assignments": [
@@ -212,7 +231,12 @@
                         "Transformation of coordinates (Jacobian)"
                       ],
                       "completed": false,
-                      "subCompleted": []
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
                     }
                   ],
                   "assignments": [
@@ -236,7 +260,11 @@
                         "Basic theorems of vector calculus"
                       ],
                       "completed": false,
-                      "subCompleted": []
+                      "subCompleted": [
+                        false,
+                        false,
+                        false
+                      ]
                     }
                   ],
                   "assignments": [
@@ -259,7 +287,10 @@
                         "Harmonic Analysis"
                       ],
                       "completed": false,
-                      "subCompleted": []
+                      "subCompleted": [
+                        false,
+                        false
+                      ]
                     }
                   ],
                   "assignments": [
@@ -281,7 +312,9 @@
                         "Taylor series expansion"
                       ],
                       "completed": false,
-                      "subCompleted": []
+                      "subCompleted": [
+                        false
+                      ]
                     }
                   ],
                   "assignments": [
@@ -303,7 +336,9 @@
                         "Comprehensive review of all topics"
                       ],
                       "completed": false,
-                      "subCompleted": []
+                      "subCompleted": [
+                        false
+                      ]
                     }
                   ],
                   "assignments": [
@@ -340,7 +375,17 @@
                         "Engineering drawing standards"
                       ],
                       "completed": false,
-                      "subCompleted": []
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
                     }
                   ],
                   "assignments": [
@@ -369,7 +414,16 @@
                         "Creating Isometric Sketches"
                       ],
                       "completed": false,
-                      "subCompleted": []
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
                     }
                   ],
                   "assignments": [
@@ -395,7 +449,13 @@
                         "Introduction to CAD: Basic 2D entities"
                       ],
                       "completed": false,
-                      "subCompleted": []
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
                     }
                   ],
                   "assignments": [
@@ -420,7 +480,12 @@
                         "Introduction to CAD: Basic 3D models"
                       ],
                       "completed": false,
-                      "subCompleted": []
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
                     }
                   ],
                   "assignments": [
@@ -454,7 +519,21 @@
                         "CAD: Drawings and section views"
                       ],
                       "completed": false,
-                      "subCompleted": []
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
                     }
                   ],
                   "assignments": [
@@ -479,7 +558,12 @@
                         "Types of Assembly Drawings"
                       ],
                       "completed": false,
-                      "subCompleted": []
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
                     }
                   ],
                   "assignments": [
@@ -506,7 +590,14 @@
                         "Analysis of a Set of Working Drawings"
                       ],
                       "completed": false,
-                      "subCompleted": []
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
                     }
                   ],
                   "assignments": [
@@ -529,7 +620,10 @@
                         "Creating simple parts"
                       ],
                       "completed": false,
-                      "subCompleted": []
+                      "subCompleted": [
+                        false,
+                        false
+                      ]
                     }
                   ],
                   "assignments": [
@@ -552,7 +646,10 @@
                         "Creating simple assemblies"
                       ],
                       "completed": false,
-                      "subCompleted": []
+                      "subCompleted": [
+                        false,
+                        false
+                      ]
                     }
                   ],
                   "assignments": [
@@ -575,7 +672,10 @@
                         "Creating drawings"
                       ],
                       "completed": false,
-                      "subCompleted": []
+                      "subCompleted": [
+                        false,
+                        false
+                      ]
                     }
                   ],
                   "assignments": [
@@ -598,7 +698,10 @@
                         "Creating a simple building plan"
                       ],
                       "completed": false,
-                      "subCompleted": []
+                      "subCompleted": [
+                        false,
+                        false
+                      ]
                     }
                   ],
                   "assignments": [
@@ -629,7 +732,18 @@
                         "The Solution-first strategy"
                       ],
                       "completed": false,
-                      "subCompleted": []
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
                     }
                   ],
                   "assignments": [
@@ -664,7 +778,15 @@
                         "Professional Ethics for Programmers"
                       ],
                       "completed": false,
-                      "subCompleted": []
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
                     }
                   ],
                   "assignments": [
@@ -692,7 +814,15 @@
                         "Interactive Mode, Batch Mode, and Data Files"
                       ],
                       "completed": false,
-                      "subCompleted": []
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
                     }
                   ],
                   "assignments": [
@@ -722,7 +852,17 @@
                         "Functions with Input Arguments"
                       ],
                       "completed": false,
-                      "subCompleted": []
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
                     }
                   ],
                   "assignments": [
@@ -752,7 +892,17 @@
                         "The switch Statement"
                       ],
                       "completed": false,
-                      "subCompleted": []
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
                     }
                   ],
                   "assignments": [
@@ -784,7 +934,19 @@
                         "Recursion Example: Fibonacci Series"
                       ],
                       "completed": false,
-                      "subCompleted": []
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
                     }
                   ],
                   "assignments": [
@@ -814,7 +976,17 @@
                         "Graphics Programs with Arrays"
                       ],
                       "completed": false,
-                      "subCompleted": []
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
                     }
                   ],
                   "assignments": [
@@ -843,7 +1015,16 @@
                         "Dynamic Memory Allocation"
                       ],
                       "completed": false,
-                      "subCompleted": []
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
                     }
                   ],
                   "assignments": [
@@ -871,7 +1052,15 @@
                         "String-to-Number and Number-to-String Conversions"
                       ],
                       "completed": false,
-                      "subCompleted": []
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
                     }
                   ],
                   "assignments": [
@@ -902,7 +1091,18 @@
                         "Arguments to Function main"
                       ],
                       "completed": false,
-                      "subCompleted": []
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
                     }
                   ],
                   "assignments": [
@@ -933,7 +1133,18 @@
                         "Introduction to Plotting"
                       ],
                       "completed": false,
-                      "subCompleted": []
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
                     }
                   ],
                   "assignments": [
@@ -964,7 +1175,18 @@
                         "Macros"
                       ],
                       "completed": false,
-                      "subCompleted": []
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
                     }
                   ],
                   "assignments": [
@@ -993,7 +1215,16 @@
                         "Using Python Standard Library"
                       ],
                       "completed": false,
-                      "subCompleted": []
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
                     }
                   ],
                   "assignments": [
@@ -1036,6 +1267,10 @@
                       "completed": false,
                       "subCompleted": [
                         false,
+                        false,
+                        false,
+                        false,
+                        false,
                         false
                       ]
                     }
@@ -1065,7 +1300,15 @@
                         "Principles of multiphase systems"
                       ],
                       "completed": false,
-                      "subCompleted": []
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
                     }
                   ],
                   "assignments": [
@@ -1093,7 +1336,15 @@
                         "Fundamentals of Stoichiometry"
                       ],
                       "completed": false,
-                      "subCompleted": []
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
                     }
                   ],
                   "assignments": [
@@ -1118,7 +1369,12 @@
                         "Thermodynamic properties (entropy, enthalpy)"
                       ],
                       "completed": false,
-                      "subCompleted": []
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
                     }
                   ],
                   "assignments": [
@@ -1144,7 +1400,13 @@
                         "Equipment used in process engineering"
                       ],
                       "completed": false,
-                      "subCompleted": []
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
                     }
                   ],
                   "assignments": [
@@ -1170,7 +1432,13 @@
                         "Process safety (HAZOP procedure and documentation)"
                       ],
                       "completed": false,
-                      "subCompleted": []
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
                     }
                   ],
                   "assignments": [
@@ -1199,7 +1467,16 @@
                         "Labelling a PFD"
                       ],
                       "completed": false,
-                      "subCompleted": []
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
                     }
                   ],
                   "assignments": [
@@ -1226,7 +1503,14 @@
                         "Multiple-unit process flowcharts"
                       ],
                       "completed": false,
-                      "subCompleted": []
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
                     }
                   ],
                   "assignments": [
@@ -1256,7 +1540,17 @@
                         "Simultaneous material and energy balances"
                       ],
                       "completed": false,
-                      "subCompleted": []
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
                     }
                   ],
                   "assignments": [
@@ -1282,7 +1576,13 @@
                         "Environmental and economic challenges"
                       ],
                       "completed": false,
-                      "subCompleted": []
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
                     }
                   ],
                   "assignments": [
@@ -1307,7 +1607,12 @@
                         "Examples of simulation models"
                       ],
                       "completed": false,
-                      "subCompleted": []
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
                     }
                   ],
                   "assignments": [
@@ -1330,7 +1635,10 @@
                         "Clarification of outstanding issues"
                       ],
                       "completed": false,
-                      "subCompleted": []
+                      "subCompleted": [
+                        false,
+                        false
+                      ]
                     }
                   ],
                   "assignments": [
