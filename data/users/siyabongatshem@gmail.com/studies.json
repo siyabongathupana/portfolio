@@ -1266,7 +1266,7 @@
                       ],
                       "completed": false,
                       "subCompleted": [
-                        false,
+                        true,
                         false,
                         false,
                         false,
