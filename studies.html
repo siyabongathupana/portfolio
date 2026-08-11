@@ -910,7 +910,7 @@
 
         // Save with retry and SHA refresh on conflict
         await retry(async () => {
-          // Fetch latest file info (including SHA)
+          // Fetch latest file info (including SHA) – IMPORTANT: always get fresh SHA
           let sha = null;
           try {
             const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
@@ -925,7 +925,10 @@
 
         console.log('✅ Saved to GitHub (plain JSON)');
         saveToCache(dataToSave);
-        showToast('✅ Saved', 'success');
+        // Show success toast only if not a quick toggle – we can skip for silent saves
+        if (!window._silentSave) {
+          showToast('✅ Saved', 'success');
+        }
         isSaving = false;
 
         while (saveQueue.length) {
@@ -940,7 +943,9 @@
         return true;
       } catch (err) {
         console.error('Save failed:', err);
-        showToast('❌ Save failed: ' + err.message, 'error');
+        if (!window._silentSave) {
+          showToast('❌ Save failed: ' + err.message, 'error');
+        }
         isSaving = false;
         while (saveQueue.length) {
           const next = saveQueue.shift();
@@ -1008,6 +1013,16 @@
           `;
         }
         return false;
+      }
+    }
+
+    // ─── Silent save for toggles (no toast) ───
+    async function silentSave() {
+      window._silentSave = true;
+      try {
+        await saveStudyData();
+      } finally {
+        window._silentSave = false;
       }
     }
 
@@ -1339,7 +1354,7 @@
     }
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    //  CHECKBOX TOGGLES (with recalc)
+    //  CHECKBOX TOGGLES (with instant UI update)
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     function toggleTopicComplete(yi, si, ui, wi, ti) {
       const topic = getTopic(yi, si, ui, wi, ti);
@@ -1352,10 +1367,11 @@
       } else {
         topic.subCompleted = [];
       }
-      // Update UI
+      // Update UI immediately
       updateTopicUI(yi, si, ui, wi, ti, topic.completed);
       renderStats();
-      saveStudyData();
+      // Save in background (no toast)
+      silentSave();
     }
 
     function toggleSubtopic(yi, si, ui, wi, ti, si2) {
@@ -1365,11 +1381,12 @@
       topic.subCompleted[si2] = !topic.subCompleted[si2];
       // Recalc parent completion
       recalcTopicCompletion(topic);
-      // Update UI for this subtopic and the parent
+      // Update UI immediately for this subtopic and the parent
       updateSubtopicUI(yi, si, ui, wi, ti, si2, topic.subCompleted[si2]);
       updateTopicUI(yi, si, ui, wi, ti, topic.completed);
       renderStats();
-      saveStudyData();
+      // Save in background (no toast)
+      silentSave();
     }
 
     // ─── UI update helpers ───
@@ -1517,7 +1534,7 @@
       if (idx < flatAssignments.length) {
         const ass = flatAssignments[idx];
         ass.marks = input.value;
-        saveStudyData().then(() => {
+        silentSave().then(() => {
           if (gradeModalOpen) {
             renderGradeModal(yi, si, ui);
             const newInput = document.querySelector(`.marks-input[data-yi="${yi}"][data-si="${si}"][data-ui="${ui}"][data-idx="${idx}"]`);
@@ -1850,7 +1867,7 @@
       saveStudyData().then(render);
     };
 
-    // ─── EXPORT TO EXCEL ───
+    // ─── EXPORT TO EXCEL (unchanged) ───
     window.exportToExcel = async function() {
       if (!studyData.years.length) {
         showToast('No data to export.', 'error');
@@ -1863,7 +1880,7 @@
         workbook.creator = user.username;
         workbook.created = new Date();
 
-        // Cover sheet
+        // Cover sheet (simplified, full version kept as before)
         const cover = workbook.addWorksheet('Cover', { pageSetup: { orientation: 'portrait', fitToPage: true } });
         cover.mergeCells('A1:D1');
         const titleCell = cover.getCell('A1');
@@ -1927,7 +1944,7 @@
         });
         cover.columns.forEach(col => { col.width = 25; });
 
-        // Data sheet
+        // Data sheet (simplified)
         const ws = workbook.addWorksheet('Full Data', { pageSetup: { orientation: 'landscape', fitToPage: true } });
         ws.mergeCells('A1:F1');
         const wsTitle = ws.getCell('A1');
@@ -1957,7 +1974,7 @@
         });
         ws.columns.forEach(col => col.width = 16);
 
-        // Dashboard with charts
+        // Dashboard (simplified, but with chart)
         const dash = workbook.addWorksheet('Dashboard', { pageSetup: { orientation: 'landscape', fitToPage: true } });
         dash.mergeCells('A1:F1');
         const dashTitle = dash.getCell('A1');
