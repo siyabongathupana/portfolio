@@ -26,7 +26,7 @@
                       "completed": false,
                       "subCompleted": [
                         false,
-                        false,
+                        true,
                         false,
                         false,
                         false
