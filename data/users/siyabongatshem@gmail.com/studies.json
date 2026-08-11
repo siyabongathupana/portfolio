@@ -23,13 +23,13 @@
                         "Partial Derivatives of Higher Orders",
                         "Differentiation of Implicit Functions"
                       ],
-                      "completed": true,
+                      "completed": false,
                       "subCompleted": [
-                        true,
-                        true,
-                        true,
-                        true,
-                        true
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
                       ]
                     }
                   ],
@@ -427,7 +427,7 @@
                   "assignments": [
                     {
                       "name": "Portfolio Week 2",
-                      "due": "2026-08-23",
+                      "due": "",
                       "status": "pending",
                       "marks": "",
                       "weight": 10
@@ -775,23 +775,23 @@
                         "The Software Development Method",
                         "Professional Ethics for Programmers"
                       ],
-                      "completed": true,
+                      "completed": false,
                       "subCompleted": [
-                        true,
-                        true,
-                        true,
-                        true,
-                        true,
-                        true,
-                        true
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
                       ]
                     }
                   ],
                   "assignments": [
                     {
                       "name": "Quiz 1",
-                      "due": "2026-08-16",
-                      "status": "submitted",
+                      "due": "",
+                      "status": "pending",
                       "marks": "",
                       "weight": 10
                     }
@@ -1262,14 +1262,14 @@
                         "Reactions of metals with non-metals",
                         "Chemical equilibrium"
                       ],
-                      "completed": true,
+                      "completed": false,
                       "subCompleted": [
-                        true,
-                        true,
-                        true,
-                        true,
-                        true,
-                        true
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
                       ]
                     }
                   ],
@@ -1297,22 +1297,22 @@
                         "Gas laws",
                         "Principles of multiphase systems"
                       ],
-                      "completed": true,
+                      "completed": false,
                       "subCompleted": [
-                        true,
-                        true,
-                        true,
-                        true,
-                        true,
-                        true,
-                        true
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
                       ]
                     }
                   ],
                   "assignments": [
                     {
                       "name": "Quiz 2",
-                      "due": "2026-08-16",
+                      "due": "",
                       "status": "pending",
                       "marks": "",
                       "weight": 10
