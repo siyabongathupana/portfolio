@@ -285,6 +285,7 @@
     let expanded = {};
     let isSaving = false;
     let gradeModalOpen = false;
+    let saveDebounceTimer = null;
     let saveQueue = [];
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -955,6 +956,29 @@
       }
     }
 
+    // ─── Debounced save (for rapid toggles) ───
+    function debouncedSave(immediate = false) {
+      if (saveDebounceTimer) {
+        clearTimeout(saveDebounceTimer);
+        saveDebounceTimer = null;
+      }
+      if (immediate) {
+        // Save now, but don't show toast
+        window._silentSave = true;
+        saveStudyData().catch(() => {}).finally(() => {
+          window._silentSave = false;
+        });
+        return;
+      }
+      saveDebounceTimer = setTimeout(() => {
+        saveDebounceTimer = null;
+        window._silentSave = true;
+        saveStudyData().catch(() => {}).finally(() => {
+          window._silentSave = false;
+        });
+      }, 500);
+    }
+
     // ─── Load data (cache first, then GitHub) ───
     function loadData() {
       try {
@@ -1013,16 +1037,6 @@
           `;
         }
         return false;
-      }
-    }
-
-    // ─── Silent save for toggles (no toast) ───
-    async function silentSave() {
-      window._silentSave = true;
-      try {
-        await saveStudyData();
-      } finally {
-        window._silentSave = false;
       }
     }
 
@@ -1354,11 +1368,12 @@
     }
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    //  CHECKBOX TOGGLES (with instant UI update)
+    //  NEW: CHECKING/UNCHECKING LOGIC (redesigned)
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     function toggleTopicComplete(yi, si, ui, wi, ti) {
       const topic = getTopic(yi, si, ui, wi, ti);
       if (!topic) return;
+
       // Toggle the topic completion
       topic.completed = !topic.completed;
       // Sync all subtopics to match
@@ -1367,26 +1382,36 @@
       } else {
         topic.subCompleted = [];
       }
-      // Update UI immediately
+
+      // Update UI immediately (no re-render needed)
       updateTopicUI(yi, si, ui, wi, ti, topic.completed);
       renderStats();
-      // Save in background (no toast)
-      silentSave();
+
+      // Schedule save (debounced, no toast)
+      debouncedSave();
     }
 
     function toggleSubtopic(yi, si, ui, wi, ti, si2) {
       const topic = getTopic(yi, si, ui, wi, ti);
       if (!topic) return;
-      if (!topic.subCompleted) topic.subCompleted = topic.subtopics.map(() => false);
+
+      // Ensure subCompleted array exists
+      if (!topic.subCompleted) {
+        topic.subCompleted = topic.subtopics.map(() => false);
+      }
+      // Toggle the specific subtopic
       topic.subCompleted[si2] = !topic.subCompleted[si2];
-      // Recalc parent completion
+
+      // Recalculate parent completion
       recalcTopicCompletion(topic);
+
       // Update UI immediately for this subtopic and the parent
       updateSubtopicUI(yi, si, ui, wi, ti, si2, topic.subCompleted[si2]);
       updateTopicUI(yi, si, ui, wi, ti, topic.completed);
       renderStats();
-      // Save in background (no toast)
-      silentSave();
+
+      // Schedule save (debounced, no toast)
+      debouncedSave();
     }
 
     // ─── UI update helpers ───
@@ -1534,14 +1559,13 @@
       if (idx < flatAssignments.length) {
         const ass = flatAssignments[idx];
         ass.marks = input.value;
-        silentSave().then(() => {
-          if (gradeModalOpen) {
-            renderGradeModal(yi, si, ui);
-            const newInput = document.querySelector(`.marks-input[data-yi="${yi}"][data-si="${si}"][data-ui="${ui}"][data-idx="${idx}"]`);
-            if (newInput) newInput.focus();
-          }
-          showToast('✅ Marks updated', 'success');
-        });
+        debouncedSave(true); // immediate save for grade update
+        if (gradeModalOpen) {
+          renderGradeModal(yi, si, ui);
+          const newInput = document.querySelector(`.marks-input[data-yi="${yi}"][data-si="${si}"][data-ui="${ui}"][data-idx="${idx}"]`);
+          if (newInput) newInput.focus();
+        }
+        showToast('✅ Marks updated', 'success');
       }
     };
 
@@ -1867,7 +1891,7 @@
       saveStudyData().then(render);
     };
 
-    // ─── EXPORT TO EXCEL (unchanged) ───
+    // ─── EXPORT TO EXCEL (simplified but functional) ───
     window.exportToExcel = async function() {
       if (!studyData.years.length) {
         showToast('No data to export.', 'error');
@@ -1880,7 +1904,7 @@
         workbook.creator = user.username;
         workbook.created = new Date();
 
-        // Cover sheet (simplified, full version kept as before)
+        // Cover sheet
         const cover = workbook.addWorksheet('Cover', { pageSetup: { orientation: 'portrait', fitToPage: true } });
         cover.mergeCells('A1:D1');
         const titleCell = cover.getCell('A1');
@@ -1944,7 +1968,7 @@
         });
         cover.columns.forEach(col => { col.width = 25; });
 
-        // Data sheet (simplified)
+        // Data sheet
         const ws = workbook.addWorksheet('Full Data', { pageSetup: { orientation: 'landscape', fitToPage: true } });
         ws.mergeCells('A1:F1');
         const wsTitle = ws.getCell('A1');
@@ -1974,7 +1998,7 @@
         });
         ws.columns.forEach(col => col.width = 16);
 
-        // Dashboard (simplified, but with chart)
+        // Dashboard with charts
         const dash = workbook.addWorksheet('Dashboard', { pageSetup: { orientation: 'landscape', fitToPage: true } });
         dash.mergeCells('A1:F1');
         const dashTitle = dash.getCell('A1');
