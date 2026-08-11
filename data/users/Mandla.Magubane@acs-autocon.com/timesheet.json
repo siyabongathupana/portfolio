@@ -1,5 +1,29 @@
 [
   {
+    "id": 1786450928285,
+    "date": "2026-08-11",
+    "start": "13:00",
+    "end": "15:15",
+    "hours": 2.25,
+    "project": "Other",
+    "category": "Training",
+    "billable": "no",
+    "notes": "",
+    "updatedAt": 1786450928285
+  },
+  {
+    "id": 1786450909783,
+    "date": "2026-08-11",
+    "start": "11:00",
+    "end": "12:20",
+    "hours": 1.33,
+    "project": "Other",
+    "category": "Training",
+    "billable": "no",
+    "notes": "",
+    "updatedAt": 1786450909783
+  },
+  {
     "id": 1786450880999,
     "date": "2026-08-11",
     "start": "06:45",
