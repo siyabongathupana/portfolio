@@ -116,7 +116,7 @@
                       "completed": false,
                       "subCompleted": [
                         true,
-                        true,
+                        false,
                         false
                       ]
                     }
