@@ -23,13 +23,13 @@
                         "Partial Derivatives of Higher Orders",
                         "Differentiation of Implicit Functions"
                       ],
-                      "completed": false,
+                      "completed": true,
                       "subCompleted": [
-                        false,
                         true,
-                        false,
-                        false,
-                        false
+                        true,
+                        true,
+                        true,
+                        true
                       ]
                     }
                   ],
@@ -1264,11 +1264,11 @@
                       ],
                       "completed": false,
                       "subCompleted": [
+                        true,
                         false,
                         false,
                         false,
-                        false,
-                        false,
+                        true,
                         true
                       ]
                     }
