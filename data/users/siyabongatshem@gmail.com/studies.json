@@ -54,12 +54,12 @@
                         "Areas and Volumes by integration",
                         "Numerical Integration"
                       ],
-                      "completed": false,
+                      "completed": true,
                       "subCompleted": [
-                        false,
-                        false,
-                        false,
-                        false
+                        true,
+                        true,
+                        true,
+                        true
                       ]
                     }
                   ],
@@ -372,17 +372,17 @@
                         "Dimensioning",
                         "Engineering drawing standards"
                       ],
-                      "completed": true,
+                      "completed": false,
                       "subCompleted": [
-                        true,
-                        true,
-                        true,
-                        true,
-                        true,
-                        true,
-                        true,
-                        true,
-                        true
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
                       ]
                     }
                   ],
@@ -411,16 +411,16 @@
                         "Creating Multiview Sketches",
                         "Creating Isometric Sketches"
                       ],
-                      "completed": true,
+                      "completed": false,
                       "subCompleted": [
-                        true,
-                        true,
-                        true,
-                        true,
-                        true,
-                        true,
-                        true,
-                        true
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
                       ]
                     }
                   ],
@@ -775,15 +775,15 @@
                         "The Software Development Method",
                         "Professional Ethics for Programmers"
                       ],
-                      "completed": true,
+                      "completed": false,
                       "subCompleted": [
-                        true,
-                        true,
-                        true,
-                        true,
-                        true,
-                        true,
-                        true
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
                       ]
                     }
                   ],
@@ -811,15 +811,15 @@
                         "Formatting Numbers in Program Output",
                         "Interactive Mode, Batch Mode, and Data Files"
                       ],
-                      "completed": true,
+                      "completed": false,
                       "subCompleted": [
-                        true,
-                        true,
-                        true,
-                        true,
-                        true,
-                        true,
-                        true
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
                       ]
                     }
                   ],
@@ -1262,14 +1262,14 @@
                         "Reactions of metals with non-metals",
                         "Chemical equilibrium"
                       ],
-                      "completed": true,
+                      "completed": false,
                       "subCompleted": [
-                        true,
-                        true,
-                        true,
-                        true,
-                        true,
-                        true
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
                       ]
                     }
                   ],
@@ -1297,15 +1297,15 @@
                         "Gas laws",
                         "Principles of multiphase systems"
                       ],
-                      "completed": true,
+                      "completed": false,
                       "subCompleted": [
-                        true,
-                        true,
-                        true,
-                        true,
-                        true,
-                        true,
-                        true
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
                       ]
                     }
                   ],
