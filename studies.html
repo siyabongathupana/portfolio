@@ -890,7 +890,7 @@
       }, 3, 1500);
     }
 
-    // ─── Save to GitHub – plain JSON ───
+    // ─── Save to GitHub – with conflict resolution ───
     async function saveToGitHub(dataToSave) {
       if (isSaving) {
         return new Promise((resolve, reject) => {
@@ -908,13 +908,18 @@
         const { owner, repo, branch } = window.REPO_CONFIG || { owner: 'siyabongathupana', repo: 'portfolio', branch: 'main' };
         const path = getStudyPath();
 
-        let sha = null;
-        try {
-          const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
-          if (existing && existing.sha) sha = existing.sha;
-        } catch (e) {}
-
+        // Save with retry and SHA refresh on conflict
         await retry(async () => {
+          // Fetch latest file info (including SHA)
+          let sha = null;
+          try {
+            const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
+            if (existing && existing.sha) sha = existing.sha;
+          } catch (e) {
+            // If file doesn't exist, sha remains null (create new file)
+          }
+
+          // Update file with the latest SHA (or null for create)
           await GitHubAPI.updateFile(owner, repo, path, dataToSave, 'Update study data (plain JSON)', branch, user.pat, sha);
         }, 3, 1000);
 
