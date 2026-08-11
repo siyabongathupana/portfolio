@@ -427,7 +427,7 @@
                   "assignments": [
                     {
                       "name": "Portfolio Week 2",
-                      "due": "",
+                      "due": "2026-08-23",
                       "status": "pending",
                       "marks": "",
                       "weight": 10
@@ -775,23 +775,23 @@
                         "The Software Development Method",
                         "Professional Ethics for Programmers"
                       ],
-                      "completed": false,
+                      "completed": true,
                       "subCompleted": [
                         true,
-                        false,
-                        false,
-                        false,
-                        false,
-                        false,
-                        false
+                        true,
+                        true,
+                        true,
+                        true,
+                        true,
+                        true
                       ]
                     }
                   ],
                   "assignments": [
                     {
                       "name": "Quiz 1",
-                      "due": "",
-                      "status": "pending",
+                      "due": "2026-08-16",
+                      "status": "submitted",
                       "marks": "",
                       "weight": 10
                     }
@@ -1312,7 +1312,7 @@
                   "assignments": [
                     {
                       "name": "Quiz 2",
-                      "due": "",
+                      "due": "2026-08-16",
                       "status": "pending",
                       "marks": "",
                       "weight": 10
