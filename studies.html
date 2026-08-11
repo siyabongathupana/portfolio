@@ -752,7 +752,6 @@
         topic.completed = false;
         return;
       }
-      // Ensure subCompleted array matches subtopics length
       while (topic.subCompleted.length < topic.subtopics.length) {
         topic.subCompleted.push(false);
       }
@@ -901,7 +900,6 @@
 
       isSaving = true;
       try {
-        // Validate data
         if (!dataToSave.years || !Array.isArray(dataToSave.years)) {
           throw new Error('Invalid data structure: "years" must be an array.');
         }
@@ -909,24 +907,18 @@
         const { owner, repo, branch } = window.REPO_CONFIG || { owner: 'siyabongathupana', repo: 'portfolio', branch: 'main' };
         const path = getStudyPath();
 
-        // Save with retry and SHA refresh on conflict
         await retry(async () => {
-          // Fetch latest file info (including SHA) – IMPORTANT: always get fresh SHA
           let sha = null;
           try {
             const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
             if (existing && existing.sha) sha = existing.sha;
-          } catch (e) {
-            // If file doesn't exist, sha remains null (create new file)
-          }
+          } catch (e) {}
 
-          // Update file with the latest SHA (or null for create)
           await GitHubAPI.updateFile(owner, repo, path, dataToSave, 'Update study data (plain JSON)', branch, user.pat, sha);
         }, 3, 1000);
 
         console.log('✅ Saved to GitHub (plain JSON)');
         saveToCache(dataToSave);
-        // Show success toast only if not a quick toggle – we can skip for silent saves
         if (!window._silentSave) {
           showToast('✅ Saved', 'success');
         }
@@ -963,7 +955,6 @@
         saveDebounceTimer = null;
       }
       if (immediate) {
-        // Save now, but don't show toast
         window._silentSave = true;
         saveStudyData().catch(() => {}).finally(() => {
           window._silentSave = false;
@@ -1258,7 +1249,6 @@
                   while (topic.subCompleted.length > topic.subtopics.length) {
                     topic.subCompleted.pop();
                   }
-                  // Recalc completion
                   const allDone = topic.subCompleted.every(Boolean);
                   topic.completed = allDone;
                 } else {
@@ -1278,7 +1268,7 @@
                   <div class="topic-header" onclick="toggleTopicExpand('${topicKey}')">
                     <div class="check ${checked ? 'checked' : ''}" 
                          data-yi="${yi}" data-si="${si}" data-ui="${ui}" data-wi="${wi}" data-ti="${ti}"
-                         onclick="event.stopPropagation();toggleTopicComplete(${yi}, ${si}, ${ui}, ${wi}, ${ti})">
+                         onclick="event.stopPropagation();toggleTopicComplete(this, ${yi}, ${si}, ${ui}, ${wi}, ${ti})">
                       <i class="fa fa-check"></i>
                     </div>
                     <div class="name">${escapeHtml(topic.name)}</div>
@@ -1297,7 +1287,7 @@
                         <div class="subtopic-item">
                           <div class="sub-check ${subChecked ? 'checked' : ''}" 
                                data-yi="${yi}" data-si="${si}" data-ui="${ui}" data-wi="${wi}" data-ti="${ti}" data-si2="${si2}"
-                               onclick="toggleSubtopic(${yi}, ${si}, ${ui}, ${wi}, ${ti}, ${si2})">
+                               onclick="toggleSubtopic(this, ${yi}, ${si}, ${ui}, ${wi}, ${ti}, ${si2})">
                             <i class="fa fa-check"></i>
                           </div>
                           <div class="sub-label ${subChecked ? 'done' : ''}">${escapeHtml(sub)}</div>
@@ -1368,73 +1358,74 @@
     }
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    //  NEW: CHECKING/UNCHECKING LOGIC (redesigned)
+    //  NEW REDESIGNED CHECKING/UNCHECKING – uses `this` for instant UI
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    function toggleTopicComplete(yi, si, ui, wi, ti) {
+    function toggleTopicComplete(el, yi, si, ui, wi, ti) {
       const topic = getTopic(yi, si, ui, wi, ti);
       if (!topic) return;
 
-      // Toggle the topic completion
+      // Toggle data
       topic.completed = !topic.completed;
-      // Sync all subtopics to match
       if (topic.subtopics && topic.subtopics.length) {
         topic.subCompleted = topic.subtopics.map(() => topic.completed);
       } else {
         topic.subCompleted = [];
       }
 
-      // Update UI immediately (no re-render needed)
-      updateTopicUI(yi, si, ui, wi, ti, topic.completed);
-      renderStats();
+      // Update the clicked topic checkbox immediately
+      el.classList.toggle('checked', topic.completed);
 
-      // Schedule save (debounced, no toast)
+      // Update all subtopic checkboxes in this topic
+      const topicItem = el.closest('.topic-item');
+      if (topicItem) {
+        const subChecks = topicItem.querySelectorAll('.sub-check');
+        subChecks.forEach(sub => {
+          sub.classList.toggle('checked', topic.completed);
+          const label = sub.parentElement.querySelector('.sub-label');
+          if (label) label.classList.toggle('done', topic.completed);
+        });
+      }
+
+      renderStats();
       debouncedSave();
     }
 
-    function toggleSubtopic(yi, si, ui, wi, ti, si2) {
+    function toggleSubtopic(el, yi, si, ui, wi, ti, si2) {
       const topic = getTopic(yi, si, ui, wi, ti);
       if (!topic) return;
 
-      // Ensure subCompleted array exists
-      if (!topic.subCompleted) {
-        topic.subCompleted = topic.subtopics.map(() => false);
-      }
-      // Toggle the specific subtopic
+      // Toggle data
+      if (!topic.subCompleted) topic.subCompleted = topic.subtopics.map(() => false);
       topic.subCompleted[si2] = !topic.subCompleted[si2];
-
-      // Recalculate parent completion
       recalcTopicCompletion(topic);
 
-      // Update UI immediately for this subtopic and the parent
-      updateSubtopicUI(yi, si, ui, wi, ti, si2, topic.subCompleted[si2]);
-      updateTopicUI(yi, si, ui, wi, ti, topic.completed);
-      renderStats();
+      // Update the clicked subtopic checkbox immediately
+      el.classList.toggle('checked', topic.subCompleted[si2]);
+      const label = el.parentElement.querySelector('.sub-label');
+      if (label) label.classList.toggle('done', topic.subCompleted[si2]);
 
-      // Schedule save (debounced, no toast)
+      // Find the parent topic checkbox and update it
+      const topicItem = el.closest('.topic-item');
+      if (topicItem) {
+        const parentCheck = topicItem.querySelector('.topic-header .check');
+        if (parentCheck) {
+          parentCheck.classList.toggle('checked', topic.completed);
+        }
+        // Also update all other subtopic labels (optional, but consistency)
+        const allSubs = topicItem.querySelectorAll('.sub-check');
+        allSubs.forEach((sub, idx) => {
+          const subLabel = sub.parentElement.querySelector('.sub-label');
+          if (subLabel) {
+            subLabel.classList.toggle('done', topic.subCompleted[idx]);
+          }
+        });
+      }
+
+      renderStats();
       debouncedSave();
     }
 
-    // ─── UI update helpers ───
-    function updateTopicUI(yi, si, ui, wi, ti, checked) {
-      const check = document.querySelector(`.topic-header .check[data-yi="${yi}"][data-si="${si}"][data-ui="${ui}"][data-wi="${wi}"][data-ti="${ti}"]`);
-      if (check) check.classList.toggle('checked', checked);
-      const subs = document.querySelectorAll(`.sub-check[data-yi="${yi}"][data-si="${si}"][data-ui="${ui}"][data-wi="${wi}"][data-ti="${ti}"]`);
-      subs.forEach(el => {
-        el.classList.toggle('checked', checked);
-        const label = el.parentElement.querySelector('.sub-label');
-        if (label) label.classList.toggle('done', checked);
-      });
-    }
-
-    function updateSubtopicUI(yi, si, ui, wi, ti, si2, checked) {
-      const check = document.querySelector(`.sub-check[data-yi="${yi}"][data-si="${si}"][data-ui="${ui}"][data-wi="${wi}"][data-ti="${ti}"][data-si2="${si2}"]`);
-      if (check) {
-        check.classList.toggle('checked', checked);
-        const label = check.parentElement.querySelector('.sub-label');
-        if (label) label.classList.toggle('done', checked);
-      }
-    }
-
+    // ─── Helper to get topic from data (unchanged) ───
     function getTopic(yi, si, ui, wi, ti) {
       try {
         return studyData.years[yi].semesters[si].units[ui].weeks[wi].topics[ti];
@@ -1559,7 +1550,7 @@
       if (idx < flatAssignments.length) {
         const ass = flatAssignments[idx];
         ass.marks = input.value;
-        debouncedSave(true); // immediate save for grade update
+        debouncedSave(true);
         if (gradeModalOpen) {
           renderGradeModal(yi, si, ui);
           const newInput = document.querySelector(`.marks-input[data-yi="${yi}"][data-si="${si}"][data-ui="${ui}"][data-idx="${idx}"]`);
@@ -1614,7 +1605,7 @@
     });
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    //  CRUD OPERATIONS – now with recalc on subtopic changes
+    //  CRUD OPERATIONS
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     function openModal(title, bodyHTML, onSave) {
       const modal = document.getElementById('genericModal');
@@ -2146,7 +2137,6 @@
       document.getElementById('addYearBtn').addEventListener('click', window.addYear);
       document.getElementById('exportBtn').addEventListener('click', window.exportToExcel);
 
-      // Load data (cache first)
       loadData();
       console.log('✅ Study Manager ready');
     }
