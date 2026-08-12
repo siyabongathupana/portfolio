@@ -1291,8 +1291,8 @@
                       ],
                       "completed": false,
                       "subCompleted": [
-                        false,
-                        false,
+                        true,
+                        true,
                         false,
                         false,
                         false,
