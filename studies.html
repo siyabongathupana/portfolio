@@ -17,7 +17,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
-    /* ─── all styles ─── */
+    /* ─── all styles (same as before) ─── */
     :root { --bg-primary: #0a0e17; --bg-card: #111927; --border-subtle: rgba(47,199,255,0.08); --text-primary: #e0e8ee; --text-secondary: #8a9fb0; --accent: #2fc7ff; --green: #00b894; --orange: #fdcb6e; --red: #e17055; --purple: #a29bfe; }
     * { box-sizing: border-box; }
     body { background: var(--bg-primary); color: var(--text-primary); font-family: 'Inter', sans-serif; min-height: 100vh; }
@@ -49,6 +49,8 @@
     .stat-item .number { font-size: 1.8rem; font-weight: 800; color: #fff; line-height: 1.2; }
     .stat-item .label { font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px; }
     .stat-item .number.green { color: var(--green); } .stat-item .number.orange { color: var(--orange); } .stat-item .number.blue { color: var(--accent); } .stat-item .number.purple { color: var(--purple); } .stat-item .number.red { color: var(--red); }
+    .stat-item .stat-tooltip { position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 6px 12px; font-size: 0.7rem; color: var(--text-secondary); white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+    .stat-item:hover .stat-tooltip { opacity: 1; }
     .level-section { margin-bottom: 16px; border: 1px solid var(--border-subtle); border-radius: 14px; overflow: hidden; background: var(--bg-card); }
     .level-header { padding: 12px 18px; background: rgba(255,255,255,0.02); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; border-bottom: 1px solid var(--border-subtle); cursor: pointer; transition: 0.2s; }
     .level-header:hover { background: rgba(255,255,255,0.04); }
@@ -62,6 +64,8 @@
     .btn-del:hover { background: rgba(225,112,85,0.15); }
     .btn-edit { background: rgba(47,199,255,0.06); color: var(--accent); }
     .btn-edit:hover { background: rgba(47,199,255,0.12); }
+    .btn-bulk { background: rgba(0,184,148,0.08); color: var(--green); }
+    .btn-bulk:hover { background: rgba(0,184,148,0.15); color: var(--green); }
     .level-body { padding: 14px 18px; display: none; }
     .level-body.open { display: block; }
     .child-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
@@ -173,22 +177,13 @@
     .loading-spinner .spinner { width: 48px; height: 48px; border: 3px solid var(--border-subtle); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 16px; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* ─── Save status indicator ─── */
-    .save-status { display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; color: var(--text-secondary); padding: 4px 12px; border-radius: 20px; background: rgba(255,255,255,0.04); border: 1px solid var(--border-subtle); }
-    .save-status .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
-    .save-status .dot.idle { background: var(--text-secondary); }
-    .save-status .dot.saving { background: var(--orange); animation: pulse 1s infinite; }
-    .save-status .dot.saved { background: var(--green); }
-    .save-status .dot.error { background: var(--red); }
-    @keyframes pulse { 0% { opacity: 0.4; } 50% { opacity: 1; } 100% { opacity: 0.4; } }
+    /* ─── NEW: Search Bar ─── */
+    .search-bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 20px; padding: 12px 16px; background: var(--bg-card); border-radius: 40px; border: 1px solid var(--border-subtle); }
+    .search-bar input { flex: 1; min-width: 150px; background: transparent; border: none; color: var(--text-primary); font-size: 0.9rem; padding: 6px 12px; outline: none; }
+    .search-bar input::placeholder { color: var(--text-secondary); }
+    .search-bar .search-icon { color: var(--text-secondary); font-size: 1rem; }
 
-    .deadlines-widget { background: var(--bg-card); border-radius: 16px; padding: 16px 20px; border: 1px solid var(--border-subtle); margin-bottom: 20px; }
-    .deadlines-widget h4 { font-size: 1rem; font-weight: 600; color: var(--text-primary); margin-bottom: 8px; }
-    .deadlines-widget .deadline-item { display: flex; justify-content: space-between; padding: 4px 0; font-size: 0.85rem; border-bottom: 1px solid var(--border-subtle); }
-    .deadlines-widget .deadline-item:last-child { border-bottom: none; }
-    .deadlines-widget .deadline-item .due-soon { color: var(--orange); }
-    .deadlines-widget .deadline-item .overdue { color: var(--red); }
-
+    /* ─── NEW: Analytics Dashboard ─── */
     .analytics-dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin: 30px 0 20px; }
     .analytics-card { background: var(--bg-card); border-radius: 16px; padding: 18px 20px; border: 1px solid var(--border-subtle); }
     .analytics-card h4 { font-size: 1rem; font-weight: 600; color: var(--text-primary); margin-bottom: 12px; }
@@ -198,8 +193,22 @@
     .analytics-card .stat-row .value { color: var(--text-primary); font-weight: 500; }
     .analytics-card .mini-progress { height: 6px; background: rgba(255,255,255,0.06); border-radius: 4px; overflow: hidden; margin-top: 4px; }
     .analytics-card .mini-progress .fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--accent), var(--green)); transition: width 0.6s ease; }
+
+    /* ─── NEW: Deadlines widget ─── */
+    .deadlines-widget { background: var(--bg-card); border-radius: 16px; padding: 16px 20px; border: 1px solid var(--border-subtle); margin-bottom: 20px; }
+    .deadlines-widget h4 { font-size: 1rem; font-weight: 600; color: var(--text-primary); margin-bottom: 8px; }
+    .deadlines-widget .deadline-item { display: flex; justify-content: space-between; padding: 4px 0; font-size: 0.85rem; border-bottom: 1px solid var(--border-subtle); }
+    .deadlines-widget .deadline-item:last-child { border-bottom: none; }
+    .deadlines-widget .deadline-item .due-soon { color: var(--orange); }
+    .deadlines-widget .deadline-item .overdue { color: var(--red); }
+
+    /* ─── NEW: Keyboard shortcut hint ─── */
     .shortcut-hint { font-size: 0.7rem; color: var(--text-secondary); opacity: 0.6; margin-left: 8px; }
     @media (max-width: 480px) { .shortcut-hint { display: none; } }
+
+    /* ─── NEW: Topic search highlight ─── */
+    .topic-item.search-hidden { display: none; }
+    .week-item.search-hidden { display: none; }
   </style>
 </head>
 <body>
@@ -312,12 +321,147 @@
     let studyData = { years: [] };
     let expanded = {};
     let gradeModalOpen = false;
+    let searchQuery = '';
     let analyticsChart = null;
-    let isSaving = false;
-    let saveQueue = [];
+    let saveDebounceTimer = null;
+    const DEBOUNCE_DELAY = 300; // milliseconds
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    //  SAVE MECHANISM – lock + queue + retry (like Timesheet)
+    //  PERSISTENT SAVE QUEUE (fallback)
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    const SAVE_QUEUE_KEY = 'studies_save_queue';
+    let isProcessing = false;
+    let saveRetryTimer = null;
+    let retryCount = 0;
+    const MAX_RETRIES = 5;
+    const BASE_RETRY_DELAY = 2000;
+
+    function loadSaveQueue() {
+      try {
+        const raw = localStorage.getItem(SAVE_QUEUE_KEY);
+        return raw ? JSON.parse(raw) : [];
+      } catch { return []; }
+    }
+
+    function persistSaveQueue(queue) {
+      try {
+        localStorage.setItem(SAVE_QUEUE_KEY, JSON.stringify(queue));
+      } catch (e) {}
+    }
+
+    // ─── Debounced scheduleSave (new) ───
+    function scheduleSave() {
+      if (saveDebounceTimer) {
+        clearTimeout(saveDebounceTimer);
+        saveDebounceTimer = null;
+      }
+      saveDebounceTimer = setTimeout(() => {
+        saveDebounceTimer = null;
+        enqueueSave();
+      }, DEBOUNCE_DELAY);
+    }
+
+    // ─── Force immediate save (for page unload or explicit sync) ───
+    function forceSave() {
+      if (saveDebounceTimer) {
+        clearTimeout(saveDebounceTimer);
+        saveDebounceTimer = null;
+      }
+      enqueueSave();
+    }
+
+    // ─── enqueueSave pushes latest data to queue and triggers processing ───
+    function enqueueSave() {
+      const queue = loadSaveQueue();
+      queue.push({ data: JSON.parse(JSON.stringify(studyData)), timestamp: Date.now() });
+      while (queue.length > 10) queue.shift();
+      persistSaveQueue(queue);
+      if (!isProcessing) {
+        processQueue();
+      }
+    }
+
+    // ─── processQueue takes the latest entry and attempts to save ───
+    async function processQueue() {
+      if (isProcessing) return;
+      const queue = loadSaveQueue();
+      if (queue.length === 0) return;
+
+      isProcessing = true;
+      const latest = queue[queue.length - 1];
+      const dataToSave = latest.data;
+
+      try {
+        await saveToGitHub(dataToSave);
+        persistSaveQueue([]);
+        retryCount = 0;
+        showToast('✅ Changes saved to GitHub', 'success');
+      } catch (err) {
+        console.warn('Save failed, will retry:', err);
+        if (retryCount < MAX_RETRIES) {
+          retryCount++;
+          const delay = BASE_RETRY_DELAY * Math.pow(2, retryCount - 1);
+          if (saveRetryTimer) clearTimeout(saveRetryTimer);
+          saveRetryTimer = setTimeout(() => {
+            saveRetryTimer = null;
+            isProcessing = false;
+            processQueue();
+          }, delay);
+          if (retryCount === 1) {
+            showToast(`⚠️ Save failed – retrying in ${delay/1000}s`, 'error');
+          }
+        } else {
+          showToast('❌ Save failed after multiple retries – data will be saved when you reopen the page.', 'error');
+          persistSaveQueue(queue);
+          isProcessing = false;
+          retryCount = 0;
+        }
+      } finally {
+        if (saveRetryTimer === null && retryCount === 0) {
+          if (queue.length === 0) isProcessing = false;
+        }
+      }
+    }
+
+    // ─── Save to GitHub with SHA retry ───
+    async function saveToGitHub(dataToSave) {
+      if (!dataToSave.years || !Array.isArray(dataToSave.years)) {
+        throw new Error('Invalid data structure: "years" must be an array.');
+      }
+      const { owner, repo, branch } = window.REPO_CONFIG || { owner: 'siyabongathupana', repo: 'portfolio', branch: 'main' };
+      const path = getStudyPath();
+
+      // Retry with fresh SHA each time
+      await retry(async () => {
+        let sha = null;
+        try {
+          const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
+          if (existing && existing.sha) sha = existing.sha;
+        } catch (e) {}
+        await GitHubAPI.updateFile(owner, repo, path, dataToSave, 'Update study data (plain JSON)', branch, user.pat, sha);
+      }, 3, 1000);
+
+      saveToCache(dataToSave);
+      return true;
+    }
+
+    // ─── Helper: retry with exponential backoff ───
+    async function retry(fn, retries = 3, delay = 1000) {
+      let lastError;
+      for (let i = 0; i < retries; i++) {
+        try {
+          return await fn();
+        } catch (err) {
+          lastError = err;
+          console.warn(`Retry ${i+1}/${retries} failed:`, err.message);
+          if (i < retries - 1) await new Promise(r => setTimeout(r, delay * (i + 1)));
+        }
+      }
+      throw lastError;
+    }
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    //  CACHE & LOAD
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     const CACHE_KEY = 'studies_data_cache';
 
@@ -347,95 +491,6 @@
       return `${dataPath}/users/${encUser}/studies.json`;
     }
 
-    // ─── Save to GitHub with retry and SHA refresh ───
-    async function saveToGitHub(dataToSave) {
-      if (!dataToSave.years || !Array.isArray(dataToSave.years)) {
-        throw new Error('Invalid data structure: "years" must be an array.');
-      }
-      const { owner, repo, branch } = window.REPO_CONFIG || { owner: 'siyabongathupana', repo: 'portfolio', branch: 'main' };
-      const path = getStudyPath();
-
-      let sha = null;
-      try {
-        const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
-        if (existing && existing.sha) sha = existing.sha;
-      } catch (e) {}
-
-      await GitHubAPI.updateFile(owner, repo, path, dataToSave, 'Update study data (plain JSON)', branch, user.pat, sha);
-      saveToCache(dataToSave);
-      return true;
-    }
-
-    // ─── Main save function ───
-    async function saveStudyData() {
-      if (isSaving) {
-        return new Promise((resolve, reject) => {
-          saveQueue.push({ resolve, reject });
-        });
-      }
-
-      isSaving = true;
-      updateSaveStatus('saving', 'Saving...');
-
-      try {
-        let lastError;
-        for (let attempt = 0; attempt < 3; attempt++) {
-          try {
-            await saveToGitHub(studyData);
-            updateSaveStatus('saved', 'Synced');
-            isSaving = false;
-            while (saveQueue.length) {
-              const next = saveQueue.shift();
-              try {
-                await saveStudyData();
-                next.resolve();
-              } catch (err) {
-                next.reject(err);
-              }
-            }
-            return true;
-          } catch (err) {
-            lastError = err;
-            console.warn(`Save attempt ${attempt+1} failed:`, err.message);
-            if (attempt < 2) {
-              await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
-            }
-          }
-        }
-        throw lastError;
-      } catch (err) {
-        console.error('Save failed after retries:', err);
-        updateSaveStatus('error', 'Error');
-        showToast('❌ Save failed: ' + err.message, 'error');
-        isSaving = false;
-        while (saveQueue.length) {
-          const next = saveQueue.shift();
-          next.reject(err);
-        }
-        throw err;
-      }
-    }
-
-    function updateSaveStatus(state, message = '') {
-      const el = document.getElementById('saveStatus');
-      if (!el) return;
-      const dot = el.querySelector('.dot');
-      const label = el.querySelector('.label');
-      if (!dot) return;
-      dot.className = 'dot';
-      if (state === 'idle') { dot.classList.add('idle'); label.textContent = message || 'Synced'; }
-      else if (state === 'saving') { dot.classList.add('saving'); label.textContent = message || 'Saving...'; }
-      else if (state === 'saved') { dot.classList.add('saved'); label.textContent = message || 'Synced'; }
-      else if (state === 'error') { dot.classList.add('error'); label.textContent = message || 'Error'; }
-    }
-
-    function scheduleSave() {
-      saveStudyData().catch(err => console.warn('Save error:', err));
-    }
-
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    //  LOAD DATA
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     async function loadFromGitHub() {
       const { owner, repo, branch } = window.REPO_CONFIG || { owner: 'siyabongathupana', repo: 'portfolio', branch: 'main' };
       const path = getStudyPath();
@@ -519,13 +574,17 @@
           console.warn('GitHub load failed:', err);
           if (!data) studyData = getDefaultData();
         }
+        const queue = loadSaveQueue();
+        if (queue.length > 0) {
+          console.log(`📋 Found ${queue.length} pending save operations. Processing...`);
+          setTimeout(() => processQueue(), 500);
+        }
         render();
         if (!data && !loadedFromGitHub && (!studyData.years || studyData.years.length === 0)) {
           studyData = getDefaultData();
           render();
-          scheduleSave();
+          enqueueSave();
         }
-        updateSaveStatus('idle', 'Synced');
         return true;
       } catch (err) {
         console.error('Error loading data:', err);
@@ -546,8 +605,16 @@
       }
     }
 
+    // ─── Unload handler ───
+    window.addEventListener('beforeunload', () => {
+      if (saveDebounceTimer) {
+        clearTimeout(saveDebounceTimer);
+        forceSave();
+      }
+    });
+
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    //  DEFAULT DATA (FULL – all 4 units with all weeks)
+    //  DEFAULT DATA (full – same as before)
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     function getDefaultData() {
       return {
@@ -556,7 +623,7 @@
           semesters: [{
             name: 'Semester 2',
             units: [
-              // ─── BSC106: Engineering Mathematics 2 ───
+              // ─── BSC106 ───
               {
                 code: 'BSC106',
                 name: 'Engineering Mathematics 2',
@@ -650,7 +717,7 @@
                       status: 'pending', marks: '', weight: 65 }] }
                 ]
               },
-              // ─── BSC104: Engineering Drawing and CAD ───
+              // ─── BSC104 ───
               {
                 code: 'BSC104',
                 name: 'Engineering Drawing and CAD',
@@ -758,7 +825,7 @@
                       status: 'pending', marks: '', weight: 40 }] }
                 ]
               },
-              // ─── BSC107: Engineering Programming ───
+              // ─── BSC107 ───
               {
                 code: 'BSC107',
                 name: 'Engineering Programming',
@@ -892,7 +959,7 @@
                       marks: '', weight: 40 }] }
                 ]
               },
-              // ─── BIA109: Chemical and Process Engineering ───
+              // ─── BIA109 ───
               {
                 code: 'BIA109',
                 name: 'Chemical and Process Engineering',
@@ -1051,7 +1118,7 @@
     }
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    //  RENDER FUNCTIONS
+    //  RENDER FUNCTIONS (stats, deadlines, analytics, tree)
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     function render() {
       try {
@@ -1314,7 +1381,6 @@
           </div>
           <div class="level-body ${isOpen ? 'open' : ''}">
         `;
-
         year.semesters.forEach((semester, si) => {
           const semKey = `semester_${yi}_${si}`;
           const semOpen = expanded[semKey] || false;
@@ -1336,7 +1402,6 @@
             </div>
             <div class="level-body ${semOpen ? 'open' : ''}">
           `;
-
           semester.units.forEach((unit, ui) => {
             const unitKey = `unit_${yi}_${si}_${ui}`;
             const unitOpen = expanded[unitKey] || false;
@@ -1377,7 +1442,6 @@
               </div>
               <div class="level-body ${unitOpen ? 'open' : ''}">
             `;
-
             weeks.forEach((week, wi) => {
               const weekKey = `week_${yi}_${si}_${ui}_${wi}`;
               const weekOpen = expanded[weekKey] || false;
@@ -1411,7 +1475,6 @@
                 </div>
                 <div class="level-body ${weekOpen ? 'open' : ''}">
               `;
-
               topics.forEach((topic, ti) => {
                 if (topic.subtopics && topic.subCompleted) {
                   while (topic.subCompleted.length < topic.subtopics.length) topic.subCompleted.push(false);
@@ -1468,7 +1531,6 @@
                 `;
                 weekDiv.querySelector('.level-body').appendChild(tDiv);
               });
-
               const assignments = week.assignments || [];
               if (assignments.length) {
                 const assSection = document.createElement('div');
@@ -1515,10 +1577,14 @@
         sec.innerHTML += `</div>`;
         container.appendChild(sec);
       });
+
+      if (searchQuery) {
+        applySearch(searchQuery);
+      }
     }
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    //  CHECKING/UNCHECKING – instant UI
+    //  CHECKING/UNCHECKING – instant UI + debounced save
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     function toggleTopicComplete(el, yi, si, ui, wi, ti) {
       const topic = getTopic(yi, si, ui, wi, ti);
@@ -1587,6 +1653,30 @@
     }
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    //  SEARCH
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    function applySearch(query) {
+      searchQuery = query.toLowerCase().trim();
+      const items = document.querySelectorAll('.topic-item');
+      let visible = 0;
+      items.forEach(item => {
+        const nameEl = item.querySelector('.topic-header .name');
+        if (!nameEl) return;
+        const name = nameEl.textContent.toLowerCase();
+        const match = !searchQuery || name.includes(searchQuery);
+        item.classList.toggle('search-hidden', !match);
+        if (match) visible++;
+        const weekItem = item.closest('.level-section');
+        if (weekItem) {
+          const hasVisible = weekItem.querySelector('.topic-item:not(.search-hidden)');
+          weekItem.style.display = hasVisible ? '' : 'none';
+        }
+      });
+      const countEl = document.getElementById('searchResultCount');
+      if (countEl) countEl.textContent = visible > 0 ? `(${visible} found)` : '';
+    }
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     //  EXPAND / COLLAPSE ALL
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     function expandAll() {
@@ -1649,11 +1739,12 @@
     document.addEventListener('keydown', (e) => {
       if (e.ctrlKey && e.key === 'e') { e.preventDefault(); expandAll(); }
       if (e.ctrlKey && e.key === 'w') { e.preventDefault(); collapseAll(); }
-      if (e.ctrlKey && e.key === 's') { e.preventDefault(); scheduleSave(); showToast('🔄 Saving...', 'info'); }
+      if (e.ctrlKey && e.key === 'f') { e.preventDefault(); const searchInput = document.getElementById('searchInput'); if (searchInput) searchInput.focus(); }
+      if (e.ctrlKey && e.key === 's') { e.preventDefault(); forceSave(); showToast('🔄 Saving...', 'info'); }
     });
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    //  EXCEL EXPORT – FULL 7 SHEETS, CHARTS SIDE BY SIDE
+    //  ✨ WOW EXCEL EXPORT (unchanged)
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     window.exportToExcel = async function() {
       if (!studyData.years.length) {
@@ -1667,31 +1758,10 @@
         workbook.creator = user.username;
         workbook.created = new Date();
 
-        function computeUnitData() {
-          const result = [];
-          studyData.years.forEach(y => {
-            y.semesters.forEach(s => {
-              s.units.forEach(u => {
-                let totalSub = 0, doneSub = 0;
-                (u.weeks || []).forEach(w => {
-                  (w.topics || []).forEach(t => {
-                    const subCount = t.subtopics ? t.subtopics.length : 0;
-                    totalSub += subCount;
-                    const subDone = (t.subCompleted || []).filter(Boolean).length;
-                    doneSub += subDone;
-                  });
-                });
-                const pct = totalSub > 0 ? Math.round((doneSub / totalSub) * 100) : 0;
-                result.push({ code: u.code, name: u.name, pct, total: totalSub, done: doneSub });
-              });
-            });
-          });
-          return result;
-        }
-        const unitData = computeUnitData();
-
-        // ─── SHEET 1: COVER ───
-        const cover = workbook.addWorksheet('Cover', { pageSetup: { orientation: 'portrait', fitToPage: true, horizontalCentered: true, verticalCentered: true } });
+        // ─── 1. COVER SHEET ───
+        const cover = workbook.addWorksheet('Cover', {
+          pageSetup: { orientation: 'portrait', fitToPage: true, horizontalCentered: true, verticalCentered: true }
+        });
         cover.mergeCells('A1:F1');
         const title = cover.getCell('A1');
         title.value = '📚 STUDY PLAN REPORT';
@@ -1699,12 +1769,14 @@
         title.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
         title.alignment = { horizontal: 'center', vertical: 'middle' };
         cover.getRow(1).height = 60;
+
         cover.mergeCells('A2:F2');
         const sub = cover.getCell('A2');
         sub.value = `Generated for ${user.username}`;
         sub.font = { size: 14, italic: true, color: { argb: 'FF2FC7FF' } };
         sub.alignment = { horizontal: 'center' };
         cover.getRow(2).height = 30;
+
         cover.addRow([]);
         const dateRow = cover.addRow(['Report Date:', new Date().toLocaleString()]);
         dateRow.font = { size: 12 };
@@ -1714,7 +1786,11 @@
           ['Total Weeks:', studyData.years.reduce((acc, y) => acc + y.semesters.reduce((a, s) => a + s.units.reduce((u, un) => u + un.weeks.length, 0), 0), 0)],
           ['Total Topics:', studyData.years.reduce((acc, y) => acc + y.semesters.reduce((a, s) => a + s.units.reduce((u, un) => u + un.weeks.reduce((w, wk) => w + wk.topics.length, 0), 0), 0), 0)],
         ];
-        meta.forEach(([label, value]) => { const row = cover.addRow([label, value]); row.getCell(1).font = { bold: true }; });
+        meta.forEach(([label, value]) => {
+          const row = cover.addRow([label, value]);
+          row.getCell(1).font = { bold: true };
+        });
+
         cover.columns = [{ width: 20 }, { width: 20 }, { width: 20 }, { width: 20 }, { width: 20 }, { width: 20 }];
         cover.addRow([]);
         const footer = cover.getCell('A20');
@@ -1723,8 +1799,10 @@
         cover.mergeCells('A20:F20');
         footer.alignment = { horizontal: 'center' };
 
-        // ─── SHEET 2: OVERVIEW ───
-        const overview = workbook.addWorksheet('Overview', { pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1 } });
+        // ─── 2. OVERVIEW SHEET ───
+        const overview = workbook.addWorksheet('Overview', {
+          pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1 }
+        });
         overview.mergeCells('A1:H1');
         const ovTitle = overview.getCell('A1');
         ovTitle.value = '📊 KEY PERFORMANCE INDICATORS';
@@ -1733,6 +1811,7 @@
         ovTitle.alignment = { horizontal: 'center', vertical: 'middle' };
         overview.getRow(1).height = 36;
 
+        // Compute KPIs
         let totalTopics = 0, doneTopics = 0, totalAssignments = 0, pendingAssignments = 0, submittedAssignments = 0;
         let totalWeighted = 0, weightedSum = 0;
         studyData.years.forEach(y => {
@@ -1778,13 +1857,17 @@
           cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2C3E50' } };
           cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
           cell.alignment = { horizontal: 'center', vertical: 'middle' };
-          cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+          cell.border = {
+            top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' }
+          };
         });
         kpiHeader.height = 24;
         for (let i = 1; i < kpis.length; i++) {
           const row = overview.addRow(kpis[i]);
           row.eachCell((cell, col) => {
-            cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+            cell.border = {
+              top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' }
+            };
             cell.alignment = { vertical: 'middle', horizontal: col === 2 ? 'center' : 'left' };
             if (col === 2 && kpis[i][2].includes('✅')) {
               cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC6EFCE' } };
@@ -1800,8 +1883,10 @@
         }
         overview.columns = [{ width: 30 }, { width: 20 }, { width: 30 }];
 
-        // ─── SHEET 3: UNIT PROGRESS ───
-        const unitSheet = workbook.addWorksheet('Unit Progress', { pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1 } });
+        // ─── 3. UNIT PROGRESS SHEET ───
+        const unitSheet = workbook.addWorksheet('Unit Progress', {
+          pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1 }
+        });
         unitSheet.mergeCells('A1:E1');
         const unitTitle = unitSheet.getCell('A1');
         unitTitle.value = '📊 UNIT PROGRESS BREAKDOWN';
@@ -1816,34 +1901,54 @@
           cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2C3E50' } };
           cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
           cell.alignment = { horizontal: 'center', vertical: 'middle' };
-          cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+          cell.border = {
+            top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' }
+          };
         });
         uHeader.height = 24;
+
         let unitRow = 3;
-        unitData.forEach(u => {
-          const pct = u.pct;
-          const status = pct >= 80 ? '✅ Good' : pct >= 50 ? '⚠️ In progress' : '❌ Needs work';
-          const row = unitSheet.addRow([u.code + ' ' + u.name, u.total, u.done, pct.toFixed(1) + '%', status]);
-          row.eachCell((cell, col) => {
-            cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
-            cell.alignment = { vertical: 'middle', horizontal: col === 4 ? 'center' : 'left' };
-            if (col === 4 && status.includes('✅')) {
-              cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC6EFCE' } };
-              cell.font = { color: { argb: 'FF006400' }, bold: true };
-            } else if (col === 4 && status.includes('⚠️')) {
-              cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF4E6' } };
-              cell.font = { color: { argb: 'FF8B6500' }, bold: true };
-            } else if (col === 4 && status.includes('❌')) {
-              cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFC7CE' } };
-              cell.font = { color: { argb: 'FF8B0000' }, bold: true };
-            }
+        studyData.years.forEach(y => {
+          y.semesters.forEach(s => {
+            s.units.forEach(u => {
+              let total = 0, done = 0;
+              (u.weeks || []).forEach(w => {
+                (w.topics || []).forEach(t => {
+                  const subCount = t.subtopics ? t.subtopics.length : 0;
+                  total += subCount;
+                  const subDone = (t.subCompleted || []).filter(Boolean).length;
+                  done += subDone;
+                });
+              });
+              const pct = total > 0 ? (done / total) * 100 : 0;
+              const status = pct >= 80 ? '✅ Good' : pct >= 50 ? '⚠️ In progress' : '❌ Needs work';
+              const row = unitSheet.addRow([u.code + ' ' + u.name, total, done, pct.toFixed(1) + '%', status]);
+              row.eachCell((cell, col) => {
+                cell.border = {
+                  top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' }
+                };
+                cell.alignment = { vertical: 'middle', horizontal: col === 4 ? 'center' : 'left' };
+                if (col === 4 && status.includes('✅')) {
+                  cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC6EFCE' } };
+                  cell.font = { color: { argb: 'FF006400' }, bold: true };
+                } else if (col === 4 && status.includes('⚠️')) {
+                  cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF4E6' } };
+                  cell.font = { color: { argb: 'FF8B6500' }, bold: true };
+                } else if (col === 4 && status.includes('❌')) {
+                  cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFC7CE' } };
+                  cell.font = { color: { argb: 'FF8B0000' }, bold: true };
+                }
+              });
+              unitRow++;
+            });
           });
-          unitRow++;
         });
         unitSheet.columns = [{ width: 30 }, { width: 15 }, { width: 15 }, { width: 15 }, { width: 20 }];
 
-        // ─── SHEET 4: WEEKLY TRENDS ───
-        const weeklySheet = workbook.addWorksheet('Weekly Trends', { pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1 } });
+        // ─── 4. WEEKLY TRENDS SHEET ───
+        const weeklySheet = workbook.addWorksheet('Weekly Trends', {
+          pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1 }
+        });
         weeklySheet.mergeCells('A1:C1');
         const weeklyTitle = weeklySheet.getCell('A1');
         weeklyTitle.value = '📈 WEEKLY COMPLETION TREND';
@@ -1877,20 +1982,26 @@
           cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2C3E50' } };
           cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
           cell.alignment = { horizontal: 'center' };
-          cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+          cell.border = {
+            top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' }
+          };
         });
         wHeaderRow.height = 24;
         weekData.forEach(wd => {
           const row = weeklySheet.addRow([wd.week, wd.total, wd.done, wd.pct.toFixed(1) + '%']);
           row.eachCell(cell => {
-            cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+            cell.border = {
+              top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' }
+            };
             cell.alignment = { vertical: 'middle' };
           });
         });
         weeklySheet.columns = [{ width: 18 }, { width: 18 }, { width: 18 }, { width: 18 }];
 
-        // ─── SHEET 5: ASSIGNMENT TRACKER ───
-        const assignSheet = workbook.addWorksheet('Assignment Tracker', { pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1 } });
+        // ─── 5. ASSIGNMENT TRACKER ───
+        const assignSheet = workbook.addWorksheet('Assignment Tracker', {
+          pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1 }
+        });
         assignSheet.mergeCells('A1:H1');
         const assignTitle = assignSheet.getCell('A1');
         assignTitle.value = '📋 ASSIGNMENT TRACKER';
@@ -1905,9 +2016,12 @@
           cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2C3E50' } };
           cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
           cell.alignment = { horizontal: 'center' };
-          cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+          cell.border = {
+            top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' }
+          };
         });
         aHeaderRow.height = 24;
+        let assignRow = 3;
         studyData.years.forEach(y => {
           y.semesters.forEach(s => {
             s.units.forEach(u => {
@@ -1915,7 +2029,9 @@
                 (w.assignments || []).forEach(a => {
                   const row = assignSheet.addRow([y.name, s.name, u.code, 'Week ' + w.number, a.name, a.due || '', a.status, a.marks || '']);
                   row.eachCell(cell => {
-                    cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+                    cell.border = {
+                      top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' }
+                    };
                     cell.alignment = { vertical: 'middle' };
                   });
                   const statusCell = row.getCell(7);
@@ -1929,6 +2045,7 @@
                     statusCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFC7CE' } };
                     statusCell.font = { color: { argb: 'FF8B0000' }, bold: true };
                   }
+                  assignRow++;
                 });
               });
             });
@@ -1936,8 +2053,10 @@
         });
         assignSheet.columns = [{ width: 14 }, { width: 16 }, { width: 12 }, { width: 12 }, { width: 22 }, { width: 16 }, { width: 14 }, { width: 12 }];
 
-        // ─── SHEET 6: GRADE ANALYSIS ───
-        const gradeSheet = workbook.addWorksheet('Grade Analysis', { pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1 } });
+        // ─── 6. GRADE ANALYSIS ───
+        const gradeSheet = workbook.addWorksheet('Grade Analysis', {
+          pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1 }
+        });
         gradeSheet.mergeCells('A1:E1');
         const gradeTitle = gradeSheet.getCell('A1');
         gradeTitle.value = '📊 GRADE ANALYSIS';
@@ -1952,9 +2071,12 @@
           cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2C3E50' } };
           cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
           cell.alignment = { horizontal: 'center' };
-          cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+          cell.border = {
+            top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' }
+          };
         });
         gHeaderRow.height = 24;
+        let gradeRow = 3;
         studyData.years.forEach(y => {
           y.semesters.forEach(s => {
             s.units.forEach(u => {
@@ -1965,7 +2087,9 @@
               const prediction = grade !== null ? (grade >= 70 ? 'On track' : grade >= 50 ? 'Needs improvement' : 'At risk') : '—';
               const row = gradeSheet.addRow([u.code + ' ' + u.name, result ? result.allAssignments.length : 0, gradeDisplay, status, prediction]);
               row.eachCell((cell, col) => {
-                cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+                cell.border = {
+                  top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' }
+                };
                 cell.alignment = { vertical: 'middle', horizontal: col === 3 ? 'center' : 'left' };
                 if (col === 3 && status.includes('✅')) {
                   cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC6EFCE' } };
@@ -1978,66 +2102,77 @@
                   cell.font = { color: { argb: 'FF8B0000' }, bold: true };
                 }
               });
+              gradeRow++;
             });
           });
         });
         gradeSheet.columns = [{ width: 30 }, { width: 15 }, { width: 18 }, { width: 18 }, { width: 20 }];
 
-        // ─── SHEET 7: CHARTS (side by side) ───
-        const chartSheet = workbook.addWorksheet('Charts', { pageSetup: { orientation: 'landscape', fitToPage: true } });
-        chartSheet.mergeCells('A1:D1');
+        // ─── CHARTS ───
+        const unitProgressCanvas = document.createElement('canvas');
+        unitProgressCanvas.width = 800;
+        unitProgressCanvas.height = 400;
+        const ctx1 = unitProgressCanvas.getContext('2d');
+        const unitNames = unitData.map(u => u.code);
+        const unitPcts = unitData.map(u => u.pct);
+        new Chart(ctx1, {
+          type: 'bar',
+          data: {
+            labels: unitNames,
+            datasets: [{ label: 'Progress %', data: unitPcts, backgroundColor: '#2fc7ff' }]
+          },
+          options: {
+            responsive: false,
+            plugins: { title: { display: true, text: 'Unit Progress (%)', font: { size: 18 } } },
+            scales: { y: { beginAtZero: true, max: 100 } }
+          }
+        });
+        await new Promise(r => setTimeout(r, 400));
+        const img1 = unitProgressCanvas.toDataURL('image/png');
+        const imageId1 = workbook.addImage({ base64: img1, extension: 'png' });
+        const chartSheet = workbook.addWorksheet('Charts', {
+          pageSetup: { orientation: 'landscape', fitToPage: true }
+        });
+        chartSheet.mergeCells('A1:C1');
         const chartTitle = chartSheet.getCell('A1');
         chartTitle.value = '📈 VISUAL DASHBOARD';
         chartTitle.font = { bold: true, size: 18, color: { argb: 'FFFFFFFF' } };
         chartTitle.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
         chartTitle.alignment = { horizontal: 'center' };
         chartSheet.getRow(1).height = 36;
+        chartSheet.addImage(imageId1, { tl: { col: 0, row: 3 }, ext: { width: 600, height: 300 } });
 
-        // Chart 1: Unit Progress (col 0)
-        const unitCanvas = document.createElement('canvas');
-        unitCanvas.width = 600;
-        unitCanvas.height = 350;
-        const ctx1 = unitCanvas.getContext('2d');
-        const unitNames = unitData.map(u => u.code);
-        const unitPcts = unitData.map(u => u.pct);
-        new Chart(ctx1, {
-          type: 'bar',
-          data: { labels: unitNames, datasets: [{ label: 'Progress %', data: unitPcts, backgroundColor: '#2fc7ff' }] },
-          options: { responsive: false, plugins: { title: { display: true, text: 'Unit Progress (%)', font: { size: 16 } } }, scales: { y: { beginAtZero: true, max: 100 } } }
-        });
-        await new Promise(r => setTimeout(r, 300));
-        const img1 = unitCanvas.toDataURL('image/png');
-        const imageId1 = workbook.addImage({ base64: img1, extension: 'png' });
-        chartSheet.addImage(imageId1, { tl: { col: 0, row: 3 }, ext: { width: 350, height: 200 } });
-
-        // Chart 2: Weekly Trend (col 3)
-        const weekCanvas = document.createElement('canvas');
-        weekCanvas.width = 600;
-        weekCanvas.height = 350;
-        const ctx2 = weekCanvas.getContext('2d');
+        const weeklyCanvas = document.createElement('canvas');
+        weeklyCanvas.width = 800;
+        weeklyCanvas.height = 400;
+        const ctx2 = weeklyCanvas.getContext('2d');
         const weekLabels = weekData.map(w => w.week);
-        const doneData = weekData.map(w => w.done);
-        const totalData = weekData.map(w => w.total);
+        const doneData2 = weekData.map(w => w.done);
+        const totalData2 = weekData.map(w => w.total);
         new Chart(ctx2, {
           type: 'line',
-          data: { labels: weekLabels, datasets: [{ label: 'Completed', data: doneData, borderColor: '#00b894', fill: false, tension: 0.3 }, { label: 'Total', data: totalData, borderColor: '#2fc7ff', fill: false, tension: 0.3 }] },
-          options: { responsive: false, plugins: { title: { display: true, text: 'Weekly Subtopics Trend', font: { size: 16 } } }, scales: { y: { beginAtZero: true } } }
+          data: {
+            labels: weekLabels,
+            datasets: [
+              { label: 'Completed', data: doneData2, borderColor: '#00b894', fill: false, tension: 0.3 },
+              { label: 'Total', data: totalData2, borderColor: '#2fc7ff', fill: false, tension: 0.3 }
+            ]
+          },
+          options: {
+            responsive: false,
+            plugins: { title: { display: true, text: 'Weekly Subtopics Trend', font: { size: 18 } } },
+            scales: { y: { beginAtZero: true } }
+          }
         });
-        await new Promise(r => setTimeout(r, 300));
-        const img2 = weekCanvas.toDataURL('image/png');
+        await new Promise(r => setTimeout(r, 400));
+        const img2 = weeklyCanvas.toDataURL('image/png');
         const imageId2 = workbook.addImage({ base64: img2, extension: 'png' });
-        chartSheet.addImage(imageId2, { tl: { col: 3, row: 3 }, ext: { width: 350, height: 200 } });
-
-        chartSheet.getCell('A7').value = 'Unit Progress Chart';
-        chartSheet.getCell('D7').value = 'Weekly Trend Chart';
-        chartSheet.getRow(7).height = 20;
-        chartSheet.getCell('A7').font = { bold: true, size: 10 };
-        chartSheet.getCell('D7').font = { bold: true, size: 10 };
+        chartSheet.addImage(imageId2, { tl: { col: 2, row: 3 }, ext: { width: 600, height: 300 } });
 
         const buffer = await workbook.xlsx.writeBuffer();
         const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
         saveAs(blob, `StudyPlan_Report_${new Date().toISOString().slice(0,10)}.xlsx`);
-        showToast('✅ WOW Excel exported with organised charts!', 'success');
+        showToast('✅ WOW Excel exported with 6 sheets & charts!', 'success');
       } catch (err) {
         console.error(err);
         showToast('Export failed: ' + err.message, 'error');
@@ -2047,8 +2182,292 @@
     };
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    //  GRADE CALCULATOR
+    //  CRUD OPERATIONS (all call scheduleSave)
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    function openModal(title, bodyHTML, onSave) {
+      const modal = document.getElementById('genericModal');
+      document.getElementById('modalTitle').textContent = title;
+      document.getElementById('modalBody').innerHTML = bodyHTML;
+      modal.classList.add('open');
+      modal._onSave = onSave;
+    }
+
+    document.getElementById('modalCancel').addEventListener('click', function() {
+      document.getElementById('genericModal').classList.remove('open');
+    });
+
+    document.getElementById('modalSave').addEventListener('click', function() {
+      const modal = document.getElementById('genericModal');
+      const onSave = modal._onSave;
+      if (typeof onSave === 'function') {
+        const result = onSave();
+        if (result !== false) {
+          modal.classList.remove('open');
+          render();
+          scheduleSave();
+          showToast('✅ Saved', 'success');
+        }
+      }
+    });
+
+    // ─── Years ───
+    window.addYear = function() {
+      openModal('Add Year', `
+        <div class="form-group"><label>Year Name (e.g. 2026)</label><input type="text" id="yearName" placeholder="2026" /></div>
+      `, () => {
+        const name = document.getElementById('yearName').value.trim();
+        if (!name) { showToast('Please enter a year name.', 'error'); return false; }
+        studyData.years.push({ name, semesters: [] });
+        return true;
+      });
+    };
+
+    window.editYear = function(yi) {
+      const year = studyData.years[yi];
+      openModal('Edit Year', `
+        <div class="form-group"><label>Year Name</label><input type="text" id="yearName" value="${escapeHtml(year.name)}" /></div>
+      `, () => {
+        const name = document.getElementById('yearName').value.trim();
+        if (!name) { showToast('Please enter a year name.', 'error'); return false; }
+        year.name = name;
+        return true;
+      });
+    };
+
+    window.deleteYear = function(yi) {
+      if (!confirm('Delete this year and all its semesters, units, weeks, topics, and assignments?')) return;
+      studyData.years.splice(yi, 1);
+      render();
+      scheduleSave();
+    };
+
+    // ─── Semesters ───
+    window.addSemester = function(yi) {
+      openModal('Add Semester', `
+        <div class="form-group"><label>Semester Name (e.g. Semester 2)</label><input type="text" id="semesterName" placeholder="Semester 2" /></div>
+      `, () => {
+        const name = document.getElementById('semesterName').value.trim();
+        if (!name) { showToast('Please enter a semester name.', 'error'); return false; }
+        studyData.years[yi].semesters.push({ name, units: [] });
+        return true;
+      });
+    };
+
+    window.editSemester = function(yi, si) {
+      const sem = studyData.years[yi].semesters[si];
+      openModal('Edit Semester', `
+        <div class="form-group"><label>Semester Name</label><input type="text" id="semesterName" value="${escapeHtml(sem.name)}" /></div>
+      `, () => {
+        const name = document.getElementById('semesterName').value.trim();
+        if (!name) { showToast('Please enter a semester name.', 'error'); return false; }
+        sem.name = name;
+        return true;
+      });
+    };
+
+    window.deleteSemester = function(yi, si) {
+      if (!confirm('Delete this semester and all its units?')) return;
+      studyData.years[yi].semesters.splice(si, 1);
+      render();
+      scheduleSave();
+    };
+
+    // ─── Units ───
+    window.addUnit = function(yi, si) {
+      openModal('Add Unit', `
+        <div class="form-group"><label>Unit Code</label><input type="text" id="unitCode" placeholder="BSC106" /></div>
+        <div class="form-group"><label>Unit Name</label><input type="text" id="unitName" placeholder="Engineering Mathematics 2" /></div>
+        <div class="form-group"><label>Color</label><input type="text" id="unitColor" value="#2fc7ff" /></div>
+      `, () => {
+        const code = document.getElementById('unitCode').value.trim();
+        const name = document.getElementById('unitName').value.trim();
+        const color = document.getElementById('unitColor').value.trim() || '#2fc7ff';
+        if (!name) { showToast('Please enter a unit name.', 'error'); return false; }
+        studyData.years[yi].semesters[si].units.push({ code, name, color, weeks: [] });
+        return true;
+      });
+    };
+
+    window.editUnit = function(yi, si, ui) {
+      const unit = studyData.years[yi].semesters[si].units[ui];
+      openModal('Edit Unit', `
+        <div class="form-group"><label>Unit Code</label><input type="text" id="unitCode" value="${escapeHtml(unit.code)}" /></div>
+        <div class="form-group"><label>Unit Name</label><input type="text" id="unitName" value="${escapeHtml(unit.name)}" /></div>
+        <div class="form-group"><label>Color</label><input type="text" id="unitColor" value="${escapeHtml(unit.color)}" /></div>
+      `, () => {
+        const code = document.getElementById('unitCode').value.trim();
+        const name = document.getElementById('unitName').value.trim();
+        const color = document.getElementById('unitColor').value.trim() || '#2fc7ff';
+        if (!name) { showToast('Please enter a unit name.', 'error'); return false; }
+        unit.code = code;
+        unit.name = name;
+        unit.color = color;
+        return true;
+      });
+    };
+
+    window.deleteUnit = function(yi, si, ui) {
+      if (!confirm('Delete this unit and all its weeks, topics, and assignments?')) return;
+      studyData.years[yi].semesters[si].units.splice(ui, 1);
+      render();
+      scheduleSave();
+    };
+
+    // ─── Weeks ───
+    window.addWeek = function(yi, si, ui) {
+      openModal('Add Week', `
+        <div class="form-group"><label>Week Number</label><input type="number" id="weekNumber" min="1" step="1" value="1" /></div>
+      `, () => {
+        const number = parseInt(document.getElementById('weekNumber').value);
+        if (!number || number < 1) { showToast('Please enter a valid week number.', 'error'); return false; }
+        const unit = studyData.years[yi].semesters[si].units[ui];
+        unit.weeks.push({ number, topics: [], assignments: [] });
+        return true;
+      });
+    };
+
+    window.editWeek = function(yi, si, ui, wi) {
+      const week = studyData.years[yi].semesters[si].units[ui].weeks[wi];
+      openModal('Edit Week', `
+        <div class="form-group"><label>Week Number</label><input type="number" id="weekNumber" value="${week.number}" min="1" step="1" /></div>
+      `, () => {
+        const number = parseInt(document.getElementById('weekNumber').value);
+        if (!number || number < 1) { showToast('Please enter a valid week number.', 'error'); return false; }
+        week.number = number;
+        return true;
+      });
+    };
+
+    window.deleteWeek = function(yi, si, ui, wi) {
+      if (!confirm('Delete this week and all its topics and assignments?')) return;
+      studyData.years[yi].semesters[si].units[ui].weeks.splice(wi, 1);
+      render();
+      scheduleSave();
+    };
+
+    // ─── Topics ───
+    window.addTopic = function(yi, si, ui, wi) {
+      openModal('Add Topic', `
+        <div class="form-group"><label>Topic Name</label><input type="text" id="topicName" placeholder="e.g. Multivariable Calculus" /></div>
+      `, () => {
+        const name = document.getElementById('topicName').value.trim();
+        if (!name) { showToast('Please enter a topic name.', 'error'); return false; }
+        const week = studyData.years[yi].semesters[si].units[ui].weeks[wi];
+        week.topics.push({ name, subtopics: [], completed: false, subCompleted: [] });
+        return true;
+      });
+    };
+
+    window.editTopic = function(yi, si, ui, wi, ti) {
+      const topic = studyData.years[yi].semesters[si].units[ui].weeks[wi].topics[ti];
+      openModal('Edit Topic', `
+        <div class="form-group"><label>Topic Name</label><input type="text" id="topicName" value="${escapeHtml(topic.name)}" /></div>
+      `, () => {
+        const name = document.getElementById('topicName').value.trim();
+        if (!name) { showToast('Please enter a topic name.', 'error'); return false; }
+        topic.name = name;
+        return true;
+      });
+    };
+
+    window.deleteTopic = function(yi, si, ui, wi, ti) {
+      if (!confirm('Delete this topic and all its subtopics?')) return;
+      const week = studyData.years[yi].semesters[si].units[ui].weeks[wi];
+      week.topics.splice(ti, 1);
+      render();
+      scheduleSave();
+    };
+
+    // ─── Subtopics ───
+    window.addSubtopic = function(yi, si, ui, wi, ti) {
+      openModal('Add Subtopic', `
+        <div class="form-group"><label>Subtopic Name</label><input type="text" id="subtopicName" placeholder="e.g. Partial derivatives" /></div>
+      `, () => {
+        const name = document.getElementById('subtopicName').value.trim();
+        if (!name) { showToast('Please enter a subtopic name.', 'error'); return false; }
+        const topic = studyData.years[yi].semesters[si].units[ui].weeks[wi].topics[ti];
+        if (!topic.subtopics) topic.subtopics = [];
+        if (!topic.subCompleted) topic.subCompleted = [];
+        topic.subtopics.push(name);
+        topic.subCompleted.push(false);
+        recalcTopicCompletion(topic);
+        return true;
+      });
+    };
+
+    window.deleteSubtopic = function(yi, si, ui, wi, ti, si2) {
+      if (!confirm('Delete this subtopic?')) return;
+      const topic = studyData.years[yi].semesters[si].units[ui].weeks[wi].topics[ti];
+      if (topic.subtopics && topic.subtopics.length > si2) {
+        topic.subtopics.splice(si2, 1);
+        if (topic.subCompleted && topic.subCompleted.length > si2) {
+          topic.subCompleted.splice(si2, 1);
+        }
+        recalcTopicCompletion(topic);
+      }
+      render();
+      scheduleSave();
+    };
+
+    // ─── Assignments ───
+    window.addAssignment = function(yi, si, ui, wi) {
+      openModal('Add Assignment', `
+        <div class="form-group"><label>Assignment Name</label><input type="text" id="assName" placeholder="e.g. Quiz 1" /></div>
+        <div class="form-group"><label>Due Date</label><input type="date" id="assDue" /></div>
+        <div class="form-group"><label>Status</label>
+          <select id="assStatus"><option value="pending">Pending</option><option value="in-progress">In Progress</option><option value="submitted">Submitted</option></select>
+        </div>
+        <div class="form-group"><label>Marks</label><input type="text" id="assMarks" placeholder="e.g. 85%" /></div>
+        <div class="form-group"><label>Weighting (%)</label><input type="number" id="assWeight" placeholder="5" min="0" max="100" /></div>
+      `, () => {
+        const name = document.getElementById('assName').value.trim();
+        const due = document.getElementById('assDue').value;
+        const status = document.getElementById('assStatus').value;
+        const marks = document.getElementById('assMarks').value.trim();
+        const weight = parseFloat(document.getElementById('assWeight').value) || 0;
+        if (!name) { showToast('Please enter an assignment name.', 'error'); return false; }
+        const week = studyData.years[yi].semesters[si].units[ui].weeks[wi];
+        if (!week.assignments) week.assignments = [];
+        week.assignments.push({ name, due, status, marks, weight });
+        return true;
+      });
+    };
+
+    window.editAssignment = function(yi, si, ui, wi, ai) {
+      const ass = studyData.years[yi].semesters[si].units[ui].weeks[wi].assignments[ai];
+      openModal('Edit Assignment', `
+        <div class="form-group"><label>Assignment Name</label><input type="text" id="assName" value="${escapeHtml(ass.name)}" /></div>
+        <div class="form-group"><label>Due Date</label><input type="date" id="assDue" value="${ass.due || ''}" /></div>
+        <div class="form-group"><label>Status</label>
+          <select id="assStatus"><option value="pending" ${ass.status === 'pending' ? 'selected' : ''}>Pending</option><option value="in-progress" ${ass.status === 'in-progress' ? 'selected' : ''}>In Progress</option><option value="submitted" ${ass.status === 'submitted' ? 'selected' : ''}>Submitted</option></select>
+        </div>
+        <div class="form-group"><label>Marks</label><input type="text" id="assMarks" value="${escapeHtml(ass.marks || '')}" /></div>
+        <div class="form-group"><label>Weighting (%)</label><input type="number" id="assWeight" value="${ass.weight || ''}" min="0" max="100" /></div>
+      `, () => {
+        const name = document.getElementById('assName').value.trim();
+        const due = document.getElementById('assDue').value;
+        const status = document.getElementById('assStatus').value;
+        const marks = document.getElementById('assMarks').value.trim();
+        const weight = parseFloat(document.getElementById('assWeight').value) || 0;
+        if (!name) { showToast('Please enter an assignment name.', 'error'); return false; }
+        ass.name = name;
+        ass.due = due;
+        ass.status = status;
+        ass.marks = marks;
+        ass.weight = weight;
+        return true;
+      });
+    };
+
+    window.deleteAssignment = function(yi, si, ui, wi, ai) {
+      if (!confirm('Delete this assignment?')) return;
+      const week = studyData.years[yi].semesters[si].units[ui].weeks[wi];
+      week.assignments.splice(ai, 1);
+      render();
+      scheduleSave();
+    };
+
+    // ─── GRADE CALCULATOR (unchanged) ───
     function calculateUnitGrade(unit) {
       const allAssignments = [];
       (unit.weeks || []).forEach(week => {
@@ -2219,262 +2638,6 @@
     });
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    //  CRUD OPERATIONS – FULL (all call scheduleSave())
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    function openModal(title, bodyHTML, onSave) {
-      const modal = document.getElementById('genericModal');
-      document.getElementById('modalTitle').textContent = title;
-      document.getElementById('modalBody').innerHTML = bodyHTML;
-      modal.classList.add('open');
-      modal._onSave = onSave;
-    }
-
-    document.getElementById('modalCancel').addEventListener('click', function() {
-      document.getElementById('genericModal').classList.remove('open');
-    });
-
-    document.getElementById('modalSave').addEventListener('click', function() {
-      const modal = document.getElementById('genericModal');
-      const onSave = modal._onSave;
-      if (typeof onSave === 'function') {
-        const result = onSave();
-        if (result !== false) {
-          modal.classList.remove('open');
-          render();
-          scheduleSave();
-          showToast('✅ Saved', 'success');
-        }
-      }
-    });
-
-    // ─── YEARS ───
-    window.addYear = function() {
-      openModal('Add Year', `<div class="form-group"><label>Year Name (e.g. 2026)</label><input type="text" id="yearName" placeholder="2026" /></div>`, () => {
-        const name = document.getElementById('yearName').value.trim();
-        if (!name) { showToast('Please enter a year name.', 'error'); return false; }
-        studyData.years.push({ name, semesters: [] });
-        return true;
-      });
-    };
-
-    window.editYear = function(yi) {
-      const year = studyData.years[yi];
-      openModal('Edit Year', `<div class="form-group"><label>Year Name</label><input type="text" id="yearName" value="${escapeHtml(year.name)}" /></div>`, () => {
-        const name = document.getElementById('yearName').value.trim();
-        if (!name) { showToast('Please enter a year name.', 'error'); return false; }
-        year.name = name;
-        return true;
-      });
-    };
-
-    window.deleteYear = function(yi) {
-      if (!confirm('Delete this year and all its semesters, units, weeks, topics, and assignments?')) return;
-      studyData.years.splice(yi, 1);
-      render();
-      scheduleSave();
-    };
-
-    // ─── SEMESTERS ───
-    window.addSemester = function(yi) {
-      openModal('Add Semester', `<div class="form-group"><label>Semester Name (e.g. Semester 2)</label><input type="text" id="semesterName" placeholder="Semester 2" /></div>`, () => {
-        const name = document.getElementById('semesterName').value.trim();
-        if (!name) { showToast('Please enter a semester name.', 'error'); return false; }
-        studyData.years[yi].semesters.push({ name, units: [] });
-        return true;
-      });
-    };
-
-    window.editSemester = function(yi, si) {
-      const sem = studyData.years[yi].semesters[si];
-      openModal('Edit Semester', `<div class="form-group"><label>Semester Name</label><input type="text" id="semesterName" value="${escapeHtml(sem.name)}" /></div>`, () => {
-        const name = document.getElementById('semesterName').value.trim();
-        if (!name) { showToast('Please enter a semester name.', 'error'); return false; }
-        sem.name = name;
-        return true;
-      });
-    };
-
-    window.deleteSemester = function(yi, si) {
-      if (!confirm('Delete this semester and all its units?')) return;
-      studyData.years[yi].semesters.splice(si, 1);
-      render();
-      scheduleSave();
-    };
-
-    // ─── UNITS ───
-    window.addUnit = function(yi, si) {
-      openModal('Add Unit', `<div class="form-group"><label>Unit Code</label><input type="text" id="unitCode" placeholder="BSC106" /></div><div class="form-group"><label>Unit Name</label><input type="text" id="unitName" placeholder="Engineering Mathematics 2" /></div><div class="form-group"><label>Color</label><input type="text" id="unitColor" value="#2fc7ff" /></div>`, () => {
-        const code = document.getElementById('unitCode').value.trim();
-        const name = document.getElementById('unitName').value.trim();
-        const color = document.getElementById('unitColor').value.trim() || '#2fc7ff';
-        if (!name) { showToast('Please enter a unit name.', 'error'); return false; }
-        studyData.years[yi].semesters[si].units.push({ code, name, color, weeks: [] });
-        return true;
-      });
-    };
-
-    window.editUnit = function(yi, si, ui) {
-      const unit = studyData.years[yi].semesters[si].units[ui];
-      openModal('Edit Unit', `<div class="form-group"><label>Unit Code</label><input type="text" id="unitCode" value="${escapeHtml(unit.code)}" /></div><div class="form-group"><label>Unit Name</label><input type="text" id="unitName" value="${escapeHtml(unit.name)}" /></div><div class="form-group"><label>Color</label><input type="text" id="unitColor" value="${escapeHtml(unit.color)}" /></div>`, () => {
-        const code = document.getElementById('unitCode').value.trim();
-        const name = document.getElementById('unitName').value.trim();
-        const color = document.getElementById('unitColor').value.trim() || '#2fc7ff';
-        if (!name) { showToast('Please enter a unit name.', 'error'); return false; }
-        unit.code = code;
-        unit.name = name;
-        unit.color = color;
-        return true;
-      });
-    };
-
-    window.deleteUnit = function(yi, si, ui) {
-      if (!confirm('Delete this unit and all its weeks, topics, and assignments?')) return;
-      studyData.years[yi].semesters[si].units.splice(ui, 1);
-      render();
-      scheduleSave();
-    };
-
-    // ─── WEEKS ───
-    window.addWeek = function(yi, si, ui) {
-      openModal('Add Week', `<div class="form-group"><label>Week Number</label><input type="number" id="weekNumber" min="1" step="1" value="1" /></div>`, () => {
-        const number = parseInt(document.getElementById('weekNumber').value);
-        if (!number || number < 1) { showToast('Please enter a valid week number.', 'error'); return false; }
-        const unit = studyData.years[yi].semesters[si].units[ui];
-        unit.weeks.push({ number, topics: [], assignments: [] });
-        return true;
-      });
-    };
-
-    window.editWeek = function(yi, si, ui, wi) {
-      const week = studyData.years[yi].semesters[si].units[ui].weeks[wi];
-      openModal('Edit Week', `<div class="form-group"><label>Week Number</label><input type="number" id="weekNumber" value="${week.number}" min="1" step="1" /></div>`, () => {
-        const number = parseInt(document.getElementById('weekNumber').value);
-        if (!number || number < 1) { showToast('Please enter a valid week number.', 'error'); return false; }
-        week.number = number;
-        return true;
-      });
-    };
-
-    window.deleteWeek = function(yi, si, ui, wi) {
-      if (!confirm('Delete this week and all its topics and assignments?')) return;
-      studyData.years[yi].semesters[si].units[ui].weeks.splice(wi, 1);
-      render();
-      scheduleSave();
-    };
-
-    // ─── TOPICS ───
-    window.addTopic = function(yi, si, ui, wi) {
-      openModal('Add Topic', `<div class="form-group"><label>Topic Name</label><input type="text" id="topicName" placeholder="e.g. Multivariable Calculus" /></div>`, () => {
-        const name = document.getElementById('topicName').value.trim();
-        if (!name) { showToast('Please enter a topic name.', 'error'); return false; }
-        const week = studyData.years[yi].semesters[si].units[ui].weeks[wi];
-        week.topics.push({ name, subtopics: [], completed: false, subCompleted: [] });
-        return true;
-      });
-    };
-
-    window.editTopic = function(yi, si, ui, wi, ti) {
-      const topic = studyData.years[yi].semesters[si].units[ui].weeks[wi].topics[ti];
-      openModal('Edit Topic', `<div class="form-group"><label>Topic Name</label><input type="text" id="topicName" value="${escapeHtml(topic.name)}" /></div>`, () => {
-        const name = document.getElementById('topicName').value.trim();
-        if (!name) { showToast('Please enter a topic name.', 'error'); return false; }
-        topic.name = name;
-        return true;
-      });
-    };
-
-    window.deleteTopic = function(yi, si, ui, wi, ti) {
-      if (!confirm('Delete this topic and all its subtopics?')) return;
-      const week = studyData.years[yi].semesters[si].units[ui].weeks[wi];
-      week.topics.splice(ti, 1);
-      render();
-      scheduleSave();
-    };
-
-    // ─── SUBTOPICS ───
-    window.addSubtopic = function(yi, si, ui, wi, ti) {
-      openModal('Add Subtopic', `<div class="form-group"><label>Subtopic Name</label><input type="text" id="subtopicName" placeholder="e.g. Partial derivatives" /></div>`, () => {
-        const name = document.getElementById('subtopicName').value.trim();
-        if (!name) { showToast('Please enter a subtopic name.', 'error'); return false; }
-        const topic = studyData.years[yi].semesters[si].units[ui].weeks[wi].topics[ti];
-        if (!topic.subtopics) topic.subtopics = [];
-        if (!topic.subCompleted) topic.subCompleted = [];
-        topic.subtopics.push(name);
-        topic.subCompleted.push(false);
-        recalcTopicCompletion(topic);
-        return true;
-      });
-    };
-
-    window.deleteSubtopic = function(yi, si, ui, wi, ti, si2) {
-      if (!confirm('Delete this subtopic?')) return;
-      const topic = studyData.years[yi].semesters[si].units[ui].weeks[wi].topics[ti];
-      if (topic.subtopics && topic.subtopics.length > si2) {
-        topic.subtopics.splice(si2, 1);
-        if (topic.subCompleted && topic.subCompleted.length > si2) {
-          topic.subCompleted.splice(si2, 1);
-        }
-        recalcTopicCompletion(topic);
-      }
-      render();
-      scheduleSave();
-    };
-
-    // ─── ASSIGNMENTS ───
-    window.addAssignment = function(yi, si, ui, wi) {
-      openModal('Add Assignment', `
-        <div class="form-group"><label>Assignment Name</label><input type="text" id="assName" placeholder="e.g. Quiz 1" /></div>
-        <div class="form-group"><label>Due Date</label><input type="date" id="assDue" /></div>
-        <div class="form-group"><label>Status</label><select id="assStatus"><option value="pending">Pending</option><option value="in-progress">In Progress</option><option value="submitted">Submitted</option></select></div>
-        <div class="form-group"><label>Marks</label><input type="text" id="assMarks" placeholder="e.g. 85%" /></div>
-        <div class="form-group"><label>Weighting (%)</label><input type="number" id="assWeight" placeholder="5" min="0" max="100" /></div>
-      `, () => {
-        const name = document.getElementById('assName').value.trim();
-        const due = document.getElementById('assDue').value;
-        const status = document.getElementById('assStatus').value;
-        const marks = document.getElementById('assMarks').value.trim();
-        const weight = parseFloat(document.getElementById('assWeight').value) || 0;
-        if (!name) { showToast('Please enter an assignment name.', 'error'); return false; }
-        const week = studyData.years[yi].semesters[si].units[ui].weeks[wi];
-        if (!week.assignments) week.assignments = [];
-        week.assignments.push({ name, due, status, marks, weight });
-        return true;
-      });
-    };
-
-    window.editAssignment = function(yi, si, ui, wi, ai) {
-      const ass = studyData.years[yi].semesters[si].units[ui].weeks[wi].assignments[ai];
-      openModal('Edit Assignment', `
-        <div class="form-group"><label>Assignment Name</label><input type="text" id="assName" value="${escapeHtml(ass.name)}" /></div>
-        <div class="form-group"><label>Due Date</label><input type="date" id="assDue" value="${ass.due || ''}" /></div>
-        <div class="form-group"><label>Status</label><select id="assStatus"><option value="pending" ${ass.status === 'pending' ? 'selected' : ''}>Pending</option><option value="in-progress" ${ass.status === 'in-progress' ? 'selected' : ''}>In Progress</option><option value="submitted" ${ass.status === 'submitted' ? 'selected' : ''}>Submitted</option></select></div>
-        <div class="form-group"><label>Marks</label><input type="text" id="assMarks" value="${escapeHtml(ass.marks || '')}" /></div>
-        <div class="form-group"><label>Weighting (%)</label><input type="number" id="assWeight" value="${ass.weight || ''}" min="0" max="100" /></div>
-      `, () => {
-        const name = document.getElementById('assName').value.trim();
-        const due = document.getElementById('assDue').value;
-        const status = document.getElementById('assStatus').value;
-        const marks = document.getElementById('assMarks').value.trim();
-        const weight = parseFloat(document.getElementById('assWeight').value) || 0;
-        if (!name) { showToast('Please enter an assignment name.', 'error'); return false; }
-        ass.name = name;
-        ass.due = due;
-        ass.status = status;
-        ass.marks = marks;
-        ass.weight = weight;
-        return true;
-      });
-    };
-
-    window.deleteAssignment = function(yi, si, ui, wi, ai) {
-      if (!confirm('Delete this assignment?')) return;
-      const week = studyData.years[yi].semesters[si].units[ui].weeks[wi];
-      week.assignments.splice(ai, 1);
-      render();
-      scheduleSave();
-    };
-
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     //  INIT
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     async function init() {
@@ -2497,28 +2660,35 @@
           </div>
         </div>
 
-        <div id="deadlinesContainer"></div>
-        <div id="analyticsContainer"></div>
-
-        <div class="stats-bar" id="statsBar">
-          <div class="stat-item"><div class="number blue" id="statYears">0</div><div class="label">Years</div></div>
-          <div class="stat-item"><div class="number purple" id="statUnits">0</div><div class="label">Units</div></div>
-          <div class="stat-item"><div class="number orange" id="statWeeks">0</div><div class="label">Weeks</div></div>
-          <div class="stat-item"><div class="number green" id="statTopicsDone">0</div><div class="label">Topics Done</div></div>
-          <div class="stat-item"><div class="number" id="statAssignments">0</div><div class="label">Assignments</div></div>
-          <div class="stat-item"><div class="number red" id="statPending">0</div><div class="label">Pending</div></div>
+        <!-- Search Bar -->
+        <div class="search-bar">
+          <span class="search-icon"><i class="fa fa-search"></i></span>
+          <input type="text" id="searchInput" placeholder="Search topics by name..." oninput="applySearch(this.value)">
+          <span id="searchResultCount" class="text-muted-light" style="font-size:0.8rem;"></span>
+          <button class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('searchInput').value='';applySearch('');" style="border-color:var(--border-subtle);color:var(--text-secondary);">Clear</button>
+          <span class="shortcut-hint" style="margin-left:auto;">Ctrl+F to focus</span>
         </div>
 
+        <!-- Deadlines Widget -->
+        <div id="deadlinesContainer"></div>
+
+        <!-- Analytics Dashboard -->
+        <div id="analyticsContainer"></div>
+
+        <!-- Stats Bar -->
+        <div class="stats-bar" id="statsBar">
+          <div class="stat-item"><div class="number blue" id="statYears">0</div><div class="label">Years</div><div class="stat-tooltip">Total academic years</div></div>
+          <div class="stat-item"><div class="number purple" id="statUnits">0</div><div class="label">Units</div><div class="stat-tooltip">Total units/modules</div></div>
+          <div class="stat-item"><div class="number orange" id="statWeeks">0</div><div class="label">Weeks</div><div class="stat-tooltip">Total weeks across all units</div></div>
+          <div class="stat-item"><div class="number green" id="statTopicsDone">0</div><div class="label">Topics Done</div><div class="stat-tooltip">Completed topics / total topics</div></div>
+          <div class="stat-item"><div class="number" id="statAssignments">0</div><div class="label">Assignments</div><div class="stat-tooltip">Total assignments</div></div>
+          <div class="stat-item"><div class="number red" id="statPending">0</div><div class="label">Pending</div><div class="stat-tooltip">Assignments not yet submitted</div></div>
+        </div>
+
+        <!-- Expand/Collapse All buttons -->
         <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
           <button class="btn btn-sm btn-outline-secondary" onclick="expandAll()" style="border-color:var(--border-subtle);color:var(--text-secondary);"><i class="fa fa-plus-square"></i> Expand All <span class="shortcut-hint">(Ctrl+E)</span></button>
           <button class="btn btn-sm btn-outline-secondary" onclick="collapseAll()" style="border-color:var(--border-subtle);color:var(--text-secondary);"><i class="fa fa-minus-square"></i> Collapse All <span class="shortcut-hint">(Ctrl+W)</span></button>
-        </div>
-
-        <div style="display:flex;justify-content:flex-end;margin-bottom:10px;">
-          <span class="save-status" id="saveStatus">
-            <span class="dot idle"></span>
-            <span class="label">Synced</span>
-          </span>
         </div>
 
         <div id="treeContainer"></div>
@@ -2528,6 +2698,7 @@
         </div>
       `;
 
+      // ─── Bind buttons ───
       document.getElementById('syncBtn').addEventListener('click', async function() {
         showToast('🔄 Syncing...', 'info');
         try {
@@ -2568,6 +2739,7 @@
         input.click();
       });
 
+      // Load data
       await loadData();
       console.log('✅ Study Manager ready');
     }
@@ -2579,12 +2751,13 @@
       init();
     }
 
-    // ─── EXPOSE GLOBALS ───
+    // Expose globals for inline onclick
     window.toggleExpand = function(key) { expanded[key] = !expanded[key]; render(); };
     window.toggleTopicExpand = function(key) { expanded[key] = !expanded[key]; render(); };
     window.toggleTopicComplete = toggleTopicComplete;
     window.toggleSubtopic = toggleSubtopic;
     window.bulkToggleWeek = bulkToggleWeek;
+    window.applySearch = applySearch;
     window.expandAll = expandAll;
     window.collapseAll = collapseAll;
     window.exportJSON = exportJSON;
