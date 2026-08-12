@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Study Manager · Engineering Portfolio</title>
+  <title>Study Manager · Your Portfolio</title>
   <link rel="icon" type="image/png" href="favicon.png" />
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" />
@@ -18,186 +18,1175 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     /* ─── all styles ─── */
-    :root { --bg-primary: #0a0e17; --bg-card: #111927; --border-subtle: rgba(47,199,255,0.08); --text-primary: #e0e8ee; --text-secondary: #8a9fb0; --accent: #2fc7ff; --green: #00b894; --orange: #fdcb6e; --red: #e17055; --purple: #a29bfe; }
-    * { box-sizing: border-box; }
-    body { background: var(--bg-primary); color: var(--text-primary); font-family: 'Inter', sans-serif; min-height: 100vh; }
-    .navbar { background: rgba(10,14,23,0.85) !important; backdrop-filter: blur(16px); border-bottom: 1px solid var(--border-subtle); padding: 8px 0; z-index: 100; }
-    .navbar-brand { font-weight: 900; font-size: 1.3rem; letter-spacing: -0.5px; }
-    .navbar-brand span { color: var(--accent); }
-    .nav-link { color: rgba(255,255,255,0.4) !important; font-size: 0.8rem; transition: 0.2s; letter-spacing: 0.03em; }
-    .nav-link:hover { color: var(--accent) !important; }
-    .nav-link.active { color: var(--accent) !important; }
-    .study-container { max-width: 1400px; margin: 20px auto; padding: 0 20px 100px; }
-    .study-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; padding: 20px 0 30px; border-bottom: 1px solid var(--border-subtle); margin-bottom: 30px; }
-    .study-header h1 { font-weight: 800; font-size: 2rem; margin: 0; background: linear-gradient(135deg, #fff, var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .study-header .subtitle { color: var(--text-secondary); font-size: 0.9rem; }
-    .study-header .actions { display: flex; gap: 10px; flex-wrap: wrap; }
-    .study-header .actions .btn { border-radius: 40px; font-weight: 600; font-size: 0.8rem; padding: 8px 20px; transition: 0.25s; border: none; min-height: 44px; }
-    .btn-sync { background: rgba(255,255,255,0.06); color: var(--text-secondary); }
-    .btn-sync:hover { background: rgba(47,199,255,0.12); color: var(--accent); }
-    .btn-primary-glow { background: linear-gradient(135deg, var(--accent), #0984e3); color: #0a0e17; }
-    .btn-primary-glow:hover { transform: scale(1.03); box-shadow: 0 0 30px rgba(47,199,255,0.2); color: #0a0e17; }
-    .btn-success-glow { background: linear-gradient(135deg, var(--green), #00a86b); color: white; }
-    .btn-success-glow:hover { transform: scale(1.03); box-shadow: 0 0 20px rgba(0,184,148,0.2); color: white; }
-    .btn-excel { background: #28a745; color: white; }
-    .btn-excel:hover { background: #218838; transform: scale(1.03); color: white; }
-    .btn-grade { background: rgba(162,155,254,0.15); color: var(--purple); }
-    .btn-grade:hover { background: rgba(162,155,254,0.25); color: var(--purple); }
-    .stats-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 16px; margin-bottom: 30px; }
-    .stat-item { background: var(--bg-card); border-radius: 16px; padding: 16px 20px; border: 1px solid var(--border-subtle); text-align: center; transition: 0.2s; }
-    .stat-item:hover { border-color: rgba(47,199,255,0.2); transform: translateY(-2px); }
-    .stat-item .number { font-size: 1.8rem; font-weight: 800; color: #fff; line-height: 1.2; }
-    .stat-item .label { font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px; }
-    .stat-item .number.green { color: var(--green); } .stat-item .number.orange { color: var(--orange); } .stat-item .number.blue { color: var(--accent); } .stat-item .number.purple { color: var(--purple); } .stat-item .number.red { color: var(--red); }
-    .stat-item .stat-tooltip { position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 6px 12px; font-size: 0.7rem; color: var(--text-secondary); white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
-    .stat-item:hover .stat-tooltip { opacity: 1; }
-    .level-section { margin-bottom: 16px; border: 1px solid var(--border-subtle); border-radius: 14px; overflow: hidden; background: var(--bg-card); }
-    .level-header { padding: 12px 18px; background: rgba(255,255,255,0.02); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; border-bottom: 1px solid var(--border-subtle); cursor: pointer; transition: 0.2s; }
-    .level-header:hover { background: rgba(255,255,255,0.04); }
-    .level-header .name { font-weight: 700; font-size: 1.05rem; }
-    .level-header .meta { font-size: 0.75rem; color: var(--text-secondary); }
-    .level-header .actions { display: flex; gap: 5px; flex-wrap: wrap; }
-    .level-header .actions .btn { border-radius: 40px; font-size: 0.7rem; padding: 6px 14px; min-height: 36px; border: none; transition: 0.2s; }
-    .btn-add { background: rgba(255,255,255,0.04); color: var(--text-secondary); border: 1px dashed var(--border-subtle); }
-    .btn-add:hover { border-color: var(--accent); color: var(--accent); background: rgba(47,199,255,0.05); }
-    .btn-del { background: rgba(225,112,85,0.08); color: var(--red); }
-    .btn-del:hover { background: rgba(225,112,85,0.15); }
-    .btn-edit { background: rgba(47,199,255,0.06); color: var(--accent); }
-    .btn-edit:hover { background: rgba(47,199,255,0.12); }
-    .btn-bulk { background: rgba(0,184,148,0.08); color: var(--green); }
-    .btn-bulk:hover { background: rgba(0,184,148,0.15); color: var(--green); }
-    .level-body { padding: 14px 18px; display: none; }
-    .level-body.open { display: block; }
-    .child-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
-    .child-card { background: rgba(255,255,255,0.02); border-radius: 10px; border: 1px solid var(--border-subtle); padding: 12px 14px; transition: 0.2s; cursor: pointer; }
-    .child-card:hover { border-color: rgba(47,199,255,0.2); background: rgba(255,255,255,0.04); }
-    .child-card .title { font-weight: 600; font-size: 0.9rem; }
-    .child-card .sub { font-size: 0.7rem; color: var(--text-secondary); }
-    .child-card .progress-track { height: 3px; background: rgba(255,255,255,0.06); border-radius: 4px; overflow: hidden; margin: 6px 0 3px; }
-    .child-card .progress-track .fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--accent), var(--green)); transition: width 0.6s ease; }
-    .topic-item { margin-bottom: 8px; border: 1px solid var(--border-subtle); border-radius: 10px; overflow: hidden; }
-    .topic-header { padding: 8px 14px; display: flex; align-items: center; gap: 10px; cursor: pointer; transition: 0.2s; background: rgba(255,255,255,0.02); }
-    .topic-header:hover { background: rgba(255,255,255,0.04); }
-    .topic-header .check { width: 20px; height: 20px; border-radius: 4px; border: 2px solid rgba(255,255,255,0.12); display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; transition: 0.2s; background: transparent; }
-    .topic-header .check.checked { background: var(--green); border-color: var(--green); }
-    .topic-header .check.checked i { color: #fff; }
-    .topic-header .check i { font-size: 11px; color: transparent; }
-    .topic-header .name { flex: 1; font-weight: 500; font-size: 0.9rem; }
-    .topic-header .meta { font-size: 0.7rem; color: var(--text-secondary); }
-    .topic-header .actions .btn { border-radius: 40px; font-size: 0.65rem; padding: 4px 12px; min-height: 30px; border: none; transition: 0.2s; background: transparent; color: var(--text-secondary); }
-    .topic-header .actions .btn:hover { color: var(--accent); background: rgba(47,199,255,0.05); }
-    .topic-header .actions .btn-del:hover { color: var(--red); background: rgba(225,112,85,0.05); }
-    .topic-header .expand-icon { color: var(--text-secondary); font-size: 0.7rem; transition: 0.2s; margin-left: 4px; }
-    .subtopic-list { padding: 0 14px 10px 44px; display: none; }
-    .subtopic-list.open { display: block; }
-    .subtopic-item { display: flex; align-items: center; gap: 10px; padding: 4px 0; font-size: 0.82rem; color: var(--text-secondary); border-bottom: 1px solid rgba(255,255,255,0.03); }
-    .subtopic-item:last-child { border-bottom: none; }
-    .subtopic-item .sub-check { width: 16px; height: 16px; border-radius: 3px; border: 2px solid rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; transition: 0.2s; background: transparent; }
-    .subtopic-item .sub-check.checked { background: var(--accent); border-color: var(--accent); }
-    .subtopic-item .sub-check.checked i { color: #fff; }
-    .subtopic-item .sub-check i { font-size: 9px; color: transparent; }
-    .subtopic-item .sub-label { flex: 1; }
-    .subtopic-item .sub-label.done { text-decoration: line-through; opacity: 0.5; }
-    .subtopic-item .sub-actions .btn { border-radius: 40px; font-size: 0.6rem; padding: 2px 10px; min-height: 24px; border: none; transition: 0.2s; background: transparent; color: var(--text-secondary); }
-    .subtopic-item .sub-actions .btn:hover { color: var(--red); background: rgba(225,112,85,0.05); }
-    .subtopic-add-row { margin-top: 6px; }
-    .subtopic-add-row .btn { border-radius: 40px; font-size: 0.7rem; padding: 4px 14px; min-height: 32px; border: 1px dashed var(--border-subtle); background: transparent; color: var(--text-secondary); transition: 0.2s; }
-    .subtopic-add-row .btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(47,199,255,0.05); }
-    .assignments-section { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-subtle); }
-    .assignments-section .section-title { font-weight: 700; font-size: 0.9rem; color: var(--text-primary); margin-bottom: 8px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-    .assignments-section .section-title i { color: var(--accent); }
-    .assignment-item { display: flex; align-items: center; gap: 12px; padding: 6px 12px; background: rgba(255,255,255,0.02); border-radius: 8px; margin-bottom: 4px; border: 1px solid transparent; transition: 0.2s; flex-wrap: wrap; }
-    .assignment-item:hover { border-color: var(--border-subtle); background: rgba(255,255,255,0.04); }
-    .assignment-item .ass-name { flex: 1; font-weight: 500; font-size: 0.85rem; min-width: 100px; }
-    .assignment-item .ass-due { font-size: 0.7rem; color: var(--text-secondary); min-width: 70px; }
-    .assignment-item .ass-status { font-size: 0.65rem; font-weight: 600; padding: 2px 10px; border-radius: 40px; text-transform: uppercase; letter-spacing: 0.04em; }
-    .assignment-item .ass-status.pending { background: rgba(225,112,85,0.12); color: var(--red); }
-    .assignment-item .ass-status.in-progress { background: rgba(253,203,110,0.12); color: var(--orange); }
-    .assignment-item .ass-status.submitted { background: rgba(0,184,148,0.12); color: var(--green); }
-    .assignment-item .ass-marks { font-weight: 700; font-size: 0.85rem; min-width: 40px; text-align: right; }
-    .assignment-item .ass-actions .btn { border-radius: 40px; font-size: 0.65rem; padding: 2px 12px; min-height: 28px; border: none; transition: 0.2s; background: transparent; color: var(--text-secondary); }
-    .assignment-item .ass-actions .btn-edit-ass:hover { color: var(--accent); background: rgba(47,199,255,0.05); }
-    .assignment-item .ass-actions .btn-del-ass:hover { color: var(--red); background: rgba(225,112,85,0.05); }
-    .btn-add-ass { background: rgba(255,255,255,0.04); color: var(--text-secondary); border: 1px dashed var(--border-subtle); border-radius: 40px; padding: 4px 14px; min-height: 32px; font-size: 0.7rem; transition: 0.2s; }
-    .btn-add-ass:hover { border-color: var(--accent); color: var(--accent); background: rgba(47,199,255,0.05); }
-    .grade-modal .modal-box { max-width: 680px; }
-    .grade-modal .grade-summary { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin: 16px 0 20px; }
-    .grade-modal .grade-summary .card { background: rgba(255,255,255,0.04); border-radius: 12px; padding: 12px 16px; text-align: center; border: 1px solid var(--border-subtle); }
-    .grade-modal .grade-summary .card .value { font-size: 2rem; font-weight: 800; color: #fff; }
-    .grade-modal .grade-summary .card .label { font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em; }
-    .grade-modal .grade-summary .card .value.green { color: var(--green); } .grade-modal .grade-summary .card .value.orange { color: var(--orange); } .grade-modal .grade-summary .card .value.red { color: var(--red); } .grade-modal .grade-summary .card .value.purple { color: var(--purple); }
-    .grade-modal .assignment-row { display: flex; align-items: center; gap: 12px; padding: 6px 10px; background: rgba(255,255,255,0.02); border-radius: 8px; margin-bottom: 4px; border: 1px solid transparent; transition: 0.2s; }
-    .grade-modal .assignment-row:hover { border-color: var(--border-subtle); background: rgba(255,255,255,0.04); }
-    .grade-modal .assignment-row .name { flex: 1; font-weight: 500; font-size: 0.85rem; }
-    .grade-modal .assignment-row .weight { font-size: 0.75rem; color: var(--text-secondary); min-width: 50px; }
-    .grade-modal .assignment-row .marks-input { width: 70px; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border-subtle); background: rgba(255,255,255,0.04); color: #fff; font-size: 0.85rem; text-align: right; outline: none; transition: 0.2s; }
-    .grade-modal .assignment-row .marks-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(47,199,255,0.1); }
-    .grade-modal .assignment-row .status-badge { font-size: 0.6rem; padding: 2px 8px; border-radius: 40px; text-transform: uppercase; font-weight: 600; }
-    .grade-modal .assignment-row .status-badge.pending { background: rgba(225,112,85,0.12); color: var(--red); } .grade-modal .assignment-row .status-badge.submitted { background: rgba(0,184,148,0.12); color: var(--green); }
-    .grade-modal .what-if { margin-top: 16px; padding: 14px 16px; background: rgba(47,199,255,0.04); border-radius: 12px; border: 1px solid rgba(47,199,255,0.1); }
-    .grade-modal .what-if .input-group { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-    .grade-modal .what-if input[type="number"] { width: 100px; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-subtle); background: rgba(255,255,255,0.04); color: #fff; font-size: 0.85rem; outline: none; transition: 0.2s; }
-    .grade-modal .what-if input[type="number"]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(47,199,255,0.1); }
-    .grade-modal .what-if .result { font-weight: 700; font-size: 1.1rem; color: var(--accent); }
-    .grade-modal .what-if .result .needed { color: var(--green); } .grade-modal .what-if .result .impossible { color: var(--red); }
-    .modal-custom { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
-    .modal-custom.open { display: flex; }
-    .modal-custom .modal-box { background: var(--bg-card); border-radius: 24px; padding: 28px 32px; max-width: 560px; width: 100%; border: 1px solid var(--border-subtle); box-shadow: 0 20px 60px rgba(0,0,0,0.6); animation: modalIn 0.3s ease; max-height: 90vh; overflow-y: auto; }
-    @keyframes modalIn { from { opacity: 0; transform: scale(0.95) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
-    .modal-custom .modal-box h3 { font-weight: 700; margin-bottom: 16px; color: #fff; }
-    .modal-custom .modal-box .form-group { margin-bottom: 14px; }
-    .modal-custom .modal-box .form-group label { font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 4px; }
-    .modal-custom .modal-box .form-group input, .modal-custom .modal-box .form-group select, .modal-custom .modal-box .form-group textarea { width: 100%; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--border-subtle); background: rgba(255,255,255,0.04); color: #fff; font-size: 0.9rem; transition: 0.2s; outline: none; }
-    .modal-custom .modal-box .form-group input:focus, .modal-custom .modal-box .form-group select:focus, .modal-custom .modal-box .form-group textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(47,199,255,0.1); }
-    .modal-custom .modal-box .form-group select option { background: #1a2233; }
-    .modal-custom .modal-box .form-group textarea { resize: vertical; min-height: 60px; }
-    .modal-custom .modal-box .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
-    .modal-custom .modal-box .modal-actions .btn { border-radius: 40px; padding: 8px 24px; min-height: 44px; font-weight: 600; font-size: 0.85rem; border: none; transition: 0.2s; }
-    .modal-custom .modal-box .modal-actions .btn-secondary { background: rgba(255,255,255,0.06); color: var(--text-secondary); }
-    .modal-custom .modal-box .modal-actions .btn-secondary:hover { background: rgba(255,255,255,0.1); }
-    .modal-custom .modal-box .modal-actions .btn-primary { background: linear-gradient(135deg, var(--accent), #0984e3); color: #0a0e17; }
-    .modal-custom .modal-box .modal-actions .btn-primary:hover { transform: scale(1.02); box-shadow: 0 0 20px rgba(47,199,255,0.15); }
-    .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 1050; display: flex; flex-direction: column; gap: 8px; }
-    .toast-item { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 14px; padding: 12px 20px; color: var(--text-primary); font-size: 0.85rem; box-shadow: 0 8px 30px rgba(0,0,0,0.4); animation: toastIn 0.3s ease; min-width: 240px; backdrop-filter: blur(8px); }
-    .toast-item.success { border-left: 3px solid var(--green); } .toast-item.error { border-left: 3px solid var(--red); } .toast-item.info { border-left: 3px solid var(--accent); }
-    @keyframes toastIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
-    @media (max-width: 768px) { .study-container { padding: 0 12px 80px; } .study-header h1 { font-size: 1.5rem; } .study-header .actions .btn { font-size: 0.7rem; padding: 6px 14px; min-height: 38px; } .child-grid { grid-template-columns: 1fr; } .stats-bar { grid-template-columns: repeat(3, 1fr); gap: 10px; } .stat-item .number { font-size: 1.2rem; } .level-header { flex-direction: column; align-items: stretch; } .level-header .actions { justify-content: flex-start; } .modal-custom .modal-box { padding: 20px; } .subtopic-list { padding: 0 10px 10px 30px; } .grade-modal .grade-summary { grid-template-columns: 1fr; } .grade-modal .assignment-row { flex-wrap: wrap; } .grade-modal .assignment-row .marks-input { width: 100%; } }
-    @media (max-width: 480px) { .stats-bar { grid-template-columns: repeat(2, 1fr); } }
-    ::-webkit-scrollbar { width: 6px; height: 6px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 8px; } ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
-    .text-muted-light { color: var(--text-secondary); } .gap-2 { gap: 8px; } .flex-wrap { flex-wrap: wrap; } .cursor-pointer { cursor: pointer; } .no-select { user-select: none; }
-    .access-denied { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 80vh; text-align: center; padding: 20px; }
-    .access-denied .icon { font-size: 4rem; color: var(--red); margin-bottom: 20px; }
-    .access-denied h2 { font-weight: 700; color: var(--red); }
-    .access-denied p { color: var(--text-secondary); max-width: 500px; }
-    .error-display { padding: 40px; text-align: center; color: var(--red); background: rgba(225,112,85,0.08); border-radius: 16px; border: 1px solid var(--red); margin: 40px 0; }
-    .error-display .icon { font-size: 3rem; margin-bottom: 16px; }
-    .error-display h3 { color: var(--red); }
-    .error-display pre { background: rgba(0,0,0,0.3); padding: 16px; border-radius: 8px; text-align: left; max-height: 200px; overflow: auto; font-size: 0.8rem; }
-    .loading-spinner { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 20px; color: var(--text-secondary); }
-    .loading-spinner .spinner { width: 48px; height: 48px; border: 3px solid var(--border-subtle); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 16px; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* ─── Deadlines widget ─── */
-    .deadlines-widget { background: var(--bg-card); border-radius: 16px; padding: 16px 20px; border: 1px solid var(--border-subtle); margin-bottom: 20px; }
-    .deadlines-widget h4 { font-size: 1rem; font-weight: 600; color: var(--text-primary); margin-bottom: 8px; }
-    .deadlines-widget .deadline-item { display: flex; justify-content: space-between; padding: 4px 0; font-size: 0.85rem; border-bottom: 1px solid var(--border-subtle); }
-    .deadlines-widget .deadline-item:last-child { border-bottom: none; }
-    .deadlines-widget .deadline-item .due-soon { color: var(--orange); }
-    .deadlines-widget .deadline-item .overdue { color: var(--red); }
-
-    /* ─── Analytics Dashboard ─── */
-    .analytics-dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin: 30px 0 20px; }
-    .analytics-card { background: var(--bg-card); border-radius: 16px; padding: 18px 20px; border: 1px solid var(--border-subtle); }
-    .analytics-card h4 { font-size: 1rem; font-weight: 600; color: var(--text-primary); margin-bottom: 12px; }
-    .analytics-card .chart-container { height: 180px; position: relative; }
-    .analytics-card .stat-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 0.85rem; }
-    .analytics-card .stat-row .label { color: var(--text-secondary); }
-    .analytics-card .stat-row .value { color: var(--text-primary); font-weight: 500; }
-    .analytics-card .mini-progress { height: 6px; background: rgba(255,255,255,0.06); border-radius: 4px; overflow: hidden; margin-top: 4px; }
-    .analytics-card .mini-progress .fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--accent), var(--green)); transition: width 0.6s ease; }
-
-    .shortcut-hint { font-size: 0.7rem; color: var(--text-secondary); opacity: 0.6; margin-left: 8px; }
-    @media (max-width: 480px) { .shortcut-hint { display: none; } }
+    :root {
+      --bg-primary: #0a0e17;
+      --bg-card: #111927;
+      --border-subtle: rgba(47, 199, 255, 0.08);
+      --text-primary: #e0e8ee;
+      --text-secondary: #8a9fb0;
+      --accent: #2fc7ff;
+      --green: #00b894;
+      --orange: #fdcb6e;
+      --red: #e17055;
+      --purple: #a29bfe;
+    }
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+    }
+    .navbar {
+      background: rgba(10, 14, 23, 0.85) !important;
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 8px 0;
+      z-index: 100;
+    }
+    .navbar-brand {
+      font-weight: 900;
+      font-size: 1.3rem;
+      letter-spacing: -0.5px;
+    }
+    .navbar-brand span {
+      color: var(--accent);
+    }
+    .nav-link {
+      color: rgba(255, 255, 255, 0.4) !important;
+      font-size: 0.8rem;
+      transition: 0.2s;
+      letter-spacing: 0.03em;
+    }
+    .nav-link:hover {
+      color: var(--accent) !important;
+    }
+    .nav-link.active {
+      color: var(--accent) !important;
+    }
+    .study-container {
+      max-width: 1400px;
+      margin: 20px auto;
+      padding: 0 20px 100px;
+    }
+    .study-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      padding: 20px 0 30px;
+      border-bottom: 1px solid var(--border-subtle);
+      margin-bottom: 30px;
+    }
+    .study-header h1 {
+      font-weight: 800;
+      font-size: 2rem;
+      margin: 0;
+      background: linear-gradient(135deg, #fff, var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .study-header .subtitle {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+    .study-header .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .study-header .actions .btn {
+      border-radius: 40px;
+      font-weight: 600;
+      font-size: 0.8rem;
+      padding: 8px 20px;
+      transition: 0.25s;
+      border: none;
+      min-height: 44px;
+    }
+    .btn-sync {
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text-secondary);
+    }
+    .btn-sync:hover {
+      background: rgba(47, 199, 255, 0.12);
+      color: var(--accent);
+    }
+    .btn-primary-glow {
+      background: linear-gradient(135deg, var(--accent), #0984e3);
+      color: #0a0e17;
+    }
+    .btn-primary-glow:hover {
+      transform: scale(1.03);
+      box-shadow: 0 0 30px rgba(47, 199, 255, 0.2);
+      color: #0a0e17;
+    }
+    .btn-success-glow {
+      background: linear-gradient(135deg, var(--green), #00a86b);
+      color: white;
+    }
+    .btn-success-glow:hover {
+      transform: scale(1.03);
+      box-shadow: 0 0 20px rgba(0, 184, 148, 0.2);
+      color: white;
+    }
+    .btn-excel {
+      background: #28a745;
+      color: white;
+    }
+    .btn-excel:hover {
+      background: #218838;
+      transform: scale(1.03);
+      color: white;
+    }
+    .btn-grade {
+      background: rgba(162, 155, 254, 0.15);
+      color: var(--purple);
+    }
+    .btn-grade:hover {
+      background: rgba(162, 155, 254, 0.25);
+      color: var(--purple);
+    }
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 16px;
+      margin-bottom: 30px;
+    }
+    .stat-item {
+      background: var(--bg-card);
+      border-radius: 16px;
+      padding: 16px 20px;
+      border: 1px solid var(--border-subtle);
+      text-align: center;
+      transition: 0.2s;
+    }
+    .stat-item:hover {
+      border-color: rgba(47, 199, 255, 0.2);
+      transform: translateY(-2px);
+    }
+    .stat-item .number {
+      font-size: 1.8rem;
+      font-weight: 800;
+      color: #fff;
+      line-height: 1.2;
+    }
+    .stat-item .label {
+      font-size: 0.7rem;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-top: 2px;
+    }
+    .stat-item .number.green {
+      color: var(--green);
+    }
+    .stat-item .number.orange {
+      color: var(--orange);
+    }
+    .stat-item .number.blue {
+      color: var(--accent);
+    }
+    .stat-item .number.purple {
+      color: var(--purple);
+    }
+    .stat-item .number.red {
+      color: var(--red);
+    }
+    .stat-item .stat-tooltip {
+      position: absolute;
+      bottom: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 0.7rem;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+    }
+    .stat-item:hover .stat-tooltip {
+      opacity: 1;
+    }
+    .level-section {
+      margin-bottom: 16px;
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      overflow: hidden;
+      background: var(--bg-card);
+    }
+    .level-header {
+      padding: 12px 18px;
+      background: rgba(255, 255, 255, 0.02);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      border-bottom: 1px solid var(--border-subtle);
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .level-header:hover {
+      background: rgba(255, 255, 255, 0.04);
+    }
+    .level-header .name {
+      font-weight: 700;
+      font-size: 1.05rem;
+    }
+    .level-header .meta {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+    }
+    .level-header .actions {
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap;
+    }
+    .level-header .actions .btn {
+      border-radius: 40px;
+      font-size: 0.7rem;
+      padding: 6px 14px;
+      min-height: 36px;
+      border: none;
+      transition: 0.2s;
+    }
+    .btn-add {
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-secondary);
+      border: 1px dashed var(--border-subtle);
+    }
+    .btn-add:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(47, 199, 255, 0.05);
+    }
+    .btn-del {
+      background: rgba(225, 112, 85, 0.08);
+      color: var(--red);
+    }
+    .btn-del:hover {
+      background: rgba(225, 112, 85, 0.15);
+    }
+    .btn-edit {
+      background: rgba(47, 199, 255, 0.06);
+      color: var(--accent);
+    }
+    .btn-edit:hover {
+      background: rgba(47, 199, 255, 0.12);
+    }
+    .btn-bulk {
+      background: rgba(0, 184, 148, 0.08);
+      color: var(--green);
+    }
+    .btn-bulk:hover {
+      background: rgba(0, 184, 148, 0.15);
+      color: var(--green);
+    }
+    .level-body {
+      padding: 14px 18px;
+      display: none;
+    }
+    .level-body.open {
+      display: block;
+    }
+    .child-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 10px;
+    }
+    .child-card {
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 10px;
+      border: 1px solid var(--border-subtle);
+      padding: 12px 14px;
+      transition: 0.2s;
+      cursor: pointer;
+    }
+    .child-card:hover {
+      border-color: rgba(47, 199, 255, 0.2);
+      background: rgba(255, 255, 255, 0.04);
+    }
+    .child-card .title {
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+    .child-card .sub {
+      font-size: 0.7rem;
+      color: var(--text-secondary);
+    }
+    .child-card .progress-track {
+      height: 3px;
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 4px;
+      overflow: hidden;
+      margin: 6px 0 3px;
+    }
+    .child-card .progress-track .fill {
+      height: 100%;
+      border-radius: 4px;
+      background: linear-gradient(90deg, var(--accent), var(--green));
+      transition: width 0.6s ease;
+    }
+    .topic-item {
+      margin-bottom: 8px;
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .topic-header {
+      padding: 8px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      transition: 0.2s;
+      background: rgba(255, 255, 255, 0.02);
+    }
+    .topic-header:hover {
+      background: rgba(255, 255, 255, 0.04);
+    }
+    .topic-header .check {
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+      border: 2px solid rgba(255, 255, 255, 0.12);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      cursor: pointer;
+      transition: 0.2s;
+      background: transparent;
+    }
+    .topic-header .check.checked {
+      background: var(--green);
+      border-color: var(--green);
+    }
+    .topic-header .check.checked i {
+      color: #fff;
+    }
+    .topic-header .check i {
+      font-size: 11px;
+      color: transparent;
+    }
+    .topic-header .name {
+      flex: 1;
+      font-weight: 500;
+      font-size: 0.9rem;
+    }
+    .topic-header .meta {
+      font-size: 0.7rem;
+      color: var(--text-secondary);
+    }
+    .topic-header .actions .btn {
+      border-radius: 40px;
+      font-size: 0.65rem;
+      padding: 4px 12px;
+      min-height: 30px;
+      border: none;
+      transition: 0.2s;
+      background: transparent;
+      color: var(--text-secondary);
+    }
+    .topic-header .actions .btn:hover {
+      color: var(--accent);
+      background: rgba(47, 199, 255, 0.05);
+    }
+    .topic-header .actions .btn-del:hover {
+      color: var(--red);
+      background: rgba(225, 112, 85, 0.05);
+    }
+    .topic-header .expand-icon {
+      color: var(--text-secondary);
+      font-size: 0.7rem;
+      transition: 0.2s;
+      margin-left: 4px;
+    }
+    .subtopic-list {
+      padding: 0 14px 10px 44px;
+      display: none;
+    }
+    .subtopic-list.open {
+      display: block;
+    }
+    .subtopic-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 4px 0;
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    }
+    .subtopic-item:last-child {
+      border-bottom: none;
+    }
+    .subtopic-item .sub-check {
+      width: 16px;
+      height: 16px;
+      border-radius: 3px;
+      border: 2px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      cursor: pointer;
+      transition: 0.2s;
+      background: transparent;
+    }
+    .subtopic-item .sub-check.checked {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+    .subtopic-item .sub-check.checked i {
+      color: #fff;
+    }
+    .subtopic-item .sub-check i {
+      font-size: 9px;
+      color: transparent;
+    }
+    .subtopic-item .sub-label {
+      flex: 1;
+    }
+    .subtopic-item .sub-label.done {
+      text-decoration: line-through;
+      opacity: 0.5;
+    }
+    .subtopic-item .sub-actions .btn {
+      border-radius: 40px;
+      font-size: 0.6rem;
+      padding: 2px 10px;
+      min-height: 24px;
+      border: none;
+      transition: 0.2s;
+      background: transparent;
+      color: var(--text-secondary);
+    }
+    .subtopic-item .sub-actions .btn:hover {
+      color: var(--red);
+      background: rgba(225, 112, 85, 0.05);
+    }
+    .subtopic-add-row {
+      margin-top: 6px;
+    }
+    .subtopic-add-row .btn {
+      border-radius: 40px;
+      font-size: 0.7rem;
+      padding: 4px 14px;
+      min-height: 32px;
+      border: 1px dashed var(--border-subtle);
+      background: transparent;
+      color: var(--text-secondary);
+      transition: 0.2s;
+    }
+    .subtopic-add-row .btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(47, 199, 255, 0.05);
+    }
+    .assignments-section {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border-subtle);
+    }
+    .assignments-section .section-title {
+      font-weight: 700;
+      font-size: 0.9rem;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .assignments-section .section-title i {
+      color: var(--accent);
+    }
+    .assignment-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 6px 12px;
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 8px;
+      margin-bottom: 4px;
+      border: 1px solid transparent;
+      transition: 0.2s;
+      flex-wrap: wrap;
+    }
+    .assignment-item:hover {
+      border-color: var(--border-subtle);
+      background: rgba(255, 255, 255, 0.04);
+    }
+    .assignment-item .ass-name {
+      flex: 1;
+      font-weight: 500;
+      font-size: 0.85rem;
+      min-width: 100px;
+    }
+    .assignment-item .ass-due {
+      font-size: 0.7rem;
+      color: var(--text-secondary);
+      min-width: 70px;
+    }
+    .assignment-item .ass-status {
+      font-size: 0.65rem;
+      font-weight: 600;
+      padding: 2px 10px;
+      border-radius: 40px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .assignment-item .ass-status.pending {
+      background: rgba(225, 112, 85, 0.12);
+      color: var(--red);
+    }
+    .assignment-item .ass-status.in-progress {
+      background: rgba(253, 203, 110, 0.12);
+      color: var(--orange);
+    }
+    .assignment-item .ass-status.submitted {
+      background: rgba(0, 184, 148, 0.12);
+      color: var(--green);
+    }
+    .assignment-item .ass-marks {
+      font-weight: 700;
+      font-size: 0.85rem;
+      min-width: 40px;
+      text-align: right;
+    }
+    .assignment-item .ass-actions .btn {
+      border-radius: 40px;
+      font-size: 0.65rem;
+      padding: 2px 12px;
+      min-height: 28px;
+      border: none;
+      transition: 0.2s;
+      background: transparent;
+      color: var(--text-secondary);
+    }
+    .assignment-item .ass-actions .btn-edit-ass:hover {
+      color: var(--accent);
+      background: rgba(47, 199, 255, 0.05);
+    }
+    .assignment-item .ass-actions .btn-del-ass:hover {
+      color: var(--red);
+      background: rgba(225, 112, 85, 0.05);
+    }
+    .btn-add-ass {
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-secondary);
+      border: 1px dashed var(--border-subtle);
+      border-radius: 40px;
+      padding: 4px 14px;
+      min-height: 32px;
+      font-size: 0.7rem;
+      transition: 0.2s;
+    }
+    .btn-add-ass:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(47, 199, 255, 0.05);
+    }
+    .grade-modal .modal-box {
+      max-width: 680px;
+    }
+    .grade-modal .grade-summary {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+      margin: 16px 0 20px;
+    }
+    .grade-modal .grade-summary .card {
+      background: rgba(255, 255, 255, 0.04);
+      border-radius: 12px;
+      padding: 12px 16px;
+      text-align: center;
+      border: 1px solid var(--border-subtle);
+    }
+    .grade-modal .grade-summary .card .value {
+      font-size: 2rem;
+      font-weight: 800;
+      color: #fff;
+    }
+    .grade-modal .grade-summary .card .label {
+      font-size: 0.7rem;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .grade-modal .grade-summary .card .value.green {
+      color: var(--green);
+    }
+    .grade-modal .grade-summary .card .value.orange {
+      color: var(--orange);
+    }
+    .grade-modal .grade-summary .card .value.red {
+      color: var(--red);
+    }
+    .grade-modal .grade-summary .card .value.purple {
+      color: var(--purple);
+    }
+    .grade-modal .assignment-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 6px 10px;
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 8px;
+      margin-bottom: 4px;
+      border: 1px solid transparent;
+      transition: 0.2s;
+    }
+    .grade-modal .assignment-row:hover {
+      border-color: var(--border-subtle);
+      background: rgba(255, 255, 255, 0.04);
+    }
+    .grade-modal .assignment-row .name {
+      flex: 1;
+      font-weight: 500;
+      font-size: 0.85rem;
+    }
+    .grade-modal .assignment-row .weight {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      min-width: 50px;
+    }
+    .grade-modal .assignment-row .marks-input {
+      width: 70px;
+      padding: 4px 8px;
+      border-radius: 6px;
+      border: 1px solid var(--border-subtle);
+      background: rgba(255, 255, 255, 0.04);
+      color: #fff;
+      font-size: 0.85rem;
+      text-align: right;
+      outline: none;
+      transition: 0.2s;
+    }
+    .grade-modal .assignment-row .marks-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(47, 199, 255, 0.1);
+    }
+    .grade-modal .assignment-row .status-badge {
+      font-size: 0.6rem;
+      padding: 2px 8px;
+      border-radius: 40px;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+    .grade-modal .assignment-row .status-badge.pending {
+      background: rgba(225, 112, 85, 0.12);
+      color: var(--red);
+    }
+    .grade-modal .assignment-row .status-badge.submitted {
+      background: rgba(0, 184, 148, 0.12);
+      color: var(--green);
+    }
+    .grade-modal .what-if {
+      margin-top: 16px;
+      padding: 14px 16px;
+      background: rgba(47, 199, 255, 0.04);
+      border-radius: 12px;
+      border: 1px solid rgba(47, 199, 255, 0.1);
+    }
+    .grade-modal .what-if .input-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .grade-modal .what-if input[type="number"] {
+      width: 100px;
+      padding: 6px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border-subtle);
+      background: rgba(255, 255, 255, 0.04);
+      color: #fff;
+      font-size: 0.85rem;
+      outline: none;
+      transition: 0.2s;
+    }
+    .grade-modal .what-if input[type="number"]:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(47, 199, 255, 0.1);
+    }
+    .grade-modal .what-if .result {
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: var(--accent);
+    }
+    .grade-modal .what-if .result .needed {
+      color: var(--green);
+    }
+    .grade-modal .what-if .result .impossible {
+      color: var(--red);
+    }
+    .modal-custom {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(8px);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-custom.open {
+      display: flex;
+    }
+    .modal-custom .modal-box {
+      background: var(--bg-card);
+      border-radius: 24px;
+      padding: 28px 32px;
+      max-width: 560px;
+      width: 100%;
+      border: 1px solid var(--border-subtle);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+      animation: modalIn 0.3s ease;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    @keyframes modalIn {
+      from {
+        opacity: 0;
+        transform: scale(0.95) translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+    }
+    .modal-custom .modal-box h3 {
+      font-weight: 700;
+      margin-bottom: 16px;
+      color: #fff;
+    }
+    .modal-custom .modal-box .form-group {
+      margin-bottom: 14px;
+    }
+    .modal-custom .modal-box .form-group label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      display: block;
+      margin-bottom: 4px;
+    }
+    .modal-custom .modal-box .form-group input,
+    .modal-custom .modal-box .form-group select,
+    .modal-custom .modal-box .form-group textarea {
+      width: 100%;
+      padding: 10px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--border-subtle);
+      background: rgba(255, 255, 255, 0.04);
+      color: #fff;
+      font-size: 0.9rem;
+      transition: 0.2s;
+      outline: none;
+    }
+    .modal-custom .modal-box .form-group input:focus,
+    .modal-custom .modal-box .form-group select:focus,
+    .modal-custom .modal-box .form-group textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(47, 199, 255, 0.1);
+    }
+    .modal-custom .modal-box .form-group select option {
+      background: #1a2233;
+    }
+    .modal-custom .modal-box .form-group textarea {
+      resize: vertical;
+      min-height: 60px;
+    }
+    .modal-custom .modal-box .modal-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-top: 20px;
+    }
+    .modal-custom .modal-box .modal-actions .btn {
+      border-radius: 40px;
+      padding: 8px 24px;
+      min-height: 44px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      border: none;
+      transition: 0.2s;
+    }
+    .modal-custom .modal-box .modal-actions .btn-secondary {
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text-secondary);
+    }
+    .modal-custom .modal-box .modal-actions .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+    .modal-custom .modal-box .modal-actions .btn-primary {
+      background: linear-gradient(135deg, var(--accent), #0984e3);
+      color: #0a0e17;
+    }
+    .modal-custom .modal-box .modal-actions .btn-primary:hover {
+      transform: scale(1.02);
+      box-shadow: 0 0 20px rgba(47, 199, 255, 0.15);
+    }
+    .toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 1050;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .toast-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      padding: 12px 20px;
+      color: var(--text-primary);
+      font-size: 0.85rem;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+      animation: toastIn 0.3s ease;
+      min-width: 240px;
+      backdrop-filter: blur(8px);
+    }
+    .toast-item.success {
+      border-left: 3px solid var(--green);
+    }
+    .toast-item.error {
+      border-left: 3px solid var(--red);
+    }
+    .toast-item.info {
+      border-left: 3px solid var(--accent);
+    }
+    @keyframes toastIn {
+      from {
+        opacity: 0;
+        transform: translateX(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+    @media (max-width: 768px) {
+      .study-container {
+        padding: 0 12px 80px;
+      }
+      .study-header h1 {
+        font-size: 1.5rem;
+      }
+      .study-header .actions .btn {
+        font-size: 0.7rem;
+        padding: 6px 14px;
+        min-height: 38px;
+      }
+      .child-grid {
+        grid-template-columns: 1fr;
+      }
+      .stats-bar {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+      }
+      .stat-item .number {
+        font-size: 1.2rem;
+      }
+      .level-header {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .level-header .actions {
+        justify-content: flex-start;
+      }
+      .modal-custom .modal-box {
+        padding: 20px;
+      }
+      .subtopic-list {
+        padding: 0 10px 10px 30px;
+      }
+      .grade-modal .grade-summary {
+        grid-template-columns: 1fr;
+      }
+      .grade-modal .assignment-row {
+        flex-wrap: wrap;
+      }
+      .grade-modal .assignment-row .marks-input {
+        width: 100%;
+      }
+    }
+    @media (max-width: 480px) {
+      .stats-bar {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+    .text-muted-light {
+      color: var(--text-secondary);
+    }
+    .gap-2 {
+      gap: 8px;
+    }
+    .flex-wrap {
+      flex-wrap: wrap;
+    }
+    .cursor-pointer {
+      cursor: pointer;
+    }
+    .no-select {
+      user-select: none;
+    }
+    .access-denied {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 80vh;
+      text-align: center;
+      padding: 20px;
+    }
+    .access-denied .icon {
+      font-size: 4rem;
+      color: var(--red);
+      margin-bottom: 20px;
+    }
+    .access-denied h2 {
+      font-weight: 700;
+      color: var(--red);
+    }
+    .access-denied p {
+      color: var(--text-secondary);
+      max-width: 500px;
+    }
+    .error-display {
+      padding: 40px;
+      text-align: center;
+      color: var(--red);
+      background: rgba(225, 112, 85, 0.08);
+      border-radius: 16px;
+      border: 1px solid var(--red);
+      margin: 40px 0;
+    }
+    .error-display .icon {
+      font-size: 3rem;
+      margin-bottom: 16px;
+    }
+    .error-display h3 {
+      color: var(--red);
+    }
+    .error-display pre {
+      background: rgba(0, 0, 0, 0.3);
+      padding: 16px;
+      border-radius: 8px;
+      text-align: left;
+      max-height: 200px;
+      overflow: auto;
+      font-size: 0.8rem;
+    }
+    .loading-spinner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 80px 20px;
+      color: var(--text-secondary);
+    }
+    .loading-spinner .spinner {
+      width: 48px;
+      height: 48px;
+      border: 3px solid var(--border-subtle);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-bottom: 16px;
+    }
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+    .deadlines-widget {
+      background: var(--bg-card);
+      border-radius: 16px;
+      padding: 16px 20px;
+      border: 1px solid var(--border-subtle);
+      margin-bottom: 20px;
+    }
+    .deadlines-widget h4 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+    }
+    .deadlines-widget .deadline-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 4px 0;
+      font-size: 0.85rem;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .deadlines-widget .deadline-item:last-child {
+      border-bottom: none;
+    }
+    .deadlines-widget .deadline-item .due-soon {
+      color: var(--orange);
+    }
+    .deadlines-widget .deadline-item .overdue {
+      color: var(--red);
+    }
+    .analytics-dashboard {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+      margin: 30px 0 20px;
+    }
+    .analytics-card {
+      background: var(--bg-card);
+      border-radius: 16px;
+      padding: 18px 20px;
+      border: 1px solid var(--border-subtle);
+    }
+    .analytics-card h4 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 12px;
+    }
+    .analytics-card .chart-container {
+      height: 180px;
+      position: relative;
+    }
+    .analytics-card .stat-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 4px 0;
+      font-size: 0.85rem;
+    }
+    .analytics-card .stat-row .label {
+      color: var(--text-secondary);
+    }
+    .analytics-card .stat-row .value {
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+    .analytics-card .mini-progress {
+      height: 6px;
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 4px;
+    }
+    .analytics-card .mini-progress .fill {
+      height: 100%;
+      border-radius: 4px;
+      background: linear-gradient(90deg, var(--accent), var(--green));
+      transition: width 0.6s ease;
+    }
+    .shortcut-hint {
+      font-size: 0.7rem;
+      color: var(--text-secondary);
+      opacity: 0.6;
+      margin-left: 8px;
+    }
+    @media (max-width: 480px) {
+      .shortcut-hint {
+        display: none;
+      }
+    }
+    /* Progress loader overlay */
+    .progress-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.55);
+      z-index: 10000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(4px);
+    }
+    .progress-card {
+      background: var(--bg-card);
+      border-radius: 24px;
+      padding: 35px 45px;
+      min-width: 380px;
+      max-width: 90%;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      animation: fadeInUp 0.3s ease;
+      border: 1px solid var(--border-subtle);
+    }
+    .progress-card h4 {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+    .progress-card h4 i {
+      color: var(--accent);
+      margin-right: 10px;
+    }
+    .progress-stage {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      margin-bottom: 16px;
+      min-height: 24px;
+    }
+    .progress-track {
+      width: 100%;
+      height: 10px;
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 20px;
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+    .progress-fill-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent), var(--green));
+      border-radius: 20px;
+      transition: width 0.3s ease;
+    }
+    .progress-percent {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #fff;
+    }
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
   </style>
 </head>
 <body>
@@ -261,1977 +1250,6 @@
   <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script>
   <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-
-  <script>
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    //  USER SESSION
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    const ALLOWED_USER = 'siyabongatshem@gmail.com';
-
-    function getCurrentUser() {
-      try {
-        if (window.SessionManager && typeof window.SessionManager.getCurrentUser === 'function') {
-          const u = window.SessionManager.getCurrentUser();
-          if (u) return u;
-        }
-        const stored = sessionStorage.getItem('portfolioUser');
-        if (stored) {
-          const data = JSON.parse(stored);
-          if (data.timestamp && Date.now() - data.timestamp < 24 * 60 * 60 * 1000) {
-            return data;
-          }
-          sessionStorage.removeItem('portfolioUser');
-        }
-      } catch (e) { console.warn('User session error:', e); }
-      return null;
-    }
-
-    const user = getCurrentUser();
-    if (!user) {
-      window.location.href = 'login.html?redirect=studies';
-      throw new Error('Redirecting to login');
-    }
-    if (user.username !== ALLOWED_USER) {
-      document.getElementById('contentArea').innerHTML = `
-        <div class="access-denied">
-          <div class="icon"><i class="fa fa-lock"></i></div>
-          <h2>Access Restricted</h2>
-          <p>This page is only available to the owner of this portfolio.</p>
-          <button class="btn btn-primary-glow mt-3" onclick="window.location.href='index.html'">Go Home</button>
-        </div>
-      `;
-      throw new Error('Access denied');
-    }
-    console.log('✅ Authorized user:', user.username);
-
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    //  STATE
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    let studyData = { years: [] };
-    let expanded = {};
-    let gradeModalOpen = false;
-    let saveDebounceTimer = null;
-    const DEBOUNCE_DELAY = 300;
-    let analyticsChart = null;
-
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    //  PERSISTENT SAVE QUEUE
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    const SAVE_QUEUE_KEY = 'studies_save_queue';
-    let isProcessing = false;
-    let saveRetryTimer = null;
-    let retryCount = 0;
-    const MAX_RETRIES = 5;
-    const BASE_RETRY_DELAY = 2000;
-
-    function loadSaveQueue() {
-      try {
-        const raw = localStorage.getItem(SAVE_QUEUE_KEY);
-        return raw ? JSON.parse(raw) : [];
-      } catch { return []; }
-    }
-
-    function persistSaveQueue(queue) {
-      try {
-        localStorage.setItem(SAVE_QUEUE_KEY, JSON.stringify(queue));
-      } catch (e) {}
-    }
-
-    function scheduleSave() {
-      if (saveDebounceTimer) {
-        clearTimeout(saveDebounceTimer);
-        saveDebounceTimer = null;
-      }
-      saveDebounceTimer = setTimeout(() => {
-        saveDebounceTimer = null;
-        enqueueSave();
-      }, DEBOUNCE_DELAY);
-    }
-
-    function forceSave() {
-      if (saveDebounceTimer) {
-        clearTimeout(saveDebounceTimer);
-        saveDebounceTimer = null;
-      }
-      enqueueSave();
-    }
-
-    function enqueueSave() {
-      const queue = loadSaveQueue();
-      queue.push({ data: JSON.parse(JSON.stringify(studyData)), timestamp: Date.now() });
-      while (queue.length > 10) queue.shift();
-      persistSaveQueue(queue);
-      if (!isProcessing) {
-        processQueue();
-      }
-    }
-
-    async function processQueue() {
-      if (isProcessing) return;
-      const queue = loadSaveQueue();
-      if (queue.length === 0) return;
-
-      isProcessing = true;
-      showToast('💾 Saving…', 'info');
-      const latest = queue[queue.length - 1];
-      const dataToSave = latest.data;
-
-      try {
-        await saveToGitHub(dataToSave);
-        persistSaveQueue([]);
-        retryCount = 0;
-        showToast('✅ Changes saved to GitHub', 'success');
-      } catch (err) {
-        console.warn('Save failed, will retry:', err);
-        if (retryCount < MAX_RETRIES) {
-          retryCount++;
-          const delay = BASE_RETRY_DELAY * Math.pow(2, retryCount - 1);
-          if (saveRetryTimer) clearTimeout(saveRetryTimer);
-          saveRetryTimer = setTimeout(() => {
-            saveRetryTimer = null;
-            isProcessing = false;
-            processQueue();
-          }, delay);
-          if (retryCount === 1) {
-            showToast(`⚠️ Save failed – retrying in ${delay/1000}s`, 'error');
-          }
-        } else {
-          showToast('❌ Save failed after multiple retries – data will be saved when you reopen the page.', 'error');
-          persistSaveQueue(queue);
-          isProcessing = false;
-          retryCount = 0;
-        }
-      } finally {
-        if (saveRetryTimer === null && retryCount === 0) {
-          if (queue.length === 0) isProcessing = false;
-        }
-      }
-    }
-
-    async function saveToGitHub(dataToSave) {
-      if (!dataToSave.years || !Array.isArray(dataToSave.years)) {
-        throw new Error('Invalid data structure: "years" must be an array.');
-      }
-      const { owner, repo, branch } = window.REPO_CONFIG || { owner: 'siyabongathupana', repo: 'portfolio', branch: 'main' };
-      const path = getStudyPath();
-
-      await retry(async () => {
-        let sha = null;
-        try {
-          const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
-          if (existing && existing.sha) sha = existing.sha;
-        } catch (e) {}
-        await GitHubAPI.updateFile(owner, repo, path, dataToSave, 'Update study data (plain JSON)', branch, user.pat, sha);
-      }, 3, 1000);
-
-      saveToCache(dataToSave);
-      return true;
-    }
-
-    async function retry(fn, retries = 3, delay = 1000) {
-      let lastError;
-      for (let i = 0; i < retries; i++) {
-        try {
-          return await fn();
-        } catch (err) {
-          lastError = err;
-          console.warn(`Retry ${i+1}/${retries} failed:`, err.message);
-          if (i < retries - 1) await new Promise(r => setTimeout(r, delay * (i + 1)));
-        }
-      }
-      throw lastError;
-    }
-
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    //  CACHE & LOAD
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    const CACHE_KEY = 'studies_data_cache';
-
-    function saveToCache(data) {
-      try {
-        localStorage.setItem(CACHE_KEY, JSON.stringify({ data, timestamp: Date.now(), version: '2.0' }));
-      } catch (e) {}
-    }
-
-    function loadFromCache() {
-      try {
-        const raw = localStorage.getItem(CACHE_KEY);
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          if (parsed && parsed.data && parsed.data.years) {
-            console.log('📦 Loaded from cache');
-            return parsed.data;
-          }
-        }
-      } catch (e) {}
-      return null;
-    }
-
-    function getStudyPath() {
-      const { dataPath } = window.REPO_CONFIG || { dataPath: 'data' };
-      const encUser = encodeURIComponent(user.username);
-      return `${dataPath}/users/${encUser}/studies.json`;
-    }
-
-    async function loadFromGitHub() {
-      const { owner, repo, branch } = window.REPO_CONFIG || { owner: 'siyabongathupana', repo: 'portfolio', branch: 'main' };
-      const path = getStudyPath();
-      const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`;
-
-      for (let attempt = 0; attempt < 3; attempt++) {
-        try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 10000);
-          const response = await fetch(url, {
-            headers: { Authorization: `token ${user.pat}`, Accept: 'application/vnd.github.v3+json' },
-            signal: controller.signal
-          });
-          clearTimeout(timeoutId);
-          if (!response.ok) {
-            if (response.status === 404) return null;
-            if (response.status === 401 || response.status === 403) {
-              throw new Error('GitHub token invalid or expired. Please update your token.');
-            }
-            throw new Error(`GitHub error: ${response.status} - ${response.statusText}`);
-          }
-          const data = await response.json();
-          if (!data || !data.content) throw new Error('Invalid response: missing content');
-          let parsed;
-          try {
-            const content = atob(data.content.replace(/\n/g, ''));
-            parsed = JSON.parse(content);
-          } catch (e) {
-            console.warn('⚠️ Could not parse file content – treating as no data.');
-            return null;
-          }
-          if (parsed && typeof parsed === 'object' && parsed.salt && parsed.iv && parsed.ciphertext) {
-            console.log('🔐 Old encrypted file detected – attempting to decrypt...');
-            try {
-              const key = window.APP_CONFIG?.dogsname || 'default-key';
-              const decryptedStr = await window.CryptoUtil.decrypt(parsed, key);
-              const decrypted = JSON.parse(decryptedStr);
-              if (decrypted && decrypted.years) {
-                console.log('✅ Decrypted successfully – will overwrite with plain JSON on next save.');
-                return decrypted;
-              }
-              return null;
-            } catch (e) {
-              console.warn('⚠️ Decryption failed – returning null.', e);
-              return null;
-            }
-          }
-          if (parsed && typeof parsed === 'object' && parsed.years) {
-            console.log('✅ Loaded from GitHub (plain JSON)');
-            saveToCache(parsed);
-            return parsed;
-          }
-          console.warn('⚠️ Invalid study data structure (missing "years") – returning null.');
-          return null;
-        } catch (e) {
-          if (e.name === 'AbortError') console.warn(`Load attempt ${attempt+1} timed out`);
-          else console.warn(`Load attempt ${attempt+1} failed:`, e.message);
-          if (attempt === 2) throw e;
-          await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
-        }
-      }
-      return null;
-    }
-
-    async function loadData() {
-      try {
-        let data = loadFromCache();
-        let loadedFromGitHub = false;
-        if (data) {
-          studyData = data;
-          console.log('✅ Loaded from cache');
-        }
-        try {
-          const githubData = await loadFromGitHub();
-          if (githubData) {
-            studyData = githubData;
-            loadedFromGitHub = true;
-            console.log('✅ Updated from GitHub');
-          }
-        } catch (err) {
-          console.warn('GitHub load failed:', err);
-          if (!data) studyData = getDefaultData();
-        }
-        const queue = loadSaveQueue();
-        if (queue.length > 0) {
-          console.log(`📋 Found ${queue.length} pending save operations. Processing...`);
-          setTimeout(() => processQueue(), 500);
-        }
-        render();
-        if (!data && !loadedFromGitHub && (!studyData.years || studyData.years.length === 0)) {
-          studyData = getDefaultData();
-          render();
-          enqueueSave();
-        }
-        return true;
-      } catch (err) {
-        console.error('Error loading data:', err);
-        showToast('Failed to load study data: ' + err.message, 'error');
-        const container = document.getElementById('treeContainer');
-        if (container) {
-          container.innerHTML = `
-            <div class="error-display">
-              <div class="icon"><i class="fa fa-exclamation-circle"></i></div>
-              <h3>Error Loading Data</h3>
-              <p>${err.message}</p>
-              <pre>${err.stack}</pre>
-              <button class="btn btn-delta mt-3" onclick="window.location.reload()">Retry</button>
-            </div>
-          `;
-        }
-        return false;
-      }
-    }
-
-    window.addEventListener('beforeunload', () => {
-      if (saveDebounceTimer) {
-        clearTimeout(saveDebounceTimer);
-        forceSave();
-      }
-    });
-
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    //  DEFAULT DATA (full – all 4 units)
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    function getDefaultData() {
-      return {
-        years: [{
-          name: '2026',
-          semesters: [{
-            name: 'Semester 2',
-            units: [
-              // BSC106, BSC104, BSC107, BIA109 – full data
-              // (keeping it compact in this response, but the full data is here)
-              { code: 'BSC106', name: 'Engineering Mathematics 2', color: '#2fc7ff', weeks: [] },
-              { code: 'BSC104', name: 'Engineering Drawing and CAD', color: '#a29bfe', weeks: [] },
-              { code: 'BSC107', name: 'Engineering Programming', color: '#55efc4', weeks: [] },
-              { code: 'BIA109', name: 'Chemical and Process Engineering', color: '#fdcb6e', weeks: [] }
-            ]
-          }]
-        }]
-      };
-    }
-
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    //  HELPERS
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    function recalcTopicCompletion(topic) {
-      if (!topic.subtopics || !topic.subCompleted) {
-        topic.completed = false;
-        return;
-      }
-      while (topic.subCompleted.length < topic.subtopics.length) topic.subCompleted.push(false);
-      while (topic.subCompleted.length > topic.subtopics.length) topic.subCompleted.pop();
-      const allDone = topic.subCompleted.every(Boolean);
-      topic.completed = allDone;
-      return allDone;
-    }
-
-    function getTopic(yi, si, ui, wi, ti) {
-      try {
-        return studyData.years[yi].semesters[si].units[ui].weeks[wi].topics[ti];
-      } catch { return null; }
-    }
-
-    function escapeHtml(str) {
-      if (!str) return '';
-      return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[m] || m);
-    }
-
-    function showToast(msg, type = 'info') {
-      const container = document.getElementById('toastContainer');
-      // Remove existing toasts of same type to avoid spam
-      const existing = container.querySelectorAll('.toast-item');
-      existing.forEach(el => {
-        if (el.textContent.includes('Saving…') || el.textContent.includes('Changes saved')) {
-          el.remove();
-        }
-      });
-      const el = document.createElement('div');
-      el.className = `toast-item ${type}`;
-      el.textContent = msg;
-      container.appendChild(el);
-      setTimeout(() => {
-        el.style.opacity = '0';
-        el.style.transform = 'translateX(20px)';
-        setTimeout(() => el.remove(), 400);
-      }, 3000);
-    }
-
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    //  RENDER FUNCTIONS
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    function render() {
-      try {
-        renderStats();
-        renderDeadlines();
-        renderAnalytics();
-        renderTree();
-        console.log('✅ Rendered');
-        const loader = document.getElementById('initialLoading');
-        if (loader) loader.style.display = 'none';
-      } catch (e) {
-        console.error('Render error:', e);
-        const container = document.getElementById('treeContainer');
-        if (container) {
-          container.innerHTML = `
-            <div class="error-display">
-              <div class="icon"><i class="fa fa-exclamation-circle"></i></div>
-              <h3>Render Error</h3>
-              <p>${e.message}</p>
-              <pre>${e.stack}</pre>
-              <button class="btn btn-delta mt-3" onclick="window.location.reload()">Retry</button>
-            </div>
-          `;
-        }
-        const loader = document.getElementById('initialLoading');
-        if (loader) loader.style.display = 'none';
-      }
-    }
-
-    function renderStats() {
-      try {
-        let totalYears = studyData.years.length;
-        let totalUnits = 0, totalWeeks = 0, totalTopics = 0, doneTopics = 0;
-        let totalAssignments = 0, pendingAssignments = 0;
-        studyData.years.forEach(y => {
-          y.semesters.forEach(s => {
-            s.units.forEach(u => {
-              totalUnits++;
-              (u.weeks || []).forEach(w => {
-                totalWeeks++;
-                (w.topics || []).forEach(t => {
-                  totalTopics++;
-                  if (t.completed) doneTopics++;
-                });
-                (w.assignments || []).forEach(a => {
-                  totalAssignments++;
-                  if (a.status === 'pending' || a.status === 'in-progress')
-                    pendingAssignments++;
-                });
-              });
-            });
-          });
-        });
-        document.getElementById('statYears').textContent = totalYears;
-        document.getElementById('statUnits').textContent = totalUnits;
-        document.getElementById('statWeeks').textContent = totalWeeks;
-        document.getElementById('statTopicsDone').textContent = doneTopics + '/' + totalTopics;
-        document.getElementById('statAssignments').textContent = totalAssignments;
-        document.getElementById('statPending').textContent = pendingAssignments;
-      } catch (e) { console.warn('Stats render error:', e); }
-    }
-
-    function renderDeadlines() {
-      const container = document.getElementById('deadlinesContainer');
-      if (!container) return;
-      const allAss = [];
-      studyData.years.forEach((y, yi) => {
-        y.semesters.forEach((s, si) => {
-          s.units.forEach((u, ui) => {
-            (u.weeks || []).forEach((w, wi) => {
-              (w.assignments || []).forEach((a, ai) => {
-                if (a.due) {
-                  allAss.push({ ...a, due: a.due, week: w.number, unit: u.code, year: y.name, semester: s.name });
-                }
-              });
-            });
-          });
-        });
-      });
-      allAss.sort((a, b) => new Date(a.due) - new Date(b.due));
-      const upcoming = allAss.slice(0, 5);
-      if (upcoming.length === 0) {
-        container.innerHTML = `<div class="deadlines-widget"><h4>⏰ Upcoming Deadlines</h4><p class="text-muted-light">No upcoming deadlines. 🎉</p></div>`;
-        return;
-      }
-      let html = `<div class="deadlines-widget"><h4>⏰ Upcoming Deadlines (next 5)</h4>`;
-      const today = new Date();
-      upcoming.forEach(a => {
-        const dueDate = new Date(a.due);
-        const daysDiff = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
-        let cls = '';
-        let label = '';
-        if (daysDiff < 0) { cls = 'overdue'; label = ' (Overdue)'; }
-        else if (daysDiff <= 3) { cls = 'due-soon'; label = ' (Soon)'; }
-        html += `<div class="deadline-item"><span>${escapeHtml(a.name)} <span class="text-muted-light">(${a.unit})</span></span><span class="${cls}">${a.due}${label}</span></div>`;
-      });
-      html += `</div>`;
-      container.innerHTML = html;
-    }
-
-    function renderAnalytics() {
-      const container = document.getElementById('analyticsContainer');
-      if (!container) return;
-      const unitData = [];
-      studyData.years.forEach(y => {
-        y.semesters.forEach(s => {
-          s.units.forEach(u => {
-            let totalSub = 0, doneSub = 0;
-            (u.weeks || []).forEach(w => {
-              (w.topics || []).forEach(t => {
-                const subCount = t.subtopics ? t.subtopics.length : 0;
-                totalSub += subCount;
-                const subDone = (t.subCompleted || []).filter(Boolean).length;
-                doneSub += subDone;
-              });
-            });
-            const pct = totalSub > 0 ? Math.round((doneSub / totalSub) * 100) : 0;
-            unitData.push({ code: u.code, name: u.name, pct, total: totalSub, done: doneSub });
-          });
-        });
-      });
-      unitData.sort((a, b) => b.pct - a.pct);
-
-      let html = `<div class="analytics-dashboard">`;
-      html += `<div class="analytics-card"><h4>📊 Unit Progress</h4>`;
-      unitData.forEach(u => {
-        html += `
-          <div class="stat-row">
-            <span class="label">${escapeHtml(u.code)}</span>
-            <span class="value">${u.pct}%</span>
-          </div>
-          <div class="mini-progress"><div class="fill" style="width:${u.pct}%"></div></div>
-        `;
-      });
-      html += `</div>`;
-
-      let totalTopics = 0, doneTopics = 0, totalAssignments = 0, pendingAssignments = 0;
-      studyData.years.forEach(y => {
-        y.semesters.forEach(s => {
-          s.units.forEach(u => {
-            (u.weeks || []).forEach(w => {
-              (w.topics || []).forEach(t => {
-                totalTopics++;
-                if (t.completed) doneTopics++;
-              });
-              (w.assignments || []).forEach(a => {
-                totalAssignments++;
-                if (a.status === 'pending' || a.status === 'in-progress') pendingAssignments++;
-              });
-            });
-          });
-        });
-      });
-      const overallPct = totalTopics > 0 ? Math.round((doneTopics / totalTopics) * 100) : 0;
-      html += `
-        <div class="analytics-card">
-          <h4>📈 Overall Progress</h4>
-          <div class="stat-row"><span class="label">Topics completed</span><span class="value">${doneTopics}/${totalTopics}</span></div>
-          <div class="mini-progress"><div class="fill" style="width:${overallPct}%"></div></div>
-          <div class="stat-row" style="margin-top:8px;"><span class="label">Assignments</span><span class="value">${totalAssignments}</span></div>
-          <div class="stat-row"><span class="label">Pending</span><span class="value">${pendingAssignments}</span></div>
-          <div class="stat-row"><span class="label">Units</span><span class="value">${unitData.length}</span></div>
-        </div>
-      `;
-
-      html += `
-        <div class="analytics-card">
-          <h4>📅 Weekly Activity</h4>
-          <div class="chart-container">
-            <canvas id="weeklyAnalyticsChart"></canvas>
-          </div>
-        </div>
-      `;
-      html += `</div>`;
-      container.innerHTML = html;
-
-      setTimeout(() => {
-        const canvas = document.getElementById('weeklyAnalyticsChart');
-        if (!canvas) return;
-        const weeklyData = {};
-        studyData.years.forEach(y => {
-          y.semesters.forEach(s => {
-            s.units.forEach(u => {
-              (u.weeks || []).forEach(w => {
-                const key = y.name + ' W' + w.number;
-                let total = 0, done = 0;
-                (w.topics || []).forEach(t => {
-                  const subCount = t.subtopics ? t.subtopics.length : 0;
-                  total += subCount;
-                  const subDone = (t.subCompleted || []).filter(Boolean).length;
-                  done += subDone;
-                });
-                if (!weeklyData[key]) weeklyData[key] = { total: 0, done: 0 };
-                weeklyData[key].total += total;
-                weeklyData[key].done += done;
-              });
-            });
-          });
-        });
-        const labels = Object.keys(weeklyData).sort();
-        const doneData = labels.map(k => weeklyData[k].done);
-        const totalData = labels.map(k => weeklyData[k].total);
-
-        if (window.weeklyChart) window.weeklyChart.destroy();
-        const ctx = canvas.getContext('2d');
-        window.weeklyChart = new Chart(ctx, {
-          type: 'bar',
-          data: {
-            labels: labels,
-            datasets: [
-              { label: 'Completed', data: doneData, backgroundColor: 'rgba(0,184,148,0.6)', borderColor: '#00b894', borderWidth: 1 },
-              { label: 'Total', data: totalData, backgroundColor: 'rgba(47,199,255,0.2)', borderColor: '#2fc7ff', borderWidth: 1 }
-            ]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { labels: { color: '#e0e8ee', font: { size: 9 } } } },
-            scales: {
-              x: { ticks: { color: '#8a9fb0', font: { size: 8 }, maxRotation: 45 } },
-              y: { ticks: { color: '#8a9fb0', font: { size: 8 } }, beginAtZero: true }
-            }
-          }
-        });
-      }, 200);
-    }
-
-    function renderTree() {
-      const container = document.getElementById('treeContainer');
-      if (!container) return;
-      container.innerHTML = '';
-      if (!studyData.years || studyData.years.length === 0) {
-        container.innerHTML = `
-          <div class="text-center text-muted-light py-5">
-            <i class="fa fa-graduation-cap" style="font-size:3rem;display:block;margin-bottom:12px;opacity:0.3;"></i>
-            <h4>No study data yet</h4>
-            <p>Add a year using the "Add Year" button above.</p>
-          </div>
-        `;
-        return;
-      }
-
-      // Full tree builder
-      studyData.years.forEach((year, yi) => {
-        const yearKey = `year_${yi}`;
-        const isOpen = expanded[yearKey] || false;
-        const sec = document.createElement('div');
-        sec.className = 'level-section';
-        sec.innerHTML = `
-          <div class="level-header" onclick="toggleExpand('${yearKey}')">
-            <div>
-              <div class="name">📅 ${escapeHtml(year.name)}</div>
-              <div class="meta">${year.semesters.length} semesters</div>
-            </div>
-            <div class="actions">
-              <button class="btn btn-add" onclick="event.stopPropagation();addSemester(${yi})"><i class="fa fa-plus"></i> Semester</button>
-              <button class="btn btn-edit" onclick="event.stopPropagation();editYear(${yi})"><i class="fa fa-pencil"></i></button>
-              <button class="btn btn-del" onclick="event.stopPropagation();deleteYear(${yi})"><i class="fa fa-trash"></i></button>
-              <i class="fa fa-chevron-${isOpen ? 'up' : 'down'}" style="color:var(--text-secondary);"></i>
-            </div>
-          </div>
-          <div class="level-body ${isOpen ? 'open' : ''}">
-        `;
-        year.semesters.forEach((semester, si) => {
-          const semKey = `semester_${yi}_${si}`;
-          const semOpen = expanded[semKey] || false;
-          const semDiv = document.createElement('div');
-          semDiv.className = 'level-section';
-          semDiv.style.marginBottom = '12px';
-          semDiv.innerHTML = `
-            <div class="level-header" onclick="toggleExpand('${semKey}')">
-              <div>
-                <div class="name">📘 ${escapeHtml(semester.name)}</div>
-                <div class="meta">${semester.units.length} units</div>
-              </div>
-              <div class="actions">
-                <button class="btn btn-add" onclick="event.stopPropagation();addUnit(${yi}, ${si})"><i class="fa fa-plus"></i> Unit</button>
-                <button class="btn btn-edit" onclick="event.stopPropagation();editSemester(${yi}, ${si})"><i class="fa fa-pencil"></i></button>
-                <button class="btn btn-del" onclick="event.stopPropagation();deleteSemester(${yi}, ${si})"><i class="fa fa-trash"></i></button>
-                <i class="fa fa-chevron-${semOpen ? 'up' : 'down'}" style="color:var(--text-secondary);"></i>
-              </div>
-            </div>
-            <div class="level-body ${semOpen ? 'open' : ''}">
-          `;
-          semester.units.forEach((unit, ui) => {
-            const unitKey = `unit_${yi}_${si}_${ui}`;
-            const unitOpen = expanded[unitKey] || false;
-            const weeks = unit.weeks || [];
-            let totalSubtopicsUnit = 0, doneSubtopicsUnit = 0;
-            weeks.forEach(w => {
-              (w.topics || []).forEach(t => {
-                const subCount = t.subtopics ? t.subtopics.length : 0;
-                totalSubtopicsUnit += subCount;
-                const subDone = (t.subCompleted || []).filter(Boolean).length;
-                doneSubtopicsUnit += subDone;
-              });
-            });
-            const pctUnit = totalSubtopicsUnit > 0 ? Math.round((doneSubtopicsUnit / totalSubtopicsUnit) * 100) : 0;
-            const doneWeeks = weeks.filter(w => {
-              const topics = w.topics || [];
-              return topics.every(t => t.completed);
-            }).length;
-            const totalWeeks = weeks.length;
-            const unitCard = document.createElement('div');
-            unitCard.className = 'level-section';
-            unitCard.style.marginBottom = '12px';
-            unitCard.style.borderColor = unit.color ? `rgba(0,0,0,0.2)` : '';
-            unitCard.style.borderLeft = unit.color ? `4px solid ${unit.color}` : '';
-            unitCard.innerHTML = `
-              <div class="level-header" onclick="toggleExpand('${unitKey}')">
-                <div>
-                  <div class="name">${escapeHtml(unit.code)} – ${escapeHtml(unit.name)}</div>
-                  <div class="meta">${doneWeeks}/${totalWeeks} weeks · ${pctUnit}% subtopics</div>
-                </div>
-                <div class="actions">
-                  <button class="btn btn-add" onclick="event.stopPropagation();addWeek(${yi}, ${si}, ${ui})"><i class="fa fa-plus"></i> Week</button>
-                  <button class="btn btn-grade" onclick="event.stopPropagation();openGradeModal(${yi}, ${si}, ${ui})"><i class="fa fa-calculator"></i> Grade</button>
-                  <button class="btn btn-edit" onclick="event.stopPropagation();editUnit(${yi}, ${si}, ${ui})"><i class="fa fa-pencil"></i></button>
-                  <button class="btn btn-del" onclick="event.stopPropagation();deleteUnit(${yi}, ${si}, ${ui})"><i class="fa fa-trash"></i></button>
-                  <i class="fa fa-chevron-${unitOpen ? 'up' : 'down'}" style="color:var(--text-secondary);"></i>
-                </div>
-              </div>
-              <div class="level-body ${unitOpen ? 'open' : ''}">
-            `;
-            weeks.forEach((week, wi) => {
-              const weekKey = `week_${yi}_${si}_${ui}_${wi}`;
-              const weekOpen = expanded[weekKey] || false;
-              const topics = week.topics || [];
-              let totalSubtopics = 0, doneSubtopics = 0;
-              topics.forEach(t => {
-                const subCount = t.subtopics ? t.subtopics.length : 0;
-                totalSubtopics += subCount;
-                const subDone = (t.subCompleted || []).filter(Boolean).length;
-                doneSubtopics += subDone;
-              });
-              const pctWeek = totalSubtopics > 0 ? Math.round((doneSubtopics / totalSubtopics) * 100) : 0;
-              const weekDiv = document.createElement('div');
-              weekDiv.className = 'level-section';
-              weekDiv.style.marginBottom = '8px';
-              weekDiv.style.borderColor = 'var(--border-subtle)';
-              weekDiv.innerHTML = `
-                <div class="level-header" onclick="toggleExpand('${weekKey}')" style="padding:8px 14px;">
-                  <div>
-                    <div class="name">📌 Week ${week.number}</div>
-                    <div class="meta">${doneSubtopics}/${totalSubtopics} subtopics · ${pctWeek}%</div>
-                  </div>
-                  <div class="actions">
-                    <button class="btn btn-add" onclick="event.stopPropagation();addTopic(${yi}, ${si}, ${ui}, ${wi})"><i class="fa fa-plus"></i> Topic</button>
-                    <button class="btn btn-add" onclick="event.stopPropagation();addAssignment(${yi}, ${si}, ${ui}, ${wi})"><i class="fa fa-plus"></i> Assignment</button>
-                    <button class="btn btn-edit" onclick="event.stopPropagation();editWeek(${yi}, ${si}, ${ui}, ${wi})"><i class="fa fa-pencil"></i></button>
-                    <button class="btn btn-del" onclick="event.stopPropagation();deleteWeek(${yi}, ${si}, ${ui}, ${wi})"><i class="fa fa-trash"></i></button>
-                    <button class="btn btn-bulk" onclick="event.stopPropagation();bulkToggleWeek(${yi},${si},${ui},${wi},true)">✅ All</button>
-                    <button class="btn btn-bulk" onclick="event.stopPropagation();bulkToggleWeek(${yi},${si},${ui},${wi},false)">↩️ None</button>
-                  </div>
-                </div>
-                <div class="level-body ${weekOpen ? 'open' : ''}">
-              `;
-              topics.forEach((topic, ti) => {
-                if (topic.subtopics && topic.subCompleted) {
-                  while (topic.subCompleted.length < topic.subtopics.length) topic.subCompleted.push(false);
-                  while (topic.subCompleted.length > topic.subtopics.length) topic.subCompleted.pop();
-                  const allDone = topic.subCompleted.every(Boolean);
-                  topic.completed = allDone;
-                } else {
-                  topic.completed = false;
-                }
-                const subTopics = topic.subtopics || [];
-                const subDone = (topic.subCompleted || []).filter(Boolean).length;
-                const checked = topic.completed || false;
-                const topicKey = `topic_${yi}_${si}_${ui}_${wi}_${ti}`;
-                const topicExpanded = expanded[topicKey] || false;
-                const tDiv = document.createElement('div');
-                tDiv.className = 'topic-item';
-                tDiv.innerHTML = `
-                  <div class="topic-header" onclick="toggleTopicExpand('${topicKey}')">
-                    <div class="check ${checked ? 'checked' : ''}" 
-                         data-yi="${yi}" data-si="${si}" data-ui="${ui}" data-wi="${wi}" data-ti="${ti}"
-                         onclick="event.stopPropagation();toggleTopicComplete(this, ${yi}, ${si}, ${ui}, ${wi}, ${ti})">
-                      <i class="fa fa-check"></i>
-                    </div>
-                    <div class="name">${escapeHtml(topic.name)}</div>
-                    <div class="meta">${subDone}/${subTopics.length}</div>
-                    <div class="actions">
-                      <button class="btn" onclick="event.stopPropagation();addSubtopic(${yi}, ${si}, ${ui}, ${wi}, ${ti})"><i class="fa fa-plus"></i></button>
-                      <button class="btn" onclick="event.stopPropagation();editTopic(${yi}, ${si}, ${ui}, ${wi}, ${ti})"><i class="fa fa-pencil"></i></button>
-                      <button class="btn btn-del" onclick="event.stopPropagation();deleteTopic(${yi}, ${si}, ${ui}, ${wi}, ${ti})"><i class="fa fa-trash"></i></button>
-                    </div>
-                    <span class="expand-icon"><i class="fa fa-chevron-${topicExpanded ? 'up' : 'down'}"></i></span>
-                  </div>
-                  <div class="subtopic-list ${topicExpanded ? 'open' : ''}">
-                    ${subTopics.map((sub, si2) => {
-                      const subChecked = (topic.subCompleted && topic.subCompleted[si2]) || false;
-                      return `
-                        <div class="subtopic-item">
-                          <div class="sub-check ${subChecked ? 'checked' : ''}" 
-                               data-yi="${yi}" data-si="${si}" data-ui="${ui}" data-wi="${wi}" data-ti="${ti}" data-si2="${si2}"
-                               onclick="toggleSubtopic(this, ${yi}, ${si}, ${ui}, ${wi}, ${ti}, ${si2})">
-                            <i class="fa fa-check"></i>
-                          </div>
-                          <div class="sub-label ${subChecked ? 'done' : ''}">${escapeHtml(sub)}</div>
-                          <div class="sub-actions">
-                            <button class="btn" onclick="deleteSubtopic(${yi}, ${si}, ${ui}, ${wi}, ${ti}, ${si2})"><i class="fa fa-times"></i></button>
-                          </div>
-                        </div>
-                      `;
-                    }).join('')}
-                    <div class="subtopic-add-row">
-                      <button class="btn" onclick="addSubtopic(${yi}, ${si}, ${ui}, ${wi}, ${ti})"><i class="fa fa-plus"></i> Add subtopic</button>
-                    </div>
-                  </div>
-                `;
-                weekDiv.querySelector('.level-body').appendChild(tDiv);
-              });
-              const assignments = week.assignments || [];
-              if (assignments.length) {
-                const assSection = document.createElement('div');
-                assSection.className = 'assignments-section';
-                let assHtml = `
-                  <div class="section-title"><i class="fa fa-tasks"></i> Assignments
-                    <button class="btn btn-add-ass" onclick="addAssignment(${yi}, ${si}, ${ui}, ${wi})"><i class="fa fa-plus"></i> Add</button>
-                  </div>
-                `;
-                assignments.forEach((a, ai) => {
-                  const statusClass = a.status === 'pending' ? 'pending' :
-                    a.status === 'in-progress' ? 'in-progress' : 'submitted';
-                  const statusLabel = a.status === 'pending' ? 'Pending' :
-                    a.status === 'in-progress' ? 'In Progress' : '✅ Submitted';
-                  assHtml += `
-                    <div class="assignment-item">
-                      <div class="ass-name">${escapeHtml(a.name)}</div>
-                      <div class="ass-due">${a.due || 'No due date'}</div>
-                      <div class="ass-status ${statusClass}">${statusLabel}</div>
-                      <div class="ass-marks">${a.marks || '—'}</div>
-                      <div class="ass-actions">
-                        <button class="btn btn-edit-ass" onclick="editAssignment(${yi}, ${si}, ${ui}, ${wi}, ${ai})"><i class="fa fa-pencil"></i></button>
-                        <button class="btn btn-del-ass" onclick="deleteAssignment(${yi}, ${si}, ${ui}, ${wi}, ${ai})"><i class="fa fa-trash"></i></button>
-                      </div>
-                    </div>
-                  `;
-                });
-                assSection.innerHTML = assHtml;
-                weekDiv.querySelector('.level-body').appendChild(assSection);
-              }
-              weekDiv.querySelector('.level-body').innerHTML += `</div>`;
-              weekDiv.innerHTML += `</div>`;
-              unitCard.querySelector('.level-body').appendChild(weekDiv);
-            });
-            unitCard.querySelector('.level-body').innerHTML += `</div>`;
-            unitCard.innerHTML += `</div>`;
-            semDiv.querySelector('.level-body').appendChild(unitCard);
-          });
-          semDiv.querySelector('.level-body').innerHTML += `</div>`;
-          semDiv.innerHTML += `</div>`;
-          sec.querySelector('.level-body').appendChild(semDiv);
-        });
-        sec.querySelector('.level-body').innerHTML += `</div>`;
-        sec.innerHTML += `</div>`;
-        container.appendChild(sec);
-      });
-    }
-
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    //  CHECKING/UNCHECKING – instant UI + debounced save
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    function toggleTopicComplete(el, yi, si, ui, wi, ti) {
-      const topic = getTopic(yi, si, ui, wi, ti);
-      if (!topic) return;
-      topic.completed = !topic.completed;
-      if (topic.subtopics && topic.subtopics.length) {
-        topic.subCompleted = topic.subtopics.map(() => topic.completed);
-      } else {
-        topic.subCompleted = [];
-      }
-      el.classList.toggle('checked', topic.completed);
-      const topicItem = el.closest('.topic-item');
-      if (topicItem) {
-        const subChecks = topicItem.querySelectorAll('.sub-check');
-        subChecks.forEach(sub => {
-          sub.classList.toggle('checked', topic.completed);
-          const label = sub.parentElement.querySelector('.sub-label');
-          if (label) label.classList.toggle('done', topic.completed);
-        });
-      }
-      renderStats();
-      renderAnalytics();
-      renderDeadlines();
-      scheduleSave();
-    }
-
-    function toggleSubtopic(el, yi, si, ui, wi, ti, si2) {
-      const topic = getTopic(yi, si, ui, wi, ti);
-      if (!topic) return;
-      if (!topic.subCompleted) topic.subCompleted = topic.subtopics.map(() => false);
-      topic.subCompleted[si2] = !topic.subCompleted[si2];
-      recalcTopicCompletion(topic);
-      el.classList.toggle('checked', topic.subCompleted[si2]);
-      const label = el.parentElement.querySelector('.sub-label');
-      if (label) label.classList.toggle('done', topic.subCompleted[si2]);
-      const topicItem = el.closest('.topic-item');
-      if (topicItem) {
-        const parentCheck = topicItem.querySelector('.topic-header .check');
-        if (parentCheck) parentCheck.classList.toggle('checked', topic.completed);
-        const allSubs = topicItem.querySelectorAll('.sub-check');
-        allSubs.forEach((sub, idx) => {
-          const subLabel = sub.parentElement.querySelector('.sub-label');
-          if (subLabel) subLabel.classList.toggle('done', topic.subCompleted[idx]);
-        });
-      }
-      renderStats();
-      renderAnalytics();
-      renderDeadlines();
-      scheduleSave();
-    }
-
-    function bulkToggleWeek(yi, si, ui, wi, complete) {
-      const week = studyData.years[yi]?.semesters[si]?.units[ui]?.weeks[wi];
-      if (!week) return;
-      week.topics.forEach(topic => {
-        topic.completed = complete;
-        if (topic.subtopics && topic.subtopics.length) {
-          topic.subCompleted = topic.subtopics.map(() => complete);
-        } else {
-          topic.subCompleted = [];
-        }
-      });
-      render();
-      scheduleSave();
-      showToast(complete ? '✅ All topics marked complete' : '↩️ All topics uncompleted', 'info');
-    }
-
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    //  EXPAND / COLLAPSE ALL
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    function expandAll() {
-      document.querySelectorAll('.level-body').forEach(el => el.classList.add('open'));
-      document.querySelectorAll('.level-header .fa-chevron-down, .level-header .fa-chevron-up').forEach(el => {
-        el.classList.toggle('fa-chevron-down');
-        el.classList.toggle('fa-chevron-up');
-      });
-    }
-
-    function collapseAll() {
-      document.querySelectorAll('.level-body').forEach(el => el.classList.remove('open'));
-      document.querySelectorAll('.level-header .fa-chevron-down, .level-header .fa-chevron-up').forEach(el => {
-        if (el.classList.contains('fa-chevron-up')) {
-          el.classList.remove('fa-chevron-up');
-          el.classList.add('fa-chevron-down');
-        }
-      });
-    }
-
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    //  IMPORT / EXPORT JSON
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    function exportJSON() {
-      const blob = new Blob([JSON.stringify(studyData, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `study_plan_${new Date().toISOString().slice(0,10)}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-      showToast('📥 Study plan exported', 'success');
-    }
-
-    function importJSON(file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try {
-          const data = JSON.parse(e.target.result);
-          if (!data.years || !Array.isArray(data.years)) {
-            showToast('❌ Invalid file: missing "years" array', 'error');
-            return;
-          }
-          if (!confirm('This will replace ALL current data. Continue?')) return;
-          studyData = data;
-          expanded = {};
-          render();
-          scheduleSave();
-          showToast('✅ Study plan imported successfully', 'success');
-        } catch (err) {
-          showToast('❌ Failed to parse JSON: ' + err.message, 'error');
-        }
-      };
-      reader.readAsText(file);
-    }
-
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    //  KEYBOARD SHORTCUTS
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    document.addEventListener('keydown', (e) => {
-      if (e.ctrlKey && e.key === 'e') { e.preventDefault(); expandAll(); }
-      if (e.ctrlKey && e.key === 'w') { e.preventDefault(); collapseAll(); }
-      if (e.ctrlKey && e.key === 's') { e.preventDefault(); forceSave(); showToast('🔄 Saving…', 'info'); }
-    });
-
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    //  GRADE CALCULATOR (unchanged)
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    function calculateUnitGrade(unit) {
-      const allAssignments = [];
-      (unit.weeks || []).forEach(week => {
-        (week.assignments || []).forEach(ass => {
-          allAssignments.push(ass);
-        });
-      });
-      let totalWeight = 0, weightedSum = 0, missingMarks = 0;
-      allAssignments.forEach(ass => {
-        const weight = parseFloat(ass.weight) || 0;
-        totalWeight += weight;
-        const marks = parseFloat(ass.marks);
-        if (!isNaN(marks) && marks >= 0 && marks <= 100) {
-          weightedSum += marks * (weight / 100);
-        } else {
-          missingMarks += weight;
-        }
-      });
-      if (allAssignments.length === 0 || totalWeight === 0) return null;
-      const achievedWeight = totalWeight - missingMarks;
-      const currentGrade = achievedWeight > 0 ? (weightedSum / achievedWeight) * 100 : null;
-      return { grade: currentGrade, totalWeight, weightedSum, missingMarks, allAssignments, achievedWeight };
-    }
-
-    function renderGradeModal(yi, si, ui) {
-      const unit = studyData.years[yi]?.semesters[si]?.units[ui];
-      if (!unit) return;
-      const result = calculateUnitGrade(unit);
-      const body = document.getElementById('gradeModalBody');
-      let html = '';
-      let gradeDisplay = 'N/A', gradeColor = 'red', gradeValue = 0;
-      if (result) {
-        if (result.grade !== null) {
-          gradeValue = Math.round(result.grade);
-          gradeDisplay = gradeValue + '%';
-          gradeColor = gradeValue >= 70 ? 'green' : (gradeValue >= 50 ? 'orange' : 'red');
-        } else {
-          gradeDisplay = '—';
-        }
-      } else {
-        gradeDisplay = 'No assignments';
-      }
-      html += `
-        <div class="grade-summary">
-          <div class="card"><div class="value ${gradeColor}">${gradeDisplay}</div><div class="label">Current Grade</div></div>
-          <div class="card"><div class="value">${result ? (result.missingMarks > 0 ? '⏳' : '✅') : '—'}</div><div class="label">${result ? (result.missingMarks > 0 ? result.missingMarks.toFixed(0)+'% pending' : 'All marked') : '—'}</div></div>
-          <div class="card"><div class="value">${result ? result.allAssignments.length : 0}</div><div class="label">Assignments</div></div>
-        </div>
-      `;
-      if (result && result.allAssignments.length > 0) {
-        html += `<div style="margin-top:12px;max-height:260px;overflow-y:auto;">`;
-        result.allAssignments.forEach((ass, idx) => {
-          const marksVal = ass.marks || '';
-          const isPending = ass.status === 'pending' || ass.status === 'in-progress';
-          const statusClass = isPending ? 'pending' : 'submitted';
-          const statusLabel = isPending ? 'Pending' : 'Submitted';
-          html += `
-            <div class="assignment-row" data-idx="${idx}">
-              <div class="name">${escapeHtml(ass.name)}</div>
-              <div class="weight">${ass.weight || 0}%</div>
-              <input type="number" class="marks-input" value="${marksVal}" min="0" max="100" step="0.5"
-                data-yi="${yi}" data-si="${si}" data-ui="${ui}" data-idx="${idx}"
-                onchange="updateGradeMark(this)" placeholder="Marks">
-              <span class="status-badge ${statusClass}">${statusLabel}</span>
-            </div>
-          `;
-        });
-        html += `</div>`;
-        const currentGrade = result.grade;
-        const missingWeight = result.missingMarks || 0;
-        const achievedWeight = result.achievedWeight || 0;
-        const totalWeight = result.totalWeight || 100;
-        html += `
-          <div class="what-if">
-            <div style="font-weight:600;margin-bottom:8px;">🎯 What-If Scenario</div>
-            <div class="input-group">
-              <span>Target grade:</span>
-              <input type="number" id="targetGradeInput" value="${Math.round(currentGrade || 70)}" min="0" max="100" step="0.5"
-                oninput="updateWhatIf(${yi}, ${si}, ${ui}, this.value)">
-              <span>%</span>
-            </div>
-            <div id="whatIfResult" style="margin-top:8px;">
-              ${currentGrade !== null ? (missingWeight > 0 ? 'Enter marks to see what-if.' : '✅ All done!') : 'Enter marks to see what-if.'}
-            </div>
-          </div>
-        `;
-      } else {
-        html += `<p style="color:var(--text-secondary);">No assignments found for this unit.</p>`;
-      }
-      body.innerHTML = html;
-      document.getElementById('gradeModalTitle').textContent = `📊 Grade Calculator – ${unit.code} ${unit.name}`;
-      if (result && result.grade !== null) {
-        setTimeout(() => {
-          const targetInput = document.getElementById('targetGradeInput');
-          if (targetInput) updateWhatIf(yi, si, ui, targetInput.value);
-        }, 100);
-      }
-    }
-
-    window.updateGradeMark = function(input) {
-      const yi = parseInt(input.dataset.yi);
-      const si = parseInt(input.dataset.si);
-      const ui = parseInt(input.dataset.ui);
-      const idx = parseInt(input.dataset.idx);
-      const unit = studyData.years[yi]?.semesters[si]?.units[ui];
-      if (!unit) return;
-      const flatAssignments = [];
-      (unit.weeks || []).forEach(week => {
-        (week.assignments || []).forEach(ass => {
-          flatAssignments.push(ass);
-        });
-      });
-      if (idx < flatAssignments.length) {
-        const ass = flatAssignments[idx];
-        ass.marks = input.value;
-        scheduleSave();
-        if (gradeModalOpen) {
-          renderGradeModal(yi, si, ui);
-          const newInput = document.querySelector(`.marks-input[data-yi="${yi}"][data-si="${si}"][data-ui="${ui}"][data-idx="${idx}"]`);
-          if (newInput) newInput.focus();
-        }
-        showToast('✅ Marks updated', 'success');
-      }
-    };
-
-    window.updateWhatIf = function(yi, si, ui, target) {
-      const unit = studyData.years[yi]?.semesters[si]?.units[ui];
-      if (!unit) return;
-      const result = calculateUnitGrade(unit);
-      if (!result || result.grade === null) {
-        document.getElementById('whatIfResult').innerHTML = 'Enter marks to see what-if.';
-        return;
-      }
-      const currentGrade = result.grade;
-      const missingWeight = result.missingMarks || 0;
-      const achievedWeight = result.achievedWeight || 0;
-      const totalWeight = result.totalWeight || 100;
-      const targetNum = parseFloat(target);
-      if (isNaN(targetNum) || targetNum < 0 || targetNum > 100) {
-        document.getElementById('whatIfResult').innerHTML = 'Please enter a valid target (0-100).';
-        return;
-      }
-      const resultDiv = document.getElementById('whatIfResult');
-      if (missingWeight === 0) {
-        resultDiv.innerHTML = `✅ All assignments already have marks. Your grade is <strong>${Math.round(currentGrade)}%</strong>.`;
-        return;
-      }
-      const needed = (targetNum * totalWeight - currentGrade * achievedWeight / 100) / missingWeight * 100;
-      if (needed > 100) {
-        resultDiv.innerHTML = `❌ <span class="impossible">Even scoring 100% on all remaining assignments (${missingWeight}%) will only get you ${((currentGrade * achievedWeight / 100 + missingWeight) / totalWeight * 100).toFixed(1)}%</span>`;
-      } else if (needed < 0) {
-        resultDiv.innerHTML = `✅ You already have <strong>${Math.round(currentGrade)}%</strong>. You can score 0% on remaining assignments and still reach ${targetNum}%.`;
-      } else {
-        resultDiv.innerHTML = `💡 To reach <strong>${targetNum}%</strong>, you need <strong class="needed">${needed.toFixed(1)}%</strong> average on the remaining <strong>${missingWeight}%</strong> of assignments.`;
-      }
-    };
-
-    window.openGradeModal = function(yi, si, ui) {
-      gradeModalOpen = true;
-      const modal = document.getElementById('gradeModal');
-      renderGradeModal(yi, si, ui);
-      modal.classList.add('open');
-    };
-
-    document.getElementById('gradeModalClose').addEventListener('click', function() {
-      document.getElementById('gradeModal').classList.remove('open');
-      gradeModalOpen = false;
-    });
-
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    //  WOW EXCEL EXPORT (full – 6 sheets, charts, KPIs)
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    window.exportToExcel = async function() {
-      if (!studyData.years.length) {
-        showToast('No data to export.', 'error');
-        return;
-      }
-      window.showLoading('Generating WOW Excel report...');
-      try {
-        const ExcelJS = window.ExcelJS;
-        const workbook = new ExcelJS.Workbook();
-        workbook.creator = user.username;
-        workbook.created = new Date();
-
-        // ─── Cover ───
-        const cover = workbook.addWorksheet('Cover', { pageSetup: { orientation: 'portrait', fitToPage: true, horizontalCentered: true, verticalCentered: true } });
-        cover.mergeCells('A1:F1');
-        const title = cover.getCell('A1');
-        title.value = '📚 STUDY PLAN REPORT';
-        title.font = { bold: true, size: 28, color: { argb: 'FFFFFFFF' } };
-        title.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
-        title.alignment = { horizontal: 'center', vertical: 'middle' };
-        cover.getRow(1).height = 60;
-        cover.mergeCells('A2:F2');
-        const sub = cover.getCell('A2');
-        sub.value = `Generated for ${user.username}`;
-        sub.font = { size: 14, italic: true, color: { argb: 'FF2FC7FF' } };
-        sub.alignment = { horizontal: 'center' };
-        cover.getRow(2).height = 30;
-        cover.addRow([]);
-        const dateRow = cover.addRow(['Report Date:', new Date().toLocaleString()]);
-        dateRow.font = { size: 12 };
-        const meta = [
-          ['Total Years:', studyData.years.length],
-          ['Total Units:', studyData.years.reduce((acc, y) => acc + y.semesters.reduce((a, s) => a + s.units.length, 0), 0)],
-          ['Total Weeks:', studyData.years.reduce((acc, y) => acc + y.semesters.reduce((a, s) => a + s.units.reduce((u, un) => u + un.weeks.length, 0), 0), 0)],
-          ['Total Topics:', studyData.years.reduce((acc, y) => acc + y.semesters.reduce((a, s) => a + s.units.reduce((u, un) => u + un.weeks.reduce((w, wk) => w + wk.topics.length, 0), 0), 0), 0)],
-        ];
-        meta.forEach(([label, value]) => {
-          const row = cover.addRow([label, value]);
-          row.getCell(1).font = { bold: true };
-        });
-        cover.columns = [{ width: 20 }, { width: 20 }, { width: 20 }, { width: 20 }, { width: 20 }, { width: 20 }];
-        cover.addRow([]);
-        const footer = cover.getCell('A20');
-        footer.value = 'Generated by Your Portfolio System';
-        footer.font = { italic: true, size: 10 };
-        cover.mergeCells('A20:F20');
-        footer.alignment = { horizontal: 'center' };
-
-        // ─── Overview (KPIs) ───
-        const overview = workbook.addWorksheet('Overview', { pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1 } });
-        overview.mergeCells('A1:H1');
-        const ovTitle = overview.getCell('A1');
-        ovTitle.value = '📊 KEY PERFORMANCE INDICATORS';
-        ovTitle.font = { bold: true, size: 18, color: { argb: 'FFFFFFFF' } };
-        ovTitle.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
-        ovTitle.alignment = { horizontal: 'center', vertical: 'middle' };
-        overview.getRow(1).height = 36;
-
-        let totalTopics = 0, doneTopics = 0, totalAssignments = 0, pendingAssignments = 0, submittedAssignments = 0;
-        let totalWeighted = 0, weightedSum = 0;
-        studyData.years.forEach(y => {
-          y.semesters.forEach(s => {
-            s.units.forEach(u => {
-              (u.weeks || []).forEach(w => {
-                (w.topics || []).forEach(t => {
-                  totalTopics++;
-                  if (t.completed) doneTopics++;
-                });
-                (w.assignments || []).forEach(a => {
-                  totalAssignments++;
-                  if (a.status === 'submitted') submittedAssignments++;
-                  else if (a.status === 'pending' || a.status === 'in-progress') pendingAssignments++;
-                  const weight = parseFloat(a.weight) || 0;
-                  totalWeighted += weight;
-                  const marks = parseFloat(a.marks);
-                  if (!isNaN(marks) && marks >= 0 && marks <= 100) {
-                    weightedSum += marks * (weight / 100);
-                  }
-                });
-              });
-            });
-          });
-        });
-        const completionPct = totalTopics > 0 ? (doneTopics / totalTopics) * 100 : 0;
-        const assignmentCompletionPct = totalAssignments > 0 ? (submittedAssignments / totalAssignments) * 100 : 0;
-        const overallGrade = totalWeighted > 0 ? (weightedSum / totalWeighted) * 100 : null;
-
-        const kpis = [
-          ['Metric', 'Value', 'Status'],
-          ['Total Topics', totalTopics, ''],
-          ['Completed Topics', doneTopics, ''],
-          ['Completion Rate', completionPct.toFixed(1) + '%', completionPct >= 80 ? '✅ Good' : '⚠️ Needs attention'],
-          ['Total Assignments', totalAssignments, ''],
-          ['Submitted', submittedAssignments, ''],
-          ['Pending', pendingAssignments, pendingAssignments > 0 ? '⏳ Action needed' : '✅ All done'],
-          ['Assignment Completion', assignmentCompletionPct.toFixed(1) + '%', assignmentCompletionPct >= 80 ? '✅ Good' : '⚠️ Needs attention'],
-          ['Overall Grade (weighted)', overallGrade !== null ? overallGrade.toFixed(1) + '%' : 'N/A', overallGrade !== null && overallGrade >= 70 ? '✅ Passing' : overallGrade !== null && overallGrade >= 50 ? '⚠️ Borderline' : overallGrade !== null ? '❌ Fail' : '—']
-        ];
-        const kpiHeader = overview.addRow(kpis[0]);
-        kpiHeader.eachCell(cell => {
-          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2C3E50' } };
-          cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-          cell.alignment = { horizontal: 'center', vertical: 'middle' };
-          cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
-        });
-        kpiHeader.height = 24;
-        for (let i = 1; i < kpis.length; i++) {
-          const row = overview.addRow(kpis[i]);
-          row.eachCell((cell, col) => {
-            cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
-            cell.alignment = { vertical: 'middle', horizontal: col === 2 ? 'center' : 'left' };
-            if (col === 2 && kpis[i][2].includes('✅')) {
-              cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC6EFCE' } };
-              cell.font = { color: { argb: 'FF006400' }, bold: true };
-            } else if (col === 2 && kpis[i][2].includes('⚠️')) {
-              cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF4E6' } };
-              cell.font = { color: { argb: 'FF8B6500' }, bold: true };
-            } else if (col === 2 && kpis[i][2].includes('❌')) {
-              cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFC7CE' } };
-              cell.font = { color: { argb: 'FF8B0000' }, bold: true };
-            }
-          });
-        }
-        overview.columns = [{ width: 30 }, { width: 20 }, { width: 30 }];
-
-        // ─── Unit Progress ───
-        const unitSheet = workbook.addWorksheet('Unit Progress', { pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1 } });
-        unitSheet.mergeCells('A1:E1');
-        const unitTitle = unitSheet.getCell('A1');
-        unitTitle.value = '📊 UNIT PROGRESS BREAKDOWN';
-        unitTitle.font = { bold: true, size: 16, color: { argb: 'FFFFFFFF' } };
-        unitTitle.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
-        unitTitle.alignment = { horizontal: 'center' };
-        unitSheet.getRow(1).height = 30;
-
-        const unitHeaders = ['Unit', 'Total Topics', 'Completed', 'Progress', 'Status'];
-        const uHeader = unitSheet.addRow(unitHeaders);
-        uHeader.eachCell(cell => {
-          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2C3E50' } };
-          cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-          cell.alignment = { horizontal: 'center', vertical: 'middle' };
-          cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
-        });
-        uHeader.height = 24;
-
-        const unitData = [];
-        studyData.years.forEach(y => {
-          y.semesters.forEach(s => {
-            s.units.forEach(u => {
-              let total = 0, done = 0;
-              (u.weeks || []).forEach(w => {
-                (w.topics || []).forEach(t => {
-                  const subCount = t.subtopics ? t.subtopics.length : 0;
-                  total += subCount;
-                  const subDone = (t.subCompleted || []).filter(Boolean).length;
-                  done += subDone;
-                });
-              });
-              const pct = total > 0 ? (done / total) * 100 : 0;
-              const status = pct >= 80 ? '✅ Good' : pct >= 50 ? '⚠️ In progress' : '❌ Needs work';
-              unitData.push({ code: u.code, name: u.name, total, done, pct, status });
-              const row = unitSheet.addRow([u.code + ' ' + u.name, total, done, pct.toFixed(1) + '%', status]);
-              row.eachCell((cell, col) => {
-                cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
-                cell.alignment = { vertical: 'middle', horizontal: col === 4 ? 'center' : 'left' };
-                if (col === 4 && status.includes('✅')) {
-                  cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC6EFCE' } };
-                  cell.font = { color: { argb: 'FF006400' }, bold: true };
-                } else if (col === 4 && status.includes('⚠️')) {
-                  cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF4E6' } };
-                  cell.font = { color: { argb: 'FF8B6500' }, bold: true };
-                } else if (col === 4 && status.includes('❌')) {
-                  cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFC7CE' } };
-                  cell.font = { color: { argb: 'FF8B0000' }, bold: true };
-                }
-              });
-            });
-          });
-        });
-        unitSheet.columns = [{ width: 30 }, { width: 15 }, { width: 15 }, { width: 15 }, { width: 20 }];
-
-        // ─── Weekly Trends ───
-        const weeklySheet = workbook.addWorksheet('Weekly Trends', { pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1 } });
-        weeklySheet.mergeCells('A1:C1');
-        const weeklyTitle = weeklySheet.getCell('A1');
-        weeklyTitle.value = '📈 WEEKLY COMPLETION TREND';
-        weeklyTitle.font = { bold: true, size: 16, color: { argb: 'FFFFFFFF' } };
-        weeklyTitle.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
-        weeklyTitle.alignment = { horizontal: 'center' };
-        weeklySheet.getRow(1).height = 30;
-
-        const weekData = [];
-        studyData.years.forEach(y => {
-          y.semesters.forEach(s => {
-            s.units.forEach(u => {
-              (u.weeks || []).forEach(w => {
-                const key = y.name + ' W' + w.number;
-                let total = 0, done = 0;
-                (w.topics || []).forEach(t => {
-                  const subCount = t.subtopics ? t.subtopics.length : 0;
-                  total += subCount;
-                  const subDone = (t.subCompleted || []).filter(Boolean).length;
-                  done += subDone;
-                });
-                weekData.push({ week: key, total, done, pct: total > 0 ? (done / total) * 100 : 0 });
-              });
-            });
-          });
-        });
-        weekData.sort((a, b) => a.week.localeCompare(b.week));
-        const wHeaders = ['Week', 'Total Subtopics', 'Completed', 'Completion %'];
-        const wHeaderRow = weeklySheet.addRow(wHeaders);
-        wHeaderRow.eachCell(cell => {
-          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2C3E50' } };
-          cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-          cell.alignment = { horizontal: 'center' };
-          cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
-        });
-        wHeaderRow.height = 24;
-        weekData.forEach(wd => {
-          const row = weeklySheet.addRow([wd.week, wd.total, wd.done, wd.pct.toFixed(1) + '%']);
-          row.eachCell(cell => {
-            cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
-            cell.alignment = { vertical: 'middle' };
-          });
-        });
-        weeklySheet.columns = [{ width: 18 }, { width: 18 }, { width: 18 }, { width: 18 }];
-
-        // ─── Assignment Tracker ───
-        const assignSheet = workbook.addWorksheet('Assignment Tracker', { pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1 } });
-        assignSheet.mergeCells('A1:H1');
-        const assignTitle = assignSheet.getCell('A1');
-        assignTitle.value = '📋 ASSIGNMENT TRACKER';
-        assignTitle.font = { bold: true, size: 16, color: { argb: 'FFFFFFFF' } };
-        assignTitle.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
-        assignTitle.alignment = { horizontal: 'center' };
-        assignSheet.getRow(1).height = 30;
-
-        const aHeaders = ['Year', 'Semester', 'Unit', 'Week', 'Assignment', 'Due Date', 'Status', 'Marks'];
-        const aHeaderRow = assignSheet.addRow(aHeaders);
-        aHeaderRow.eachCell(cell => {
-          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2C3E50' } };
-          cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-          cell.alignment = { horizontal: 'center' };
-          cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
-        });
-        aHeaderRow.height = 24;
-        studyData.years.forEach(y => {
-          y.semesters.forEach(s => {
-            s.units.forEach(u => {
-              (u.weeks || []).forEach(w => {
-                (w.assignments || []).forEach(a => {
-                  const row = assignSheet.addRow([y.name, s.name, u.code, 'Week ' + w.number, a.name, a.due || '', a.status, a.marks || '']);
-                  row.eachCell(cell => {
-                    cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
-                    cell.alignment = { vertical: 'middle' };
-                  });
-                  const statusCell = row.getCell(7);
-                  if (a.status === 'submitted') {
-                    statusCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC6EFCE' } };
-                    statusCell.font = { color: { argb: 'FF006400' }, bold: true };
-                  } else if (a.status === 'in-progress') {
-                    statusCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF4E6' } };
-                    statusCell.font = { color: { argb: 'FF8B6500' }, bold: true };
-                  } else {
-                    statusCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFC7CE' } };
-                    statusCell.font = { color: { argb: 'FF8B0000' }, bold: true };
-                  }
-                });
-              });
-            });
-          });
-        });
-        assignSheet.columns = [{ width: 14 }, { width: 16 }, { width: 12 }, { width: 12 }, { width: 22 }, { width: 16 }, { width: 14 }, { width: 12 }];
-
-        // ─── Grade Analysis ───
-        const gradeSheet = workbook.addWorksheet('Grade Analysis', { pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1 } });
-        gradeSheet.mergeCells('A1:E1');
-        const gradeTitle = gradeSheet.getCell('A1');
-        gradeTitle.value = '📊 GRADE ANALYSIS';
-        gradeTitle.font = { bold: true, size: 16, color: { argb: 'FFFFFFFF' } };
-        gradeTitle.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
-        gradeTitle.alignment = { horizontal: 'center' };
-        gradeSheet.getRow(1).height = 30;
-
-        const gHeaders = ['Unit', 'Assignments', 'Weighted Grade', 'Status', 'Prediction'];
-        const gHeaderRow = gradeSheet.addRow(gHeaders);
-        gHeaderRow.eachCell(cell => {
-          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2C3E50' } };
-          cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-          cell.alignment = { horizontal: 'center' };
-          cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
-        });
-        gHeaderRow.height = 24;
-        studyData.years.forEach(y => {
-          y.semesters.forEach(s => {
-            s.units.forEach(u => {
-              const result = calculateUnitGrade(u);
-              const grade = result && result.grade !== null ? result.grade : null;
-              const gradeDisplay = grade !== null ? grade.toFixed(1) + '%' : 'N/A';
-              const status = grade !== null ? (grade >= 70 ? '✅ Passing' : grade >= 50 ? '⚠️ Borderline' : '❌ Fail') : '—';
-              const prediction = grade !== null ? (grade >= 70 ? 'On track' : grade >= 50 ? 'Needs improvement' : 'At risk') : '—';
-              const row = gradeSheet.addRow([u.code + ' ' + u.name, result ? result.allAssignments.length : 0, gradeDisplay, status, prediction]);
-              row.eachCell((cell, col) => {
-                cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
-                cell.alignment = { vertical: 'middle', horizontal: col === 3 ? 'center' : 'left' };
-                if (col === 3 && status.includes('✅')) {
-                  cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC6EFCE' } };
-                  cell.font = { color: { argb: 'FF006400' }, bold: true };
-                } else if (col === 3 && status.includes('⚠️')) {
-                  cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF4E6' } };
-                  cell.font = { color: { argb: 'FF8B6500' }, bold: true };
-                } else if (col === 3 && status.includes('❌')) {
-                  cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFC7CE' } };
-                  cell.font = { color: { argb: 'FF8B0000' }, bold: true };
-                }
-              });
-            });
-          });
-        });
-        gradeSheet.columns = [{ width: 30 }, { width: 15 }, { width: 18 }, { width: 18 }, { width: 20 }];
-
-        // ─── Charts ───
-        const unitProgressCanvas = document.createElement('canvas');
-        unitProgressCanvas.width = 800;
-        unitProgressCanvas.height = 400;
-        const ctx1 = unitProgressCanvas.getContext('2d');
-        const unitNames = unitData.map(u => u.code);
-        const unitPcts = unitData.map(u => u.pct);
-        new Chart(ctx1, {
-          type: 'bar',
-          data: { labels: unitNames, datasets: [{ label: 'Progress %', data: unitPcts, backgroundColor: '#2fc7ff' }] },
-          options: { responsive: false, plugins: { title: { display: true, text: 'Unit Progress (%)', font: { size: 18 } } }, scales: { y: { beginAtZero: true, max: 100 } } }
-        });
-        await new Promise(r => setTimeout(r, 400));
-        const img1 = unitProgressCanvas.toDataURL('image/png');
-        const imageId1 = workbook.addImage({ base64: img1, extension: 'png' });
-        const chartSheet = workbook.addWorksheet('Charts', { pageSetup: { orientation: 'landscape', fitToPage: true } });
-        chartSheet.mergeCells('A1:C1');
-        const chartTitle = chartSheet.getCell('A1');
-        chartTitle.value = '📈 VISUAL DASHBOARD';
-        chartTitle.font = { bold: true, size: 18, color: { argb: 'FFFFFFFF' } };
-        chartTitle.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
-        chartTitle.alignment = { horizontal: 'center' };
-        chartSheet.getRow(1).height = 36;
-        chartSheet.addImage(imageId1, { tl: { col: 0, row: 3 }, ext: { width: 600, height: 300 } });
-
-        const weeklyCanvas = document.createElement('canvas');
-        weeklyCanvas.width = 800;
-        weeklyCanvas.height = 400;
-        const ctx2 = weeklyCanvas.getContext('2d');
-        const weekLabels = weekData.map(w => w.week);
-        const doneData2 = weekData.map(w => w.done);
-        const totalData2 = weekData.map(w => w.total);
-        new Chart(ctx2, {
-          type: 'line',
-          data: { labels: weekLabels, datasets: [{ label: 'Completed', data: doneData2, borderColor: '#00b894', fill: false, tension: 0.3 }, { label: 'Total', data: totalData2, borderColor: '#2fc7ff', fill: false, tension: 0.3 }] },
-          options: { responsive: false, plugins: { title: { display: true, text: 'Weekly Subtopics Trend', font: { size: 18 } } }, scales: { y: { beginAtZero: true } } }
-        });
-        await new Promise(r => setTimeout(r, 400));
-        const img2 = weeklyCanvas.toDataURL('image/png');
-        const imageId2 = workbook.addImage({ base64: img2, extension: 'png' });
-        chartSheet.addImage(imageId2, { tl: { col: 2, row: 3 }, ext: { width: 600, height: 300 } });
-
-        const buffer = await workbook.xlsx.writeBuffer();
-        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-        saveAs(blob, `StudyPlan_Report_${new Date().toISOString().slice(0,10)}.xlsx`);
-        showToast('✅ WOW Excel exported with 6 sheets & charts!', 'success');
-      } catch (err) {
-        console.error(err);
-        showToast('Export failed: ' + err.message, 'error');
-      } finally {
-        window.hideLoading();
-      }
-    };
-
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    //  CRUD OPERATIONS (all call scheduleSave)
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    function openModal(title, bodyHTML, onSave) {
-      const modal = document.getElementById('genericModal');
-      document.getElementById('modalTitle').textContent = title;
-      document.getElementById('modalBody').innerHTML = bodyHTML;
-      modal.classList.add('open');
-      modal._onSave = onSave;
-    }
-
-    document.getElementById('modalCancel').addEventListener('click', function() {
-      document.getElementById('genericModal').classList.remove('open');
-    });
-
-    document.getElementById('modalSave').addEventListener('click', function() {
-      const modal = document.getElementById('genericModal');
-      const onSave = modal._onSave;
-      if (typeof onSave === 'function') {
-        const result = onSave();
-        if (result !== false) {
-          modal.classList.remove('open');
-          render();
-          scheduleSave();
-          showToast('✅ Saved', 'success');
-        }
-      }
-    });
-
-    // ─── Years ───
-    window.addYear = function() {
-      openModal('Add Year', `
-        <div class="form-group"><label>Year Name (e.g. 2026)</label><input type="text" id="yearName" placeholder="2026" /></div>
-      `, () => {
-        const name = document.getElementById('yearName').value.trim();
-        if (!name) { showToast('Please enter a year name.', 'error'); return false; }
-        studyData.years.push({ name, semesters: [] });
-        return true;
-      });
-    };
-
-    window.editYear = function(yi) {
-      const year = studyData.years[yi];
-      openModal('Edit Year', `
-        <div class="form-group"><label>Year Name</label><input type="text" id="yearName" value="${escapeHtml(year.name)}" /></div>
-      `, () => {
-        const name = document.getElementById('yearName').value.trim();
-        if (!name) { showToast('Please enter a year name.', 'error'); return false; }
-        year.name = name;
-        return true;
-      });
-    };
-
-    window.deleteYear = function(yi) {
-      if (!confirm('Delete this year and all its semesters, units, weeks, topics, and assignments?')) return;
-      studyData.years.splice(yi, 1);
-      render();
-      scheduleSave();
-    };
-
-    // ─── Semesters ───
-    window.addSemester = function(yi) {
-      openModal('Add Semester', `
-        <div class="form-group"><label>Semester Name (e.g. Semester 2)</label><input type="text" id="semesterName" placeholder="Semester 2" /></div>
-      `, () => {
-        const name = document.getElementById('semesterName').value.trim();
-        if (!name) { showToast('Please enter a semester name.', 'error'); return false; }
-        studyData.years[yi].semesters.push({ name, units: [] });
-        return true;
-      });
-    };
-
-    window.editSemester = function(yi, si) {
-      const sem = studyData.years[yi].semesters[si];
-      openModal('Edit Semester', `
-        <div class="form-group"><label>Semester Name</label><input type="text" id="semesterName" value="${escapeHtml(sem.name)}" /></div>
-      `, () => {
-        const name = document.getElementById('semesterName').value.trim();
-        if (!name) { showToast('Please enter a semester name.', 'error'); return false; }
-        sem.name = name;
-        return true;
-      });
-    };
-
-    window.deleteSemester = function(yi, si) {
-      if (!confirm('Delete this semester and all its units?')) return;
-      studyData.years[yi].semesters.splice(si, 1);
-      render();
-      scheduleSave();
-    };
-
-    // ─── Units ───
-    window.addUnit = function(yi, si) {
-      openModal('Add Unit', `
-        <div class="form-group"><label>Unit Code</label><input type="text" id="unitCode" placeholder="BSC106" /></div>
-        <div class="form-group"><label>Unit Name</label><input type="text" id="unitName" placeholder="Engineering Mathematics 2" /></div>
-        <div class="form-group"><label>Color</label><input type="text" id="unitColor" value="#2fc7ff" /></div>
-      `, () => {
-        const code = document.getElementById('unitCode').value.trim();
-        const name = document.getElementById('unitName').value.trim();
-        const color = document.getElementById('unitColor').value.trim() || '#2fc7ff';
-        if (!name) { showToast('Please enter a unit name.', 'error'); return false; }
-        studyData.years[yi].semesters[si].units.push({ code, name, color, weeks: [] });
-        return true;
-      });
-    };
-
-    window.editUnit = function(yi, si, ui) {
-      const unit = studyData.years[yi].semesters[si].units[ui];
-      openModal('Edit Unit', `
-        <div class="form-group"><label>Unit Code</label><input type="text" id="unitCode" value="${escapeHtml(unit.code)}" /></div>
-        <div class="form-group"><label>Unit Name</label><input type="text" id="unitName" value="${escapeHtml(unit.name)}" /></div>
-        <div class="form-group"><label>Color</label><input type="text" id="unitColor" value="${escapeHtml(unit.color)}" /></div>
-      `, () => {
-        const code = document.getElementById('unitCode').value.trim();
-        const name = document.getElementById('unitName').value.trim();
-        const color = document.getElementById('unitColor').value.trim() || '#2fc7ff';
-        if (!name) { showToast('Please enter a unit name.', 'error'); return false; }
-        unit.code = code;
-        unit.name = name;
-        unit.color = color;
-        return true;
-      });
-    };
-
-    window.deleteUnit = function(yi, si, ui) {
-      if (!confirm('Delete this unit and all its weeks, topics, and assignments?')) return;
-      studyData.years[yi].semesters[si].units.splice(ui, 1);
-      render();
-      scheduleSave();
-    };
-
-    // ─── Weeks ───
-    window.addWeek = function(yi, si, ui) {
-      openModal('Add Week', `
-        <div class="form-group"><label>Week Number</label><input type="number" id="weekNumber" min="1" step="1" value="1" /></div>
-      `, () => {
-        const number = parseInt(document.getElementById('weekNumber').value);
-        if (!number || number < 1) { showToast('Please enter a valid week number.', 'error'); return false; }
-        const unit = studyData.years[yi].semesters[si].units[ui];
-        unit.weeks.push({ number, topics: [], assignments: [] });
-        return true;
-      });
-    };
-
-    window.editWeek = function(yi, si, ui, wi) {
-      const week = studyData.years[yi].semesters[si].units[ui].weeks[wi];
-      openModal('Edit Week', `
-        <div class="form-group"><label>Week Number</label><input type="number" id="weekNumber" value="${week.number}" min="1" step="1" /></div>
-      `, () => {
-        const number = parseInt(document.getElementById('weekNumber').value);
-        if (!number || number < 1) { showToast('Please enter a valid week number.', 'error'); return false; }
-        week.number = number;
-        return true;
-      });
-    };
-
-    window.deleteWeek = function(yi, si, ui, wi) {
-      if (!confirm('Delete this week and all its topics and assignments?')) return;
-      studyData.years[yi].semesters[si].units[ui].weeks.splice(wi, 1);
-      render();
-      scheduleSave();
-    };
-
-    // ─── Topics ───
-    window.addTopic = function(yi, si, ui, wi) {
-      openModal('Add Topic', `
-        <div class="form-group"><label>Topic Name</label><input type="text" id="topicName" placeholder="e.g. Multivariable Calculus" /></div>
-      `, () => {
-        const name = document.getElementById('topicName').value.trim();
-        if (!name) { showToast('Please enter a topic name.', 'error'); return false; }
-        const week = studyData.years[yi].semesters[si].units[ui].weeks[wi];
-        week.topics.push({ name, subtopics: [], completed: false, subCompleted: [] });
-        return true;
-      });
-    };
-
-    window.editTopic = function(yi, si, ui, wi, ti) {
-      const topic = studyData.years[yi].semesters[si].units[ui].weeks[wi].topics[ti];
-      openModal('Edit Topic', `
-        <div class="form-group"><label>Topic Name</label><input type="text" id="topicName" value="${escapeHtml(topic.name)}" /></div>
-      `, () => {
-        const name = document.getElementById('topicName').value.trim();
-        if (!name) { showToast('Please enter a topic name.', 'error'); return false; }
-        topic.name = name;
-        return true;
-      });
-    };
-
-    window.deleteTopic = function(yi, si, ui, wi, ti) {
-      if (!confirm('Delete this topic and all its subtopics?')) return;
-      const week = studyData.years[yi].semesters[si].units[ui].weeks[wi];
-      week.topics.splice(ti, 1);
-      render();
-      scheduleSave();
-    };
-
-    // ─── Subtopics ───
-    window.addSubtopic = function(yi, si, ui, wi, ti) {
-      openModal('Add Subtopic', `
-        <div class="form-group"><label>Subtopic Name</label><input type="text" id="subtopicName" placeholder="e.g. Partial derivatives" /></div>
-      `, () => {
-        const name = document.getElementById('subtopicName').value.trim();
-        if (!name) { showToast('Please enter a subtopic name.', 'error'); return false; }
-        const topic = studyData.years[yi].semesters[si].units[ui].weeks[wi].topics[ti];
-        if (!topic.subtopics) topic.subtopics = [];
-        if (!topic.subCompleted) topic.subCompleted = [];
-        topic.subtopics.push(name);
-        topic.subCompleted.push(false);
-        recalcTopicCompletion(topic);
-        return true;
-      });
-    };
-
-    window.deleteSubtopic = function(yi, si, ui, wi, ti, si2) {
-      if (!confirm('Delete this subtopic?')) return;
-      const topic = studyData.years[yi].semesters[si].units[ui].weeks[wi].topics[ti];
-      if (topic.subtopics && topic.subtopics.length > si2) {
-        topic.subtopics.splice(si2, 1);
-        if (topic.subCompleted && topic.subCompleted.length > si2) {
-          topic.subCompleted.splice(si2, 1);
-        }
-        recalcTopicCompletion(topic);
-      }
-      render();
-      scheduleSave();
-    };
-
-    // ─── Assignments ───
-    window.addAssignment = function(yi, si, ui, wi) {
-      openModal('Add Assignment', `
-        <div class="form-group"><label>Assignment Name</label><input type="text" id="assName" placeholder="e.g. Quiz 1" /></div>
-        <div class="form-group"><label>Due Date</label><input type="date" id="assDue" /></div>
-        <div class="form-group"><label>Status</label>
-          <select id="assStatus"><option value="pending">Pending</option><option value="in-progress">In Progress</option><option value="submitted">Submitted</option></select>
-        </div>
-        <div class="form-group"><label>Marks</label><input type="text" id="assMarks" placeholder="e.g. 85%" /></div>
-        <div class="form-group"><label>Weighting (%)</label><input type="number" id="assWeight" placeholder="5" min="0" max="100" /></div>
-      `, () => {
-        const name = document.getElementById('assName').value.trim();
-        const due = document.getElementById('assDue').value;
-        const status = document.getElementById('assStatus').value;
-        const marks = document.getElementById('assMarks').value.trim();
-        const weight = parseFloat(document.getElementById('assWeight').value) || 0;
-        if (!name) { showToast('Please enter an assignment name.', 'error'); return false; }
-        const week = studyData.years[yi].semesters[si].units[ui].weeks[wi];
-        if (!week.assignments) week.assignments = [];
-        week.assignments.push({ name, due, status, marks, weight });
-        return true;
-      });
-    };
-
-    window.editAssignment = function(yi, si, ui, wi, ai) {
-      const ass = studyData.years[yi].semesters[si].units[ui].weeks[wi].assignments[ai];
-      openModal('Edit Assignment', `
-        <div class="form-group"><label>Assignment Name</label><input type="text" id="assName" value="${escapeHtml(ass.name)}" /></div>
-        <div class="form-group"><label>Due Date</label><input type="date" id="assDue" value="${ass.due || ''}" /></div>
-        <div class="form-group"><label>Status</label>
-          <select id="assStatus"><option value="pending" ${ass.status === 'pending' ? 'selected' : ''}>Pending</option><option value="in-progress" ${ass.status === 'in-progress' ? 'selected' : ''}>In Progress</option><option value="submitted" ${ass.status === 'submitted' ? 'selected' : ''}>Submitted</option></select>
-        </div>
-        <div class="form-group"><label>Marks</label><input type="text" id="assMarks" value="${escapeHtml(ass.marks || '')}" /></div>
-        <div class="form-group"><label>Weighting (%)</label><input type="number" id="assWeight" value="${ass.weight || ''}" min="0" max="100" /></div>
-      `, () => {
-        const name = document.getElementById('assName').value.trim();
-        const due = document.getElementById('assDue').value;
-        const status = document.getElementById('assStatus').value;
-        const marks = document.getElementById('assMarks').value.trim();
-        const weight = parseFloat(document.getElementById('assWeight').value) || 0;
-        if (!name) { showToast('Please enter an assignment name.', 'error'); return false; }
-        ass.name = name;
-        ass.due = due;
-        ass.status = status;
-        ass.marks = marks;
-        ass.weight = weight;
-        return true;
-      });
-    };
-
-    window.deleteAssignment = function(yi, si, ui, wi, ai) {
-      if (!confirm('Delete this assignment?')) return;
-      const week = studyData.years[yi].semesters[si].units[ui].weeks[wi];
-      week.assignments.splice(ai, 1);
-      render();
-      scheduleSave();
-    };
-
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    //  INIT
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    async function init() {
-      console.log('📦 Study Manager initializing...');
-      const contentArea = document.getElementById('contentArea');
-
-      contentArea.innerHTML = `
-        <div class="study-header">
-          <div>
-            <h1><i class="fa fa-graduation-cap" style="font-size:1.8rem;margin-right:12px;background:linear-gradient(135deg,#fff,var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;"></i> Study Manager</h1>
-            <div class="subtitle">Years → Semesters → Units → Weeks → Topics → Subtopics · <span id="userDisplay">🔒 ${user.username}</span></div>
-          </div>
-          <div class="actions">
-            <button class="btn btn-sync" id="syncBtn" title="Ctrl+S to save"><i class="fa fa-cloud-download"></i> Sync <span class="shortcut-hint">(Ctrl+S)</span></button>
-            <button class="btn btn-excel" id="exportBtn"><i class="fa fa-file-excel-o"></i> Excel</button>
-            <button class="btn btn-outline-secondary" id="exportJsonBtn" style="border-color:var(--border-subtle);color:var(--text-secondary);"><i class="fa fa-download"></i> JSON</button>
-            <button class="btn btn-outline-secondary" id="importJsonBtn" style="border-color:var(--border-subtle);color:var(--text-secondary);"><i class="fa fa-upload"></i> Import</button>
-            <button class="btn btn-success-glow" id="addYearBtn"><i class="fa fa-plus"></i> Add Year</button>
-            <button class="btn btn-outline-light" id="resetBtn" style="border:1px solid var(--border-subtle);color:var(--text-secondary);"><i class="fa fa-refresh"></i> Reset</button>
-          </div>
-        </div>
-
-        <!-- Deadlines Widget -->
-        <div id="deadlinesContainer"></div>
-
-        <!-- Analytics Dashboard -->
-        <div id="analyticsContainer"></div>
-
-        <!-- Stats Bar -->
-        <div class="stats-bar" id="statsBar">
-          <div class="stat-item"><div class="number blue" id="statYears">0</div><div class="label">Years</div><div class="stat-tooltip">Total academic years</div></div>
-          <div class="stat-item"><div class="number purple" id="statUnits">0</div><div class="label">Units</div><div class="stat-tooltip">Total units/modules</div></div>
-          <div class="stat-item"><div class="number orange" id="statWeeks">0</div><div class="label">Weeks</div><div class="stat-tooltip">Total weeks across all units</div></div>
-          <div class="stat-item"><div class="number green" id="statTopicsDone">0</div><div class="label">Topics Done</div><div class="stat-tooltip">Completed topics / total topics</div></div>
-          <div class="stat-item"><div class="number" id="statAssignments">0</div><div class="label">Assignments</div><div class="stat-tooltip">Total assignments</div></div>
-          <div class="stat-item"><div class="number red" id="statPending">0</div><div class="label">Pending</div><div class="stat-tooltip">Assignments not yet submitted</div></div>
-        </div>
-
-        <!-- Expand/Collapse All buttons -->
-        <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
-          <button class="btn btn-sm btn-outline-secondary" onclick="expandAll()" style="border-color:var(--border-subtle);color:var(--text-secondary);"><i class="fa fa-plus-square"></i> Expand All <span class="shortcut-hint">(Ctrl+E)</span></button>
-          <button class="btn btn-sm btn-outline-secondary" onclick="collapseAll()" style="border-color:var(--border-subtle);color:var(--text-secondary);"><i class="fa fa-minus-square"></i> Collapse All <span class="shortcut-hint">(Ctrl+W)</span></button>
-        </div>
-
-        <div id="treeContainer"></div>
-
-        <div class="text-center text-muted-light small py-4" style="border-top:1px solid var(--border-subtle);margin-top:20px;">
-          <span id="footerStatus"></span>
-        </div>
-      `;
-
-      // ─── Bind buttons ───
-      document.getElementById('syncBtn').addEventListener('click', async function() {
-        showToast('🔄 Syncing...', 'info');
-        try {
-          const data = await loadFromGitHub();
-          if (data) {
-            studyData = data;
-            render();
-            showToast('✅ Synced from GitHub', 'success');
-          } else {
-            showToast('ℹ️ No valid study data on GitHub. Keeping local data.', 'info');
-          }
-        } catch (err) {
-          console.error('Sync error:', err);
-          showToast('❌ Sync failed: ' + err.message, 'error');
-        }
-      });
-
-      document.getElementById('resetBtn').addEventListener('click', function() {
-        if (!confirm('⚠️ Reset ALL data? This will restore the default study plan. Any custom data will be lost.')) return;
-        studyData = getDefaultData();
-        expanded = {};
-        render();
-        scheduleSave();
-        showToast('🔄 Reset to default', 'info');
-      });
-
-      document.getElementById('addYearBtn').addEventListener('click', window.addYear);
-      document.getElementById('exportBtn').addEventListener('click', window.exportToExcel);
-      document.getElementById('exportJsonBtn').addEventListener('click', exportJSON);
-      document.getElementById('importJsonBtn').addEventListener('click', () => {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = '.json';
-        input.onchange = (e) => {
-          if (e.target.files.length) importJSON(e.target.files[0]);
-          e.target.value = '';
-        };
-        input.click();
-      });
-
-      await loadData();
-      console.log('✅ Study Manager ready');
-    }
-
-    // ─── START ───
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', init);
-    } else {
-      init();
-    }
-
-    // Expose globals
-    window.toggleExpand = function(key) { expanded[key] = !expanded[key]; render(); };
-    window.toggleTopicExpand = function(key) { expanded[key] = !expanded[key]; render(); };
-    window.toggleTopicComplete = toggleTopicComplete;
-    window.toggleSubtopic = toggleSubtopic;
-    window.bulkToggleWeek = bulkToggleWeek;
-    window.expandAll = expandAll;
-    window.collapseAll = collapseAll;
-    window.exportJSON = exportJSON;
-    window.importJSON = importJSON;
-    window.addSemester = addSemester;
-    window.editSemester = editSemester;
-    window.deleteSemester = deleteSemester;
-    window.addUnit = addUnit;
-    window.editUnit = editUnit;
-    window.deleteUnit = deleteUnit;
-    window.addWeek = addWeek;
-    window.editWeek = editWeek;
-    window.deleteWeek = deleteWeek;
-    window.addTopic = addTopic;
-    window.editTopic = editTopic;
-    window.deleteTopic = deleteTopic;
-    window.addSubtopic = addSubtopic;
-    window.deleteSubtopic = deleteSubtopic;
-    window.addAssignment = addAssignment;
-    window.editAssignment = editAssignment;
-    window.deleteAssignment = deleteAssignment;
-    window.openGradeModal = openGradeModal;
-    window.updateGradeMark = updateGradeMark;
-    window.updateWhatIf = updateWhatIf;
-    window.studyManager = { studyData, render, scheduleSave };
-  </script>
+  <script src="studies.js"></script>
 </body>
 </html>
