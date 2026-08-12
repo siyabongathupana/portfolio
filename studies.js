@@ -1,4 +1,4 @@
-// studies.js – Study Manager – only accessible to users in APP_CONFIG.adminUsers
+// studies.js – Study Manager with full content from PDFs, robust loading
 (function() {
   'use strict';
 
@@ -9,17 +9,22 @@
     return;
   }
 
-  // Check if the logged-in user is in the admin list from config.js
   const isAuthorized = window.APP_CONFIG?.adminUsers?.includes(user.username) || false;
   if (!isAuthorized) {
-    document.getElementById('contentArea').innerHTML = `
-      <div class="access-denied">
-        <div class="icon"><i class="fa fa-lock"></i></div>
-        <h2>Access Restricted</h2>
-        <p>This page is only available to authorised users.</p>
-        <button class="btn btn-primary-glow mt-3" onclick="window.location.href='index.html'">Go Home</button>
-      </div>
-    `;
+    const contentArea = document.getElementById('contentArea');
+    if (contentArea) {
+      contentArea.innerHTML = `
+        <div class="access-denied">
+          <div class="icon"><i class="fa fa-lock"></i></div>
+          <h2>Access Restricted</h2>
+          <p>This page is only available to authorised users.</p>
+          <button class="btn btn-primary-glow mt-3" onclick="window.location.href='index.html'">Go Home</button>
+        </div>
+      `;
+    }
+    // Hide the loading spinner if it exists
+    const loader = document.getElementById('initialLoading');
+    if (loader) loader.style.display = 'none';
     return;
   }
 
@@ -426,11 +431,24 @@
       if (analyticsChart) analyticsChart.destroy();
       analyticsChart = new Chart(canvas, {
         type: 'bar',
-        data: { labels, datasets: [
-          { label: 'Completed', data: doneData, backgroundColor: 'rgba(0,184,148,0.6)' },
-          { label: 'Total', data: totalData, backgroundColor: 'rgba(47,199,255,0.2)' }
-        ]},
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#e0e8ee', font: { size: 9 } } } }, scales: { x: { ticks: { color: '#8a9fb0', font: { size: 8 } } }, y: { ticks: { color: '#8a9fb0', font: { size: 8 } } } } }
+        data: {
+          labels: labels,
+          datasets: [
+            { label: 'Completed', data: doneData, backgroundColor: 'rgba(0,184,148,0.6)' },
+            { label: 'Total', data: totalData, backgroundColor: 'rgba(47,199,255,0.2)' }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { labels: { color: '#e0e8ee', font: { size: 9 } } }
+          },
+          scales: {
+            x: { ticks: { color: '#8a9fb0', font: { size: 8 } } },
+            y: { ticks: { color: '#8a9fb0', font: { size: 8 } } }
+          }
+        }
       });
     }, 200);
   }
@@ -1196,8 +1214,15 @@
       const pcts = unitProgress.map(u => u.pct);
       new Chart(ctx1, {
         type: 'bar',
-        data: { labels: codes, datasets: [{ label: 'Progress %', data: pcts, backgroundColor: '#2fc7ff' }] },
-        options: { responsive: false, plugins: { title: { display: true, text: 'Unit Progress (%)', font: { size: 18 } } }, scales: { y: { beginAtZero: true, max: 100 } } }
+        data: {
+          labels: codes,
+          datasets: [{ label: 'Progress %', data: pcts, backgroundColor: '#2fc7ff' }]
+        },
+        options: {
+          responsive: false,
+          plugins: { title: { display: true, text: 'Unit Progress (%)', font: { size: 18 } } },
+          scales: { y: { beginAtZero: true, max: 100 } }
+        }
       });
       await new Promise(r => setTimeout(r, 500));
       const img1 = canvas1.toDataURL('image/png');
@@ -1222,8 +1247,18 @@
       const totalData = labels.map(k => weeklyData[k].total);
       new Chart(ctx2, {
         type: 'line',
-        data: { labels, datasets: [{ label: 'Completed', data: doneData, borderColor: '#00b894', fill: false, tension: 0.3 }, { label: 'Total', data: totalData, borderColor: '#2fc7ff', fill: false, tension: 0.3 }] },
-        options: { responsive: false, plugins: { title: { display: true, text: 'Weekly Subtopics Trend', font: { size: 18 } } }, scales: { y: { beginAtZero: true } } }
+        data: {
+          labels: labels,
+          datasets: [
+            { label: 'Completed', data: doneData, borderColor: '#00b894', fill: false, tension: 0.3 },
+            { label: 'Total', data: totalData, borderColor: '#2fc7ff', fill: false, tension: 0.3 }
+          ]
+        },
+        options: {
+          responsive: false,
+          plugins: { title: { display: true, text: 'Weekly Subtopics Trend', font: { size: 18 } } },
+          scales: { y: { beginAtZero: true } }
+        }
       });
       await new Promise(r => setTimeout(r, 500));
       const img2 = canvas2.toDataURL('image/png');
