@@ -1,28 +1,29 @@
-// studies.js – Study Manager with full content from PDFs, robust loading
+// studies.js – Study Manager with robust auth, error handling, and full content
 (function() {
   'use strict';
 
-  // ---- CHECK USER (using config) ----
+  // ---- AUTH CHECK ----
   const user = window.SessionManager?.getCurrentUser();
   if (!user) {
     window.location.href = "login.html?redirect=studies";
     return;
   }
 
-  const isAuthorized = window.APP_CONFIG?.adminUsers?.includes(user.username) || false;
-  if (!isAuthorized) {
+  // Only allow the owner
+  const ALLOWED_EMAIL = 'siyabongatshem@gmail.com';
+  if (user.username !== ALLOWED_EMAIL) {
     const contentArea = document.getElementById('contentArea');
     if (contentArea) {
       contentArea.innerHTML = `
-        <div class="access-denied">
-          <div class="icon"><i class="fa fa-lock"></i></div>
-          <h2>Access Restricted</h2>
-          <p>This page is only available to authorised users.</p>
-          <button class="btn btn-primary-glow mt-3" onclick="window.location.href='index.html'">Go Home</button>
+        <div class="access-denied" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:80vh;text-align:center;padding:20px;color:#e17055;">
+          <div class="icon" style="font-size:4rem;margin-bottom:20px;"><i class="fa fa-lock"></i></div>
+          <h2 style="font-weight:700;">Access Restricted</h2>
+          <p style="color:var(--text-secondary);max-width:500px;">This page is only available to the owner of this portfolio.</p>
+          <button class="btn btn-primary-glow mt-3" onclick="window.location.href='index.html'" style="background:linear-gradient(135deg,#2fc7ff,#0984e3);color:#0a0e17;border:none;padding:10px 30px;border-radius:40px;font-weight:600;">Go Home</button>
         </div>
       `;
     }
-    // Hide the loading spinner if it exists
+    // Hide the spinner if it exists
     const loader = document.getElementById('initialLoading');
     if (loader) loader.style.display = 'none';
     return;
@@ -293,7 +294,11 @@
       showToast('Error loading data: ' + err.message, 'error');
       const container = document.getElementById('treeContainer');
       if (container) {
-        container.innerHTML = `<div class="error-display"><h3>Failed to load data</h3><pre>${err.message}</pre></div>`;
+        container.innerHTML = `<div class="error-display" style="padding:40px;text-align:center;color:#e17055;background:rgba(225,112,85,0.08);border-radius:16px;border:1px solid #e17055;margin:40px 0;">
+          <div class="icon" style="font-size:3rem;margin-bottom:16px;"><i class="fa fa-exclamation-circle"></i></div>
+          <h3 style="color:#e17055;">Failed to load data</h3>
+          <pre style="background:rgba(0,0,0,0.3);padding:16px;border-radius:8px;text-align:left;max-height:200px;overflow:auto;font-size:0.8rem;color:#e0e8ee;">${err.message}</pre>
+        </div>`;
       }
     } finally {
       if (loader) loader.style.display = 'none';
@@ -321,7 +326,7 @@
     topic.completed = topic.subCompleted.every(Boolean);
   }
 
-  // ---- RENDER FUNCTIONS ----
+  // ---- RENDER FUNCTIONS (all wrapped in try-catch) ----
   function safeRender(fn) {
     try { fn(); } catch (e) { console.error('Render error:', e); showToast('Render error: ' + e.message, 'error'); }
   }
@@ -1297,80 +1302,92 @@
   };
 
   // ---- INIT ----
-  document.addEventListener('DOMContentLoaded', async function() {
-    // Build the UI structure first
-    const contentArea = document.getElementById('contentArea');
-    if (!contentArea) return;
-    contentArea.innerHTML = `
-      <div class="study-header">
-        <div>
-          <h1><i class="fa fa-graduation-cap" style="font-size:1.8rem;margin-right:12px;background:linear-gradient(135deg,#fff,var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;"></i> Study Manager</h1>
-          <div class="subtitle">Years → Semesters → Units → Weeks → Topics → Subtopics · <span id="userDisplay">🔒 ${user.username}</span></div>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Ensure the loader is hidden if anything goes wrong during init
+    const loader = document.getElementById('initialLoading');
+    try {
+      // Build the UI structure
+      const contentArea = document.getElementById('contentArea');
+      if (!contentArea) return;
+      contentArea.innerHTML = `
+        <div class="study-header">
+          <div>
+            <h1><i class="fa fa-graduation-cap" style="font-size:1.8rem;margin-right:12px;background:linear-gradient(135deg,#fff,var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;"></i> Study Manager</h1>
+            <div class="subtitle">Years → Semesters → Units → Weeks → Topics → Subtopics · <span id="userDisplay">🔒 ${user.username}</span></div>
+          </div>
+          <div class="actions">
+            <button class="btn btn-sync" id="syncBtn"><i class="fa fa-cloud-download"></i> Sync</button>
+            <button class="btn btn-excel" id="exportBtn"><i class="fa fa-file-excel-o"></i> Excel</button>
+            <button class="btn btn-success-glow" id="addYearBtn"><i class="fa fa-plus"></i> Add Year</button>
+            <button class="btn btn-outline-secondary" id="resetBtn" style="border-color:var(--border-subtle);color:var(--text-secondary);"><i class="fa fa-refresh"></i> Reset</button>
+          </div>
         </div>
-        <div class="actions">
-          <button class="btn btn-sync" id="syncBtn"><i class="fa fa-cloud-download"></i> Sync</button>
-          <button class="btn btn-excel" id="exportBtn"><i class="fa fa-file-excel-o"></i> Excel</button>
-          <button class="btn btn-success-glow" id="addYearBtn"><i class="fa fa-plus"></i> Add Year</button>
-          <button class="btn btn-outline-secondary" id="resetBtn" style="border-color:var(--border-subtle);color:var(--text-secondary);"><i class="fa fa-refresh"></i> Reset</button>
+        <div id="deadlinesContainer"></div>
+        <div id="analyticsContainer"></div>
+        <div class="stats-bar">
+          <div class="stat-item"><div class="number blue" id="statYears">0</div><div class="label">Years</div></div>
+          <div class="stat-item"><div class="number purple" id="statUnits">0</div><div class="label">Units</div></div>
+          <div class="stat-item"><div class="number orange" id="statWeeks">0</div><div class="label">Weeks</div></div>
+          <div class="stat-item"><div class="number green" id="statTopicsDone">0</div><div class="label">Topics Done</div></div>
+          <div class="stat-item"><div class="number" id="statAssignments">0</div><div class="label">Assignments</div></div>
+          <div class="stat-item"><div class="number red" id="statPending">0</div><div class="label">Pending</div></div>
         </div>
-      </div>
-      <div id="deadlinesContainer"></div>
-      <div id="analyticsContainer"></div>
-      <div class="stats-bar">
-        <div class="stat-item"><div class="number blue" id="statYears">0</div><div class="label">Years</div></div>
-        <div class="stat-item"><div class="number purple" id="statUnits">0</div><div class="label">Units</div></div>
-        <div class="stat-item"><div class="number orange" id="statWeeks">0</div><div class="label">Weeks</div></div>
-        <div class="stat-item"><div class="number green" id="statTopicsDone">0</div><div class="label">Topics Done</div></div>
-        <div class="stat-item"><div class="number" id="statAssignments">0</div><div class="label">Assignments</div></div>
-        <div class="stat-item"><div class="number red" id="statPending">0</div><div class="label">Pending</div></div>
-      </div>
-      <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
-        <button class="btn btn-sm btn-outline-secondary" onclick="window.expandAll()" style="border-color:var(--border-subtle);color:var(--text-secondary);"><i class="fa fa-plus-square"></i> Expand All</button>
-        <button class="btn btn-sm btn-outline-secondary" onclick="window.collapseAll()" style="border-color:var(--border-subtle);color:var(--text-secondary);"><i class="fa fa-minus-square"></i> Collapse All</button>
-      </div>
-      <div id="treeContainer"></div>
-      <div class="text-center text-muted-light small py-4" style="border-top:1px solid var(--border-subtle);margin-top:20px;">
-        <span id="footerStatus"></span>
-      </div>
-    `;
+        <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+          <button class="btn btn-sm btn-outline-secondary" onclick="window.expandAll()" style="border-color:var(--border-subtle);color:var(--text-secondary);"><i class="fa fa-plus-square"></i> Expand All</button>
+          <button class="btn btn-sm btn-outline-secondary" onclick="window.collapseAll()" style="border-color:var(--border-subtle);color:var(--text-secondary);"><i class="fa fa-minus-square"></i> Collapse All</button>
+        </div>
+        <div id="treeContainer"></div>
+        <div class="text-center text-muted-light small py-4" style="border-top:1px solid var(--border-subtle);margin-top:20px;">
+          <span id="footerStatus"></span>
+        </div>
+      `;
 
-    // Bind buttons
-    document.getElementById('addYearBtn').addEventListener('click', window.addYear);
-    document.getElementById('syncBtn').addEventListener('click', async function() {
-      showToast('Syncing...', 'info');
-      await loadData();
-      showToast('Synced from GitHub', 'success');
-    });
-    document.getElementById('exportBtn').addEventListener('click', window.exportToExcel);
-    document.getElementById('resetBtn').addEventListener('click', function() {
-      if (!confirm('Reset ALL data to default?')) return;
-      studyData = getDefaultData();
-      expanded = {};
-      render();
-      scheduleSave();
-      showToast('Reset to default', 'info');
-    });
-
-    // Expand/collapse all
-    window.expandAll = function() {
-      document.querySelectorAll('.level-body').forEach(el => el.classList.add('open'));
-      document.querySelectorAll('.level-header .fa-chevron-down, .level-header .fa-chevron-up').forEach(el => {
-        el.classList.toggle('fa-chevron-down');
-        el.classList.toggle('fa-chevron-up');
+      // Bind buttons
+      document.getElementById('addYearBtn').addEventListener('click', window.addYear);
+      document.getElementById('syncBtn').addEventListener('click', async function() {
+        showToast('Syncing...', 'info');
+        await loadData();
+        showToast('Synced from GitHub', 'success');
       });
-    };
-    window.collapseAll = function() {
-      document.querySelectorAll('.level-body').forEach(el => el.classList.remove('open'));
-      document.querySelectorAll('.level-header .fa-chevron-down, .level-header .fa-chevron-up').forEach(el => {
-        if (el.classList.contains('fa-chevron-up')) {
-          el.classList.remove('fa-chevron-up');
-          el.classList.add('fa-chevron-down');
-        }
+      document.getElementById('exportBtn').addEventListener('click', window.exportToExcel);
+      document.getElementById('resetBtn').addEventListener('click', function() {
+        if (!confirm('Reset ALL data to default?')) return;
+        studyData = getDefaultData();
+        expanded = {};
+        render();
+        scheduleSave();
+        showToast('Reset to default', 'info');
       });
-    };
 
-    // Load data
-    await loadData();
+      // Expand/collapse all
+      window.expandAll = function() {
+        document.querySelectorAll('.level-body').forEach(el => el.classList.add('open'));
+        document.querySelectorAll('.level-header .fa-chevron-down, .level-header .fa-chevron-up').forEach(el => {
+          el.classList.toggle('fa-chevron-down');
+          el.classList.toggle('fa-chevron-up');
+        });
+      };
+      window.collapseAll = function() {
+        document.querySelectorAll('.level-body').forEach(el => el.classList.remove('open'));
+        document.querySelectorAll('.level-header .fa-chevron-down, .level-header .fa-chevron-up').forEach(el => {
+          if (el.classList.contains('fa-chevron-up')) {
+            el.classList.remove('fa-chevron-up');
+            el.classList.add('fa-chevron-down');
+          }
+        });
+      };
+
+      // Load data (spinner will be hidden inside loadData)
+      loadData().catch(err => {
+        console.error('Init error:', err);
+        showToast('Initialisation error: ' + err.message, 'error');
+        if (loader) loader.style.display = 'none';
+      });
+    } catch (err) {
+      console.error('Fatal init error:', err);
+      if (loader) loader.style.display = 'none';
+      showToast('Fatal error: ' + err.message, 'error');
+    }
     window.updateUserFooter();
   });
 })();
