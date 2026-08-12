@@ -9,7 +9,6 @@
     return;
   }
 
-  // Only allow the owner
   const ALLOWED_EMAIL = 'siyabongatshem@gmail.com';
   if (user.username !== ALLOWED_EMAIL) {
     const contentArea = document.getElementById('contentArea');
@@ -23,7 +22,6 @@
         </div>
       `;
     }
-    // Hide the spinner if it exists
     const loader = document.getElementById('initialLoading');
     if (loader) loader.style.display = 'none';
     return;
@@ -326,7 +324,7 @@
     topic.completed = topic.subCompleted.every(Boolean);
   }
 
-  // ---- RENDER FUNCTIONS (all wrapped in try-catch) ----
+  // ---- RENDER FUNCTIONS ----
   function safeRender(fn) {
     try { fn(); } catch (e) { console.error('Render error:', e); showToast('Render error: ' + e.message, 'error'); }
   }
@@ -1303,10 +1301,8 @@
 
   // ---- INIT ----
   document.addEventListener('DOMContentLoaded', function() {
-    // Ensure the loader is hidden if anything goes wrong during init
     const loader = document.getElementById('initialLoading');
     try {
-      // Build the UI structure
       const contentArea = document.getElementById('contentArea');
       if (!contentArea) return;
       contentArea.innerHTML = `
@@ -1342,7 +1338,6 @@
         </div>
       `;
 
-      // Bind buttons
       document.getElementById('addYearBtn').addEventListener('click', window.addYear);
       document.getElementById('syncBtn').addEventListener('click', async function() {
         showToast('Syncing...', 'info');
@@ -1359,7 +1354,6 @@
         showToast('Reset to default', 'info');
       });
 
-      // Expand/collapse all
       window.expandAll = function() {
         document.querySelectorAll('.level-body').forEach(el => el.classList.add('open'));
         document.querySelectorAll('.level-header .fa-chevron-down, .level-header .fa-chevron-up').forEach(el => {
@@ -1377,7 +1371,6 @@
         });
       };
 
-      // Load data (spinner will be hidden inside loadData)
       loadData().catch(err => {
         console.error('Init error:', err);
         showToast('Initialisation error: ' + err.message, 'error');
