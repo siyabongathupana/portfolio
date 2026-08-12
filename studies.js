@@ -1,38 +1,60 @@
-// studies.js – Study Manager with robust auth, error handling, and full content
+// studies.js – Study Manager (complete)
 (function() {
   'use strict';
 
-  // ---- AUTH CHECK ----
-  const user = window.SessionManager?.getCurrentUser();
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  //  USER SESSION & AUTHORISATION
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  function getCurrentUser() {
+    try {
+      if (window.SessionManager && typeof window.SessionManager.getCurrentUser === 'function') {
+        const u = window.SessionManager.getCurrentUser();
+        if (u) return u;
+      }
+      const stored = sessionStorage.getItem('portfolioUser');
+      if (stored) {
+        const data = JSON.parse(stored);
+        if (data.timestamp && Date.now() - data.timestamp < 24 * 60 * 60 * 1000) {
+          return data;
+        }
+        sessionStorage.removeItem('portfolioUser');
+      }
+    } catch (e) { console.warn('User session error:', e); }
+    return null;
+  }
+
+  const user = getCurrentUser();
   if (!user) {
-    window.location.href = "login.html?redirect=studies";
+    window.location.href = 'login.html?redirect=studies';
     return;
   }
 
-  const ALLOWED_EMAIL = 'siyabongatshem@gmail.com';
-  if (user.username !== ALLOWED_EMAIL) {
-    const contentArea = document.getElementById('contentArea');
-    if (contentArea) {
-      contentArea.innerHTML = `
-        <div class="access-denied" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:80vh;text-align:center;padding:20px;color:#e17055;">
-          <div class="icon" style="font-size:4rem;margin-bottom:20px;"><i class="fa fa-lock"></i></div>
-          <h2 style="font-weight:700;">Access Restricted</h2>
-          <p style="color:var(--text-secondary);max-width:500px;">This page is only available to the owner of this portfolio.</p>
-          <button class="btn btn-primary-glow mt-3" onclick="window.location.href='index.html'" style="background:linear-gradient(135deg,#2fc7ff,#0984e3);color:#0a0e17;border:none;padding:10px 30px;border-radius:40px;font-weight:600;">Go Home</button>
-        </div>
-      `;
-    }
+  const ALLOWED_USER = 'siyabongatshem@gmail.com';
+  if (user.username !== ALLOWED_USER) {
+    document.getElementById('contentArea').innerHTML = `
+      <div class="access-denied">
+        <div class="icon"><i class="fa fa-lock"></i></div>
+        <h2>Access Restricted</h2>
+        <p>This page is only available to the owner of this portfolio.</p>
+        <button class="btn btn-primary-glow mt-3" onclick="window.location.href='index.html'">Go Home</button>
+      </div>
+    `;
+    // Hide spinner
     const loader = document.getElementById('initialLoading');
     if (loader) loader.style.display = 'none';
     return;
   }
+  console.log('✅ Authorized user:', user.username);
 
-  // ---- FULL DEFAULT DATA FROM PDFs ----
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  //  FULL DEFAULT DATA – from PDFs (BIA109, BSC107, BSC104, BSC106)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   function getDefaultData() {
     function topic(name, subtopics) {
       return { name, subtopics: subtopics || [], completed: false, subCompleted: [] };
     }
 
+    // ---- BIA109 (Chemical and Process Engineering) ----
     const bia109 = {
       code: 'BIA109', name: 'Chemical and Process Engineering', color: '#fdcb6e',
       weeks: [
@@ -54,6 +76,7 @@
     bia109.weeks[7].assignments.push({ name: 'Project', due: '2026-09-10', status: 'pending', marks: '', weight: 25 });
     bia109.weeks[11].assignments.push({ name: 'Final Exam (All topics)', due: '2026-09-30', status: 'pending', marks: '', weight: 50 });
 
+    // ---- BSC107 (Engineering Programming) ----
     const bsc107 = {
       code: 'BSC107', name: 'Engineering Programming', color: '#55efc4',
       weeks: [
@@ -78,6 +101,7 @@
       bsc107.weeks[i-1].assignments.push({ name: `Weekly Quiz Topic ${i}`, due: `2026-08-${String(10+i).padStart(2,'0')}`, status: 'pending', marks: '', weight: 1 });
     }
 
+    // ---- BSC104 (Engineering Drawing and CAD) ----
     const bsc104 = {
       code: 'BSC104', name: 'Engineering Drawing and CAD', color: '#a29bfe',
       weeks: [
@@ -103,6 +127,7 @@
       bsc104.weeks[i-1].assignments.push({ name: `Weekly Portfolio Topic ${i}`, due: `2026-08-${String(10+i).padStart(2,'0')}`, status: 'pending', marks: '', weight: 1 });
     }
 
+    // ---- BSC106 (Engineering Mathematics 2) ----
     const bsc106 = {
       code: 'BSC106', name: 'Engineering Mathematics 2', color: '#2fc7ff',
       weeks: [
@@ -137,14 +162,18 @@
     };
   }
 
-  // ---- STATE ----
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  //  STATE
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   let studyData = { years: [] };
   let expanded = {};
   let saveDebounceTimer = null;
   const DEBOUNCE_DELAY = 300;
   let analyticsChart = null;
 
-  // ---- CACHE & SAVE QUEUE ----
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  //  CACHE & SAVE QUEUE (same as timesheet)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   const SAVE_QUEUE_KEY = 'studies_save_queue';
   let isProcessing = false;
   let saveRetryTimer = null;
@@ -246,68 +275,76 @@
     return null;
   }
 
-  // ---- LOAD DATA ----
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  //  LOAD DATA
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   async function loadData() {
-    const loader = document.getElementById('initialLoading');
     try {
       let data = loadFromCache();
+      let loadedFromGitHub = false;
       if (data) {
         studyData = data;
-        render();
-        if (loader) loader.style.display = 'none';
+        console.log('✅ Loaded from cache');
       }
       try {
-        const { owner, repo, branch } = window.REPO_CONFIG;
-        const path = getStudyPath();
-        const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`;
-        const resp = await fetch(url, { headers: { Authorization: `token ${user.pat}` } });
-        if (resp.ok) {
-          const file = await resp.json();
-          const content = atob(file.content.replace(/\n/g, ''));
-          const parsed = JSON.parse(content);
-          if (parsed && parsed.years) {
-            studyData = parsed;
-            saveToCache(studyData);
-            render();
-          }
-        } else if (resp.status === 404) {
-          if (!studyData.years || studyData.years.length === 0) {
-            studyData = getDefaultData();
-            saveToCache(studyData);
-            enqueueSave();
-            render();
-          }
+        const githubData = await loadFromGitHub();
+        if (githubData) {
+          studyData = githubData;
+          loadedFromGitHub = true;
+          console.log('✅ Updated from GitHub');
         }
-      } catch (e) {
-        console.warn('GitHub load failed:', e);
-        if (!studyData.years || studyData.years.length === 0) {
-          studyData = getDefaultData();
-          saveToCache(studyData);
-          enqueueSave();
-          render();
-        }
+      } catch (err) {
+        console.warn('GitHub load failed:', err);
+        if (!data) studyData = getDefaultData();
       }
+      const queue = loadSaveQueue();
+      if (queue.length > 0) {
+        console.log(`📋 Found ${queue.length} pending save operations. Processing...`);
+        setTimeout(() => processQueue(), 500);
+      }
+      render();
+      if (!data && !loadedFromGitHub && (!studyData.years || studyData.years.length === 0)) {
+        studyData = getDefaultData();
+        render();
+        enqueueSave();
+      }
+      return true;
     } catch (err) {
-      console.error('Fatal error in loadData:', err);
-      showToast('Error loading data: ' + err.message, 'error');
+      console.error('Error loading data:', err);
+      showToast('Failed to load study data: ' + err.message, 'error');
       const container = document.getElementById('treeContainer');
       if (container) {
-        container.innerHTML = `<div class="error-display" style="padding:40px;text-align:center;color:#e17055;background:rgba(225,112,85,0.08);border-radius:16px;border:1px solid #e17055;margin:40px 0;">
-          <div class="icon" style="font-size:3rem;margin-bottom:16px;"><i class="fa fa-exclamation-circle"></i></div>
-          <h3 style="color:#e17055;">Failed to load data</h3>
-          <pre style="background:rgba(0,0,0,0.3);padding:16px;border-radius:8px;text-align:left;max-height:200px;overflow:auto;font-size:0.8rem;color:#e0e8ee;">${err.message}</pre>
-        </div>`;
+        container.innerHTML = `
+          <div class="error-display">
+            <div class="icon"><i class="fa fa-exclamation-circle"></i></div>
+            <h3>Error Loading Data</h3>
+            <p>${err.message}</p>
+            <pre>${err.stack}</pre>
+            <button class="btn btn-delta mt-3" onclick="window.location.reload()">Retry</button>
+          </div>
+        `;
       }
+      return false;
     } finally {
+      // Hide the spinner in all cases
+      const loader = document.getElementById('initialLoading');
       if (loader) loader.style.display = 'none';
     }
   }
 
-  // ---- HELPERS ----
+  window.addEventListener('beforeunload', () => {
+    if (saveDebounceTimer) {
+      clearTimeout(saveDebounceTimer);
+      forceSave();
+    }
+  });
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  //  HELPERS
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m] || m); }
   function showToast(msg, type = 'info') {
     const container = document.getElementById('toastContainer');
-    if (!container) return;
     const el = document.createElement('div');
     el.className = `toast-item ${type}`;
     el.textContent = msg;
@@ -324,7 +361,9 @@
     topic.completed = topic.subCompleted.every(Boolean);
   }
 
-  // ---- RENDER FUNCTIONS ----
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  //  RENDER FUNCTIONS
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   function safeRender(fn) {
     try { fn(); } catch (e) { console.error('Render error:', e); showToast('Render error: ' + e.message, 'error'); }
   }
@@ -629,7 +668,9 @@
     safeRender(renderTree);
   }
 
-  // ---- TOGGLE FUNCTIONS ----
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  //  TOGGLE FUNCTIONS
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   window.toggleExpand = function(key) {
     expanded[key] = !expanded[key];
     render();
@@ -684,7 +725,9 @@
     scheduleSave();
   };
 
-  // ---- CRUD OPERATIONS ----
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  //  CRUD OPERATIONS (all call scheduleSave)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   function openModal(title, bodyHTML, onSave) {
     const modal = document.getElementById('genericModal');
     document.getElementById('modalTitle').textContent = title;
@@ -825,7 +868,9 @@
     scheduleSave();
   };
 
-  // ---- GRADE CALCULATOR ----
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  //  GRADE CALCULATOR
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   function calculateUnitGrade(unit) {
     const allAssignments = [];
     (unit.weeks || []).forEach(week => {
@@ -980,72 +1025,23 @@
     document.getElementById('gradeModal').classList.remove('open');
   });
 
-  // ---- EXCEL EXPORT ----
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  //  EXCEL EXPORT (full – 6 sheets, charts, KPIs)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   window.exportToExcel = async function() {
     if (!studyData.years.length) {
       showToast('No data to export.', 'error');
       return;
     }
-    const overlay = document.createElement('div');
-    overlay.className = 'progress-overlay';
-    overlay.innerHTML = `
-      <div class="progress-card">
-        <h4><i class="fa fa-file-excel-o"></i> Generating Excel Report</h4>
-        <p id="progressStage" class="progress-stage">Initializing...</p>
-        <div class="progress-track"><div id="progressFill" class="progress-fill-bar" style="width:0%;"></div></div>
-        <span id="progressPercent" class="progress-percent">0%</span>
-      </div>`;
-    document.body.appendChild(overlay);
-    const updateProgress = (pct, stage) => {
-      const fill = document.getElementById('progressFill');
-      const percent = document.getElementById('progressPercent');
-      const stageEl = document.getElementById('progressStage');
-      if (fill) fill.style.width = pct + '%';
-      if (percent) percent.textContent = pct + '%';
-      if (stage && stageEl) stageEl.textContent = stage;
-    };
-    updateProgress(5, 'Preparing data...');
-
+    window.showLoading('Generating Excel report...');
     try {
       const ExcelJS = window.ExcelJS;
       const workbook = new ExcelJS.Workbook();
       workbook.creator = user.username;
       workbook.created = new Date();
 
-      let totalTopics = 0, doneTopics = 0, totalAssignments = 0, pendingAssignments = 0, submittedAssignments = 0;
-      let totalWeighted = 0, weightedSum = 0;
-      const unitProgress = [];
-      studyData.years.forEach(y => y.semesters.forEach(s => s.units.forEach(u => {
-        let unitTotal = 0, unitDone = 0;
-        u.weeks.forEach(w => {
-          w.topics.forEach(t => {
-            unitTotal += t.subtopics.length;
-            unitDone += t.subCompleted.filter(Boolean).length;
-            totalTopics += t.subtopics.length;
-            doneTopics += t.subCompleted.filter(Boolean).length;
-          });
-          w.assignments.forEach(a => {
-            totalAssignments++;
-            if (a.status === 'submitted') submittedAssignments++;
-            else if (a.status === 'pending' || a.status === 'in-progress') pendingAssignments++;
-            const weight = parseFloat(a.weight) || 0;
-            totalWeighted += weight;
-            const marks = parseFloat(a.marks);
-            if (!isNaN(marks) && marks >= 0 && marks <= 100) {
-              weightedSum += marks * (weight / 100);
-            }
-          });
-        });
-        unitProgress.push({ code: u.code, name: u.name, total: unitTotal, done: unitDone, pct: unitTotal > 0 ? (unitDone/unitTotal)*100 : 0 });
-      })));
-
-      const completionPct = totalTopics > 0 ? (doneTopics/totalTopics)*100 : 0;
-      const assignmentCompletionPct = totalAssignments > 0 ? (submittedAssignments/totalAssignments)*100 : 0;
-      const overallGrade = totalWeighted > 0 ? (weightedSum/totalWeighted)*100 : null;
-
-      // ---- SHEET 1: Cover ----
-      updateProgress(10, 'Creating cover sheet...');
-      const cover = workbook.addWorksheet('Cover');
+      // ─── Cover ───
+      const cover = workbook.addWorksheet('Cover', { pageSetup: { orientation: 'portrait', fitToPage: true, horizontalCentered: true, verticalCentered: true } });
       cover.mergeCells('A1:F1');
       const title = cover.getCell('A1');
       title.value = '📚 STUDY PLAN REPORT';
@@ -1066,321 +1062,481 @@
         ['Total Years:', studyData.years.length],
         ['Total Units:', studyData.years.reduce((acc, y) => acc + y.semesters.reduce((a, s) => a + s.units.length, 0), 0)],
         ['Total Weeks:', studyData.years.reduce((acc, y) => acc + y.semesters.reduce((a, s) => a + s.units.reduce((u, un) => u + un.weeks.length, 0), 0), 0)],
-        ['Total Topics:', totalTopics],
-        ['Completed Topics:', doneTopics],
-        ['Completion Rate:', completionPct.toFixed(1) + '%'],
-        ['Total Assignments:', totalAssignments],
-        ['Submitted:', submittedAssignments],
-        ['Pending:', pendingAssignments],
-        ['Overall Grade:', overallGrade !== null ? overallGrade.toFixed(1) + '%' : 'N/A']
+        ['Total Topics:', studyData.years.reduce((acc, y) => acc + y.semesters.reduce((a, s) => a + s.units.reduce((u, un) => u + un.weeks.reduce((w, wk) => w + wk.topics.length, 0), 0), 0), 0)],
       ];
       meta.forEach(([label, value]) => {
         const row = cover.addRow([label, value]);
         row.getCell(1).font = { bold: true };
       });
-      cover.columns = [{ width: 25 }, { width: 30 }];
+      cover.columns = [{ width: 20 }, { width: 20 }, { width: 20 }, { width: 20 }, { width: 20 }, { width: 20 }];
+      cover.addRow([]);
+      const footer = cover.getCell('A20');
+      footer.value = 'Generated by Your Portfolio System';
+      footer.font = { italic: true, size: 10 };
+      cover.mergeCells('A20:F20');
+      footer.alignment = { horizontal: 'center' };
 
-      // ---- SHEET 2: Unit Progress ----
-      updateProgress(25, 'Building unit progress table...');
-      const unitSheet = workbook.addWorksheet('Unit Progress');
-      unitSheet.mergeCells('A1:D1');
-      const uTitle = unitSheet.getCell('A1');
-      uTitle.value = '📊 UNIT PROGRESS BREAKDOWN';
-      uTitle.font = { bold: true, size: 16, color: { argb: 'FFFFFFFF' } };
-      uTitle.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
-      uTitle.alignment = { horizontal: 'center' };
+      // ─── Overview (KPIs) ───
+      const overview = workbook.addWorksheet('Overview', { pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1 } });
+      overview.mergeCells('A1:H1');
+      const ovTitle = overview.getCell('A1');
+      ovTitle.value = '📊 KEY PERFORMANCE INDICATORS';
+      ovTitle.font = { bold: true, size: 18, color: { argb: 'FFFFFFFF' } };
+      ovTitle.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
+      ovTitle.alignment = { horizontal: 'center', vertical: 'middle' };
+      overview.getRow(1).height = 36;
+
+      let totalTopics = 0, doneTopics = 0, totalAssignments = 0, pendingAssignments = 0, submittedAssignments = 0;
+      let totalWeighted = 0, weightedSum = 0;
+      studyData.years.forEach(y => {
+        y.semesters.forEach(s => {
+          s.units.forEach(u => {
+            (u.weeks || []).forEach(w => {
+              (w.topics || []).forEach(t => {
+                totalTopics++;
+                if (t.completed) doneTopics++;
+              });
+              (w.assignments || []).forEach(a => {
+                totalAssignments++;
+                if (a.status === 'submitted') submittedAssignments++;
+                else if (a.status === 'pending' || a.status === 'in-progress') pendingAssignments++;
+                const weight = parseFloat(a.weight) || 0;
+                totalWeighted += weight;
+                const marks = parseFloat(a.marks);
+                if (!isNaN(marks) && marks >= 0 && marks <= 100) {
+                  weightedSum += marks * (weight / 100);
+                }
+              });
+            });
+          });
+        });
+      });
+      const completionPct = totalTopics > 0 ? (doneTopics / totalTopics) * 100 : 0;
+      const assignmentCompletionPct = totalAssignments > 0 ? (submittedAssignments / totalAssignments) * 100 : 0;
+      const overallGrade = totalWeighted > 0 ? (weightedSum / totalWeighted) * 100 : null;
+
+      const kpis = [
+        ['Metric', 'Value', 'Status'],
+        ['Total Topics', totalTopics, ''],
+        ['Completed Topics', doneTopics, ''],
+        ['Completion Rate', completionPct.toFixed(1) + '%', completionPct >= 80 ? '✅ Good' : '⚠️ Needs attention'],
+        ['Total Assignments', totalAssignments, ''],
+        ['Submitted', submittedAssignments, ''],
+        ['Pending', pendingAssignments, pendingAssignments > 0 ? '⏳ Action needed' : '✅ All done'],
+        ['Assignment Completion', assignmentCompletionPct.toFixed(1) + '%', assignmentCompletionPct >= 80 ? '✅ Good' : '⚠️ Needs attention'],
+        ['Overall Grade (weighted)', overallGrade !== null ? overallGrade.toFixed(1) + '%' : 'N/A', overallGrade !== null && overallGrade >= 70 ? '✅ Passing' : overallGrade !== null && overallGrade >= 50 ? '⚠️ Borderline' : overallGrade !== null ? '❌ Fail' : '—']
+      ];
+      const kpiHeader = overview.addRow(kpis[0]);
+      kpiHeader.eachCell(cell => {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2C3E50' } };
+        cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+      });
+      kpiHeader.height = 24;
+      for (let i = 1; i < kpis.length; i++) {
+        const row = overview.addRow(kpis[i]);
+        row.eachCell((cell, col) => {
+          cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+          cell.alignment = { vertical: 'middle', horizontal: col === 2 ? 'center' : 'left' };
+          if (col === 2 && kpis[i][2].includes('✅')) {
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC6EFCE' } };
+            cell.font = { color: { argb: 'FF006400' }, bold: true };
+          } else if (col === 2 && kpis[i][2].includes('⚠️')) {
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF4E6' } };
+            cell.font = { color: { argb: 'FF8B6500' }, bold: true };
+          } else if (col === 2 && kpis[i][2].includes('❌')) {
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFC7CE' } };
+            cell.font = { color: { argb: 'FF8B0000' }, bold: true };
+          }
+        });
+      }
+      overview.columns = [{ width: 30 }, { width: 20 }, { width: 30 }];
+
+      // ─── Unit Progress ───
+      const unitSheet = workbook.addWorksheet('Unit Progress', { pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1 } });
+      unitSheet.mergeCells('A1:E1');
+      const unitTitle = unitSheet.getCell('A1');
+      unitTitle.value = '📊 UNIT PROGRESS BREAKDOWN';
+      unitTitle.font = { bold: true, size: 16, color: { argb: 'FFFFFFFF' } };
+      unitTitle.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
+      unitTitle.alignment = { horizontal: 'center' };
       unitSheet.getRow(1).height = 30;
 
-      const uHeaders = ['Unit', 'Total Subtopics', 'Completed', 'Progress'];
-      const uHead = unitSheet.addRow(uHeaders);
-      uHead.eachCell(cell => {
+      const unitHeaders = ['Unit', 'Total Topics', 'Completed', 'Progress', 'Status'];
+      const uHeader = unitSheet.addRow(unitHeaders);
+      uHeader.eachCell(cell => {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2C3E50' } };
+        cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+      });
+      uHeader.height = 24;
+
+      const unitData = [];
+      studyData.years.forEach(y => {
+        y.semesters.forEach(s => {
+          s.units.forEach(u => {
+            let total = 0, done = 0;
+            (u.weeks || []).forEach(w => {
+              (w.topics || []).forEach(t => {
+                const subCount = t.subtopics ? t.subtopics.length : 0;
+                total += subCount;
+                const subDone = (t.subCompleted || []).filter(Boolean).length;
+                done += subDone;
+              });
+            });
+            const pct = total > 0 ? (done / total) * 100 : 0;
+            const status = pct >= 80 ? '✅ Good' : pct >= 50 ? '⚠️ In progress' : '❌ Needs work';
+            unitData.push({ code: u.code, name: u.name, total, done, pct, status });
+            const row = unitSheet.addRow([u.code + ' ' + u.name, total, done, pct.toFixed(1) + '%', status]);
+            row.eachCell((cell, col) => {
+              cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+              cell.alignment = { vertical: 'middle', horizontal: col === 4 ? 'center' : 'left' };
+              if (col === 4 && status.includes('✅')) {
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC6EFCE' } };
+                cell.font = { color: { argb: 'FF006400' }, bold: true };
+              } else if (col === 4 && status.includes('⚠️')) {
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF4E6' } };
+                cell.font = { color: { argb: 'FF8B6500' }, bold: true };
+              } else if (col === 4 && status.includes('❌')) {
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFC7CE' } };
+                cell.font = { color: { argb: 'FF8B0000' }, bold: true };
+              }
+            });
+          });
+        });
+      });
+      unitSheet.columns = [{ width: 30 }, { width: 15 }, { width: 15 }, { width: 15 }, { width: 20 }];
+
+      // ─── Weekly Trends ───
+      const weeklySheet = workbook.addWorksheet('Weekly Trends', { pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1 } });
+      weeklySheet.mergeCells('A1:C1');
+      const weeklyTitle = weeklySheet.getCell('A1');
+      weeklyTitle.value = '📈 WEEKLY COMPLETION TREND';
+      weeklyTitle.font = { bold: true, size: 16, color: { argb: 'FFFFFFFF' } };
+      weeklyTitle.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
+      weeklyTitle.alignment = { horizontal: 'center' };
+      weeklySheet.getRow(1).height = 30;
+
+      const weekData = [];
+      studyData.years.forEach(y => {
+        y.semesters.forEach(s => {
+          s.units.forEach(u => {
+            (u.weeks || []).forEach(w => {
+              const key = y.name + ' W' + w.number;
+              let total = 0, done = 0;
+              (w.topics || []).forEach(t => {
+                const subCount = t.subtopics ? t.subtopics.length : 0;
+                total += subCount;
+                const subDone = (t.subCompleted || []).filter(Boolean).length;
+                done += subDone;
+              });
+              weekData.push({ week: key, total, done, pct: total > 0 ? (done / total) * 100 : 0 });
+            });
+          });
+        });
+      });
+      weekData.sort((a, b) => a.week.localeCompare(b.week));
+      const wHeaders = ['Week', 'Total Subtopics', 'Completed', 'Completion %'];
+      const wHeaderRow = weeklySheet.addRow(wHeaders);
+      wHeaderRow.eachCell(cell => {
         cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2C3E50' } };
         cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
         cell.alignment = { horizontal: 'center' };
         cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
       });
-      uHead.height = 24;
-      unitProgress.forEach(u => {
-        const row = unitSheet.addRow([u.code + ' ' + u.name, u.total, u.done, u.pct.toFixed(1) + '%']);
+      wHeaderRow.height = 24;
+      weekData.forEach(wd => {
+        const row = weeklySheet.addRow([wd.week, wd.total, wd.done, wd.pct.toFixed(1) + '%']);
         row.eachCell(cell => {
           cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
           cell.alignment = { vertical: 'middle' };
         });
-        const pctCell = row.getCell(4);
-        if (u.pct >= 80) pctCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC6EFCE' } };
-        else if (u.pct >= 50) pctCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF4E6' } };
-        else pctCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFC7CE' } };
       });
-      unitSheet.columns = [{ width: 30 }, { width: 18 }, { width: 18 }, { width: 18 }];
+      weeklySheet.columns = [{ width: 18 }, { width: 18 }, { width: 18 }, { width: 18 }];
 
-      // ---- SHEET 3: Assignment Tracker ----
-      updateProgress(40, 'Creating assignment tracker...');
-      const assignSheet = workbook.addWorksheet('Assignment Tracker');
-      assignSheet.mergeCells('A1:G1');
-      const aTitle = assignSheet.getCell('A1');
-      aTitle.value = '📋 ASSIGNMENT TRACKER';
-      aTitle.font = { bold: true, size: 16, color: { argb: 'FFFFFFFF' } };
-      aTitle.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
-      aTitle.alignment = { horizontal: 'center' };
+      // ─── Assignment Tracker ───
+      const assignSheet = workbook.addWorksheet('Assignment Tracker', { pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1 } });
+      assignSheet.mergeCells('A1:H1');
+      const assignTitle = assignSheet.getCell('A1');
+      assignTitle.value = '📋 ASSIGNMENT TRACKER';
+      assignTitle.font = { bold: true, size: 16, color: { argb: 'FFFFFFFF' } };
+      assignTitle.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
+      assignTitle.alignment = { horizontal: 'center' };
       assignSheet.getRow(1).height = 30;
 
-      const aHeaders = ['Unit', 'Week', 'Assignment', 'Due Date', 'Status', 'Marks', 'Weight'];
-      const aHead = assignSheet.addRow(aHeaders);
-      aHead.eachCell(cell => {
+      const aHeaders = ['Year', 'Semester', 'Unit', 'Week', 'Assignment', 'Due Date', 'Status', 'Marks'];
+      const aHeaderRow = assignSheet.addRow(aHeaders);
+      aHeaderRow.eachCell(cell => {
         cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2C3E50' } };
         cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
         cell.alignment = { horizontal: 'center' };
         cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
       });
-      aHead.height = 24;
-      studyData.years.forEach(y => y.semesters.forEach(s => s.units.forEach(u => u.weeks.forEach(w => w.assignments.forEach(a => {
-        const row = assignSheet.addRow([u.code, 'W' + w.number, a.name, a.due || '', a.status, a.marks || '', a.weight || '']);
-        row.eachCell(cell => {
-          cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
-          cell.alignment = { vertical: 'middle' };
+      aHeaderRow.height = 24;
+      studyData.years.forEach(y => {
+        y.semesters.forEach(s => {
+          s.units.forEach(u => {
+            (u.weeks || []).forEach(w => {
+              (w.assignments || []).forEach(a => {
+                const row = assignSheet.addRow([y.name, s.name, u.code, 'Week ' + w.number, a.name, a.due || '', a.status, a.marks || '']);
+                row.eachCell(cell => {
+                  cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+                  cell.alignment = { vertical: 'middle' };
+                });
+                const statusCell = row.getCell(7);
+                if (a.status === 'submitted') {
+                  statusCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC6EFCE' } };
+                  statusCell.font = { color: { argb: 'FF006400' }, bold: true };
+                } else if (a.status === 'in-progress') {
+                  statusCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF4E6' } };
+                  statusCell.font = { color: { argb: 'FF8B6500' }, bold: true };
+                } else {
+                  statusCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFC7CE' } };
+                  statusCell.font = { color: { argb: 'FF8B0000' }, bold: true };
+                }
+              });
+            });
+          });
         });
-        const statusCell = row.getCell(5);
-        if (a.status === 'submitted') {
-          statusCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC6EFCE' } };
-          statusCell.font = { color: { argb: 'FF006400' }, bold: true };
-        } else if (a.status === 'in-progress') {
-          statusCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF4E6' } };
-          statusCell.font = { color: { argb: 'FF8B6500' }, bold: true };
-        } else {
-          statusCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFC7CE' } };
-          statusCell.font = { color: { argb: 'FF8B0000' }, bold: true };
-        }
-      }))));
-      assignSheet.columns = [{ width: 15 }, { width: 10 }, { width: 30 }, { width: 18 }, { width: 14 }, { width: 12 }, { width: 12 }];
+      });
+      assignSheet.columns = [{ width: 14 }, { width: 16 }, { width: 12 }, { width: 12 }, { width: 22 }, { width: 16 }, { width: 14 }, { width: 12 }];
 
-      // ---- SHEET 4: Grade Analysis ----
-      updateProgress(60, 'Building grade analysis...');
-      const gradeSheet = workbook.addWorksheet('Grade Analysis');
+      // ─── Grade Analysis ───
+      const gradeSheet = workbook.addWorksheet('Grade Analysis', { pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1 } });
       gradeSheet.mergeCells('A1:E1');
-      const gTitle = gradeSheet.getCell('A1');
-      gTitle.value = '📊 GRADE ANALYSIS';
-      gTitle.font = { bold: true, size: 16, color: { argb: 'FFFFFFFF' } };
-      gTitle.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
-      gTitle.alignment = { horizontal: 'center' };
+      const gradeTitle = gradeSheet.getCell('A1');
+      gradeTitle.value = '📊 GRADE ANALYSIS';
+      gradeTitle.font = { bold: true, size: 16, color: { argb: 'FFFFFFFF' } };
+      gradeTitle.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
+      gradeTitle.alignment = { horizontal: 'center' };
       gradeSheet.getRow(1).height = 30;
 
       const gHeaders = ['Unit', 'Assignments', 'Weighted Grade', 'Status', 'Prediction'];
-      const gHead = gradeSheet.addRow(gHeaders);
-      gHead.eachCell(cell => {
+      const gHeaderRow = gradeSheet.addRow(gHeaders);
+      gHeaderRow.eachCell(cell => {
         cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2C3E50' } };
         cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
         cell.alignment = { horizontal: 'center' };
         cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
       });
-      gHead.height = 24;
-      studyData.years.forEach(y => y.semesters.forEach(s => s.units.forEach(u => {
-        const result = calculateUnitGrade(u);
-        const grade = result && result.grade !== null ? result.grade : null;
-        const gradeDisplay = grade !== null ? grade.toFixed(1) + '%' : 'N/A';
-        const status = grade !== null ? (grade >= 70 ? '✅ Passing' : grade >= 50 ? '⚠️ Borderline' : '❌ Fail') : '—';
-        const prediction = grade !== null ? (grade >= 70 ? 'On track' : grade >= 50 ? 'Needs improvement' : 'At risk') : '—';
-        const row = gradeSheet.addRow([u.code + ' ' + u.name, result ? result.allAssignments.length : 0, gradeDisplay, status, prediction]);
-        row.eachCell(cell => {
-          cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
-          cell.alignment = { vertical: 'middle' };
+      gHeaderRow.height = 24;
+      studyData.years.forEach(y => {
+        y.semesters.forEach(s => {
+          s.units.forEach(u => {
+            const result = calculateUnitGrade(u);
+            const grade = result && result.grade !== null ? result.grade : null;
+            const gradeDisplay = grade !== null ? grade.toFixed(1) + '%' : 'N/A';
+            const status = grade !== null ? (grade >= 70 ? '✅ Passing' : grade >= 50 ? '⚠️ Borderline' : '❌ Fail') : '—';
+            const prediction = grade !== null ? (grade >= 70 ? 'On track' : grade >= 50 ? 'Needs improvement' : 'At risk') : '—';
+            const row = gradeSheet.addRow([u.code + ' ' + u.name, result ? result.allAssignments.length : 0, gradeDisplay, status, prediction]);
+            row.eachCell((cell, col) => {
+              cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+              cell.alignment = { vertical: 'middle', horizontal: col === 3 ? 'center' : 'left' };
+              if (col === 3 && status.includes('✅')) {
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC6EFCE' } };
+                cell.font = { color: { argb: 'FF006400' }, bold: true };
+              } else if (col === 3 && status.includes('⚠️')) {
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF4E6' } };
+                cell.font = { color: { argb: 'FF8B6500' }, bold: true };
+              } else if (col === 3 && status.includes('❌')) {
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFC7CE' } };
+                cell.font = { color: { argb: 'FF8B0000' }, bold: true };
+              }
+            });
+          });
         });
-        const statusCell = row.getCell(4);
-        if (status.includes('✅')) {
-          statusCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC6EFCE' } };
-          statusCell.font = { color: { argb: 'FF006400' }, bold: true };
-        } else if (status.includes('⚠️')) {
-          statusCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF4E6' } };
-          statusCell.font = { color: { argb: 'FF8B6500' }, bold: true };
-        } else if (status.includes('❌')) {
-          statusCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFC7CE' } };
-          statusCell.font = { color: { argb: 'FF8B0000' }, bold: true };
-        }
-      })));
+      });
       gradeSheet.columns = [{ width: 30 }, { width: 15 }, { width: 18 }, { width: 18 }, { width: 20 }];
 
-      // ---- SHEET 5: Charts ----
-      updateProgress(80, 'Generating charts...');
-      const chartSheet = workbook.addWorksheet('Charts');
-      chartSheet.mergeCells('A1:C1');
-      const cTitle = chartSheet.getCell('A1');
-      cTitle.value = '📈 VISUAL DASHBOARD';
-      cTitle.font = { bold: true, size: 18, color: { argb: 'FFFFFFFF' } };
-      cTitle.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
-      cTitle.alignment = { horizontal: 'center' };
-      chartSheet.getRow(1).height = 36;
-
-      // Chart 1: Unit Progress
-      const canvas1 = document.createElement('canvas');
-      canvas1.width = 800; canvas1.height = 400;
-      const ctx1 = canvas1.getContext('2d');
-      const codes = unitProgress.map(u => u.code);
-      const pcts = unitProgress.map(u => u.pct);
+      // ─── Charts ───
+      const unitProgressCanvas = document.createElement('canvas');
+      unitProgressCanvas.width = 800;
+      unitProgressCanvas.height = 400;
+      const ctx1 = unitProgressCanvas.getContext('2d');
+      const unitNames = unitData.map(u => u.code);
+      const unitPcts = unitData.map(u => u.pct);
       new Chart(ctx1, {
         type: 'bar',
-        data: {
-          labels: codes,
-          datasets: [{ label: 'Progress %', data: pcts, backgroundColor: '#2fc7ff' }]
-        },
-        options: {
-          responsive: false,
-          plugins: { title: { display: true, text: 'Unit Progress (%)', font: { size: 18 } } },
-          scales: { y: { beginAtZero: true, max: 100 } }
-        }
+        data: { labels: unitNames, datasets: [{ label: 'Progress %', data: unitPcts, backgroundColor: '#2fc7ff' }] },
+        options: { responsive: false, plugins: { title: { display: true, text: 'Unit Progress (%)', font: { size: 18 } } }, scales: { y: { beginAtZero: true, max: 100 } } }
       });
-      await new Promise(r => setTimeout(r, 500));
-      const img1 = canvas1.toDataURL('image/png');
+      await new Promise(r => setTimeout(r, 400));
+      const img1 = unitProgressCanvas.toDataURL('image/png');
       const imageId1 = workbook.addImage({ base64: img1, extension: 'png' });
-      chartSheet.addImage(imageId1, { tl: { col: 0, row: 3 }, ext: { width: 380, height: 250 } });
+      const chartSheet = workbook.addWorksheet('Charts', { pageSetup: { orientation: 'landscape', fitToPage: true } });
+      chartSheet.mergeCells('A1:C1');
+      const chartTitle = chartSheet.getCell('A1');
+      chartTitle.value = '📈 VISUAL DASHBOARD';
+      chartTitle.font = { bold: true, size: 18, color: { argb: 'FFFFFFFF' } };
+      chartTitle.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
+      chartTitle.alignment = { horizontal: 'center' };
+      chartSheet.getRow(1).height = 36;
+      chartSheet.addImage(imageId1, { tl: { col: 0, row: 3 }, ext: { width: 600, height: 300 } });
 
-      // Chart 2: Weekly Trend
-      const canvas2 = document.createElement('canvas');
-      canvas2.width = 800; canvas2.height = 400;
-      const ctx2 = canvas2.getContext('2d');
-      const weeklyData = {};
-      studyData.years.forEach(y => y.semesters.forEach(s => s.units.forEach(u => u.weeks.forEach(w => {
-        const key = y.name + ' W' + w.number;
-        let total = 0, done = 0;
-        w.topics.forEach(t => { total += t.subtopics.length; done += t.subCompleted.filter(Boolean).length; });
-        if (!weeklyData[key]) weeklyData[key] = { total: 0, done: 0 };
-        weeklyData[key].total += total;
-        weeklyData[key].done += done;
-      }))));
-      const labels = Object.keys(weeklyData).sort();
-      const doneData = labels.map(k => weeklyData[k].done);
-      const totalData = labels.map(k => weeklyData[k].total);
+      const weeklyCanvas = document.createElement('canvas');
+      weeklyCanvas.width = 800;
+      weeklyCanvas.height = 400;
+      const ctx2 = weeklyCanvas.getContext('2d');
+      const weekLabels = weekData.map(w => w.week);
+      const doneData2 = weekData.map(w => w.done);
+      const totalData2 = weekData.map(w => w.total);
       new Chart(ctx2, {
         type: 'line',
-        data: {
-          labels: labels,
-          datasets: [
-            { label: 'Completed', data: doneData, borderColor: '#00b894', fill: false, tension: 0.3 },
-            { label: 'Total', data: totalData, borderColor: '#2fc7ff', fill: false, tension: 0.3 }
-          ]
-        },
-        options: {
-          responsive: false,
-          plugins: { title: { display: true, text: 'Weekly Subtopics Trend', font: { size: 18 } } },
-          scales: { y: { beginAtZero: true } }
-        }
+        data: { labels: weekLabels, datasets: [{ label: 'Completed', data: doneData2, borderColor: '#00b894', fill: false, tension: 0.3 }, { label: 'Total', data: totalData2, borderColor: '#2fc7ff', fill: false, tension: 0.3 }] },
+        options: { responsive: false, plugins: { title: { display: true, text: 'Weekly Subtopics Trend', font: { size: 18 } } }, scales: { y: { beginAtZero: true } } }
       });
-      await new Promise(r => setTimeout(r, 500));
-      const img2 = canvas2.toDataURL('image/png');
+      await new Promise(r => setTimeout(r, 400));
+      const img2 = weeklyCanvas.toDataURL('image/png');
       const imageId2 = workbook.addImage({ base64: img2, extension: 'png' });
-      chartSheet.addImage(imageId2, { tl: { col: 2, row: 3 }, ext: { width: 380, height: 250 } });
+      chartSheet.addImage(imageId2, { tl: { col: 2, row: 3 }, ext: { width: 600, height: 300 } });
 
-      chartSheet.protect('Siya');
-
-      // ---- SHEET 6: Yearly Calendar (simplified) ----
-      updateProgress(90, 'Building yearly calendar...');
-      const calendarSheet = workbook.addWorksheet('Yearly Calendar');
-      calendarSheet.mergeCells('A1:E1');
-      const calTitle = calendarSheet.getCell('A1');
-      calTitle.value = '📅 YEARLY CALENDAR';
-      calTitle.font = { bold: true, size: 16, color: { argb: 'FFFFFFFF' } };
-      calTitle.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
-      calTitle.alignment = { horizontal: 'center' };
-      calendarSheet.getRow(1).height = 30;
-      calendarSheet.addRow(['Month', 'Total Hours', 'Working Days', 'Avg/Day', 'Status']);
-      // (Full calendar logic would go here – simplified for brevity)
-      calendarSheet.columns = [{ width: 18 }, { width: 15 }, { width: 18 }, { width: 15 }, { width: 18 }];
-
-      // ---- SAVE ----
-      updateProgress(95, 'Saving Excel file...');
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       saveAs(blob, `StudyPlan_Report_${new Date().toISOString().slice(0,10)}.xlsx`);
       showToast('✅ Excel report generated successfully!', 'success');
-      updateProgress(100, 'Done!');
-      setTimeout(() => overlay.remove(), 1500);
     } catch (err) {
       console.error(err);
       showToast('Export failed: ' + err.message, 'error');
-      document.querySelector('.progress-overlay')?.remove();
+    } finally {
+      window.hideLoading();
     }
   };
 
-  // ---- INIT ----
-  document.addEventListener('DOMContentLoaded', function() {
-    const loader = document.getElementById('initialLoading');
-    try {
-      const contentArea = document.getElementById('contentArea');
-      if (!contentArea) return;
-      contentArea.innerHTML = `
-        <div class="study-header">
-          <div>
-            <h1><i class="fa fa-graduation-cap" style="font-size:1.8rem;margin-right:12px;background:linear-gradient(135deg,#fff,var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;"></i> Study Manager</h1>
-            <div class="subtitle">Years → Semesters → Units → Weeks → Topics → Subtopics · <span id="userDisplay">🔒 ${user.username}</span></div>
-          </div>
-          <div class="actions">
-            <button class="btn btn-sync" id="syncBtn"><i class="fa fa-cloud-download"></i> Sync</button>
-            <button class="btn btn-excel" id="exportBtn"><i class="fa fa-file-excel-o"></i> Excel</button>
-            <button class="btn btn-success-glow" id="addYearBtn"><i class="fa fa-plus"></i> Add Year</button>
-            <button class="btn btn-outline-secondary" id="resetBtn" style="border-color:var(--border-subtle);color:var(--text-secondary);"><i class="fa fa-refresh"></i> Reset</button>
-          </div>
-        </div>
-        <div id="deadlinesContainer"></div>
-        <div id="analyticsContainer"></div>
-        <div class="stats-bar">
-          <div class="stat-item"><div class="number blue" id="statYears">0</div><div class="label">Years</div></div>
-          <div class="stat-item"><div class="number purple" id="statUnits">0</div><div class="label">Units</div></div>
-          <div class="stat-item"><div class="number orange" id="statWeeks">0</div><div class="label">Weeks</div></div>
-          <div class="stat-item"><div class="number green" id="statTopicsDone">0</div><div class="label">Topics Done</div></div>
-          <div class="stat-item"><div class="number" id="statAssignments">0</div><div class="label">Assignments</div></div>
-          <div class="stat-item"><div class="number red" id="statPending">0</div><div class="label">Pending</div></div>
-        </div>
-        <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
-          <button class="btn btn-sm btn-outline-secondary" onclick="window.expandAll()" style="border-color:var(--border-subtle);color:var(--text-secondary);"><i class="fa fa-plus-square"></i> Expand All</button>
-          <button class="btn btn-sm btn-outline-secondary" onclick="window.collapseAll()" style="border-color:var(--border-subtle);color:var(--text-secondary);"><i class="fa fa-minus-square"></i> Collapse All</button>
-        </div>
-        <div id="treeContainer"></div>
-        <div class="text-center text-muted-light small py-4" style="border-top:1px solid var(--border-subtle);margin-top:20px;">
-          <span id="footerStatus"></span>
-        </div>
-      `;
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  //  INIT
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  async function init() {
+    console.log('📦 Study Manager initializing...');
+    const contentArea = document.getElementById('contentArea');
 
-      document.getElementById('addYearBtn').addEventListener('click', window.addYear);
-      document.getElementById('syncBtn').addEventListener('click', async function() {
-        showToast('Syncing...', 'info');
-        await loadData();
-        showToast('Synced from GitHub', 'success');
-      });
-      document.getElementById('exportBtn').addEventListener('click', window.exportToExcel);
-      document.getElementById('resetBtn').addEventListener('click', function() {
-        if (!confirm('Reset ALL data to default?')) return;
-        studyData = getDefaultData();
-        expanded = {};
-        render();
-        scheduleSave();
-        showToast('Reset to default', 'info');
-      });
+    contentArea.innerHTML = `
+      <div class="study-header">
+        <div>
+          <h1><i class="fa fa-graduation-cap" style="font-size:1.8rem;margin-right:12px;background:linear-gradient(135deg,#fff,var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;"></i> Study Manager</h1>
+          <div class="subtitle">Years → Semesters → Units → Weeks → Topics → Subtopics · <span id="userDisplay">🔒 ${user.username}</span></div>
+        </div>
+        <div class="actions">
+          <button class="btn btn-sync" id="syncBtn" title="Ctrl+S to save"><i class="fa fa-cloud-download"></i> Sync <span class="shortcut-hint">(Ctrl+S)</span></button>
+          <button class="btn btn-excel" id="exportBtn"><i class="fa fa-file-excel-o"></i> Excel</button>
+          <button class="btn btn-outline-secondary" id="exportJsonBtn" style="border-color:var(--border-subtle);color:var(--text-secondary);"><i class="fa fa-download"></i> JSON</button>
+          <button class="btn btn-outline-secondary" id="importJsonBtn" style="border-color:var(--border-subtle);color:var(--text-secondary);"><i class="fa fa-upload"></i> Import</button>
+          <button class="btn btn-success-glow" id="addYearBtn"><i class="fa fa-plus"></i> Add Year</button>
+          <button class="btn btn-outline-light" id="resetBtn" style="border:1px solid var(--border-subtle);color:var(--text-secondary);"><i class="fa fa-refresh"></i> Reset</button>
+        </div>
+      </div>
 
-      window.expandAll = function() {
-        document.querySelectorAll('.level-body').forEach(el => el.classList.add('open'));
-        document.querySelectorAll('.level-header .fa-chevron-down, .level-header .fa-chevron-up').forEach(el => {
-          el.classList.toggle('fa-chevron-down');
-          el.classList.toggle('fa-chevron-up');
-        });
+      <!-- Deadlines Widget -->
+      <div id="deadlinesContainer"></div>
+
+      <!-- Analytics Dashboard -->
+      <div id="analyticsContainer"></div>
+
+      <!-- Stats Bar -->
+      <div class="stats-bar" id="statsBar">
+        <div class="stat-item"><div class="number blue" id="statYears">0</div><div class="label">Years</div><div class="stat-tooltip">Total academic years</div></div>
+        <div class="stat-item"><div class="number purple" id="statUnits">0</div><div class="label">Units</div><div class="stat-tooltip">Total units/modules</div></div>
+        <div class="stat-item"><div class="number orange" id="statWeeks">0</div><div class="label">Weeks</div><div class="stat-tooltip">Total weeks across all units</div></div>
+        <div class="stat-item"><div class="number green" id="statTopicsDone">0</div><div class="label">Topics Done</div><div class="stat-tooltip">Completed topics / total topics</div></div>
+        <div class="stat-item"><div class="number" id="statAssignments">0</div><div class="label">Assignments</div><div class="stat-tooltip">Total assignments</div></div>
+        <div class="stat-item"><div class="number red" id="statPending">0</div><div class="label">Pending</div><div class="stat-tooltip">Assignments not yet submitted</div></div>
+      </div>
+
+      <!-- Expand/Collapse All buttons -->
+      <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+        <button class="btn btn-sm btn-outline-secondary" onclick="expandAll()" style="border-color:var(--border-subtle);color:var(--text-secondary);"><i class="fa fa-plus-square"></i> Expand All <span class="shortcut-hint">(Ctrl+E)</span></button>
+        <button class="btn btn-sm btn-outline-secondary" onclick="collapseAll()" style="border-color:var(--border-subtle);color:var(--text-secondary);"><i class="fa fa-minus-square"></i> Collapse All <span class="shortcut-hint">(Ctrl+W)</span></button>
+      </div>
+
+      <div id="treeContainer"></div>
+
+      <div class="text-center text-muted-light small py-4" style="border-top:1px solid var(--border-subtle);margin-top:20px;">
+        <span id="footerStatus"></span>
+      </div>
+    `;
+
+    // ─── Bind buttons ───
+    document.getElementById('syncBtn').addEventListener('click', async function() {
+      showToast('🔄 Syncing...', 'info');
+      try {
+        const data = await loadFromGitHub();
+        if (data) {
+          studyData = data;
+          render();
+          showToast('✅ Synced from GitHub', 'success');
+        } else {
+          showToast('ℹ️ No valid study data on GitHub. Keeping local data.', 'info');
+        }
+      } catch (err) {
+        console.error('Sync error:', err);
+        showToast('❌ Sync failed: ' + err.message, 'error');
+      }
+    });
+
+    document.getElementById('resetBtn').addEventListener('click', function() {
+      if (!confirm('⚠️ Reset ALL data? This will restore the default study plan. Any custom data will be lost.')) return;
+      studyData = getDefaultData();
+      expanded = {};
+      render();
+      scheduleSave();
+      showToast('🔄 Reset to default', 'info');
+    });
+
+    document.getElementById('addYearBtn').addEventListener('click', window.addYear);
+    document.getElementById('exportBtn').addEventListener('click', window.exportToExcel);
+    document.getElementById('exportJsonBtn').addEventListener('click', exportJSON);
+    document.getElementById('importJsonBtn').addEventListener('click', () => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.json';
+      input.onchange = (e) => {
+        if (e.target.files.length) importJSON(e.target.files[0]);
+        e.target.value = '';
       };
-      window.collapseAll = function() {
-        document.querySelectorAll('.level-body').forEach(el => el.classList.remove('open'));
-        document.querySelectorAll('.level-header .fa-chevron-down, .level-header .fa-chevron-up').forEach(el => {
-          if (el.classList.contains('fa-chevron-up')) {
-            el.classList.remove('fa-chevron-up');
-            el.classList.add('fa-chevron-down');
-          }
-        });
-      };
+      input.click();
+    });
 
-      loadData().catch(err => {
-        console.error('Init error:', err);
-        showToast('Initialisation error: ' + err.message, 'error');
-        if (loader) loader.style.display = 'none';
-      });
-    } catch (err) {
-      console.error('Fatal init error:', err);
-      if (loader) loader.style.display = 'none';
-      showToast('Fatal error: ' + err.message, 'error');
-    }
-    window.updateUserFooter();
-  });
+    await loadData();
+    console.log('✅ Study Manager ready');
+  }
+
+  // ─── START ───
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+
+  // Expose globals
+  window.toggleExpand = function(key) { expanded[key] = !expanded[key]; render(); };
+  window.toggleTopicExpand = function(key) { expanded[key] = !expanded[key]; render(); };
+  window.toggleTopicComplete = toggleTopicComplete;
+  window.toggleSubtopic = toggleSubtopic;
+  window.bulkToggleWeek = bulkToggleWeek;
+  window.expandAll = expandAll;
+  window.collapseAll = collapseAll;
+  window.exportJSON = exportJSON;
+  window.importJSON = importJSON;
+  window.addSemester = addSemester;
+  window.editSemester = editSemester;
+  window.deleteSemester = deleteSemester;
+  window.addUnit = addUnit;
+  window.editUnit = editUnit;
+  window.deleteUnit = deleteUnit;
+  window.addWeek = addWeek;
+  window.editWeek = editWeek;
+  window.deleteWeek = deleteWeek;
+  window.addTopic = addTopic;
+  window.editTopic = editTopic;
+  window.deleteTopic = deleteTopic;
+  window.addSubtopic = addSubtopic;
+  window.deleteSubtopic = deleteSubtopic;
+  window.addAssignment = addAssignment;
+  window.editAssignment = editAssignment;
+  window.deleteAssignment = deleteAssignment;
+  window.openGradeModal = openGradeModal;
+  window.updateGradeMark = updateGradeMark;
+  window.updateWhatIf = updateWhatIf;
+  window.studyManager = { studyData, render, scheduleSave };
 })();
