@@ -1,19 +1,22 @@
-// studies.js – Study Manager with full content from PDFs, robust loading
+// studies.js – Study Manager – only accessible to users in APP_CONFIG.adminUsers
 (function() {
   'use strict';
 
-  // ---- CHECK USER ----
+  // ---- CHECK USER (using config) ----
   const user = window.SessionManager?.getCurrentUser();
   if (!user) {
     window.location.href = "login.html?redirect=studies";
     return;
   }
-  if (user.username !== 'siyabongatshem@gmail.com') {
+
+  // Check if the logged-in user is in the admin list from config.js
+  const isAuthorized = window.APP_CONFIG?.adminUsers?.includes(user.username) || false;
+  if (!isAuthorized) {
     document.getElementById('contentArea').innerHTML = `
       <div class="access-denied">
         <div class="icon"><i class="fa fa-lock"></i></div>
         <h2>Access Restricted</h2>
-        <p>This page is only available to the owner of this portfolio.</p>
+        <p>This page is only available to authorised users.</p>
         <button class="btn btn-primary-glow mt-3" onclick="window.location.href='index.html'">Go Home</button>
       </div>
     `;
@@ -239,7 +242,7 @@
     return null;
   }
 
-  // ---- LOAD DATA (safely hides loader) ----
+  // ---- LOAD DATA ----
   async function loadData() {
     const loader = document.getElementById('initialLoading');
     try {
@@ -249,7 +252,6 @@
         render();
         if (loader) loader.style.display = 'none';
       }
-      // Try GitHub
       try {
         const { owner, repo, branch } = window.REPO_CONFIG;
         const path = getStudyPath();
@@ -284,7 +286,6 @@
     } catch (err) {
       console.error('Fatal error in loadData:', err);
       showToast('Error loading data: ' + err.message, 'error');
-      // Show error in the container
       const container = document.getElementById('treeContainer');
       if (container) {
         container.innerHTML = `<div class="error-display"><h3>Failed to load data</h3><pre>${err.message}</pre></div>`;
@@ -315,7 +316,7 @@
     topic.completed = topic.subCompleted.every(Boolean);
   }
 
-  // ---- RENDER FUNCTIONS (with error catching) ----
+  // ---- RENDER FUNCTIONS ----
   function safeRender(fn) {
     try { fn(); } catch (e) { console.error('Render error:', e); showToast('Render error: ' + e.message, 'error'); }
   }
@@ -1333,7 +1334,7 @@
       });
     };
 
-    // Load data (this will hide the spinner)
+    // Load data
     await loadData();
     window.updateUserFooter();
   });
