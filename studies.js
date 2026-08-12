@@ -1,4 +1,4 @@
-// studies.js – Study Manager with full content from PDFs
+// studies.js – Study Manager with full content from PDFs, robust loading
 (function() {
   'use strict';
 
@@ -239,31 +239,41 @@
     return null;
   }
 
-  // ---- LOAD DATA ----
+  // ---- LOAD DATA (safely hides loader) ----
   async function loadData() {
     const loader = document.getElementById('initialLoading');
-    let data = loadFromCache();
-    if (data) {
-      studyData = data;
-      render();
-      loader.style.display = 'none';
-    }
     try {
-      const { owner, repo, branch } = window.REPO_CONFIG;
-      const path = getStudyPath();
-      const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`;
-      const resp = await fetch(url, { headers: { Authorization: `token ${user.pat}` } });
-      if (resp.ok) {
-        const file = await resp.json();
-        const content = atob(file.content.replace(/\n/g, ''));
-        const parsed = JSON.parse(content);
-        if (parsed && parsed.years) {
-          studyData = parsed;
-          saveToCache(studyData);
-          render();
+      let data = loadFromCache();
+      if (data) {
+        studyData = data;
+        render();
+        if (loader) loader.style.display = 'none';
+      }
+      // Try GitHub
+      try {
+        const { owner, repo, branch } = window.REPO_CONFIG;
+        const path = getStudyPath();
+        const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`;
+        const resp = await fetch(url, { headers: { Authorization: `token ${user.pat}` } });
+        if (resp.ok) {
+          const file = await resp.json();
+          const content = atob(file.content.replace(/\n/g, ''));
+          const parsed = JSON.parse(content);
+          if (parsed && parsed.years) {
+            studyData = parsed;
+            saveToCache(studyData);
+            render();
+          }
+        } else if (resp.status === 404) {
+          if (!studyData.years || studyData.years.length === 0) {
+            studyData = getDefaultData();
+            saveToCache(studyData);
+            enqueueSave();
+            render();
+          }
         }
-      } else if (resp.status === 404) {
-        // No file yet – use default
+      } catch (e) {
+        console.warn('GitHub load failed:', e);
         if (!studyData.years || studyData.years.length === 0) {
           studyData = getDefaultData();
           saveToCache(studyData);
@@ -271,22 +281,24 @@
           render();
         }
       }
-    } catch(e) {
-      console.warn('GitHub load failed, using cache:', e);
-      if (!studyData.years || studyData.years.length === 0) {
-        studyData = getDefaultData();
-        saveToCache(studyData);
-        enqueueSave();
-        render();
+    } catch (err) {
+      console.error('Fatal error in loadData:', err);
+      showToast('Error loading data: ' + err.message, 'error');
+      // Show error in the container
+      const container = document.getElementById('treeContainer');
+      if (container) {
+        container.innerHTML = `<div class="error-display"><h3>Failed to load data</h3><pre>${err.message}</pre></div>`;
       }
+    } finally {
+      if (loader) loader.style.display = 'none';
     }
-    loader.style.display = 'none';
   }
 
   // ---- HELPERS ----
   function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m] || m); }
   function showToast(msg, type = 'info') {
     const container = document.getElementById('toastContainer');
+    if (!container) return;
     const el = document.createElement('div');
     el.className = `toast-item ${type}`;
     el.textContent = msg;
@@ -303,7 +315,11 @@
     topic.completed = topic.subCompleted.every(Boolean);
   }
 
-  // ---- RENDER FUNCTIONS ----
+  // ---- RENDER FUNCTIONS (with error catching) ----
+  function safeRender(fn) {
+    try { fn(); } catch (e) { console.error('Render error:', e); showToast('Render error: ' + e.message, 'error'); }
+  }
+
   function renderStats() {
     let totalUnits = 0, totalWeeks = 0, totalTopics = 0, doneTopics = 0, totalAssign = 0, pendingAssign = 0;
     studyData.years.forEach(y => y.semesters.forEach(s => s.units.forEach(u => {
@@ -585,10 +601,10 @@
   }
 
   function render() {
-    renderStats();
-    renderDeadlines();
-    renderAnalytics();
-    renderTree();
+    safeRender(renderStats);
+    safeRender(renderDeadlines);
+    safeRender(renderAnalytics);
+    safeRender(renderTree);
   }
 
   // ---- TOGGLE FUNCTIONS ----
@@ -1248,6 +1264,7 @@
   document.addEventListener('DOMContentLoaded', async function() {
     // Build the UI structure first
     const contentArea = document.getElementById('contentArea');
+    if (!contentArea) return;
     contentArea.innerHTML = `
       <div class="study-header">
         <div>
@@ -1316,7 +1333,7 @@
       });
     };
 
-    // Load data
+    // Load data (this will hide the spinner)
     await loadData();
     window.updateUserFooter();
   });
