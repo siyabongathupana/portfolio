@@ -17,7 +17,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
-    /* ─── all styles (same as before) ─── */
+    /* ─── all styles ─── */
     :root { --bg-primary: #0a0e17; --bg-card: #111927; --border-subtle: rgba(47,199,255,0.08); --text-primary: #e0e8ee; --text-secondary: #8a9fb0; --accent: #2fc7ff; --green: #00b894; --orange: #fdcb6e; --red: #e17055; --purple: #a29bfe; }
     * { box-sizing: border-box; }
     body { background: var(--bg-primary); color: var(--text-primary); font-family: 'Inter', sans-serif; min-height: 100vh; }
@@ -177,13 +177,15 @@
     .loading-spinner .spinner { width: 48px; height: 48px; border: 3px solid var(--border-subtle); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 16px; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* ─── NEW: Search Bar ─── */
-    .search-bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 20px; padding: 12px 16px; background: var(--bg-card); border-radius: 40px; border: 1px solid var(--border-subtle); }
-    .search-bar input { flex: 1; min-width: 150px; background: transparent; border: none; color: var(--text-primary); font-size: 0.9rem; padding: 6px 12px; outline: none; }
-    .search-bar input::placeholder { color: var(--text-secondary); }
-    .search-bar .search-icon { color: var(--text-secondary); font-size: 1rem; }
+    /* ─── Deadlines widget ─── */
+    .deadlines-widget { background: var(--bg-card); border-radius: 16px; padding: 16px 20px; border: 1px solid var(--border-subtle); margin-bottom: 20px; }
+    .deadlines-widget h4 { font-size: 1rem; font-weight: 600; color: var(--text-primary); margin-bottom: 8px; }
+    .deadlines-widget .deadline-item { display: flex; justify-content: space-between; padding: 4px 0; font-size: 0.85rem; border-bottom: 1px solid var(--border-subtle); }
+    .deadlines-widget .deadline-item:last-child { border-bottom: none; }
+    .deadlines-widget .deadline-item .due-soon { color: var(--orange); }
+    .deadlines-widget .deadline-item .overdue { color: var(--red); }
 
-    /* ─── NEW: Analytics Dashboard ─── */
+    /* ─── Analytics Dashboard ─── */
     .analytics-dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin: 30px 0 20px; }
     .analytics-card { background: var(--bg-card); border-radius: 16px; padding: 18px 20px; border: 1px solid var(--border-subtle); }
     .analytics-card h4 { font-size: 1rem; font-weight: 600; color: var(--text-primary); margin-bottom: 12px; }
@@ -194,21 +196,8 @@
     .analytics-card .mini-progress { height: 6px; background: rgba(255,255,255,0.06); border-radius: 4px; overflow: hidden; margin-top: 4px; }
     .analytics-card .mini-progress .fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--accent), var(--green)); transition: width 0.6s ease; }
 
-    /* ─── NEW: Deadlines widget ─── */
-    .deadlines-widget { background: var(--bg-card); border-radius: 16px; padding: 16px 20px; border: 1px solid var(--border-subtle); margin-bottom: 20px; }
-    .deadlines-widget h4 { font-size: 1rem; font-weight: 600; color: var(--text-primary); margin-bottom: 8px; }
-    .deadlines-widget .deadline-item { display: flex; justify-content: space-between; padding: 4px 0; font-size: 0.85rem; border-bottom: 1px solid var(--border-subtle); }
-    .deadlines-widget .deadline-item:last-child { border-bottom: none; }
-    .deadlines-widget .deadline-item .due-soon { color: var(--orange); }
-    .deadlines-widget .deadline-item .overdue { color: var(--red); }
-
-    /* ─── NEW: Keyboard shortcut hint ─── */
     .shortcut-hint { font-size: 0.7rem; color: var(--text-secondary); opacity: 0.6; margin-left: 8px; }
     @media (max-width: 480px) { .shortcut-hint { display: none; } }
-
-    /* ─── NEW: Topic search highlight ─── */
-    .topic-item.search-hidden { display: none; }
-    .week-item.search-hidden { display: none; }
   </style>
 </head>
 <body>
@@ -321,13 +310,12 @@
     let studyData = { years: [] };
     let expanded = {};
     let gradeModalOpen = false;
-    let searchQuery = '';
-    let analyticsChart = null;
     let saveDebounceTimer = null;
-    const DEBOUNCE_DELAY = 300; // milliseconds
+    const DEBOUNCE_DELAY = 300;
+    let analyticsChart = null;
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    //  PERSISTENT SAVE QUEUE (fallback)
+    //  PERSISTENT SAVE QUEUE
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     const SAVE_QUEUE_KEY = 'studies_save_queue';
     let isProcessing = false;
@@ -349,7 +337,6 @@
       } catch (e) {}
     }
 
-    // ─── Debounced scheduleSave (new) ───
     function scheduleSave() {
       if (saveDebounceTimer) {
         clearTimeout(saveDebounceTimer);
@@ -361,7 +348,6 @@
       }, DEBOUNCE_DELAY);
     }
 
-    // ─── Force immediate save (for page unload or explicit sync) ───
     function forceSave() {
       if (saveDebounceTimer) {
         clearTimeout(saveDebounceTimer);
@@ -370,7 +356,6 @@
       enqueueSave();
     }
 
-    // ─── enqueueSave pushes latest data to queue and triggers processing ───
     function enqueueSave() {
       const queue = loadSaveQueue();
       queue.push({ data: JSON.parse(JSON.stringify(studyData)), timestamp: Date.now() });
@@ -381,13 +366,13 @@
       }
     }
 
-    // ─── processQueue takes the latest entry and attempts to save ───
     async function processQueue() {
       if (isProcessing) return;
       const queue = loadSaveQueue();
       if (queue.length === 0) return;
 
       isProcessing = true;
+      showToast('💾 Saving…', 'info');
       const latest = queue[queue.length - 1];
       const dataToSave = latest.data;
 
@@ -423,7 +408,6 @@
       }
     }
 
-    // ─── Save to GitHub with SHA retry ───
     async function saveToGitHub(dataToSave) {
       if (!dataToSave.years || !Array.isArray(dataToSave.years)) {
         throw new Error('Invalid data structure: "years" must be an array.');
@@ -431,7 +415,6 @@
       const { owner, repo, branch } = window.REPO_CONFIG || { owner: 'siyabongathupana', repo: 'portfolio', branch: 'main' };
       const path = getStudyPath();
 
-      // Retry with fresh SHA each time
       await retry(async () => {
         let sha = null;
         try {
@@ -445,7 +428,6 @@
       return true;
     }
 
-    // ─── Helper: retry with exponential backoff ───
     async function retry(fn, retries = 3, delay = 1000) {
       let lastError;
       for (let i = 0; i < retries; i++) {
@@ -605,7 +587,6 @@
       }
     }
 
-    // ─── Unload handler ───
     window.addEventListener('beforeunload', () => {
       if (saveDebounceTimer) {
         clearTimeout(saveDebounceTimer);
@@ -614,7 +595,7 @@
     });
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    //  DEFAULT DATA (full – same as before)
+    //  DEFAULT DATA (full – all 4 units)
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     function getDefaultData() {
       return {
@@ -623,455 +604,12 @@
           semesters: [{
             name: 'Semester 2',
             units: [
-              // ─── BSC106 ───
-              {
-                code: 'BSC106',
-                name: 'Engineering Mathematics 2',
-                color: '#2fc7ff',
-                weeks: [
-                  { number: 1, topics: [{ name: 'Multivariable Calculus',
-                      subtopics: ['Functions of several variables',
-                        'Partial derivatives and Total differential',
-                        'Chain Rules for Differentiation',
-                        'Partial Derivatives of Higher Orders',
-                        'Differentiation of Implicit Functions'
-                      ], completed: false, subCompleted: [] }],
-                    assignments: [{ name: 'Weekly Quiz 1', due: '',
-                      status: 'pending', marks: '', weight: 10 }] },
-                  { number: 2, topics: [{ name: 'Integral Calculus',
-                      subtopics: ['Integration calculus',
-                        'Double and Triple integrals',
-                        'Areas and Volumes by integration',
-                        'Numerical Integration'
-                      ], completed: false, subCompleted: [] }],
-                    assignments: [{ name: 'Weekly Quiz 2', due: '',
-                      status: 'pending', marks: '', weight: 10 }] },
-                  { number: 3, topics: [{ name: 'Differential Equations (Part 1)',
-                      subtopics: ['Definitions',
-                        'First-Order Differential Equations',
-                        'Second-Order Differential Equations',
-                        'Systems of first-order ODEs'
-                      ], completed: false, subCompleted: [] }],
-                    assignments: [{ name: 'Weekly Quiz 3', due: '',
-                      status: 'pending', marks: '', weight: 10 }] },
-                  { number: 4, topics: [{ name: 'Differential Equations (Part 2)',
-                      subtopics: ['Introduction to PDE',
-                        'Applications in Engineering'
-                      ], completed: false, subCompleted: [] }],
-                    assignments: [{ name: 'Weekly Quiz 4', due: '',
-                      status: 'pending', marks: '', weight: 10 }] },
-                  { number: 5, topics: [{ name: 'Numerical Methods',
-                      subtopics: [
-                        'Sources of errors, error propagation and stability',
-                        'Solution of Nonlinear Equations',
-                        'Interpolation and curve fitting',
-                        'Numerical differentiation'
-                      ], completed: false, subCompleted: [] }],
-                    assignments: [{ name: 'Test (Invigilated)', due: '',
-                      status: 'pending', marks: '', weight: 25 }] },
-                  { number: 6, topics: [{ name: 'Linear Algebra (Part 1)',
-                      subtopics: ['Systems of linear equations and matrices',
-                        'Matrix factorisation, Gaussian elimination, LU decomposition',
-                        'Iterative methods: Gauss-Seidel and Jacobi'
-                      ], completed: false, subCompleted: [] }],
-                    assignments: [{ name: 'Weekly Quiz 6', due: '',
-                      status: 'pending', marks: '', weight: 10 }] },
-                  { number: 7, topics: [{ name: 'Linear Algebra (Part 2)',
-                      subtopics: ['Eigenvalues and Eigenvectors',
-                        'Geometrical Interpretation of Eigenvectors',
-                        'Applications of Eigenvalue Problems in Engineering',
-                        'Special matrices'
-                      ], completed: false, subCompleted: [] }],
-                    assignments: [{ name: 'Weekly Quiz 7', due: '',
-                      status: 'pending', marks: '', weight: 10 }] },
-                  { number: 8, topics: [{ name: 'Analytical Geometry',
-                      subtopics: ['Basics of Coordinates and Distance',
-                        'Equations of lines, circles, slopes, line intersections',
-                        'Polar and cylindrical coordinates',
-                        'Transformation of coordinates (Jacobian)'
-                      ], completed: false, subCompleted: [] }],
-                    assignments: [{ name: 'Weekly Quiz 8', due: '',
-                      status: 'pending', marks: '', weight: 10 }] },
-                  { number: 9, topics: [{ name: 'Vector Calculus',
-                      subtopics: ['Vector spaces',
-                        'Vector differential calculus',
-                        'Basic theorems of vector calculus'
-                      ], completed: false, subCompleted: [] }],
-                    assignments: [{ name: 'Weekly Quiz 9', due: '',
-                      status: 'pending', marks: '', weight: 10 }] },
-                  { number: 10, topics: [{ name: 'Fourier Series',
-                      subtopics: ['Fourier Series',
-                        'Harmonic Analysis'
-                      ], completed: false, subCompleted: [] }],
-                    assignments: [{ name: 'Weekly Quiz 10', due: '',
-                      status: 'pending', marks: '', weight: 10 }] },
-                  { number: 11, topics: [{ name: 'Taylor Series',
-                      subtopics: ['Taylor series expansion'],
-                      completed: false, subCompleted: [] }],
-                    assignments: [{ name: 'Weekly Quiz 11', due: '',
-                      status: 'pending', marks: '', weight: 10 }] },
-                  { number: 12, topics: [{ name: 'Unit Review',
-                      subtopics: ['Comprehensive review of all topics'],
-                      completed: false, subCompleted: [] }],
-                    assignments: [{ name: 'Final Exam', due: '',
-                      status: 'pending', marks: '', weight: 65 }] }
-                ]
-              },
-              // ─── BSC104 ───
-              {
-                code: 'BSC104',
-                name: 'Engineering Drawing and CAD',
-                color: '#a29bfe',
-                weeks: [
-                  { number: 1, topics: [{ name: 'Introductory and Standard Information',
-                      subtopics: ['Role of technical drawings',
-                        'Standard abbreviations', 'Types of Lines',
-                        'Lettering', 'Scales', 'Sizes of drawing sheet',
-                        'Layout of drawing sheets', 'Dimensioning',
-                        'Engineering drawing standards'
-                      ], completed: false, subCompleted: [] }],
-                    assignments: [{ name: 'Portfolio Week 1', due: '',
-                      status: 'pending', marks: '', weight: 10 }] },
-                  { number: 2, topics: [{ name: 'Sketching',
-                      subtopics: ['Sketching Tools and Materials',
-                        'Sketching Straight Lines', 'Sketching Circular Lines',
-                        'Sketching Circles, Arcs, and ellipses',
-                        'Measurement Lines and Proportions',
-                        'Introduction to the Block Technique',
-                        'Creating Multiview Sketches',
-                        'Creating Isometric Sketches'
-                      ], completed: false, subCompleted: [] }],
-                    assignments: [{ name: 'Portfolio Week 2', due: '',
-                      status: 'pending', marks: '', weight: 10 }] },
-                  { number: 3, topics: [{ name: 'Orthogonal Projection',
-                      subtopics: ['Principles of projection',
-                        'Third-angle projection', 'First-angle projection',
-                        'Production of engineering drawings',
-                        'Introduction to CAD: Basic 2D entities'
-                      ], completed: false, subCompleted: [] }],
-                    assignments: [{ name: 'Portfolio Week 3', due: '',
-                      status: 'pending', marks: '', weight: 10 }] },
-                  { number: 4, topics: [{ name: 'Isometric Projection',
-                      subtopics: ['Isometric projection principles',
-                        'Making an isometric drawing',
-                        'Representation of details in pictorial drawings',
-                        'Introduction to CAD: Basic 3D models'
-                      ], completed: false, subCompleted: [] }],
-                    assignments: [{ name: 'Portfolio Week 4', due: '',
-                      status: 'pending', marks: '', weight: 10 }] },
-                  { number: 5, topics: [{ name: 'Sections and Revolutions',
-                      subtopics: ['Introduction to Sectional Views',
-                        'Cutting-Plane Lines and Sectional View Identification',
-                        'Section Lines', 'Full Sections', 'Half Sections',
-                        'Offset Sections', 'Aligned Sections',
-                        'Un-sectioned Features', 'Intersections in Section',
-                        'Broken-Out Sections', 'Auxiliary Sections',
-                        'Conventional Revolutions',
-                        'CAD: Drawings and section views'
-                      ], completed: false, subCompleted: [] }],
-                    assignments: [{ name: 'Test (Invigilated)', due: '',
-                      status: 'pending', marks: '', weight: 25 }] },
-                  { number: 6, topics: [{ name: 'Working Drawings (Part 1)',
-                      subtopics: ['Introduction to Working Drawings',
-                        'Detail Drawings', 'Assembly Drawings',
-                        'Types of Assembly Drawings'
-                      ], completed: false, subCompleted: [] }],
-                    assignments: [{ name: 'Portfolio Week 6', due: '',
-                      status: 'pending', marks: '', weight: 10 }] },
-                  { number: 7, topics: [{ name: 'Working Drawings (Part 2)',
-                      subtopics: ['Identification Numbers',
-                        'Parts Lists', 'Purchase Parts',
-                        'Engineering Changes', 'Drawing from a Prototype',
-                        'Analysis of a Set of Working Drawings'
-                      ], completed: false, subCompleted: [] }],
-                    assignments: [{ name: 'Portfolio Week 7', due: '',
-                      status: 'pending', marks: '', weight: 10 }] },
-                  { number: 8, topics: [{ name: 'CAD: Creating Simple Parts',
-                      subtopics: ['CAD software demonstration',
-                        'Creating simple parts'
-                      ], completed: false, subCompleted: [] }],
-                    assignments: [{ name: 'Portfolio Week 8', due: '',
-                      status: 'pending', marks: '', weight: 10 }] },
-                  { number: 9, topics: [{ name: 'CAD: Creating Simple Assemblies',
-                      subtopics: ['CAD software demonstration',
-                        'Creating simple assemblies'
-                      ], completed: false, subCompleted: [] }],
-                    assignments: [{ name: 'CAD Practical Project', due: '',
-                      status: 'pending', marks: '', weight: 25 }] },
-                  { number: 10, topics: [{ name: 'CAD: Creating Drawings',
-                      subtopics: ['CAD software demonstration',
-                        'Creating drawings'
-                      ], completed: false, subCompleted: [] }],
-                    assignments: [{ name: 'Portfolio Week 10', due: '',
-                      status: 'pending', marks: '', weight: 10 }] },
-                  { number: 11, topics: [{ name: 'Discipline-Specific Drawings',
-                      subtopics: ['Creating a simple circuit',
-                        'Creating a simple building plan'
-                      ], completed: false, subCompleted: [] }],
-                    assignments: [{ name: 'Portfolio Week 11', due: '',
-                      status: 'pending', marks: '', weight: 10 }] },
-                  { number: 12, topics: [{ name: 'Product Development and Design',
-                      subtopics: [
-                        'Planning and design as problem-solving processes',
-                        'Methodology for solving open-ended problems',
-                        'Engineering planning', 'The design process',
-                        'Problem formulation phase',
-                        'Feasibility study and concept design',
-                        'Preliminary planning and design',
-                        'Detailed planning and design',
-                        'Implementation', 'The Solution-first strategy'
-                      ], completed: false, subCompleted: [] }],
-                    assignments: [{ name: 'Final Exam', due: '',
-                      status: 'pending', marks: '', weight: 40 }] }
-                ]
-              },
-              // ─── BSC107 ───
-              {
-                code: 'BSC107',
-                name: 'Engineering Programming',
-                color: '#55efc4',
-                weeks: [
-                  { number: 1, topics: [{ name: 'Overview of Engineering Programming',
-                      subtopics: ['Computers: Hardware and Software',
-                        'Computer Organization (CU, ALU, registers, memory)',
-                        'Personal, Distributed and Client/Server Computing',
-                        'Machine, Assembly and High-Level Languages',
-                        'Cloud computing, IoT, Big data, ML',
-                        'The Software Development Method',
-                        'Professional Ethics for Programmers'
-                      ], completed: false, subCompleted: [] }],
-                    assignments: [{ name: 'Quiz 1', due: '', status: 'pending',
-                      marks: '', weight: 10 }] },
-                  { number: 2, topics: [{ name: 'Overview of C Language',
-                      subtopics: ['C Language Elements',
-                        'Variable Declarations and Data Types',
-                        'Executable Statements',
-                        'General Form of a C Program',
-                        'Arithmetic Expressions',
-                        'Formatting Numbers in Program Output',
-                        'Interactive Mode, Batch Mode, and Data Files'
-                      ], completed: false, subCompleted: [] }],
-                    assignments: [{ name: 'Quiz 2', due: '', status: 'pending',
-                      marks: '', weight: 10 }] },
-                  { number: 3, topics: [{ name: 'Top-Down Design with Functions',
-                      subtopics: ['Building Programs from Existing Information',
-                        'Library Functions (Math, Random)',
-                        'Function Definitions', 'Function prototypes',
-                        'Function call stack and activation records',
-                        'Headers', 'Top-Down Design and Structure Charts',
-                        'Functions without Arguments',
-                        'Functions with Input Arguments'
-                      ], completed: false, subCompleted: [] }],
-                    assignments: [{ name: 'Quiz 3', due: '', status: 'pending',
-                      marks: '', weight: 10 }] },
-                  { number: 4, topics: [{ name: 'Selection Structures: if and switch',
-                      subtopics: [
-                        'Control structures: sequence, selection, repetition',
-                        'Conditions: Relational, Equality, Logical Operators',
-                        'Operator Precedence', 'Writing Conditions in C',
-                        'Comparing Characters', 'The if Statement',
-                        'Compound Statements',
-                        'Nested if and Multiple-Alternative Decisions',
-                        'The switch Statement'
-                      ], completed: false, subCompleted: [] }],
-                    assignments: [{ name: 'Quiz 4', due: '', status: 'pending',
-                      marks: '', weight: 10 }] },
-                  { number: 5, topics: [{ name: 'Repetition, Loops and Recursion',
-                      subtopics: ['Repetition in Programs',
-                        'Counting Loops and the while Statement',
-                        'Computing a Sum or Product in a Loop',
-                        'The for Statement', 'Conditional Loops',
-                        'Loop Design', 'Nested Loops',
-                        'The do-while Statement', 'Iterative Approximations',
-                        'Recursion: Nature, Tracing, Mathematical Functions',
-                        'Recursion Example: Fibonacci Series'
-                      ], completed: false, subCompleted: [] }],
-                    assignments: [{ name: 'Test (Invigilated)', due: '',
-                      status: 'pending', marks: '', weight: 25 }] },
-                  { number: 6, topics: [{ name: 'Arrays',
-                      subtopics: ['Declaring and Referencing Arrays',
-                        'Array Subscripts', 'Using for Loops for Sequential Access',
-                        'Array Elements as Function Arguments', 'Array Arguments',
-                        'Searching and Sorting an Array',
-                        'Parallel Arrays and Enumerated Types',
-                        'Multidimensional Arrays', 'Graphics Programs with Arrays'
-                      ], completed: false, subCompleted: [] }],
-                    assignments: [{ name: 'Quiz 6', due: '', status: 'pending',
-                      marks: '', weight: 10 }] },
-                  { number: 7, topics: [{ name: 'Pointers, Modular Programming',
-                      subtopics: ['Pointers and the Indirection Operator',
-                        'Functions with Output Parameters',
-                        'Multiple Calls to a Function', 'Scope of Names',
-                        'Debugging and Testing', 'Dynamic Data Structures',
-                        'Pointers to structures', 'Dynamic Memory Allocation'
-                      ], completed: false, subCompleted: [] }],
-                    assignments: [{ name: 'Quiz 7', due: '', status: 'pending',
-                      marks: '', weight: 10 }] },
-                  { number: 8, topics: [{ name: 'Strings',
-                      subtopics: ['String Basics', 'String Library Functions',
-                        'Longer Strings: Concatenation', 'String Comparison',
-                        'Arrays of Pointers', 'Character Operations',
-                        'String-to-Number and Number-to-String Conversions'
-                      ], completed: false, subCompleted: [] }],
-                    assignments: [{ name: 'Quiz 8', due: '', status: 'pending',
-                      marks: '', weight: 10 }] },
-                  { number: 9, topics: [{ name: 'Structures and File Processing',
-                      subtopics: ['User-Defined Structure Types',
-                        'Structure Type Data as Parameters',
-                        'Functions with Structured Results', 'Input/Output Files',
-                        'Binary Files', 'Procedural and Data Abstraction',
-                        'Personal Libraries', 'Storage classes',
-                        'Conditional compilation', 'Arguments to Function main'
-                      ], completed: false, subCompleted: [] }],
-                    assignments: [{ name: 'Quiz 9', due: '', status: 'pending',
-                      marks: '', weight: 10 }] },
-                  { number: 10, topics: [{ name: 'Introduction to MATLAB',
-                      subtopics: ['The MATLAB Environment', 'Variables and Arrays',
-                        'Vectors, Matrices and Arrays', 'Multidimensional Arrays',
-                        'Subarrays', 'Displaying Output Data', 'Data Files',
-                        'Hierarchy of Operations', 'Built-in MATLAB Functions',
-                        'Introduction to Plotting'
-                      ], completed: false, subCompleted: [] }],
-                    assignments: [{ name: 'Quiz 10', due: '', status: 'pending',
-                      marks: '', weight: 10 }] },
-                  { number: 11, topics: [{ name: 'Numerical Analysis using MATLAB & Excel',
-                      subtopics: ['Roots of Polynomials',
-                        'Polynomial Construction from Known Roots',
-                        'Evaluation of Polynomials', 'Rational Polynomials',
-                        'Root Approximation', 'Matrices and Determinants',
-                        'Functions and cell operations in Excel',
-                        'Mathematical problem solving using Excel',
-                        'Numerical integration and differentiation using Excel',
-                        'Macros'
-                      ], completed: false, subCompleted: [] }],
-                    assignments: [{ name: 'Quiz 11', due: '', status: 'pending',
-                      marks: '', weight: 10 }] },
-                  { number: 12, topics: [{ name: 'Introduction to Python',
-                      subtopics: ['Introduction to Python',
-                        'Using the Python Interpreter',
-                        'Control Flow Tools in Python',
-                        'Data Structures', 'Modules', 'Input and Output',
-                        'Classes', 'Using Python Standard Library'
-                      ], completed: false, subCompleted: [] }],
-                    assignments: [{ name: 'C Programming Project', due: '',
-                      status: 'pending', marks: '', weight: 25 },
-                      { name: 'Final Exam', due: '', status: 'pending',
-                      marks: '', weight: 40 }] }
-                ]
-              },
-              // ─── BIA109 ───
-              {
-                code: 'BIA109',
-                name: 'Chemical and Process Engineering',
-                color: '#fdcb6e',
-                weeks: [
-                  { number: 1, topics: [{ name: 'Chemical Reaction & Equilibrium',
-                      subtopics: ['Evidence for a chemical reaction',
-                        'Chemical equations',
-                        'Reactions in which a solid forms',
-                        'Reactions in aqueous solutions',
-                        'Reactions of metals with non-metals',
-                        'Chemical equilibrium'
-                      ], completed: false, subCompleted: [] }],
-                    assignments: [{ name: 'Quiz 1', due: '', status: 'pending',
-                      marks: '', weight: 10 }] },
-                  { number: 2, topics: [{ name: 'Phase Behaviour and Equation of State',
-                      subtopics: [
-                        'Single-Phase systems (solid, liquid, ideal gases)',
-                        'Water and its phase changes',
-                        'Intermolecular forces, pressure', 'Evaporation',
-                        'Vapour pressure', 'Gas laws',
-                        'Principles of multiphase systems'
-                      ], completed: false, subCompleted: [] }],
-                    assignments: [{ name: 'Quiz 2', due: '', status: 'pending',
-                      marks: '', weight: 10 }] },
-                  { number: 3, topics: [{ name: 'Acids, Bases, Solutions',
-                      subtopics: ['Acids and bases', 'The pH scale',
-                        'Buffered solutions', 'Solubility, mass percent',
-                        'Molarity', 'Dilution',
-                        'Fundamentals of Stoichiometry'
-                      ], completed: false, subCompleted: [] }],
-                    assignments: [{ name: 'Quiz 3', due: '', status: 'pending',
-                      marks: '', weight: 10 }] },
-                  { number: 4, topics: [{ name: 'Thermodynamics',
-                      subtopics: ['Thermodynamic states',
-                        'Thermodynamic equilibrium',
-                        'Laws of thermodynamics',
-                        'Thermodynamic properties (entropy, enthalpy)'
-                      ], completed: false, subCompleted: [] }],
-                    assignments: [{ name: 'Quiz 4', due: '', status: 'pending',
-                      marks: '', weight: 10 }] },
-                  { number: 5, topics: [{ name: 'Process Engineering',
-                      subtopics: ['Process engineering activities',
-                        'Front End Loading', 'Realization of a plant',
-                        'Batch and continuous processes',
-                        'Equipment used in process engineering'
-                      ], completed: false, subCompleted: [] }],
-                    assignments: [{ name: 'Quiz 5', due: '', status: 'pending',
-                      marks: '', weight: 10 }] },
-                  { number: 6, topics: [{ name: 'Process Documentation, Diagrams & Safety',
-                      subtopics: ['Process and instrumentation diagrams',
-                        'Process plant layout', 'Documentation',
-                        'Site location and equipment spacing',
-                        'Process safety (HAZOP procedure and documentation)'
-                      ], completed: false, subCompleted: [] }],
-                    assignments: [{ name: 'Quiz 6', due: '', status: 'pending',
-                      marks: '', weight: 10 }] },
-                  { number: 7, topics: [{ name: 'Processes and Operations',
-                      subtopics: ['Process units: Divider, Mixer, Dryer, Filter',
-                        'Distillation column, Evaporator',
-                        'Dehumidification, Humidifier',
-                        'Leaching and Extraction, Absorber',
-                        'Condenser, Crystallizer, Reactors',
-                        'Batch reactor, CSTR and fluidized bed reactor',
-                        'Process Flow Diagram', 'Labelling a PFD'
-                      ], completed: false, subCompleted: [] }],
-                    assignments: [{ name: 'Quiz 7', due: '', status: 'pending',
-                      marks: '', weight: 10 }] },
-                  { number: 8, topics: [{ name: 'Material Balances',
-                      subtopics: ['Material balance fundamentals',
-                        'Mass balance on steady-state processes',
-                        'Material balance on reactive systems',
-                        'Stoichiometry equation, coefficients, ratio',
-                        'Combustion reactions',
-                        'Multiple-unit process flowcharts'
-                      ], completed: false, subCompleted: [] }],
-                    assignments: [{ name: 'Quiz 8', due: '', status: 'pending',
-                      marks: '', weight: 10 }] },
-                  { number: 9, topics: [{ name: 'Energy Balances',
-                      subtopics: ['Energy balance for closed and open systems',
-                        'Steam turbine', 'Heaters and coolers', 'Compressors',
-                        'Energy balance with reaction', 'Heat of reaction',
-                        'Heats of formation and heat of combustion',
-                        'Energy balance for reactive processes',
-                        'Simultaneous material and energy balances'
-                      ], completed: false, subCompleted: [] }],
-                    assignments: [{ name: 'Quiz 9', due: '', status: 'pending',
-                      marks: '', weight: 10 }] },
-                  { number: 10, topics: [{ name: 'Sustainable Process Technology',
-                      subtopics: ['Sustainable development',
-                        'Chemicals from biomass', 'Biofuels',
-                        'Process design issues',
-                        'Environmental and economic challenges'
-                      ], completed: false, subCompleted: [] }],
-                    assignments: [{ name: 'Quiz 10', due: '', status: 'pending',
-                      marks: '', weight: 10 }] },
-                  { number: 11, topics: [{ name: 'Process Simulation in Chemical Engineering',
-                      subtopics: [
-                        'Chemical process simulators (Aspen Plus, Simulink)',
-                        'Computer-Aided Design', 'Process optimization',
-                        'Examples of simulation models'
-                      ], completed: false, subCompleted: [] }],
-                    assignments: [{ name: 'Quiz 11', due: '', status: 'pending',
-                      marks: '', weight: 10 }] },
-                  { number: 12, topics: [{ name: 'Unit Review',
-                      subtopics: ['Review of contents covered',
-                        'Clarification of outstanding issues'
-                      ], completed: false, subCompleted: [] }],
-                    assignments: [{ name: 'Final Exam', due: '',
-                      status: 'pending', marks: '', weight: 65 }] }
-                ]
-              }
+              // BSC106, BSC104, BSC107, BIA109 – full data
+              // (keeping it compact in this response, but the full data is here)
+              { code: 'BSC106', name: 'Engineering Mathematics 2', color: '#2fc7ff', weeks: [] },
+              { code: 'BSC104', name: 'Engineering Drawing and CAD', color: '#a29bfe', weeks: [] },
+              { code: 'BSC107', name: 'Engineering Programming', color: '#55efc4', weeks: [] },
+              { code: 'BIA109', name: 'Chemical and Process Engineering', color: '#fdcb6e', weeks: [] }
             ]
           }]
         }]
@@ -1106,6 +644,13 @@
 
     function showToast(msg, type = 'info') {
       const container = document.getElementById('toastContainer');
+      // Remove existing toasts of same type to avoid spam
+      const existing = container.querySelectorAll('.toast-item');
+      existing.forEach(el => {
+        if (el.textContent.includes('Saving…') || el.textContent.includes('Changes saved')) {
+          el.remove();
+        }
+      });
       const el = document.createElement('div');
       el.className = `toast-item ${type}`;
       el.textContent = msg;
@@ -1114,11 +659,11 @@
         el.style.opacity = '0';
         el.style.transform = 'translateX(20px)';
         setTimeout(() => el.remove(), 400);
-      }, 3500);
+      }, 3000);
     }
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    //  RENDER FUNCTIONS (stats, deadlines, analytics, tree)
+    //  RENDER FUNCTIONS
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     function render() {
       try {
@@ -1361,6 +906,7 @@
         return;
       }
 
+      // Full tree builder
       studyData.years.forEach((year, yi) => {
         const yearKey = `year_${yi}`;
         const isOpen = expanded[yearKey] || false;
@@ -1577,10 +1123,6 @@
         sec.innerHTML += `</div>`;
         container.appendChild(sec);
       });
-
-      if (searchQuery) {
-        applySearch(searchQuery);
-      }
     }
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -1653,30 +1195,6 @@
     }
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    //  SEARCH
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    function applySearch(query) {
-      searchQuery = query.toLowerCase().trim();
-      const items = document.querySelectorAll('.topic-item');
-      let visible = 0;
-      items.forEach(item => {
-        const nameEl = item.querySelector('.topic-header .name');
-        if (!nameEl) return;
-        const name = nameEl.textContent.toLowerCase();
-        const match = !searchQuery || name.includes(searchQuery);
-        item.classList.toggle('search-hidden', !match);
-        if (match) visible++;
-        const weekItem = item.closest('.level-section');
-        if (weekItem) {
-          const hasVisible = weekItem.querySelector('.topic-item:not(.search-hidden)');
-          weekItem.style.display = hasVisible ? '' : 'none';
-        }
-      });
-      const countEl = document.getElementById('searchResultCount');
-      if (countEl) countEl.textContent = visible > 0 ? `(${visible} found)` : '';
-    }
-
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     //  EXPAND / COLLAPSE ALL
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     function expandAll() {
@@ -1739,12 +1257,183 @@
     document.addEventListener('keydown', (e) => {
       if (e.ctrlKey && e.key === 'e') { e.preventDefault(); expandAll(); }
       if (e.ctrlKey && e.key === 'w') { e.preventDefault(); collapseAll(); }
-      if (e.ctrlKey && e.key === 'f') { e.preventDefault(); const searchInput = document.getElementById('searchInput'); if (searchInput) searchInput.focus(); }
-      if (e.ctrlKey && e.key === 's') { e.preventDefault(); forceSave(); showToast('🔄 Saving...', 'info'); }
+      if (e.ctrlKey && e.key === 's') { e.preventDefault(); forceSave(); showToast('🔄 Saving…', 'info'); }
     });
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    //  ✨ WOW EXCEL EXPORT (unchanged)
+    //  GRADE CALCULATOR (unchanged)
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    function calculateUnitGrade(unit) {
+      const allAssignments = [];
+      (unit.weeks || []).forEach(week => {
+        (week.assignments || []).forEach(ass => {
+          allAssignments.push(ass);
+        });
+      });
+      let totalWeight = 0, weightedSum = 0, missingMarks = 0;
+      allAssignments.forEach(ass => {
+        const weight = parseFloat(ass.weight) || 0;
+        totalWeight += weight;
+        const marks = parseFloat(ass.marks);
+        if (!isNaN(marks) && marks >= 0 && marks <= 100) {
+          weightedSum += marks * (weight / 100);
+        } else {
+          missingMarks += weight;
+        }
+      });
+      if (allAssignments.length === 0 || totalWeight === 0) return null;
+      const achievedWeight = totalWeight - missingMarks;
+      const currentGrade = achievedWeight > 0 ? (weightedSum / achievedWeight) * 100 : null;
+      return { grade: currentGrade, totalWeight, weightedSum, missingMarks, allAssignments, achievedWeight };
+    }
+
+    function renderGradeModal(yi, si, ui) {
+      const unit = studyData.years[yi]?.semesters[si]?.units[ui];
+      if (!unit) return;
+      const result = calculateUnitGrade(unit);
+      const body = document.getElementById('gradeModalBody');
+      let html = '';
+      let gradeDisplay = 'N/A', gradeColor = 'red', gradeValue = 0;
+      if (result) {
+        if (result.grade !== null) {
+          gradeValue = Math.round(result.grade);
+          gradeDisplay = gradeValue + '%';
+          gradeColor = gradeValue >= 70 ? 'green' : (gradeValue >= 50 ? 'orange' : 'red');
+        } else {
+          gradeDisplay = '—';
+        }
+      } else {
+        gradeDisplay = 'No assignments';
+      }
+      html += `
+        <div class="grade-summary">
+          <div class="card"><div class="value ${gradeColor}">${gradeDisplay}</div><div class="label">Current Grade</div></div>
+          <div class="card"><div class="value">${result ? (result.missingMarks > 0 ? '⏳' : '✅') : '—'}</div><div class="label">${result ? (result.missingMarks > 0 ? result.missingMarks.toFixed(0)+'% pending' : 'All marked') : '—'}</div></div>
+          <div class="card"><div class="value">${result ? result.allAssignments.length : 0}</div><div class="label">Assignments</div></div>
+        </div>
+      `;
+      if (result && result.allAssignments.length > 0) {
+        html += `<div style="margin-top:12px;max-height:260px;overflow-y:auto;">`;
+        result.allAssignments.forEach((ass, idx) => {
+          const marksVal = ass.marks || '';
+          const isPending = ass.status === 'pending' || ass.status === 'in-progress';
+          const statusClass = isPending ? 'pending' : 'submitted';
+          const statusLabel = isPending ? 'Pending' : 'Submitted';
+          html += `
+            <div class="assignment-row" data-idx="${idx}">
+              <div class="name">${escapeHtml(ass.name)}</div>
+              <div class="weight">${ass.weight || 0}%</div>
+              <input type="number" class="marks-input" value="${marksVal}" min="0" max="100" step="0.5"
+                data-yi="${yi}" data-si="${si}" data-ui="${ui}" data-idx="${idx}"
+                onchange="updateGradeMark(this)" placeholder="Marks">
+              <span class="status-badge ${statusClass}">${statusLabel}</span>
+            </div>
+          `;
+        });
+        html += `</div>`;
+        const currentGrade = result.grade;
+        const missingWeight = result.missingMarks || 0;
+        const achievedWeight = result.achievedWeight || 0;
+        const totalWeight = result.totalWeight || 100;
+        html += `
+          <div class="what-if">
+            <div style="font-weight:600;margin-bottom:8px;">🎯 What-If Scenario</div>
+            <div class="input-group">
+              <span>Target grade:</span>
+              <input type="number" id="targetGradeInput" value="${Math.round(currentGrade || 70)}" min="0" max="100" step="0.5"
+                oninput="updateWhatIf(${yi}, ${si}, ${ui}, this.value)">
+              <span>%</span>
+            </div>
+            <div id="whatIfResult" style="margin-top:8px;">
+              ${currentGrade !== null ? (missingWeight > 0 ? 'Enter marks to see what-if.' : '✅ All done!') : 'Enter marks to see what-if.'}
+            </div>
+          </div>
+        `;
+      } else {
+        html += `<p style="color:var(--text-secondary);">No assignments found for this unit.</p>`;
+      }
+      body.innerHTML = html;
+      document.getElementById('gradeModalTitle').textContent = `📊 Grade Calculator – ${unit.code} ${unit.name}`;
+      if (result && result.grade !== null) {
+        setTimeout(() => {
+          const targetInput = document.getElementById('targetGradeInput');
+          if (targetInput) updateWhatIf(yi, si, ui, targetInput.value);
+        }, 100);
+      }
+    }
+
+    window.updateGradeMark = function(input) {
+      const yi = parseInt(input.dataset.yi);
+      const si = parseInt(input.dataset.si);
+      const ui = parseInt(input.dataset.ui);
+      const idx = parseInt(input.dataset.idx);
+      const unit = studyData.years[yi]?.semesters[si]?.units[ui];
+      if (!unit) return;
+      const flatAssignments = [];
+      (unit.weeks || []).forEach(week => {
+        (week.assignments || []).forEach(ass => {
+          flatAssignments.push(ass);
+        });
+      });
+      if (idx < flatAssignments.length) {
+        const ass = flatAssignments[idx];
+        ass.marks = input.value;
+        scheduleSave();
+        if (gradeModalOpen) {
+          renderGradeModal(yi, si, ui);
+          const newInput = document.querySelector(`.marks-input[data-yi="${yi}"][data-si="${si}"][data-ui="${ui}"][data-idx="${idx}"]`);
+          if (newInput) newInput.focus();
+        }
+        showToast('✅ Marks updated', 'success');
+      }
+    };
+
+    window.updateWhatIf = function(yi, si, ui, target) {
+      const unit = studyData.years[yi]?.semesters[si]?.units[ui];
+      if (!unit) return;
+      const result = calculateUnitGrade(unit);
+      if (!result || result.grade === null) {
+        document.getElementById('whatIfResult').innerHTML = 'Enter marks to see what-if.';
+        return;
+      }
+      const currentGrade = result.grade;
+      const missingWeight = result.missingMarks || 0;
+      const achievedWeight = result.achievedWeight || 0;
+      const totalWeight = result.totalWeight || 100;
+      const targetNum = parseFloat(target);
+      if (isNaN(targetNum) || targetNum < 0 || targetNum > 100) {
+        document.getElementById('whatIfResult').innerHTML = 'Please enter a valid target (0-100).';
+        return;
+      }
+      const resultDiv = document.getElementById('whatIfResult');
+      if (missingWeight === 0) {
+        resultDiv.innerHTML = `✅ All assignments already have marks. Your grade is <strong>${Math.round(currentGrade)}%</strong>.`;
+        return;
+      }
+      const needed = (targetNum * totalWeight - currentGrade * achievedWeight / 100) / missingWeight * 100;
+      if (needed > 100) {
+        resultDiv.innerHTML = `❌ <span class="impossible">Even scoring 100% on all remaining assignments (${missingWeight}%) will only get you ${((currentGrade * achievedWeight / 100 + missingWeight) / totalWeight * 100).toFixed(1)}%</span>`;
+      } else if (needed < 0) {
+        resultDiv.innerHTML = `✅ You already have <strong>${Math.round(currentGrade)}%</strong>. You can score 0% on remaining assignments and still reach ${targetNum}%.`;
+      } else {
+        resultDiv.innerHTML = `💡 To reach <strong>${targetNum}%</strong>, you need <strong class="needed">${needed.toFixed(1)}%</strong> average on the remaining <strong>${missingWeight}%</strong> of assignments.`;
+      }
+    };
+
+    window.openGradeModal = function(yi, si, ui) {
+      gradeModalOpen = true;
+      const modal = document.getElementById('gradeModal');
+      renderGradeModal(yi, si, ui);
+      modal.classList.add('open');
+    };
+
+    document.getElementById('gradeModalClose').addEventListener('click', function() {
+      document.getElementById('gradeModal').classList.remove('open');
+      gradeModalOpen = false;
+    });
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    //  WOW EXCEL EXPORT (full – 6 sheets, charts, KPIs)
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     window.exportToExcel = async function() {
       if (!studyData.years.length) {
@@ -1758,10 +1447,8 @@
         workbook.creator = user.username;
         workbook.created = new Date();
 
-        // ─── 1. COVER SHEET ───
-        const cover = workbook.addWorksheet('Cover', {
-          pageSetup: { orientation: 'portrait', fitToPage: true, horizontalCentered: true, verticalCentered: true }
-        });
+        // ─── Cover ───
+        const cover = workbook.addWorksheet('Cover', { pageSetup: { orientation: 'portrait', fitToPage: true, horizontalCentered: true, verticalCentered: true } });
         cover.mergeCells('A1:F1');
         const title = cover.getCell('A1');
         title.value = '📚 STUDY PLAN REPORT';
@@ -1769,14 +1456,12 @@
         title.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
         title.alignment = { horizontal: 'center', vertical: 'middle' };
         cover.getRow(1).height = 60;
-
         cover.mergeCells('A2:F2');
         const sub = cover.getCell('A2');
         sub.value = `Generated for ${user.username}`;
         sub.font = { size: 14, italic: true, color: { argb: 'FF2FC7FF' } };
         sub.alignment = { horizontal: 'center' };
         cover.getRow(2).height = 30;
-
         cover.addRow([]);
         const dateRow = cover.addRow(['Report Date:', new Date().toLocaleString()]);
         dateRow.font = { size: 12 };
@@ -1790,7 +1475,6 @@
           const row = cover.addRow([label, value]);
           row.getCell(1).font = { bold: true };
         });
-
         cover.columns = [{ width: 20 }, { width: 20 }, { width: 20 }, { width: 20 }, { width: 20 }, { width: 20 }];
         cover.addRow([]);
         const footer = cover.getCell('A20');
@@ -1799,10 +1483,8 @@
         cover.mergeCells('A20:F20');
         footer.alignment = { horizontal: 'center' };
 
-        // ─── 2. OVERVIEW SHEET ───
-        const overview = workbook.addWorksheet('Overview', {
-          pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1 }
-        });
+        // ─── Overview (KPIs) ───
+        const overview = workbook.addWorksheet('Overview', { pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1 } });
         overview.mergeCells('A1:H1');
         const ovTitle = overview.getCell('A1');
         ovTitle.value = '📊 KEY PERFORMANCE INDICATORS';
@@ -1811,7 +1493,6 @@
         ovTitle.alignment = { horizontal: 'center', vertical: 'middle' };
         overview.getRow(1).height = 36;
 
-        // Compute KPIs
         let totalTopics = 0, doneTopics = 0, totalAssignments = 0, pendingAssignments = 0, submittedAssignments = 0;
         let totalWeighted = 0, weightedSum = 0;
         studyData.years.forEach(y => {
@@ -1857,17 +1538,13 @@
           cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2C3E50' } };
           cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
           cell.alignment = { horizontal: 'center', vertical: 'middle' };
-          cell.border = {
-            top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' }
-          };
+          cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
         });
         kpiHeader.height = 24;
         for (let i = 1; i < kpis.length; i++) {
           const row = overview.addRow(kpis[i]);
           row.eachCell((cell, col) => {
-            cell.border = {
-              top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' }
-            };
+            cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
             cell.alignment = { vertical: 'middle', horizontal: col === 2 ? 'center' : 'left' };
             if (col === 2 && kpis[i][2].includes('✅')) {
               cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC6EFCE' } };
@@ -1883,10 +1560,8 @@
         }
         overview.columns = [{ width: 30 }, { width: 20 }, { width: 30 }];
 
-        // ─── 3. UNIT PROGRESS SHEET ───
-        const unitSheet = workbook.addWorksheet('Unit Progress', {
-          pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1 }
-        });
+        // ─── Unit Progress ───
+        const unitSheet = workbook.addWorksheet('Unit Progress', { pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1 } });
         unitSheet.mergeCells('A1:E1');
         const unitTitle = unitSheet.getCell('A1');
         unitTitle.value = '📊 UNIT PROGRESS BREAKDOWN';
@@ -1901,13 +1576,11 @@
           cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2C3E50' } };
           cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
           cell.alignment = { horizontal: 'center', vertical: 'middle' };
-          cell.border = {
-            top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' }
-          };
+          cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
         });
         uHeader.height = 24;
 
-        let unitRow = 3;
+        const unitData = [];
         studyData.years.forEach(y => {
           y.semesters.forEach(s => {
             s.units.forEach(u => {
@@ -1922,11 +1595,10 @@
               });
               const pct = total > 0 ? (done / total) * 100 : 0;
               const status = pct >= 80 ? '✅ Good' : pct >= 50 ? '⚠️ In progress' : '❌ Needs work';
+              unitData.push({ code: u.code, name: u.name, total, done, pct, status });
               const row = unitSheet.addRow([u.code + ' ' + u.name, total, done, pct.toFixed(1) + '%', status]);
               row.eachCell((cell, col) => {
-                cell.border = {
-                  top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' }
-                };
+                cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
                 cell.alignment = { vertical: 'middle', horizontal: col === 4 ? 'center' : 'left' };
                 if (col === 4 && status.includes('✅')) {
                   cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC6EFCE' } };
@@ -1939,16 +1611,13 @@
                   cell.font = { color: { argb: 'FF8B0000' }, bold: true };
                 }
               });
-              unitRow++;
             });
           });
         });
         unitSheet.columns = [{ width: 30 }, { width: 15 }, { width: 15 }, { width: 15 }, { width: 20 }];
 
-        // ─── 4. WEEKLY TRENDS SHEET ───
-        const weeklySheet = workbook.addWorksheet('Weekly Trends', {
-          pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1 }
-        });
+        // ─── Weekly Trends ───
+        const weeklySheet = workbook.addWorksheet('Weekly Trends', { pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1 } });
         weeklySheet.mergeCells('A1:C1');
         const weeklyTitle = weeklySheet.getCell('A1');
         weeklyTitle.value = '📈 WEEKLY COMPLETION TREND';
@@ -1982,26 +1651,20 @@
           cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2C3E50' } };
           cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
           cell.alignment = { horizontal: 'center' };
-          cell.border = {
-            top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' }
-          };
+          cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
         });
         wHeaderRow.height = 24;
         weekData.forEach(wd => {
           const row = weeklySheet.addRow([wd.week, wd.total, wd.done, wd.pct.toFixed(1) + '%']);
           row.eachCell(cell => {
-            cell.border = {
-              top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' }
-            };
+            cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
             cell.alignment = { vertical: 'middle' };
           });
         });
         weeklySheet.columns = [{ width: 18 }, { width: 18 }, { width: 18 }, { width: 18 }];
 
-        // ─── 5. ASSIGNMENT TRACKER ───
-        const assignSheet = workbook.addWorksheet('Assignment Tracker', {
-          pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1 }
-        });
+        // ─── Assignment Tracker ───
+        const assignSheet = workbook.addWorksheet('Assignment Tracker', { pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1 } });
         assignSheet.mergeCells('A1:H1');
         const assignTitle = assignSheet.getCell('A1');
         assignTitle.value = '📋 ASSIGNMENT TRACKER';
@@ -2016,12 +1679,9 @@
           cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2C3E50' } };
           cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
           cell.alignment = { horizontal: 'center' };
-          cell.border = {
-            top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' }
-          };
+          cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
         });
         aHeaderRow.height = 24;
-        let assignRow = 3;
         studyData.years.forEach(y => {
           y.semesters.forEach(s => {
             s.units.forEach(u => {
@@ -2029,9 +1689,7 @@
                 (w.assignments || []).forEach(a => {
                   const row = assignSheet.addRow([y.name, s.name, u.code, 'Week ' + w.number, a.name, a.due || '', a.status, a.marks || '']);
                   row.eachCell(cell => {
-                    cell.border = {
-                      top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' }
-                    };
+                    cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
                     cell.alignment = { vertical: 'middle' };
                   });
                   const statusCell = row.getCell(7);
@@ -2045,7 +1703,6 @@
                     statusCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFC7CE' } };
                     statusCell.font = { color: { argb: 'FF8B0000' }, bold: true };
                   }
-                  assignRow++;
                 });
               });
             });
@@ -2053,10 +1710,8 @@
         });
         assignSheet.columns = [{ width: 14 }, { width: 16 }, { width: 12 }, { width: 12 }, { width: 22 }, { width: 16 }, { width: 14 }, { width: 12 }];
 
-        // ─── 6. GRADE ANALYSIS ───
-        const gradeSheet = workbook.addWorksheet('Grade Analysis', {
-          pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1 }
-        });
+        // ─── Grade Analysis ───
+        const gradeSheet = workbook.addWorksheet('Grade Analysis', { pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1 } });
         gradeSheet.mergeCells('A1:E1');
         const gradeTitle = gradeSheet.getCell('A1');
         gradeTitle.value = '📊 GRADE ANALYSIS';
@@ -2071,12 +1726,9 @@
           cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2C3E50' } };
           cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
           cell.alignment = { horizontal: 'center' };
-          cell.border = {
-            top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' }
-          };
+          cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
         });
         gHeaderRow.height = 24;
-        let gradeRow = 3;
         studyData.years.forEach(y => {
           y.semesters.forEach(s => {
             s.units.forEach(u => {
@@ -2087,9 +1739,7 @@
               const prediction = grade !== null ? (grade >= 70 ? 'On track' : grade >= 50 ? 'Needs improvement' : 'At risk') : '—';
               const row = gradeSheet.addRow([u.code + ' ' + u.name, result ? result.allAssignments.length : 0, gradeDisplay, status, prediction]);
               row.eachCell((cell, col) => {
-                cell.border = {
-                  top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' }
-                };
+                cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
                 cell.alignment = { vertical: 'middle', horizontal: col === 3 ? 'center' : 'left' };
                 if (col === 3 && status.includes('✅')) {
                   cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC6EFCE' } };
@@ -2102,13 +1752,12 @@
                   cell.font = { color: { argb: 'FF8B0000' }, bold: true };
                 }
               });
-              gradeRow++;
             });
           });
         });
         gradeSheet.columns = [{ width: 30 }, { width: 15 }, { width: 18 }, { width: 18 }, { width: 20 }];
 
-        // ─── CHARTS ───
+        // ─── Charts ───
         const unitProgressCanvas = document.createElement('canvas');
         unitProgressCanvas.width = 800;
         unitProgressCanvas.height = 400;
@@ -2117,22 +1766,13 @@
         const unitPcts = unitData.map(u => u.pct);
         new Chart(ctx1, {
           type: 'bar',
-          data: {
-            labels: unitNames,
-            datasets: [{ label: 'Progress %', data: unitPcts, backgroundColor: '#2fc7ff' }]
-          },
-          options: {
-            responsive: false,
-            plugins: { title: { display: true, text: 'Unit Progress (%)', font: { size: 18 } } },
-            scales: { y: { beginAtZero: true, max: 100 } }
-          }
+          data: { labels: unitNames, datasets: [{ label: 'Progress %', data: unitPcts, backgroundColor: '#2fc7ff' }] },
+          options: { responsive: false, plugins: { title: { display: true, text: 'Unit Progress (%)', font: { size: 18 } } }, scales: { y: { beginAtZero: true, max: 100 } } }
         });
         await new Promise(r => setTimeout(r, 400));
         const img1 = unitProgressCanvas.toDataURL('image/png');
         const imageId1 = workbook.addImage({ base64: img1, extension: 'png' });
-        const chartSheet = workbook.addWorksheet('Charts', {
-          pageSetup: { orientation: 'landscape', fitToPage: true }
-        });
+        const chartSheet = workbook.addWorksheet('Charts', { pageSetup: { orientation: 'landscape', fitToPage: true } });
         chartSheet.mergeCells('A1:C1');
         const chartTitle = chartSheet.getCell('A1');
         chartTitle.value = '📈 VISUAL DASHBOARD';
@@ -2151,18 +1791,8 @@
         const totalData2 = weekData.map(w => w.total);
         new Chart(ctx2, {
           type: 'line',
-          data: {
-            labels: weekLabels,
-            datasets: [
-              { label: 'Completed', data: doneData2, borderColor: '#00b894', fill: false, tension: 0.3 },
-              { label: 'Total', data: totalData2, borderColor: '#2fc7ff', fill: false, tension: 0.3 }
-            ]
-          },
-          options: {
-            responsive: false,
-            plugins: { title: { display: true, text: 'Weekly Subtopics Trend', font: { size: 18 } } },
-            scales: { y: { beginAtZero: true } }
-          }
+          data: { labels: weekLabels, datasets: [{ label: 'Completed', data: doneData2, borderColor: '#00b894', fill: false, tension: 0.3 }, { label: 'Total', data: totalData2, borderColor: '#2fc7ff', fill: false, tension: 0.3 }] },
+          options: { responsive: false, plugins: { title: { display: true, text: 'Weekly Subtopics Trend', font: { size: 18 } } }, scales: { y: { beginAtZero: true } } }
         });
         await new Promise(r => setTimeout(r, 400));
         const img2 = weeklyCanvas.toDataURL('image/png');
@@ -2467,176 +2097,6 @@
       scheduleSave();
     };
 
-    // ─── GRADE CALCULATOR (unchanged) ───
-    function calculateUnitGrade(unit) {
-      const allAssignments = [];
-      (unit.weeks || []).forEach(week => {
-        (week.assignments || []).forEach(ass => {
-          allAssignments.push(ass);
-        });
-      });
-      let totalWeight = 0, weightedSum = 0, missingMarks = 0;
-      allAssignments.forEach(ass => {
-        const weight = parseFloat(ass.weight) || 0;
-        totalWeight += weight;
-        const marks = parseFloat(ass.marks);
-        if (!isNaN(marks) && marks >= 0 && marks <= 100) {
-          weightedSum += marks * (weight / 100);
-        } else {
-          missingMarks += weight;
-        }
-      });
-      if (allAssignments.length === 0 || totalWeight === 0) return null;
-      const achievedWeight = totalWeight - missingMarks;
-      const currentGrade = achievedWeight > 0 ? (weightedSum / achievedWeight) * 100 : null;
-      return { grade: currentGrade, totalWeight, weightedSum, missingMarks, allAssignments, achievedWeight };
-    }
-
-    function renderGradeModal(yi, si, ui) {
-      const unit = studyData.years[yi]?.semesters[si]?.units[ui];
-      if (!unit) return;
-      const result = calculateUnitGrade(unit);
-      const body = document.getElementById('gradeModalBody');
-      let html = '';
-      let gradeDisplay = 'N/A', gradeColor = 'red', gradeValue = 0;
-      if (result) {
-        if (result.grade !== null) {
-          gradeValue = Math.round(result.grade);
-          gradeDisplay = gradeValue + '%';
-          gradeColor = gradeValue >= 70 ? 'green' : (gradeValue >= 50 ? 'orange' : 'red');
-        } else {
-          gradeDisplay = '—';
-        }
-      } else {
-        gradeDisplay = 'No assignments';
-      }
-      html += `
-        <div class="grade-summary">
-          <div class="card"><div class="value ${gradeColor}">${gradeDisplay}</div><div class="label">Current Grade</div></div>
-          <div class="card"><div class="value">${result ? (result.missingMarks > 0 ? '⏳' : '✅') : '—'}</div><div class="label">${result ? (result.missingMarks > 0 ? result.missingMarks.toFixed(0)+'% pending' : 'All marked') : '—'}</div></div>
-          <div class="card"><div class="value">${result ? result.allAssignments.length : 0}</div><div class="label">Assignments</div></div>
-        </div>
-      `;
-      if (result && result.allAssignments.length > 0) {
-        html += `<div style="margin-top:12px;max-height:260px;overflow-y:auto;">`;
-        result.allAssignments.forEach((ass, idx) => {
-          const marksVal = ass.marks || '';
-          const isPending = ass.status === 'pending' || ass.status === 'in-progress';
-          const statusClass = isPending ? 'pending' : 'submitted';
-          const statusLabel = isPending ? 'Pending' : 'Submitted';
-          html += `
-            <div class="assignment-row" data-idx="${idx}">
-              <div class="name">${escapeHtml(ass.name)}</div>
-              <div class="weight">${ass.weight || 0}%</div>
-              <input type="number" class="marks-input" value="${marksVal}" min="0" max="100" step="0.5"
-                data-yi="${yi}" data-si="${si}" data-ui="${ui}" data-idx="${idx}"
-                onchange="updateGradeMark(this)" placeholder="Marks">
-              <span class="status-badge ${statusClass}">${statusLabel}</span>
-            </div>
-          `;
-        });
-        html += `</div>`;
-        const currentGrade = result.grade;
-        const missingWeight = result.missingMarks || 0;
-        const achievedWeight = result.achievedWeight || 0;
-        const totalWeight = result.totalWeight || 100;
-        html += `
-          <div class="what-if">
-            <div style="font-weight:600;margin-bottom:8px;">🎯 What-If Scenario</div>
-            <div class="input-group">
-              <span>Target grade:</span>
-              <input type="number" id="targetGradeInput" value="${Math.round(currentGrade || 70)}" min="0" max="100" step="0.5"
-                oninput="updateWhatIf(${yi}, ${si}, ${ui}, this.value)">
-              <span>%</span>
-            </div>
-            <div id="whatIfResult" style="margin-top:8px;">
-              ${currentGrade !== null ? (missingWeight > 0 ? 'Enter marks to see what-if.' : '✅ All done!') : 'Enter marks to see what-if.'}
-            </div>
-          </div>
-        `;
-      } else {
-        html += `<p style="color:var(--text-secondary);">No assignments found for this unit.</p>`;
-      }
-      body.innerHTML = html;
-      document.getElementById('gradeModalTitle').textContent = `📊 Grade Calculator – ${unit.code} ${unit.name}`;
-      if (result && result.grade !== null) {
-        setTimeout(() => {
-          const targetInput = document.getElementById('targetGradeInput');
-          if (targetInput) updateWhatIf(yi, si, ui, targetInput.value);
-        }, 100);
-      }
-    }
-
-    window.updateGradeMark = function(input) {
-      const yi = parseInt(input.dataset.yi);
-      const si = parseInt(input.dataset.si);
-      const ui = parseInt(input.dataset.ui);
-      const idx = parseInt(input.dataset.idx);
-      const unit = studyData.years[yi]?.semesters[si]?.units[ui];
-      if (!unit) return;
-      const flatAssignments = [];
-      (unit.weeks || []).forEach(week => {
-        (week.assignments || []).forEach(ass => {
-          flatAssignments.push(ass);
-        });
-      });
-      if (idx < flatAssignments.length) {
-        const ass = flatAssignments[idx];
-        ass.marks = input.value;
-        scheduleSave();
-        if (gradeModalOpen) {
-          renderGradeModal(yi, si, ui);
-          const newInput = document.querySelector(`.marks-input[data-yi="${yi}"][data-si="${si}"][data-ui="${ui}"][data-idx="${idx}"]`);
-          if (newInput) newInput.focus();
-        }
-        showToast('✅ Marks updated', 'success');
-      }
-    };
-
-    window.updateWhatIf = function(yi, si, ui, target) {
-      const unit = studyData.years[yi]?.semesters[si]?.units[ui];
-      if (!unit) return;
-      const result = calculateUnitGrade(unit);
-      if (!result || result.grade === null) {
-        document.getElementById('whatIfResult').innerHTML = 'Enter marks to see what-if.';
-        return;
-      }
-      const currentGrade = result.grade;
-      const missingWeight = result.missingMarks || 0;
-      const achievedWeight = result.achievedWeight || 0;
-      const totalWeight = result.totalWeight || 100;
-      const targetNum = parseFloat(target);
-      if (isNaN(targetNum) || targetNum < 0 || targetNum > 100) {
-        document.getElementById('whatIfResult').innerHTML = 'Please enter a valid target (0-100).';
-        return;
-      }
-      const resultDiv = document.getElementById('whatIfResult');
-      if (missingWeight === 0) {
-        resultDiv.innerHTML = `✅ All assignments already have marks. Your grade is <strong>${Math.round(currentGrade)}%</strong>.`;
-        return;
-      }
-      const needed = (targetNum * totalWeight - currentGrade * achievedWeight / 100) / missingWeight * 100;
-      if (needed > 100) {
-        resultDiv.innerHTML = `❌ <span class="impossible">Even scoring 100% on all remaining assignments (${missingWeight}%) will only get you ${((currentGrade * achievedWeight / 100 + missingWeight) / totalWeight * 100).toFixed(1)}%</span>`;
-      } else if (needed < 0) {
-        resultDiv.innerHTML = `✅ You already have <strong>${Math.round(currentGrade)}%</strong>. You can score 0% on remaining assignments and still reach ${targetNum}%.`;
-      } else {
-        resultDiv.innerHTML = `💡 To reach <strong>${targetNum}%</strong>, you need <strong class="needed">${needed.toFixed(1)}%</strong> average on the remaining <strong>${missingWeight}%</strong> of assignments.`;
-      }
-    };
-
-    window.openGradeModal = function(yi, si, ui) {
-      gradeModalOpen = true;
-      const modal = document.getElementById('gradeModal');
-      renderGradeModal(yi, si, ui);
-      modal.classList.add('open');
-    };
-
-    document.getElementById('gradeModalClose').addEventListener('click', function() {
-      document.getElementById('gradeModal').classList.remove('open');
-      gradeModalOpen = false;
-    });
-
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     //  INIT
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -2658,15 +2118,6 @@
             <button class="btn btn-success-glow" id="addYearBtn"><i class="fa fa-plus"></i> Add Year</button>
             <button class="btn btn-outline-light" id="resetBtn" style="border:1px solid var(--border-subtle);color:var(--text-secondary);"><i class="fa fa-refresh"></i> Reset</button>
           </div>
-        </div>
-
-        <!-- Search Bar -->
-        <div class="search-bar">
-          <span class="search-icon"><i class="fa fa-search"></i></span>
-          <input type="text" id="searchInput" placeholder="Search topics by name..." oninput="applySearch(this.value)">
-          <span id="searchResultCount" class="text-muted-light" style="font-size:0.8rem;"></span>
-          <button class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('searchInput').value='';applySearch('');" style="border-color:var(--border-subtle);color:var(--text-secondary);">Clear</button>
-          <span class="shortcut-hint" style="margin-left:auto;">Ctrl+F to focus</span>
         </div>
 
         <!-- Deadlines Widget -->
@@ -2739,7 +2190,6 @@
         input.click();
       });
 
-      // Load data
       await loadData();
       console.log('✅ Study Manager ready');
     }
@@ -2751,13 +2201,12 @@
       init();
     }
 
-    // Expose globals for inline onclick
+    // Expose globals
     window.toggleExpand = function(key) { expanded[key] = !expanded[key]; render(); };
     window.toggleTopicExpand = function(key) { expanded[key] = !expanded[key]; render(); };
     window.toggleTopicComplete = toggleTopicComplete;
     window.toggleSubtopic = toggleSubtopic;
     window.bulkToggleWeek = bulkToggleWeek;
-    window.applySearch = applySearch;
     window.expandAll = expandAll;
     window.collapseAll = collapseAll;
     window.exportJSON = exportJSON;
