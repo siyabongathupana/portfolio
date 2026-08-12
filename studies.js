@@ -1,4 +1,4 @@
-// studies.js – Study Manager (complete)
+// studies.js – Study Manager (complete, with null checks)
 (function() {
   'use strict';
 
@@ -31,15 +31,17 @@
 
   const ALLOWED_USER = 'siyabongatshem@gmail.com';
   if (user.username !== ALLOWED_USER) {
-    document.getElementById('contentArea').innerHTML = `
-      <div class="access-denied">
-        <div class="icon"><i class="fa fa-lock"></i></div>
-        <h2>Access Restricted</h2>
-        <p>This page is only available to the owner of this portfolio.</p>
-        <button class="btn btn-primary-glow mt-3" onclick="window.location.href='index.html'">Go Home</button>
-      </div>
-    `;
-    // Hide spinner
+    const contentArea = document.getElementById('contentArea');
+    if (contentArea) {
+      contentArea.innerHTML = `
+        <div class="access-denied">
+          <div class="icon"><i class="fa fa-lock"></i></div>
+          <h2>Access Restricted</h2>
+          <p>This page is only available to the owner of this portfolio.</p>
+          <button class="btn btn-primary-glow mt-3" onclick="window.location.href='index.html'">Go Home</button>
+        </div>
+      `;
+    }
     const loader = document.getElementById('initialLoading');
     if (loader) loader.style.display = 'none';
     return;
@@ -1456,46 +1458,63 @@
       </div>
     `;
 
-    // ─── Bind buttons ───
-    document.getElementById('syncBtn').addEventListener('click', async function() {
-      showToast('🔄 Syncing...', 'info');
-      try {
-        const data = await loadFromGitHub();
-        if (data) {
-          studyData = data;
-          render();
-          showToast('✅ Synced from GitHub', 'success');
-        } else {
-          showToast('ℹ️ No valid study data on GitHub. Keeping local data.', 'info');
+    // ─── Bind buttons with null checks ───
+    const syncBtn = document.getElementById('syncBtn');
+    if (syncBtn) {
+      syncBtn.addEventListener('click', async function() {
+        showToast('🔄 Syncing...', 'info');
+        try {
+          const data = await loadFromGitHub();
+          if (data) {
+            studyData = data;
+            render();
+            showToast('✅ Synced from GitHub', 'success');
+          } else {
+            showToast('ℹ️ No valid study data on GitHub. Keeping local data.', 'info');
+          }
+        } catch (err) {
+          console.error('Sync error:', err);
+          showToast('❌ Sync failed: ' + err.message, 'error');
         }
-      } catch (err) {
-        console.error('Sync error:', err);
-        showToast('❌ Sync failed: ' + err.message, 'error');
-      }
-    });
+      });
+    }
 
-    document.getElementById('resetBtn').addEventListener('click', function() {
-      if (!confirm('⚠️ Reset ALL data? This will restore the default study plan. Any custom data will be lost.')) return;
-      studyData = getDefaultData();
-      expanded = {};
-      render();
-      scheduleSave();
-      showToast('🔄 Reset to default', 'info');
-    });
+    const resetBtn = document.getElementById('resetBtn');
+    if (resetBtn) {
+      resetBtn.addEventListener('click', function() {
+        if (!confirm('⚠️ Reset ALL data? This will restore the default study plan. Any custom data will be lost.')) return;
+        studyData = getDefaultData();
+        expanded = {};
+        render();
+        scheduleSave();
+        showToast('🔄 Reset to default', 'info');
+      });
+    }
 
-    document.getElementById('addYearBtn').addEventListener('click', window.addYear);
-    document.getElementById('exportBtn').addEventListener('click', window.exportToExcel);
-    document.getElementById('exportJsonBtn').addEventListener('click', exportJSON);
-    document.getElementById('importJsonBtn').addEventListener('click', () => {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = '.json';
-      input.onchange = (e) => {
-        if (e.target.files.length) importJSON(e.target.files[0]);
-        e.target.value = '';
-      };
-      input.click();
-    });
+    const addYearBtn = document.getElementById('addYearBtn');
+    if (addYearBtn) addYearBtn.addEventListener('click', window.addYear);
+
+    const exportBtn = document.getElementById('exportBtn');
+    if (exportBtn) exportBtn.addEventListener('click', window.exportToExcel);
+
+    const exportJsonBtn = document.getElementById('exportJsonBtn');
+    if (exportJsonBtn) {
+      exportJsonBtn.addEventListener('click', exportJSON);
+    }
+
+    const importJsonBtn = document.getElementById('importJsonBtn');
+    if (importJsonBtn) {
+      importJsonBtn.addEventListener('click', () => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json';
+        input.onchange = (e) => {
+          if (e.target.files.length) importJSON(e.target.files[0]);
+          e.target.value = '';
+        };
+        input.click();
+      });
+    }
 
     await loadData();
     console.log('✅ Study Manager ready');
