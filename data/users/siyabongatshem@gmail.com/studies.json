@@ -1289,7 +1289,7 @@
                         "Gas laws",
                         "Principles of multiphase systems"
                       ],
-                      "completed": false,
+                      "completed": true,
                       "subCompleted": [
                         true,
                         true,
@@ -1297,7 +1297,7 @@
                         true,
                         true,
                         true,
-                        false
+                        true
                       ]
                     }
                   ],
