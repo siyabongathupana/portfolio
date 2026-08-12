@@ -33,15 +33,7 @@
                       ]
                     }
                   ],
-                  "assignments": [
-                    {
-                      "name": "Weekly Quiz 1",
-                      "due": "",
-                      "status": "pending",
-                      "marks": "",
-                      "weight": 10
-                    }
-                  ]
+                  "assignments": []
                 },
                 {
                   "number": 2,
