@@ -1220,8 +1220,8 @@
                   "assignments": [
                     {
                       "name": "C Programming Project",
-                      "due": "",
-                      "status": "pending",
+                      "due": "2026-10-16",
+                      "status": "in-progress",
                       "marks": "",
                       "weight": 25
                     },
