@@ -455,6 +455,13 @@
                       "status": "pending",
                       "marks": "",
                       "weight": 10
+                    },
+                    {
+                      "name": "Assessmet2 - Test",
+                      "due": "2026-09-01",
+                      "status": "pending",
+                      "marks": "",
+                      "weight": 25
                     }
                   ]
                 },
