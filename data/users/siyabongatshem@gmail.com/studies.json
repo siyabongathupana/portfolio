@@ -608,10 +608,10 @@
                         "CAD software demonstration",
                         "Creating simple parts"
                       ],
-                      "completed": false,
+                      "completed": true,
                       "subCompleted": [
                         true,
-                        false
+                        true
                       ]
                     }
                   ],
