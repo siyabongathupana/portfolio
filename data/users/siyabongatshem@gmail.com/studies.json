@@ -535,11 +535,11 @@
                   ],
                   "assignments": [
                     {
-                      "name": "Test (Invigilated)",
-                      "due": "2026-09-01",
+                      "name": "Quiz 5",
+                      "due": "2026-09-13",
                       "status": "pending",
                       "marks": "",
-                      "weight": 25
+                      "weight": 10
                     }
                   ]
                 },
