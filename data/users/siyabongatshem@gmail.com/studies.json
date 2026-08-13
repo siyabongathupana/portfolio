@@ -378,15 +378,7 @@
                       ]
                     }
                   ],
-                  "assignments": [
-                    {
-                      "name": "Portfolio Week 1",
-                      "due": "",
-                      "status": "pending",
-                      "marks": "",
-                      "weight": 10
-                    }
-                  ]
+                  "assignments": []
                 },
                 {
                   "number": 2,
