@@ -9,7 +9,6 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
-  <!-- Core dependencies -->
   <script src="config.js"></script>
   <script src="crypto.js"></script>
   <script src="api.js"></script>
@@ -195,7 +194,14 @@
     .shortcut-hint { font-size: 0.7rem; color: var(--text-secondary); opacity: 0.6; margin-left: 8px; }
     @media (max-width: 480px) { .shortcut-hint { display: none; } }
 
-    /* ─── New styles for search and compact mode ─── */
+    /* ─── Save status indicator ─── */
+    .save-status { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; color: var(--text-secondary); }
+    .save-status .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+    .save-status .dot.saved { background: var(--green); }
+    .save-status .dot.saving { background: var(--orange); animation: pulse 1s infinite; }
+    .save-status .dot.error { background: var(--red); }
+    .save-status .dot.offline { background: var(--orange); }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
     .search-bar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
     .search-bar input { background: rgba(255,255,255,0.06); border: 1px solid var(--border-subtle); border-radius: 40px; padding: 8px 18px; color: var(--text-primary); font-size: 0.9rem; outline: none; transition: 0.2s; min-width: 200px; }
     .search-bar input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(47,199,255,0.1); }
@@ -272,9 +278,6 @@
   <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 
   <script>
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    //  ENTIRE SCRIPT WRAPPED IN IIFE TO ALLOW `return`
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     (function() {
       'use strict';
 
@@ -307,7 +310,6 @@
         return;
       }
 
-      // Hide spinner if not authorised
       const loader = document.getElementById('initialLoading');
 
       if (user.username !== ALLOWED_USER) {
@@ -445,8 +447,6 @@
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       let studyData = { years: [] };
       let expanded = {};
-      let saveDebounceTimer = null;
-      const DEBOUNCE_DELAY = 300;
       let analyticsChart = null;
       let compactMode = false;
       let searchTerm = '';
@@ -454,107 +454,83 @@
       let gradeModalOpen = false;
 
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      //  CACHE & SAVE QUEUE (same as timesheet)
+      //  NEW SAVE MANAGER STATE
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      const SAVE_QUEUE_KEY = 'studies_save_queue';
-      let isProcessing = false;
-      let saveRetryTimer = null;
-      let retryCount = 0;
-      const MAX_RETRIES = 5;
-      const BASE_RETRY_DELAY = 2000;
+      let saveVersion = 0;
+      let savedVersion = 0;
+      let isSaving = false;
+      let currentFileSha = null;         // cached SHA from GitHub
+      let saveStatus = 'saved';          // 'saved', 'saving', 'offline', 'error'
+      let debounceTimer = null;
+      let maxWaitTimer = null;
+      const DEBOUNCE_DELAY = 1000;        // 1 second
+      const MAX_SAVE_DELAY = 5000;        // 5 seconds
 
-      function loadSaveQueue() {
-        try { return JSON.parse(localStorage.getItem(SAVE_QUEUE_KEY) || '[]'); } catch { return []; }
-      }
-      function persistSaveQueue(queue) {
-        localStorage.setItem(SAVE_QUEUE_KEY, JSON.stringify(queue));
-      }
-      function enqueueSave() {
-        const queue = loadSaveQueue();
-        queue.push({ data: JSON.parse(JSON.stringify(studyData)), timestamp: Date.now() });
-        if (queue.length > 10) queue.shift();
-        persistSaveQueue(queue);
-        if (!isProcessing) processQueue();
-      }
-      function scheduleSave() {
-        if (saveDebounceTimer) clearTimeout(saveDebounceTimer);
-        saveDebounceTimer = setTimeout(() => {
-          saveDebounceTimer = null;
-          enqueueSave();
-        }, DEBOUNCE_DELAY);
-      }
-      function forceSave() {
-        if (saveDebounceTimer) { clearTimeout(saveDebounceTimer); saveDebounceTimer = null; }
-        enqueueSave();
-      }
+      // Offline detection
+      let isOffline = false;
+      window.addEventListener('online', () => {
+        isOffline = false;
+        updateSaveStatusUI('saved');
+        if (savedVersion !== saveVersion) {
+          scheduleSave();
+        }
+      });
+      window.addEventListener('offline', () => {
+        isOffline = true;
+        updateSaveStatusUI('offline');
+      });
 
-      async function processQueue() {
-        if (isProcessing) return;
-        const queue = loadSaveQueue();
-        if (queue.length === 0) return;
-        isProcessing = true;
-        const latest = queue[queue.length - 1];
-        try {
-          await saveToGitHub(latest.data);
-          persistSaveQueue([]);
-          retryCount = 0;
-          showToast('✅ Study data saved to GitHub', 'success');
-        } catch (err) {
-          if (retryCount < MAX_RETRIES) {
-            retryCount++;
-            const delay = BASE_RETRY_DELAY * Math.pow(2, retryCount - 1);
-            if (saveRetryTimer) clearTimeout(saveRetryTimer);
-            saveRetryTimer = setTimeout(() => {
-              saveRetryTimer = null;
-              isProcessing = false;
-              processQueue();
-            }, delay);
-            showToast(`⚠️ Save failed – retry ${retryCount}/${MAX_RETRIES}`, 'error');
-          } else {
-            showToast('❌ Save failed after multiple retries. Data is cached locally.', 'error');
-            persistSaveQueue(queue);
-            isProcessing = false;
-            retryCount = 0;
-          }
-        } finally {
-          if (saveRetryTimer === null && retryCount === 0) {
-            isProcessing = false;
-          }
+      function updateSaveStatusUI(status) {
+        saveStatus = status;
+        const dot = document.getElementById('saveStatusDot');
+        const label = document.getElementById('saveStatusLabel');
+        if (!dot || !label) return;
+        dot.className = 'dot ' + status;
+        const messages = {
+          saved: 'Saved',
+          saving: 'Saving…',
+          error: 'Error',
+          offline: 'Offline'
+        };
+        label.textContent = messages[status] || 'Saved';
+        // If offline, also show a small indicator
+        if (status === 'offline') {
+          label.textContent = 'Offline (local)';
         }
       }
 
-      async function saveToGitHub(data) {
-        const { owner, repo, branch } = window.REPO_CONFIG;
-        const path = getStudyPath();
-        let sha = null;
-        try {
-          const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
-          if (existing && existing.sha) sha = existing.sha;
-        } catch(e) {}
-        await GitHubAPI.updateFile(owner, repo, path, data, 'Update study data', branch, user.pat, sha);
-        saveToCache(data);
-      }
-
-      function getStudyPath() {
-        const { dataPath } = window.REPO_CONFIG;
-        const encUser = encodeURIComponent(user.username);
-        return `${dataPath}/users/${encUser}/studies.json`;
-      }
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      //  CACHE (localStorage) – immediate persistence
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      const CACHE_KEY = 'studies_data_cache';
 
       function saveToCache(data) {
         try {
-          localStorage.setItem('studies_data_cache', JSON.stringify({ data, timestamp: Date.now() }));
+          localStorage.setItem(CACHE_KEY, JSON.stringify({ data, timestamp: Date.now(), version: '2.0' }));
         } catch(e) {}
       }
+
       function loadFromCache() {
         try {
-          const raw = localStorage.getItem('studies_data_cache');
+          const raw = localStorage.getItem(CACHE_KEY);
           if (raw) {
             const parsed = JSON.parse(raw);
-            if (parsed && parsed.data && parsed.data.years) return parsed.data;
+            if (parsed && parsed.data && parsed.data.years) {
+              console.log('📦 Loaded from cache');
+              return parsed.data;
+            }
           }
         } catch(e) {}
         return null;
+      }
+
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      //  GITHUB PATH
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      function getStudyPath() {
+        const { dataPath } = window.REPO_CONFIG || { dataPath: 'data' };
+        const encUser = encodeURIComponent(user.username);
+        return `${dataPath}/users/${encUser}/studies.json`;
       }
 
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -573,11 +549,13 @@
             render();
           }
 
+          // Try GitHub
           try {
-            const githubData = await loadFromGitHub();
-            if (githubData) {
-              studyData = githubData;
-              console.log('✅ Updated from GitHub');
+            const result = await loadFromGitHub();
+            if (result) {
+              studyData = result.data;
+              currentFileSha = result.sha;   // store SHA for future saves
+              console.log('✅ Updated from GitHub, SHA stored');
               render();
               saveToCache(studyData);
             }
@@ -586,14 +564,14 @@
             if (!studyData.years || studyData.years.length === 0) {
               studyData = getDefaultData();
               render();
-              enqueueSave();
+              markDirty();
             }
           }
 
           if (!studyData.years || studyData.years.length === 0) {
             studyData = getDefaultData();
             render();
-            enqueueSave();
+            markDirty();
           }
 
           console.log('✅ loadData finished');
@@ -616,6 +594,7 @@
           return false;
         } finally {
           if (loader) loader.style.display = 'none';
+          updateSaveStatusUI('saved');
         }
       }
 
@@ -631,16 +610,194 @@
         const data = await resp.json();
         const content = atob(data.content.replace(/\n/g, ''));
         const parsed = JSON.parse(content);
-        if (parsed && parsed.years) return parsed;
+        if (parsed && parsed.years) {
+          return { data: parsed, sha: data.sha };
+        }
         return null;
       }
 
-      window.addEventListener('beforeunload', () => {
-        if (saveDebounceTimer) {
-          clearTimeout(saveDebounceTimer);
-          forceSave();
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      //  NEW SAVE MANAGER
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+      // Called whenever data changes (CRUD, toggles, etc.)
+      function markDirty() {
+        // 1. Immediately persist to localStorage
+        saveToCache(studyData);
+
+        // 2. Increment version – this is the only thing that matters
+        saveVersion++;
+
+        // 3. Update status
+        if (!isOffline) {
+          updateSaveStatusUI('saving');
+        } else {
+          updateSaveStatusUI('offline');
         }
-      });
+
+        // 4. Schedule a GitHub save
+        scheduleSave();
+      }
+
+      function scheduleSave() {
+        clearTimeout(debounceTimer);
+        clearTimeout(maxWaitTimer);
+
+        // Debounce timer
+        debounceTimer = setTimeout(() => {
+          debounceTimer = null;
+          maxWaitTimer = null;
+          runSaveManager();
+        }, DEBOUNCE_DELAY);
+
+        // Maximum wait – never let unsaved changes stay longer than 5s
+        maxWaitTimer = setTimeout(() => {
+          maxWaitTimer = null;
+          if (debounceTimer) {
+            clearTimeout(debounceTimer);
+            debounceTimer = null;
+          }
+          runSaveManager();
+        }, MAX_SAVE_DELAY);
+      }
+
+      async function runSaveManager() {
+        // If we're offline, skip and wait for online event
+        if (isOffline) {
+          updateSaveStatusUI('offline');
+          return;
+        }
+
+        // If already saving, the version counter will trigger another save later
+        if (isSaving) {
+          return;
+        }
+
+        // No new changes
+        if (savedVersion === saveVersion) {
+          updateSaveStatusUI('saved');
+          return;
+        }
+
+        isSaving = true;
+        updateSaveStatusUI('saving');
+
+        try {
+          // Loop until we catch up with all changes
+          while (savedVersion !== saveVersion) {
+            const versionToSave = saveVersion;
+            // Snapshot current data
+            const dataToSave = JSON.parse(JSON.stringify(studyData));
+
+            try {
+              await saveToGitHub(dataToSave);
+              // If successful, mark this version as saved
+              savedVersion = versionToSave;
+              updateSaveStatusUI('saved');
+            } catch (err) {
+              // Handle 409 Conflict – refresh SHA and retry
+              if (err.status === 409) {
+                console.warn('409 Conflict – refreshing SHA and retrying...');
+                try {
+                  const latest = await refreshSHAFromGitHub();
+                  if (latest) {
+                    currentFileSha = latest.sha;
+                    // Retry the same version (loop will continue)
+                    continue;
+                  } else {
+                    throw new Error('Could not refresh SHA');
+                  }
+                } catch (refreshErr) {
+                  console.error('Failed to refresh SHA:', refreshErr);
+                  // Fall through – we'll handle the error below
+                  throw refreshErr;
+                }
+              } else {
+                // Other errors – rethrow
+                throw err;
+              }
+            }
+          }
+          // All changes saved
+          updateSaveStatusUI('saved');
+        } catch (err) {
+          console.error('Save failed:', err);
+          updateSaveStatusUI('error');
+          // Smart retry: if it's a network or 5xx error, retry after a delay
+          if (err.status >= 500 || err.message.includes('network') || err.message.includes('fetch')) {
+            setTimeout(() => {
+              if (savedVersion !== saveVersion) {
+                runSaveManager();
+              }
+            }, 5000);
+          } else if (err.status === 401) {
+            // Token expired – redirect to login
+            showToast('GitHub token expired. Please log in again.', 'error');
+            window.SessionManager.logout();
+            window.location.href = 'login.html?redirect=studies';
+          } else {
+            // For other errors, try again after 10s
+            setTimeout(() => {
+              if (savedVersion !== saveVersion) {
+                runSaveManager();
+              }
+            }, 10000);
+          }
+        } finally {
+          isSaving = false;
+          // If new changes came in during the save, start a new save
+          if (savedVersion !== saveVersion) {
+            runSaveManager();
+          }
+        }
+      }
+
+      async function saveToGitHub(data) {
+        const { owner, repo, branch } = window.REPO_CONFIG;
+        const path = getStudyPath();
+        // Use cached SHA – this is the key improvement
+        let sha = currentFileSha;
+
+        try {
+          const result = await GitHubAPI.updateFile(
+            owner,
+            repo,
+            path,
+            data,
+            'Update study data',
+            branch,
+            user.pat,
+            sha
+          );
+          // Update SHA from response
+          if (result && result.content && result.content.sha) {
+            currentFileSha = result.content.sha;
+          } else {
+            // Fallback: fetch the file to get SHA
+            const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
+            if (file && file.sha) currentFileSha = file.sha;
+          }
+          return true;
+        } catch (err) {
+          // Check for 409 conflict
+          if (err.message && err.message.includes('409')) {
+            err.status = 409;
+          }
+          throw err;
+        }
+      }
+
+      async function refreshSHAFromGitHub() {
+        const { owner, repo, branch } = window.REPO_CONFIG;
+        const path = getStudyPath();
+        try {
+          const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
+          if (file && file.sha) {
+            return { sha: file.sha, content: file.content };
+          }
+        } catch(e) {}
+        return null;
+      }
 
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       //  HELPERS
@@ -1020,7 +1177,7 @@
       }
 
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      //  TOGGLE FUNCTIONS
+      //  TOGGLE FUNCTIONS (they now call markDirty)
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       window.toggleExpand = function(key) {
         expanded[key] = !expanded[key];
@@ -1044,7 +1201,7 @@
         renderStats();
         renderAnalytics();
         renderDeadlines();
-        scheduleSave();
+        markDirty(); // This replaces scheduleSave
       };
       window.toggleSubtopic = function(el, yi, si, ui, wi, ti, si2) {
         const topic = getTopic(yi, si, ui, wi, ti);
@@ -1068,7 +1225,7 @@
         renderStats();
         renderAnalytics();
         renderDeadlines();
-        scheduleSave();
+        markDirty();
       };
       window.bulkToggleWeek = function(yi, si, ui, wi, complete) {
         const week = studyData.years[yi]?.semesters[si]?.units[ui]?.weeks[wi];
@@ -1082,7 +1239,7 @@
           }
         });
         render();
-        scheduleSave();
+        markDirty();
         showToast(complete ? '✅ All topics marked complete' : '↩️ All topics uncompleted', 'info');
       };
 
@@ -1133,7 +1290,7 @@
             studyData = data;
             expanded = {};
             render();
-            scheduleSave();
+            markDirty();
             showToast('✅ Study plan imported successfully', 'success');
           } catch (err) {
             showToast('❌ Failed to parse JSON: ' + err.message, 'error');
@@ -1148,7 +1305,7 @@
       document.addEventListener('keydown', (e) => {
         if (e.ctrlKey && e.key === 'e') { e.preventDefault(); expandAll(); }
         if (e.ctrlKey && e.key === 'w') { e.preventDefault(); collapseAll(); }
-        if (e.ctrlKey && e.key === 's') { e.preventDefault(); forceSave(); showToast('🔄 Saving…', 'info'); }
+        if (e.ctrlKey && e.key === 's') { e.preventDefault(); markDirty(); showToast('🔄 Saving…', 'info'); }
         if (e.ctrlKey && e.key === 'f') {
           e.preventDefault();
           const searchInput = document.getElementById('searchInput');
@@ -1274,7 +1431,7 @@
         if (idx < flatAssignments.length) {
           const ass = flatAssignments[idx];
           ass.marks = input.value;
-          scheduleSave();
+          markDirty();
           if (gradeModalOpen) {
             renderGradeModal(yi, si, ui);
             const newInput = document.querySelector(`.marks-input[data-yi="${yi}"][data-si="${si}"][data-ui="${ui}"][data-idx="${idx}"]`);
@@ -1329,7 +1486,7 @@
       });
 
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      //  EXCEL EXPORT (full – 6 sheets, charts, KPIs)
+      //  EXCEL EXPORT (unchanged)
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       window.exportToExcel = async function() {
         if (!studyData.years.length) {
@@ -1708,7 +1865,7 @@
       };
 
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      //  CRUD OPERATIONS (all call scheduleSave)
+      //  CRUD OPERATIONS (now call markDirty instead of scheduleSave)
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       function openModal(title, bodyHTML, onSave) {
         const modal = document.getElementById('genericModal');
@@ -1730,7 +1887,7 @@
           if (result !== false) {
             modal.classList.remove('open');
             render();
-            scheduleSave();
+            markDirty();
             showToast('✅ Saved', 'success');
           }
         }
@@ -1764,7 +1921,7 @@
         if (!confirm('Delete this year and all its semesters, units, weeks, topics, and assignments?')) return;
         studyData.years.splice(yi, 1);
         render();
-        scheduleSave();
+        markDirty();
       };
 
       // ─── Semesters ───
@@ -1795,7 +1952,7 @@
         if (!confirm('Delete this semester and all its units?')) return;
         studyData.years[yi].semesters.splice(si, 1);
         render();
-        scheduleSave();
+        markDirty();
       };
 
       // ─── Units ───
@@ -1836,7 +1993,7 @@
         if (!confirm('Delete this unit and all its weeks, topics, and assignments?')) return;
         studyData.years[yi].semesters[si].units.splice(ui, 1);
         render();
-        scheduleSave();
+        markDirty();
       };
 
       // ─── Weeks ───
@@ -1868,7 +2025,7 @@
         if (!confirm('Delete this week and all its topics and assignments?')) return;
         studyData.years[yi].semesters[si].units[ui].weeks.splice(wi, 1);
         render();
-        scheduleSave();
+        markDirty();
       };
 
       // ─── Topics ───
@@ -1901,7 +2058,7 @@
         const week = studyData.years[yi].semesters[si].units[ui].weeks[wi];
         week.topics.splice(ti, 1);
         render();
-        scheduleSave();
+        markDirty();
       };
 
       // ─── Subtopics ───
@@ -1932,7 +2089,7 @@
           recalcTopicCompletion(topic);
         }
         render();
-        scheduleSave();
+        markDirty();
       };
 
       // ─── Assignments ───
@@ -1990,7 +2147,7 @@
         const week = studyData.years[yi].semesters[si].units[ui].weeks[wi];
         week.assignments.splice(ai, 1);
         render();
-        scheduleSave();
+        markDirty();
       };
 
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -2020,6 +2177,10 @@
               <button class="btn btn-outline-secondary" id="importJsonBtn" style="border-color:var(--border-subtle);color:var(--text-secondary);"><i class="fa fa-upload"></i> Import</button>
               <button class="btn btn-success-glow" id="addYearBtn"><i class="fa fa-plus"></i> Add Year</button>
               <button class="btn btn-outline-light" id="resetBtn" style="border:1px solid var(--border-subtle);color:var(--text-secondary);"><i class="fa fa-refresh"></i> Reset</button>
+              <div class="save-status">
+                <span class="dot saved" id="saveStatusDot"></span>
+                <span id="saveStatusLabel">Saved</span>
+              </div>
             </div>
           </div>
 
@@ -2051,11 +2212,14 @@
         document.getElementById('syncBtn').addEventListener('click', async function() {
           showToast('🔄 Syncing...', 'info');
           try {
-            const data = await loadFromGitHub();
-            if (data) {
-              studyData = data;
+            const result = await loadFromGitHub();
+            if (result) {
+              studyData = result.data;
+              currentFileSha = result.sha;
               render();
+              saveToCache(studyData);
               showToast('✅ Synced from GitHub', 'success');
+              updateSaveStatusUI('saved');
             } else {
               showToast('ℹ️ No valid study data on GitHub. Keeping local data.', 'info');
             }
@@ -2070,7 +2234,7 @@
           studyData = getDefaultData();
           expanded = {};
           render();
-          scheduleSave();
+          markDirty();
           showToast('🔄 Reset to default', 'info');
         });
 
@@ -2099,7 +2263,10 @@
           });
         }
 
+        // Initial load
         await loadData();
+        // Ensure status is correct
+        updateSaveStatusUI('saved');
         console.log('✅ Study Manager ready');
       }
 
@@ -2150,8 +2317,8 @@
       window.openGradeModal = openGradeModal;
       window.updateGradeMark = updateGradeMark;
       window.updateWhatIf = updateWhatIf;
-      window.studyManager = { studyData, render, scheduleSave };
-    })(); // end of IIFE
+      window.studyManager = { studyData, render, markDirty };
+    })();
   </script>
 </body>
 </html>
