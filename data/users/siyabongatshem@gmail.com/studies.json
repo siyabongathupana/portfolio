@@ -803,15 +803,15 @@
                         "Formatting Numbers in Program Output",
                         "Interactive Mode, Batch Mode, and Data Files"
                       ],
-                      "completed": false,
+                      "completed": true,
                       "subCompleted": [
-                        false,
-                        false,
-                        false,
-                        false,
-                        false,
-                        false,
-                        false
+                        true,
+                        true,
+                        true,
+                        true,
+                        true,
+                        true,
+                        true
                       ]
                     }
                   ],
