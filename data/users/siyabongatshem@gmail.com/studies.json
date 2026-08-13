@@ -610,7 +610,7 @@
                       ],
                       "completed": false,
                       "subCompleted": [
-                        false,
+                        true,
                         false
                       ]
                     }
