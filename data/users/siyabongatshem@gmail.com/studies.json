@@ -1542,6 +1542,13 @@
                       "status": "pending",
                       "marks": "",
                       "weight": 10
+                    },
+                    {
+                      "name": "Assessment 3",
+                      "due": "2026-10-23",
+                      "status": "pending",
+                      "marks": "",
+                      "weight": 25
                     }
                   ]
                 },
