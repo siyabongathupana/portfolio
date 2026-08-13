@@ -1,5 +1,17 @@
 [
   {
+    "id": 1786628108512,
+    "date": "2026-08-13",
+    "start": "12:00",
+    "end": "13:30",
+    "hours": 1.5,
+    "project": "Sasol MIBK",
+    "category": "Other",
+    "billable": "yes",
+    "notes": "Discussions",
+    "updatedAt": 1786628108512
+  },
+  {
     "id": 1786627922574,
     "date": "2026-08-13",
     "start": "08:30",
