@@ -58,8 +58,8 @@
                   "assignments": [
                     {
                       "name": "Weekly Quiz 2",
-                      "due": "",
-                      "status": "pending",
+                      "due": "2026-08-16",
+                      "status": "submitted",
                       "marks": "",
                       "weight": 10
                     }
