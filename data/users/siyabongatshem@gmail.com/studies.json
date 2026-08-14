@@ -1664,6 +1664,12 @@
               "name": "Electrical Circuit Theory and Analysis",
               "color": "#2fc7ff",
               "weeks": []
+            },
+            {
+              "code": "BSC103",
+              "name": "Engineering Physics and Materials",
+              "color": "#2fc7ff",
+              "weeks": []
             }
           ]
         }
