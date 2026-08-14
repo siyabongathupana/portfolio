@@ -459,18 +459,21 @@
       let saveVersion = 0;
       let savedVersion = 0;
       let isSaving = false;
-      let currentFileSha = null;
-      let saveStatus = 'saved';
+      let currentFileSha = null;         // cached SHA from GitHub
+      let saveStatus = 'saved';          // 'saved', 'saving', 'offline', 'error'
       let debounceTimer = null;
       let maxWaitTimer = null;
-      const DEBOUNCE_DELAY = 1000;
-      const MAX_SAVE_DELAY = 5000;
+      const DEBOUNCE_DELAY = 1000;        // 1 second
+      const MAX_SAVE_DELAY = 5000;        // 5 seconds
 
+      // Offline detection
       let isOffline = false;
       window.addEventListener('online', () => {
         isOffline = false;
         updateSaveStatusUI('saved');
-        if (savedVersion !== saveVersion) scheduleSave();
+        if (savedVersion !== saveVersion) {
+          scheduleSave();
+        }
       });
       window.addEventListener('offline', () => {
         isOffline = true;
@@ -483,15 +486,28 @@
         const label = document.getElementById('saveStatusLabel');
         if (!dot || !label) return;
         dot.className = 'dot ' + status;
-        const messages = { saved: 'Saved', saving: 'Saving…', error: 'Error', offline: 'Offline' };
+        const messages = {
+          saved: 'Saved',
+          saving: 'Saving…',
+          error: 'Error',
+          offline: 'Offline'
+        };
         label.textContent = messages[status] || 'Saved';
-        if (status === 'offline') label.textContent = 'Offline (local)';
+        // If offline, also show a small indicator
+        if (status === 'offline') {
+          label.textContent = 'Offline (local)';
+        }
       }
 
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      //  CACHE (localStorage) – immediate persistence
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       const CACHE_KEY = 'studies_data_cache';
 
       function saveToCache(data) {
-        try { localStorage.setItem(CACHE_KEY, JSON.stringify({ data, timestamp: Date.now(), version: '2.0' })); } catch(e) {}
+        try {
+          localStorage.setItem(CACHE_KEY, JSON.stringify({ data, timestamp: Date.now(), version: '2.0' }));
+        } catch(e) {}
       }
 
       function loadFromCache() {
@@ -499,18 +515,27 @@
           const raw = localStorage.getItem(CACHE_KEY);
           if (raw) {
             const parsed = JSON.parse(raw);
-            if (parsed && parsed.data && parsed.data.years) return parsed.data;
+            if (parsed && parsed.data && parsed.data.years) {
+              console.log('📦 Loaded from cache');
+              return parsed.data;
+            }
           }
         } catch(e) {}
         return null;
       }
 
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      //  GITHUB PATH
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       function getStudyPath() {
         const { dataPath } = window.REPO_CONFIG || { dataPath: 'data' };
         const encUser = encodeURIComponent(user.username);
         return `${dataPath}/users/${encUser}/studies.json`;
       }
 
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      //  LOAD DATA
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       async function loadData() {
         console.log('📂 loadData started');
         const loader = document.getElementById('initialLoading');
@@ -524,11 +549,12 @@
             render();
           }
 
+          // Try GitHub
           try {
             const result = await loadFromGitHub();
             if (result) {
               studyData = result.data;
-              currentFileSha = result.sha;
+              currentFileSha = result.sha;   // store SHA for future saves
               console.log('✅ Updated from GitHub, SHA stored');
               render();
               saveToCache(studyData);
@@ -584,26 +610,47 @@
         const data = await resp.json();
         const content = atob(data.content.replace(/\n/g, ''));
         const parsed = JSON.parse(content);
-        if (parsed && parsed.years) return { data: parsed, sha: data.sha };
+        if (parsed && parsed.years) {
+          return { data: parsed, sha: data.sha };
+        }
         return null;
       }
 
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      //  NEW SAVE MANAGER
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+      // Called whenever data changes (CRUD, toggles, etc.)
       function markDirty() {
+        // 1. Immediately persist to localStorage
         saveToCache(studyData);
+
+        // 2. Increment version – this is the only thing that matters
         saveVersion++;
-        if (!isOffline) updateSaveStatusUI('saving');
-        else updateSaveStatusUI('offline');
+
+        // 3. Update status
+        if (!isOffline) {
+          updateSaveStatusUI('saving');
+        } else {
+          updateSaveStatusUI('offline');
+        }
+
+        // 4. Schedule a GitHub save
         scheduleSave();
       }
 
       function scheduleSave() {
         clearTimeout(debounceTimer);
         clearTimeout(maxWaitTimer);
+
+        // Debounce timer
         debounceTimer = setTimeout(() => {
           debounceTimer = null;
           maxWaitTimer = null;
           runSaveManager();
         }, DEBOUNCE_DELAY);
+
+        // Maximum wait – never let unsaved changes stay longer than 5s
         maxWaitTimer = setTimeout(() => {
           maxWaitTimer = null;
           if (debounceTimer) {
@@ -615,67 +662,127 @@
       }
 
       async function runSaveManager() {
-        if (isOffline) { updateSaveStatusUI('offline'); return; }
-        if (isSaving) return;
-        if (savedVersion === saveVersion) { updateSaveStatusUI('saved'); return; }
+        // If we're offline, skip and wait for online event
+        if (isOffline) {
+          updateSaveStatusUI('offline');
+          return;
+        }
+
+        // If already saving, the version counter will trigger another save later
+        if (isSaving) {
+          return;
+        }
+
+        // No new changes
+        if (savedVersion === saveVersion) {
+          updateSaveStatusUI('saved');
+          return;
+        }
 
         isSaving = true;
         updateSaveStatusUI('saving');
 
         try {
+          // Loop until we catch up with all changes
           while (savedVersion !== saveVersion) {
             const versionToSave = saveVersion;
+            // Snapshot current data
             const dataToSave = JSON.parse(JSON.stringify(studyData));
 
             try {
               await saveToGitHub(dataToSave);
+              // If successful, mark this version as saved
               savedVersion = versionToSave;
               updateSaveStatusUI('saved');
             } catch (err) {
+              // Handle 409 Conflict – refresh SHA and retry
               if (err.status === 409) {
                 console.warn('409 Conflict – refreshing SHA and retrying...');
                 try {
                   const latest = await refreshSHAFromGitHub();
-                  if (latest) { currentFileSha = latest.sha; continue; }
-                  else throw new Error('Could not refresh SHA');
-                } catch (refreshErr) { throw refreshErr; }
-              } else throw err;
+                  if (latest) {
+                    currentFileSha = latest.sha;
+                    // Retry the same version (loop will continue)
+                    continue;
+                  } else {
+                    throw new Error('Could not refresh SHA');
+                  }
+                } catch (refreshErr) {
+                  console.error('Failed to refresh SHA:', refreshErr);
+                  // Fall through – we'll handle the error below
+                  throw refreshErr;
+                }
+              } else {
+                // Other errors – rethrow
+                throw err;
+              }
             }
           }
+          // All changes saved
           updateSaveStatusUI('saved');
         } catch (err) {
           console.error('Save failed:', err);
           updateSaveStatusUI('error');
+          // Smart retry: if it's a network or 5xx error, retry after a delay
           if (err.status >= 500 || err.message.includes('network') || err.message.includes('fetch')) {
-            setTimeout(() => { if (savedVersion !== saveVersion) runSaveManager(); }, 5000);
+            setTimeout(() => {
+              if (savedVersion !== saveVersion) {
+                runSaveManager();
+              }
+            }, 5000);
           } else if (err.status === 401) {
+            // Token expired – redirect to login
             showToast('GitHub token expired. Please log in again.', 'error');
             window.SessionManager.logout();
             window.location.href = 'login.html?redirect=studies';
           } else {
-            setTimeout(() => { if (savedVersion !== saveVersion) runSaveManager(); }, 10000);
+            // For other errors, try again after 10s
+            setTimeout(() => {
+              if (savedVersion !== saveVersion) {
+                runSaveManager();
+              }
+            }, 10000);
           }
         } finally {
           isSaving = false;
-          if (savedVersion !== saveVersion) runSaveManager();
+          // If new changes came in during the save, start a new save
+          if (savedVersion !== saveVersion) {
+            runSaveManager();
+          }
         }
       }
 
       async function saveToGitHub(data) {
         const { owner, repo, branch } = window.REPO_CONFIG;
         const path = getStudyPath();
+        // Use cached SHA – this is the key improvement
         let sha = currentFileSha;
 
         try {
-          const result = await GitHubAPI.updateFile(owner, repo, path, data, 'Update study data', branch, user.pat, sha);
-          if (result && result.content && result.content.sha) currentFileSha = result.content.sha;
-          else {
+          const result = await GitHubAPI.updateFile(
+            owner,
+            repo,
+            path,
+            data,
+            'Update study data',
+            branch,
+            user.pat,
+            sha
+          );
+          // Update SHA from response
+          if (result && result.content && result.content.sha) {
+            currentFileSha = result.content.sha;
+          } else {
+            // Fallback: fetch the file to get SHA
             const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
             if (file && file.sha) currentFileSha = file.sha;
           }
           return true;
         } catch (err) {
-          if (err.message && err.message.includes('409')) err.status = 409;
+          // Check for 409 conflict
+          if (err.message && err.message.includes('409')) {
+            err.status = 409;
+          }
           throw err;
         }
       }
@@ -685,11 +792,16 @@
         const path = getStudyPath();
         try {
           const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
-          if (file && file.sha) return { sha: file.sha, content: file.content };
+          if (file && file.sha) {
+            return { sha: file.sha, content: file.content };
+          }
         } catch(e) {}
         return null;
       }
 
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      //  HELPERS
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m] || m); }
       function showToast(msg, type = 'info') {
         const container = document.getElementById('toastContainer');
@@ -709,6 +821,9 @@
         topic.completed = topic.subCompleted.every(Boolean);
       }
 
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      //  RENDER FUNCTIONS
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       function safeRender(fn) {
         try { fn(); } catch (e) { console.error('Render error:', e); showToast('Render error: ' + e.message, 'error'); }
       }
@@ -719,8 +834,14 @@
           totalUnits++;
           u.weeks.forEach(w => {
             totalWeeks++;
-            w.topics.forEach(t => { totalTopics++; if (t.completed) doneTopics++; });
-            w.assignments.forEach(a => { totalAssign++; if (a.status === 'pending' || a.status === 'in-progress') pendingAssign++; });
+            w.topics.forEach(t => {
+              totalTopics++;
+              if (t.completed) doneTopics++;
+            });
+            w.assignments.forEach(a => {
+              totalAssign++;
+              if (a.status === 'pending' || a.status === 'in-progress') pendingAssign++;
+            });
           });
         })));
         const el = (id) => document.getElementById(id);
@@ -919,7 +1040,9 @@
                 const weekOpen = expanded[weekKey] || false;
                 const topics = week.topics || [];
                 let hasMatch = false;
-                if (searchLower) hasMatch = topics.some(t => t.name.toLowerCase().includes(searchLower));
+                if (searchLower) {
+                  hasMatch = topics.some(t => t.name.toLowerCase().includes(searchLower));
+                }
                 if (searchLower && !hasMatch) return;
                 let totalSubW = 0, doneSubW = 0;
                 topics.forEach(t => {
@@ -1053,6 +1176,9 @@
         safeRender(renderTree);
       }
 
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      //  TOGGLE FUNCTIONS (they now call markDirty)
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       window.toggleExpand = function(key) {
         expanded[key] = !expanded[key];
         render();
@@ -1075,7 +1201,7 @@
         renderStats();
         renderAnalytics();
         renderDeadlines();
-        markDirty();
+        markDirty(); // This replaces scheduleSave
       };
       window.toggleSubtopic = function(el, yi, si, ui, wi, ti, si2) {
         const topic = getTopic(yi, si, ui, wi, ti);
@@ -1117,6 +1243,9 @@
         showToast(complete ? '✅ All topics marked complete' : '↩️ All topics uncompleted', 'info');
       };
 
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      //  EXPAND / COLLAPSE ALL
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       window.expandAll = function() {
         document.querySelectorAll('.level-body').forEach(el => el.classList.add('open'));
         document.querySelectorAll('.level-header .fa-chevron-down, .level-header .fa-chevron-up').forEach(el => {
@@ -1134,6 +1263,9 @@
         });
       };
 
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      //  IMPORT / EXPORT JSON
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       function exportJSON() {
         const blob = new Blob([JSON.stringify(studyData, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
@@ -1167,6 +1299,9 @@
         reader.readAsText(file);
       }
 
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      //  KEYBOARD SHORTCUTS
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       document.addEventListener('keydown', (e) => {
         if (e.ctrlKey && e.key === 'e') { e.preventDefault(); expandAll(); }
         if (e.ctrlKey && e.key === 'w') { e.preventDefault(); collapseAll(); }
@@ -1178,6 +1313,9 @@
         }
       });
 
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      //  GRADE CALCULATOR
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       function calculateUnitGrade(unit) {
         const allAssignments = [];
         (unit.weeks || []).forEach(week => {
@@ -1348,25 +1486,8 @@
       });
 
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      //  ─── EXCEL EXPORT – FIXED DATA BARS ─────────────────────────
+      //  ─── EXCEL EXPORT – POLISHED DASHBOARD (no charts, data bars) ───
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      
-      function addDataBar(worksheet, cellRef, color, minVal = 0, maxVal = 100) {
-        try {
-          worksheet.addConditionalFormatting({
-            ref: cellRef,
-            rules: [{
-              type: 'dataBar',
-              params: {
-                minValue: minVal,
-                maxValue: maxVal,
-                barColor: { argb: color }
-              }
-            }]
-          });
-        } catch (e) { /* ignore */ }
-      }
-
       window.exportToExcel = async function() {
         if (!studyData.years.length) {
           showToast('No data to export.', 'error');
@@ -1380,6 +1501,7 @@
           workbook.creator = user.username;
           workbook.created = new Date();
 
+          // ─── Helper: Unit color mapping ───
           const unitColors = {
             'BIA109': { main: 'FFfdcb6e', light: 'FFFFF3E0', dark: 'FFd4a030' },
             'BSC107': { main: 'FF55efc4', light: 'FFE6FAF3', dark: 'FF2dab7f' },
@@ -1388,6 +1510,7 @@
           };
           const defaultColor = { main: 'FF2fc7ff', light: 'FFE0F4FF', dark: 'FF1a8fbf' };
 
+          // ─── Helper: Dark header style ───
           function styleHeader(row, height = 28, bgColor = 'FF0B2B3B') {
             row.height = height;
             row.eachCell(cell => {
@@ -1403,6 +1526,7 @@
             });
           }
 
+          // ─── Helper: Add navigation row ───
           function addNavigation(sheet, startRow = 1) {
             const navItems = ['🏠 Welcome', '📊 Dashboard', '📚 Study Plan', '⏰ Deadlines', '📈 Analytics'];
             const navCols = ['B', 'D', 'F', 'H', 'J'];
@@ -1427,6 +1551,7 @@
             return startRow + 1;
           }
 
+          // ─── Helper: KPI cards ───
           function createKPICards(sheet, startRow, kpis, colStart = 2) {
             const cols = [2, 4, 6, 8, 10, 12];
             kpis.forEach((kpi, idx) => {
@@ -1462,6 +1587,7 @@
             return startRow + 3;
           }
 
+          // ─── Collect stats ───
           const totalTopics = studyData.years.reduce((acc, y) => acc + y.semesters.reduce((a, s) => a + s.units.reduce((u, un) => u + un.weeks.reduce((w, wk) => w + wk.topics.length, 0), 0), 0), 0);
           let doneTopics = 0, totalAssign = 0, pendingAssign = 0, totalUnits = 0, totalWeeks = 0;
           studyData.years.forEach(y => y.semesters.forEach(s => s.units.forEach(u => {
@@ -1484,7 +1610,9 @@
             unitProgressData.push({ code: u.code, name: u.name, pct, color: unitColors[u.code]?.main || 'FF2FC7FF' });
           })));
 
-          // Welcome Sheet
+          // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+          //  1. WELCOME SHEET
+          // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
           const welcomeSheet = workbook.addWorksheet('Welcome', {
             pageSetup: { orientation: 'portrait', fitToPage: true, horizontalCentered: true, verticalCentered: true }
           });
@@ -1492,7 +1620,9 @@
           welcomeSheet.properties.defaultColWidth = 12;
           welcomeSheet.views = [{ showGridLines: false, showRowColHeaders: false }];
           let wRow = 1;
+
           wRow = addNavigation(welcomeSheet, wRow);
+
           for (let r = wRow; r <= wRow + 5; r++) {
             for (let c = 1; c <= 14; c++) {
               const cell = welcomeSheet.getCell(r, c);
@@ -1528,9 +1658,11 @@
           ];
           wRow = createKPICards(welcomeSheet, wRow, kpis);
           wRow += 2;
+
           welcomeSheet.getCell(`B${wRow}`).value = 'UNIT PROGRESS';
           welcomeSheet.getCell(`B${wRow}`).font = { size: 14, bold: true, color: { argb: 'FF0B2B3B' } };
           wRow += 1;
+
           unitProgressData.forEach((u, idx) => {
             const row = wRow + idx;
             const labelCell = welcomeSheet.getCell(`B${row}`);
@@ -1541,7 +1673,16 @@
             barCell.value = u.pct;
             barCell.alignment = { horizontal: 'left', vertical: 'middle' };
             barCell.font = { size: 9 };
-            addDataBar(welcomeSheet, `C${row}`, u.color || 'FF2FC7FF');
+            try {
+              welcomeSheet.addConditionalFormatting({
+                ref: `C${row}`,
+                rules: [{
+                  type: 'dataBar',
+                  cfvo: [{ type: 'num', value: 0 }, { type: 'num', value: 100 }],
+                  color: { argb: u.color || 'FF2FC7FF' }
+                }]
+              });
+            } catch(e) {}
             const pctCell = welcomeSheet.getCell(`D${row}`);
             pctCell.value = u.pct + '%';
             pctCell.font = { size: 9, color: { argb: 'FF4A627A' } };
@@ -1549,22 +1690,27 @@
             welcomeSheet.getRow(row).height = 20;
           });
           wRow += unitProgressData.length + 1;
+
           welcomeSheet.mergeCells(`B${wRow}:M${wRow}`);
           const footCell = welcomeSheet.getCell(`B${wRow}`);
           footCell.value = `Generated: ${new Date().toLocaleString()} · Study Manager · Engineering Portfolio`;
           footCell.font = { size: 8, color: { argb: 'FF8A9FB0' }, italic: true };
           footCell.alignment = { horizontal: 'center', vertical: 'middle' };
 
-          // Dashboard Sheet
+          // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+          //  2. DASHBOARD SHEET
+          // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
           const dashSheet = workbook.addWorksheet('Dashboard', {
             pageSetup: { orientation: 'landscape', fitToPage: true }
           });
           dashSheet.views = [{ showGridLines: false, showRowColHeaders: false }];
           let dRow = addNavigation(dashSheet, 1) + 1;
+
           dashSheet.getCell(`B${dRow}`).value = '📊 ACADEMIC DASHBOARD';
           dashSheet.getCell(`B${dRow}`).font = { size: 20, bold: true, color: { argb: 'FF0B2B3B' } };
           dashSheet.mergeCells(`B${dRow}:M${dRow}`);
           dRow += 2;
+
           const dashKpis = [
             { label: 'Units', value: totalUnits, icon: '📚', color: 'FFA29BFE' },
             { label: 'Topics', value: totalTopics, icon: '🧠', color: 'FF2FC7FF' },
@@ -1574,9 +1720,11 @@
           ];
           dRow = createKPICards(dashSheet, dRow, dashKpis);
           dRow += 1;
+
           dashSheet.getCell(`B${dRow}`).value = '📈 UNIT PROGRESS';
           dashSheet.getCell(`B${dRow}`).font = { size: 12, bold: true, color: { argb: 'FF0B2B3B' } };
           dRow += 1;
+
           unitProgressData.forEach((u, idx) => {
             const row = dRow + idx;
             dashSheet.getCell(`B${row}`).value = u.code;
@@ -1584,12 +1732,22 @@
             dashSheet.getCell(`B${row}`).alignment = { horizontal: 'right', vertical: 'middle' };
             const barCell = dashSheet.getCell(`C${row}`);
             barCell.value = u.pct;
-            addDataBar(dashSheet, `C${row}`, u.color || 'FF2FC7FF');
+            try {
+              dashSheet.addConditionalFormatting({
+                ref: `C${row}`,
+                rules: [{
+                  type: 'dataBar',
+                  cfvo: [{ type: 'num', value: 0 }, { type: 'num', value: 100 }],
+                  color: { argb: u.color || 'FF2FC7FF' }
+                }]
+              });
+            } catch(e) {}
             dashSheet.getCell(`D${row}`).value = u.pct + '%';
             dashSheet.getCell(`D${row}`).font = { size: 8, color: { argb: 'FF4A627A' } };
             dashSheet.getRow(row).height = 18;
           });
           dRow += unitProgressData.length + 1;
+
           dashSheet.getCell(`B${dRow}`).value = '📋 ASSIGNMENT STATUS';
           dashSheet.getCell(`B${dRow}`).font = { size: 12, bold: true, color: { argb: 'FF0B2B3B' } };
           dRow += 1;
@@ -1617,12 +1775,14 @@
             dRow++;
           });
           dRow += 1;
+
           const allAssign = [];
           studyData.years.forEach(y => y.semesters.forEach(s => s.units.forEach(u => u.weeks.forEach(w => w.assignments.forEach(a => {
             if (a.due) allAssign.push({ ...a, unit: u.code, week: w.number });
           })))));
           allAssign.sort((a,b) => new Date(a.due) - new Date(b.due));
           const upcoming = allAssign.slice(0, 5);
+
           dashSheet.getCell(`F${sRow}`).value = '⏰ UPCOMING DEADLINES';
           dashSheet.getCell(`F${sRow}`).font = { size: 12, bold: true, color: { argb: 'FF0B2B3B' } };
           const deadHeaders = ['Assignment', 'Unit', 'Due', 'Days Left'];
@@ -1648,16 +1808,20 @@
             dashSheet.getRow(row).height = 18;
           });
 
-          // Study Plan Sheet
+          // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+          //  3. STUDY PLAN SHEET
+          // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
           const planSheet = workbook.addWorksheet('Study Plan', {
             pageSetup: { orientation: 'landscape', fitToPage: true }
           });
           planSheet.views = [{ showGridLines: true, state: 'frozen', ySplit: 2 }];
           let pRow = addNavigation(planSheet, 1) + 1;
+
           planSheet.getCell(`B${pRow}`).value = '📚 STUDY PLAN';
           planSheet.getCell(`B${pRow}`).font = { size: 18, bold: true, color: { argb: 'FF0B2B3B' } };
           planSheet.mergeCells(`B${pRow}:H${pRow}`);
           pRow += 1;
+
           const planHeaders = ['Week', 'Topic', 'Subtopics', 'Status', 'Progress', 'Assignments', 'Due'];
           const planCols = ['B', 'C', 'D', 'E', 'F', 'G', 'H'];
           const hRowPlan = planSheet.getRow(pRow);
@@ -1677,6 +1841,7 @@
           planSheet.getColumn('F').width = 16;
           planSheet.getColumn('G').width = 20;
           planSheet.getColumn('H').width = 14;
+
           studyData.years.forEach(y => y.semesters.forEach(s => s.units.forEach(u => u.weeks.forEach(w => {
             w.topics.forEach(t => {
               const row = planSheet.getRow(pRow);
@@ -1688,7 +1853,16 @@
               const doneCount = (t.subCompleted || []).filter(Boolean).length;
               const pct = subCount > 0 ? Math.round((doneCount / subCount) * 100) : (t.completed ? 100 : 0);
               row.getCell('F').value = pct;
-              addDataBar(planSheet, `F${pRow}`, 'FF2FC7FF');
+              try {
+                planSheet.addConditionalFormatting({
+                  ref: `F${pRow}`,
+                  rules: [{
+                    type: 'dataBar',
+                    cfvo: [{ type: 'num', value: 0 }, { type: 'num', value: 100 }],
+                    color: { argb: 'FF2FC7FF' }
+                  }]
+                });
+              } catch(e) {}
               row.getCell('F').alignment = { horizontal: 'left', vertical: 'middle' };
               const assNames = w.assignments.map(a => a.name).join('; ');
               row.getCell('G').value = assNames || '—';
@@ -1701,16 +1875,20 @@
             });
           }))));
 
-          // Deadlines Sheet
+          // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+          //  4. DEADLINES SHEET
+          // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
           const deadSheet = workbook.addWorksheet('Deadlines', {
             pageSetup: { orientation: 'landscape', fitToPage: true }
           });
           deadSheet.views = [{ showGridLines: true, state: 'frozen', ySplit: 2 }];
           let dRowDead = addNavigation(deadSheet, 1) + 1;
+
           deadSheet.getCell(`B${dRowDead}`).value = '⏰ DEADLINES';
           deadSheet.getCell(`B${dRowDead}`).font = { size: 18, bold: true, color: { argb: 'FF0B2B3B' } };
           deadSheet.mergeCells(`B${dRowDead}:G${dRowDead}`);
           dRowDead += 1;
+
           const deadHeaders2 = ['Priority', 'Assignment', 'Unit', 'Due Date', 'Days Remaining', 'Status'];
           const deadCols2 = ['B', 'C', 'D', 'E', 'F', 'G'];
           const hRowDead = deadSheet.getRow(dRowDead);
@@ -1728,6 +1906,7 @@
           deadSheet.getColumn('E').width = 16;
           deadSheet.getColumn('F').width = 16;
           deadSheet.getColumn('G').width = 16;
+
           allAssign.sort((a,b) => new Date(a.due) - new Date(b.due));
           allAssign.forEach(a => {
             const due = new Date(a.due);
@@ -1752,16 +1931,20 @@
             dRowDead++;
           });
 
-          // Analytics Sheet
+          // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+          //  5. ANALYTICS SHEET (data bars + tables, no charts)
+          // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
           const analyticsSheet = workbook.addWorksheet('Analytics', {
             pageSetup: { orientation: 'landscape', fitToPage: true }
           });
           analyticsSheet.views = [{ showGridLines: false, showRowColHeaders: false }];
           let aRow = addNavigation(analyticsSheet, 1) + 1;
+
           analyticsSheet.getCell(`B${aRow}`).value = '📈 ANALYTICS DASHBOARD';
           analyticsSheet.getCell(`B${aRow}`).font = { size: 18, bold: true, color: { argb: 'FF0B2B3B' } };
           analyticsSheet.mergeCells(`B${aRow}:M${aRow}`);
           aRow += 2;
+
           analyticsSheet.getCell(`B${aRow}`).value = 'UNIT PROGRESS (%)';
           analyticsSheet.getCell(`B${aRow}`).font = { size: 12, bold: true, color: { argb: 'FF0B2B3B' } };
           aRow += 1;
@@ -1770,12 +1953,22 @@
             analyticsSheet.getCell(`B${row}`).value = u.code;
             analyticsSheet.getCell(`B${row}`).font = { bold: true, size: 9 };
             analyticsSheet.getCell(`C${row}`).value = u.pct;
-            addDataBar(analyticsSheet, `C${row}`, u.color || 'FF2FC7FF');
+            try {
+              analyticsSheet.addConditionalFormatting({
+                ref: `C${row}`,
+                rules: [{
+                  type: 'dataBar',
+                  cfvo: [{ type: 'num', value: 0 }, { type: 'num', value: 100 }],
+                  color: { argb: u.color || 'FF2FC7FF' }
+                }]
+              });
+            } catch(e) {}
             analyticsSheet.getCell(`D${row}`).value = u.pct + '%';
             analyticsSheet.getCell(`D${row}`).font = { size: 8, color: { argb: 'FF4A627A' } };
             analyticsSheet.getRow(row).height = 18;
           });
           aRow += unitProgressData.length + 1;
+
           const weeklyData = {};
           studyData.years.forEach(y => y.semesters.forEach(s => s.units.forEach(u => u.weeks.forEach(w => {
             const key = y.name + ' W' + w.number;
@@ -1787,6 +1980,7 @@
           }))));
           const weeks = Object.keys(weeklyData).sort();
           const pctData = weeks.map(k => weeklyData[k].total > 0 ? Math.round((weeklyData[k].done / weeklyData[k].total) * 100) : 0);
+
           analyticsSheet.getCell(`F${aRow - unitProgressData.length - 2}`).value = 'WEEKLY PROGRESS (%)';
           analyticsSheet.getCell(`F${aRow - unitProgressData.length - 2}`).font = { size: 12, bold: true, color: { argb: 'FF0B2B3B' } };
           const wkRowStart = aRow - unitProgressData.length - 1;
@@ -1795,12 +1989,22 @@
             analyticsSheet.getCell(`F${row}`).value = wk;
             analyticsSheet.getCell(`F${row}`).font = { size: 8 };
             analyticsSheet.getCell(`G${row}`).value = pctData[idx];
-            addDataBar(analyticsSheet, `G${row}`, 'FF2FC7FF');
+            try {
+              analyticsSheet.addConditionalFormatting({
+                ref: `G${row}`,
+                rules: [{
+                  type: 'dataBar',
+                  cfvo: [{ type: 'num', value: 0 }, { type: 'num', value: 100 }],
+                  color: { argb: 'FF2FC7FF' }
+                }]
+              });
+            } catch(e) {}
             analyticsSheet.getCell(`H${row}`).value = pctData[idx] + '%';
             analyticsSheet.getCell(`H${row}`).font = { size: 8, color: { argb: 'FF4A627A' } };
             analyticsSheet.getRow(row).height = 16;
           });
           aRow = wkRowStart + weeks.length + 2;
+
           analyticsSheet.getCell(`B${aRow}`).value = 'ASSIGNMENT STATUS';
           analyticsSheet.getCell(`B${aRow}`).font = { size: 12, bold: true, color: { argb: 'FF0B2B3B' } };
           aRow += 1;
@@ -1816,6 +2020,7 @@
             analyticsSheet.getRow(row).height = 18;
           });
           aRow += statData.length + 1;
+
           const topicData = {};
           studyData.years.forEach(y => y.semesters.forEach(s => s.units.forEach(u => u.weeks.forEach(w => w.topics.forEach(t => {
             const subCount = t.subtopics.length;
@@ -1836,13 +2041,24 @@
             const row = tcRow + idx;
             analyticsSheet.getCell(`F${row}`).value = code;
             analyticsSheet.getCell(`G${row}`).value = pct;
-            addDataBar(analyticsSheet, `G${row}`, unitColors[code]?.main || 'FF2FC7FF');
+            try {
+              analyticsSheet.addConditionalFormatting({
+                ref: `G${row}`,
+                rules: [{
+                  type: 'dataBar',
+                  cfvo: [{ type: 'num', value: 0 }, { type: 'num', value: 100 }],
+                  color: { argb: unitColors[code]?.main || 'FF2FC7FF' }
+                }]
+              });
+            } catch(e) {}
             analyticsSheet.getCell(`H${row}`).value = pct + '%';
             analyticsSheet.getCell(`H${row}`).font = { size: 8, color: { argb: 'FF4A627A' } };
             analyticsSheet.getRow(row).height = 16;
           });
 
-          // Unit Sheets
+          // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+          //  6. UNIT SHEETS
+          // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
           studyData.years.forEach(y => y.semesters.forEach(s => s.units.forEach(u => {
             const color = unitColors[u.code] || defaultColor;
             const sheet = workbook.addWorksheet(u.code, {
@@ -1850,6 +2066,7 @@
             });
             sheet.views = [{ showGridLines: true, state: 'frozen', ySplit: 2 }];
             let uRow = addNavigation(sheet, 1) + 1;
+
             sheet.mergeCells(`B${uRow}:H${uRow}`);
             const uTitle = sheet.getCell(`B${uRow}`);
             uTitle.value = `${u.code} – ${u.name}`;
@@ -1858,6 +2075,7 @@
             uTitle.alignment = { horizontal: 'center', vertical: 'middle' };
             sheet.getRow(uRow).height = 32;
             uRow += 1;
+
             const wHeaders = ['Week', 'Topic', 'Subtopics', 'Progress', 'Assignments'];
             const wCols = ['B', 'C', 'D', 'E', 'F'];
             const hRowUnit = sheet.getRow(uRow);
@@ -1874,6 +2092,7 @@
             sheet.getColumn('D').width = 35;
             sheet.getColumn('E').width = 16;
             sheet.getColumn('F').width = 25;
+
             u.weeks.forEach(w => {
               w.topics.forEach(t => {
                 const row = sheet.getRow(uRow);
@@ -1884,7 +2103,16 @@
                 const doneCount = (t.subCompleted || []).filter(Boolean).length;
                 const pct = subCount > 0 ? Math.round((doneCount / subCount) * 100) : (t.completed ? 100 : 0);
                 row.getCell('E').value = pct;
-                addDataBar(sheet, `E${uRow}`, color.main || 'FF2FC7FF');
+                try {
+                  sheet.addConditionalFormatting({
+                    ref: `E${uRow}`,
+                    rules: [{
+                      type: 'dataBar',
+                      cfvo: [{ type: 'num', value: 0 }, { type: 'num', value: 100 }],
+                      color: { argb: color.main || 'FF2FC7FF' }
+                    }]
+                  });
+                } catch(e) {}
                 row.getCell('E').alignment = { horizontal: 'left', vertical: 'middle' };
                 const assNames = w.assignments.map(a => a.name).join('; ');
                 row.getCell('F').value = assNames || '—';
@@ -1893,7 +2121,9 @@
             });
           })));
 
-          // Raw Data
+          // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+          //  RAW DATA (hidden)
+          // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
           const rawSheet = workbook.addWorksheet('Raw Data', {
             pageSetup: { orientation: 'landscape', fitToPage: true }
           });
@@ -1904,6 +2134,9 @@
           rawSheet.getCell('A2').value = rawData;
           rawSheet.getColumn('A').width = 200;
 
+          // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+          //  SAVE
+          // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
           const buffer = await workbook.xlsx.writeBuffer();
           const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
           saveAs(blob, `StudyPlan_2026_${new Date().toISOString().slice(0,10)}.xlsx`);
@@ -1917,7 +2150,7 @@
       };
 
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      //  CRUD OPERATIONS
+      //  CRUD OPERATIONS (now call markDirty instead of scheduleSave)
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       function openModal(title, bodyHTML, onSave) {
         const modal = document.getElementById('genericModal');
@@ -1945,6 +2178,7 @@
         }
       });
 
+      // ─── Years ───
       window.addYear = function() {
         openModal('Add Year', `
           <div class="form-group"><label>Year Name (e.g. 2026)</label><input type="text" id="yearName" placeholder="2026" /></div>
@@ -1975,6 +2209,7 @@
         markDirty();
       };
 
+      // ─── Semesters ───
       window.addSemester = function(yi) {
         openModal('Add Semester', `
           <div class="form-group"><label>Semester Name (e.g. Semester 2)</label><input type="text" id="semesterName" placeholder="Semester 2" /></div>
@@ -2005,6 +2240,7 @@
         markDirty();
       };
 
+      // ─── Units ───
       window.addUnit = function(yi, si) {
         openModal('Add Unit', `
           <div class="form-group"><label>Unit Code</label><input type="text" id="unitCode" placeholder="BSC106" /></div>
@@ -2045,6 +2281,7 @@
         markDirty();
       };
 
+      // ─── Weeks ───
       window.addWeek = function(yi, si, ui) {
         openModal('Add Week', `
           <div class="form-group"><label>Week Number</label><input type="number" id="weekNumber" min="1" step="1" value="1" /></div>
@@ -2076,6 +2313,7 @@
         markDirty();
       };
 
+      // ─── Topics ───
       window.addTopic = function(yi, si, ui, wi) {
         openModal('Add Topic', `
           <div class="form-group"><label>Topic Name</label><input type="text" id="topicName" placeholder="e.g. Multivariable Calculus" /></div>
@@ -2108,6 +2346,7 @@
         markDirty();
       };
 
+      // ─── Subtopics ───
       window.addSubtopic = function(yi, si, ui, wi, ti) {
         openModal('Add Subtopic', `
           <div class="form-group"><label>Subtopic Name</label><input type="text" id="subtopicName" placeholder="e.g. Partial derivatives" /></div>
@@ -2138,6 +2377,7 @@
         markDirty();
       };
 
+      // ─── Assignments ───
       window.addAssignment = function(yi, si, ui, wi) {
         openModal('Add Assignment', `
           <div class="form-group"><label>Assignment Name</label><input type="text" id="assName" placeholder="e.g. Quiz 1" /></div>
@@ -2253,6 +2493,7 @@
           </div>
         `;
 
+        // ─── Bind buttons ───
         document.getElementById('syncBtn').addEventListener('click', async function() {
           showToast('🔄 Syncing...', 'info');
           try {
@@ -2307,11 +2548,14 @@
           });
         }
 
+        // Initial load
         await loadData();
+        // Ensure status is correct
         updateSaveStatusUI('saved');
         console.log('✅ Study Manager ready');
       }
 
+      // ─── Compact mode toggle ───
       window.toggleCompact = function() {
         compactMode = !compactMode;
         const sw = document.getElementById('compactSwitch');
@@ -2319,6 +2563,7 @@
         render();
       };
 
+      // ─── START ───
       if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);
       } else {
