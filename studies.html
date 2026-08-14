@@ -805,7 +805,7 @@
             if (!weekly[key]) weekly[key] = { total: 0, done: 0 };
             weekly[key].total += total;
             weekly[key].done += done;
-          })));
+          }))));
           const labels = Object.keys(weekly).sort();
           const doneData = labels.map(k => weekly[k].done);
           const totalData = labels.map(k => weekly[k].total);
@@ -1784,7 +1784,7 @@
             if (!weeklyData[key]) weeklyData[key] = { total: 0, done: 0 };
             weeklyData[key].total += total;
             weeklyData[key].done += done;
-          })));
+          }))));
           const weeks = Object.keys(weeklyData).sort();
           const pctData = weeks.map(k => weeklyData[k].total > 0 ? Math.round((weeklyData[k].done / weeklyData[k].total) * 100) : 0);
           analyticsSheet.getCell(`F${aRow - unitProgressData.length - 2}`).value = 'WEEKLY PROGRESS (%)';
@@ -1824,7 +1824,7 @@
             if (!topicData[u.code]) topicData[u.code] = { total: 0, done: 0 };
             topicData[u.code].total += subCount;
             topicData[u.code].done += doneCount;
-          }))));
+          })))));
           const codes = Object.keys(topicData);
           analyticsSheet.getCell(`F${aRow - statData.length - 2}`).value = 'TOPIC COMPLETION BY UNIT';
           analyticsSheet.getCell(`F${aRow - statData.length - 2}`).font = { size: 12, bold: true, color: { argb: 'FF0B2B3B' } };
