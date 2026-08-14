@@ -1658,6 +1658,12 @@
               "name": "Engineering Mathematics 1",
               "color": "#2cc7fe",
               "weeks": []
+            },
+            {
+              "code": "BSC102",
+              "name": "Electrical Circuit Theory and Analysis",
+              "color": "#2fc7ff",
+              "weeks": []
             }
           ]
         }
