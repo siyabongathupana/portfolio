@@ -29,7 +29,7 @@
     .nav-link.active { color: var(--accent) !important; }
     .study-container { max-width: 1400px; margin: 20px auto; padding: 0 20px 100px; }
     .study-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; padding: 20px 0 30px; border-bottom: 1px solid var(--border-subtle); margin-bottom: 30px; }
-    .study-header h1 { font-weight: 800; font-size: 2rem; margin: 0; background: linear-gradient(135deg, #fff, var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .study-header h1 { font-weight: 800; font-size: 2rem; margin: 0; background: linear-gradient(135deg, #fff, var(--accent)); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
     .study-header .subtitle { color: var(--text-secondary); font-size: 0.9rem; }
     .study-header .actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
     .study-header .actions .btn { border-radius: 40px; font-weight: 600; font-size: 0.8rem; padding: 8px 20px; transition: 0.25s; border: none; min-height: 44px; }
@@ -1973,7 +1973,7 @@
             if (!weeklyData[key]) weeklyData[key] = { total: 0, done: 0 };
             weeklyData[key].total += total;
             weeklyData[key].done += done;
-          })));
+          }))));
           const weeks = Object.keys(weeklyData).sort();
           const pctData = weeks.map(k => weeklyData[k].total > 0 ? Math.round((weeklyData[k].done / weeklyData[k].total) * 100) : 0);
 
@@ -2024,7 +2024,7 @@
             if (!topicData[u.code]) topicData[u.code] = { total: 0, done: 0 };
             topicData[u.code].total += subCount;
             topicData[u.code].done += doneCount;
-          }))));
+          })))));
           const codes = Object.keys(topicData);
           analyticsSheet.getCell(`F${aRow - statData.length - 2}`).value = 'TOPIC COMPLETION BY UNIT';
           analyticsSheet.getCell(`F${aRow - statData.length - 2}`).font = { size: 12, bold: true, color: { argb: 'FF0B2B3B' } };
@@ -2112,7 +2112,7 @@
                 uRow++;
               });
             });
-          }));
+          })));
 
           // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
           //  RAW DATA (hidden)
