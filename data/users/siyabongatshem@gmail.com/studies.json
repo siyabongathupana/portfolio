@@ -1652,7 +1652,14 @@
         },
         {
           "name": "Semester 1",
-          "units": []
+          "units": [
+            {
+              "code": "BSC101",
+              "name": "Engineering Mathematics 1",
+              "color": "#2fc7ff",
+              "weeks": []
+            }
+          ]
         }
       ]
     }
