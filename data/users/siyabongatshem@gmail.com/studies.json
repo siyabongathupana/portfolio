@@ -395,7 +395,7 @@
                         "Creating Multiview Sketches",
                         "Creating Isometric Sketches"
                       ],
-                      "completed": false,
+                      "completed": true,
                       "subCompleted": [
                         true,
                         true,
@@ -404,7 +404,7 @@
                         true,
                         true,
                         true,
-                        false
+                        true
                       ]
                     }
                   ],
