@@ -1,27 +1,15 @@
 [
   {
-    "id": 1786684103531,
-    "date": "2026-08-12",
-    "start": "12:54",
-    "end": "15:30",
-    "hours": 2.6,
+    "id": 1786706042759,
+    "date": "2026-08-14",
+    "start": "06:45",
+    "end": "10:30",
+    "hours": 3.75,
     "project": "Other",
     "category": "Training",
     "billable": "no",
     "notes": "",
-    "updatedAt": 1786684103531
-  },
-  {
-    "id": 1786684034945,
-    "date": "2026-08-12",
-    "start": "07:15",
-    "end": "12:15",
-    "hours": 5,
-    "project": "Other",
-    "category": "Training",
-    "billable": "no",
-    "notes": "",
-    "updatedAt": 1786684034945
+    "updatedAt": 1786706042759
   },
   {
     "id": 1786625555607,
@@ -58,6 +46,30 @@
     "billable": "no",
     "notes": "",
     "updatedAt": 1786625526623
+  },
+  {
+    "id": 1786684103531,
+    "date": "2026-08-12",
+    "start": "12:54",
+    "end": "15:30",
+    "hours": 2.6,
+    "project": "Other",
+    "category": "Training",
+    "billable": "no",
+    "notes": "",
+    "updatedAt": 1786684103531
+  },
+  {
+    "id": 1786684034945,
+    "date": "2026-08-12",
+    "start": "07:15",
+    "end": "12:15",
+    "hours": 5,
+    "project": "Other",
+    "category": "Training",
+    "billable": "no",
+    "notes": "",
+    "updatedAt": 1786684034945
   },
   {
     "id": 1786537978863,
