@@ -1,15 +1,15 @@
 [
   {
-    "id": 1786625599821,
-    "date": "2026-08-10",
-    "start": "08:00",
-    "end": "16:00",
-    "hours": 8,
+    "id": 1786684034945,
+    "date": "2026-08-12",
+    "start": "07:15",
+    "end": "12:15",
+    "hours": 5,
     "project": "Other",
-    "category": "Other",
+    "category": "Training",
     "billable": "no",
-    "notes": "Public Holiday",
-    "updatedAt": 1786625599821
+    "notes": "",
+    "updatedAt": 1786684034945
   },
   {
     "id": 1786625555607,
@@ -94,6 +94,18 @@
     "billable": "no",
     "notes": "",
     "updatedAt": 1786450880999
+  },
+  {
+    "id": 1786625599821,
+    "date": "2026-08-10",
+    "start": "08:00",
+    "end": "16:00",
+    "hours": 8,
+    "project": "Other",
+    "category": "Other",
+    "billable": "no",
+    "notes": "Public Holiday",
+    "updatedAt": 1786625599821
   },
   {
     "id": 1785842194803,
