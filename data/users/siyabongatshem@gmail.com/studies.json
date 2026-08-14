@@ -1670,6 +1670,12 @@
               "name": "Engineering Physics and Materials",
               "color": "#1fc7ff",
               "weeks": []
+            },
+            {
+              "code": "BSC105",
+              "name": "Engineering Ethics and Professional Practice",
+              "color": "#2fc7ff",
+              "weeks": []
             }
           ]
         }
