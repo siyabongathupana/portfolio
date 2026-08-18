@@ -8,8 +8,8 @@
     "project": "Air Liquide Distributed CHARMS",
     "category": "CFAT",
     "billable": "yes",
-    "notes": "",
-    "updatedAt": 1787046632085
+    "notes": "Hardware CFAT",
+    "updatedAt": 1787064167881
   },
   {
     "id": 1786944392030,
@@ -20,8 +20,8 @@
     "project": "Air Liquide Distributed CHARMS",
     "category": "IFAT",
     "billable": "yes",
-    "notes": "Hardware IFAT",
-    "updatedAt": 1787064157539
+    "notes": "Hardware IFAT (Setting VM, Preparing Environment)",
+    "updatedAt": 1787064190991
   },
   {
     "id": 1786707946034,
