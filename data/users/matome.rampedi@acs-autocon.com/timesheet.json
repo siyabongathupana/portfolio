@@ -1,7 +1,7 @@
 [
   {
     "id": 1787029072867,
-    "date": "2026-08-12",
+    "date": "2026-08-17",
     "start": "10:00",
     "end": "12:00",
     "hours": 2,
@@ -9,11 +9,11 @@
     "category": "Documentation",
     "billable": "yes",
     "notes": "blr 12 asbuilt",
-    "updatedAt": 1787029072867
+    "updatedAt": 1787029141075
   },
   {
     "id": 1787029008171,
-    "date": "2026-08-12",
+    "date": "2026-08-17",
     "start": "06:30",
     "end": "10:00",
     "hours": 3.5,
@@ -21,7 +21,7 @@
     "category": "Other",
     "billable": "no",
     "notes": "",
-    "updatedAt": 1787029008171
+    "updatedAt": 1787029101187
   },
   {
     "id": 1787028496309,
