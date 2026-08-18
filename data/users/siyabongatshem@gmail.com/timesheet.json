@@ -29,11 +29,11 @@
     "start": "13:30",
     "end": "17:00",
     "hours": 3.5,
-    "project": "Air Liquide Distributed CHARMS",
-    "category": "IFAT",
-    "billable": "yes",
+    "project": "Other",
+    "category": "Other",
+    "billable": "no",
     "notes": "",
-    "updatedAt": 1787045555172
+    "updatedAt": 1787046420121
   },
   {
     "id": 1786628108512,
