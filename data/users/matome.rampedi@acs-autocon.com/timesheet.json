@@ -1,5 +1,29 @@
 [
   {
+    "id": 1787028357266,
+    "date": "2026-08-12",
+    "start": "07:30",
+    "end": "12:00",
+    "hours": 4.5,
+    "project": "Admin",
+    "category": "Training",
+    "billable": "no",
+    "notes": "",
+    "updatedAt": 1787028357266
+  },
+  {
+    "id": 1787028187917,
+    "date": "2026-08-12",
+    "start": "08:00",
+    "end": "16:00",
+    "hours": 8,
+    "project": "Admin",
+    "category": "Other",
+    "billable": "no",
+    "notes": "sick leave",
+    "updatedAt": 1787028187917
+  },
+  {
     "id": 1787028164380,
     "date": "2026-08-11",
     "start": "08:00",
