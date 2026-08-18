@@ -30,10 +30,10 @@
     "end": "16:20",
     "hours": 7.67,
     "project": "Other",
-    "category": "IFAT",
+    "category": "Training",
     "billable": "no",
     "notes": "",
-    "updatedAt": 1787046522393
+    "updatedAt": 1787064054135
   },
   {
     "id": 1786706070056,
@@ -77,11 +77,11 @@
     "start": "08:30",
     "end": "16:30",
     "hours": 8,
-    "project": "ATKSS",
+    "project": "Other",
     "category": "Training",
     "billable": "yes",
     "notes": "i was doing school stuff with a little mibk",
-    "updatedAt": 1786545039131
+    "updatedAt": 1787063939240
   },
   {
     "id": 1786457957680,
