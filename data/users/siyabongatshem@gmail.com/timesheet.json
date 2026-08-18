@@ -1,5 +1,17 @@
 [
   {
+    "id": 1787064330233,
+    "date": "2026-08-18",
+    "start": "08:00",
+    "end": "16:45",
+    "hours": 8.75,
+    "project": "Air Liquide Distributed CHARMS",
+    "category": "CFAT",
+    "billable": "yes",
+    "notes": "Software CFAT",
+    "updatedAt": 1787064330233
+  },
+  {
     "id": 1787046632085,
     "date": "2026-08-18",
     "start": "08:00",
