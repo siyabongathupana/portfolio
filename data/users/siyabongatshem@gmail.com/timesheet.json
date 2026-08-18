@@ -5,11 +5,11 @@
     "start": "07:20",
     "end": "15:30",
     "hours": 8.17,
-    "project": "Other",
-    "category": "Training",
+    "project": "Air Liquide Distributed CHARMS",
+    "category": "IFAT",
     "billable": "yes",
     "notes": "",
-    "updatedAt": 1786944392030
+    "updatedAt": 1787046576070
   },
   {
     "id": 1786707946034,
@@ -17,11 +17,11 @@
     "start": "08:40",
     "end": "16:20",
     "hours": 7.67,
-    "project": "Air Liquide Distributed CHARMS",
+    "project": "Other",
     "category": "IFAT",
     "billable": "no",
     "notes": "",
-    "updatedAt": 1787046447230
+    "updatedAt": 1787046522393
   },
   {
     "id": 1786706070056,
