@@ -1,5 +1,17 @@
 [
   {
+    "id": 1787029072867,
+    "date": "2026-08-12",
+    "start": "10:00",
+    "end": "12:00",
+    "hours": 2,
+    "project": "Steam station 2",
+    "category": "Documentation",
+    "billable": "yes",
+    "notes": "blr 12 asbuilt",
+    "updatedAt": 1787029072867
+  },
+  {
     "id": 1787029008171,
     "date": "2026-08-12",
     "start": "06:30",
