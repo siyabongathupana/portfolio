@@ -1,7 +1,7 @@
 [
   {
     "id": 1787064330233,
-    "date": "2026-08-18",
+    "date": "2026-08-19",
     "start": "08:00",
     "end": "16:45",
     "hours": 8.75,
@@ -9,7 +9,7 @@
     "category": "CFAT",
     "billable": "yes",
     "notes": "Software CFAT",
-    "updatedAt": 1787064330233
+    "updatedAt": 1787123299855
   },
   {
     "id": 1787046632085,
