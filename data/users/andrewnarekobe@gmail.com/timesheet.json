@@ -1,5 +1,17 @@
 [
   {
+    "id": 1787205770203,
+    "date": "2026-08-20",
+    "start": "13:00",
+    "end": "17:00",
+    "hours": 4,
+    "project": "SS1",
+    "category": "IFAT",
+    "billable": "yes",
+    "notes": "Preparing VM for sasol to witness Change over",
+    "updatedAt": 1787205770203
+  },
+  {
     "id": 1787205564710,
     "date": "2026-08-19",
     "start": "08:00",
