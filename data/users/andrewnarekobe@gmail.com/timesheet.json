@@ -1,7 +1,19 @@
 [
   {
+    "id": 1787205564710,
+    "date": "2026-08-19",
+    "start": "08:00",
+    "end": "13:00",
+    "hours": 5,
+    "project": "ALLISSA",
+    "category": "CFAT",
+    "billable": "yes",
+    "notes": "",
+    "updatedAt": 1787205564710
+  },
+  {
     "id": 1787205476454,
-    "date": "2026-08-20",
+    "date": "2026-08-18",
     "start": "08:00",
     "end": "16:00",
     "hours": 8,
@@ -9,7 +21,7 @@
     "category": "CFAT",
     "billable": "yes",
     "notes": "",
-    "updatedAt": 1787205476454
+    "updatedAt": 1787205512618
   },
   {
     "id": 1785480049917,
