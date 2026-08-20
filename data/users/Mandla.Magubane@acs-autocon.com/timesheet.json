@@ -1,5 +1,17 @@
 [
   {
+    "id": 1787208321710,
+    "date": "2026-08-20",
+    "start": "06:40",
+    "end": "08:00",
+    "hours": 1.33,
+    "project": "Steam Station 2 Effluent Upgrade",
+    "category": "Documentation",
+    "billable": "yes",
+    "notes": "",
+    "updatedAt": 1787208321710
+  },
+  {
     "id": 1787207728418,
     "date": "2026-08-19",
     "start": "14:00",
