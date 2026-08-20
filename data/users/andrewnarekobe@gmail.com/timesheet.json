@@ -1,63 +1,15 @@
 [
   {
-    "id": 1787209219047,
-    "date": "2026-08-13",
-    "start": "08:00",
-    "end": "16:00",
+    "id": 1787209374399,
+    "date": "2026-08-14",
+    "start": "08:02",
+    "end": "16:02",
     "hours": 8,
     "project": "Others",
     "category": "Training",
     "billable": "no",
     "notes": "",
-    "updatedAt": 1787209219047
-  },
-  {
-    "id": 1787209101306,
-    "date": "2026-08-12",
-    "start": "08:00",
-    "end": "16:00",
-    "hours": 8,
-    "project": "Others",
-    "category": "Training",
-    "billable": "no",
-    "notes": "",
-    "updatedAt": 1787209101306
-  },
-  {
-    "id": 1787209062368,
-    "date": "2026-08-11",
-    "start": "08:00",
-    "end": "16:00",
-    "hours": 8,
-    "project": "Others",
-    "category": "Training",
-    "billable": "no",
-    "notes": "",
-    "updatedAt": 1787209062368
-  },
-  {
-    "id": 1787209015479,
-    "date": "2026-08-05",
-    "start": "08:56",
-    "end": "17:00",
-    "hours": 8.07,
-    "project": "SS1",
-    "category": "IFAT",
-    "billable": "yes",
-    "notes": "",
-    "updatedAt": 1787209015479
-  },
-  {
-    "id": 1787208936975,
-    "date": "2026-08-06",
-    "start": "09:00",
-    "end": "16:30",
-    "hours": 7.5,
-    "project": "SS1",
-    "category": "CFAT",
-    "billable": "yes",
-    "notes": "",
-    "updatedAt": 1787208936975
+    "updatedAt": 1787209374399
   },
   {
     "id": 1787205770203,
@@ -106,6 +58,66 @@
     "billable": "no",
     "notes": "PROCESS WORLD/TROUBLE SHOOTING PK NETWORK ON VM",
     "updatedAt": 1787206039137
+  },
+  {
+    "id": 1787209219047,
+    "date": "2026-08-13",
+    "start": "08:00",
+    "end": "16:00",
+    "hours": 8,
+    "project": "Others",
+    "category": "Training",
+    "billable": "no",
+    "notes": "",
+    "updatedAt": 1787209219047
+  },
+  {
+    "id": 1787209101306,
+    "date": "2026-08-12",
+    "start": "08:00",
+    "end": "16:00",
+    "hours": 8,
+    "project": "Others",
+    "category": "Training",
+    "billable": "no",
+    "notes": "",
+    "updatedAt": 1787209101306
+  },
+  {
+    "id": 1787209062368,
+    "date": "2026-08-11",
+    "start": "08:00",
+    "end": "16:00",
+    "hours": 8,
+    "project": "Others",
+    "category": "Training",
+    "billable": "no",
+    "notes": "",
+    "updatedAt": 1787209062368
+  },
+  {
+    "id": 1787208936975,
+    "date": "2026-08-06",
+    "start": "09:00",
+    "end": "16:30",
+    "hours": 7.5,
+    "project": "SS1",
+    "category": "CFAT",
+    "billable": "yes",
+    "notes": "",
+    "updatedAt": 1787208936975
+  },
+  {
+    "id": 1787209015479,
+    "date": "2026-08-05",
+    "start": "08:56",
+    "end": "17:00",
+    "hours": 8.07,
+    "project": "SS1",
+    "category": "IFAT",
+    "billable": "yes",
+    "notes": "",
+    "updatedAt": 1787209015479
   },
   {
     "id": 1785480049917,
