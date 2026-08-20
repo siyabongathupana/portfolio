@@ -1,7 +1,19 @@
 [
   {
+    "id": 1787206039137,
+    "date": "2026-08-17",
+    "start": "08:00",
+    "end": "16:00",
+    "hours": 8,
+    "project": "Others",
+    "category": "Training",
+    "billable": "no",
+    "notes": "PROCESS WORLD/TROUBLE SHOOTING PK NETWORK ON VM",
+    "updatedAt": 1787206039137
+  },
+  {
     "id": 1787205770203,
-    "date": "2026-08-20",
+    "date": "2026-08-19",
     "start": "13:00",
     "end": "17:00",
     "hours": 4,
@@ -9,7 +21,7 @@
     "category": "IFAT",
     "billable": "yes",
     "notes": "Preparing VM for sasol to witness Change over",
-    "updatedAt": 1787205770203
+    "updatedAt": 1787205785504
   },
   {
     "id": 1787205564710,
