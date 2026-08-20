@@ -1,15 +1,15 @@
 [
   {
-    "id": 1787206039137,
-    "date": "2026-08-17",
-    "start": "08:00",
-    "end": "16:00",
-    "hours": 8,
-    "project": "Others",
-    "category": "Training",
-    "billable": "no",
-    "notes": "PROCESS WORLD/TROUBLE SHOOTING PK NETWORK ON VM",
-    "updatedAt": 1787206039137
+    "id": 1787208936975,
+    "date": "2026-08-06",
+    "start": "09:00",
+    "end": "16:30",
+    "hours": 7.5,
+    "project": "SS1",
+    "category": "CFAT",
+    "billable": "yes",
+    "notes": "",
+    "updatedAt": 1787208936975
   },
   {
     "id": 1787205770203,
@@ -46,6 +46,18 @@
     "billable": "yes",
     "notes": "",
     "updatedAt": 1787205512618
+  },
+  {
+    "id": 1787206039137,
+    "date": "2026-08-17",
+    "start": "08:00",
+    "end": "16:00",
+    "hours": 8,
+    "project": "Others",
+    "category": "Training",
+    "billable": "no",
+    "notes": "PROCESS WORLD/TROUBLE SHOOTING PK NETWORK ON VM",
+    "updatedAt": 1787206039137
   },
   {
     "id": 1785480049917,
