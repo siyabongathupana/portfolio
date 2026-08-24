@@ -3,13 +3,13 @@
     "id": 1787559648557,
     "date": "2026-08-24",
     "start": "08:30",
-    "end": "16:30",
-    "hours": 8,
+    "end": "17:30",
+    "hours": 9,
     "project": "Sasol Boiler 6",
     "category": "Other",
     "billable": "yes",
     "notes": "RE-ASBUILTS (Network)",
-    "updatedAt": 1787559648557
+    "updatedAt": 1787585284869
   },
   {
     "id": 1787235139687,
