@@ -1,5 +1,17 @@
 [
   {
+    "id": 1787667108049,
+    "date": "2026-08-25",
+    "start": "08:40",
+    "end": "16:10",
+    "hours": 7.5,
+    "project": "Sasol Boiler 6",
+    "category": "Other",
+    "billable": "yes",
+    "notes": "Network Architecture",
+    "updatedAt": 1787667108049
+  },
+  {
     "id": 1787559648557,
     "date": "2026-08-24",
     "start": "08:30",
