@@ -1,15 +1,27 @@
 [
   {
+    "id": 1787722964856,
+    "date": "2026-08-21",
+    "start": "13:00",
+    "end": "14:30",
+    "hours": 1.5,
+    "project": "Admin",
+    "category": "Training",
+    "billable": "no",
+    "notes": "",
+    "updatedAt": 1787722964856
+  },
+  {
     "id": 1787722899377,
     "date": "2026-08-21",
     "start": "06:30",
     "end": "12:30",
     "hours": 6,
     "project": "Admin",
-    "category": "Training",
+    "category": "Site",
     "billable": "yes",
     "notes": "",
-    "updatedAt": 1787722899377
+    "updatedAt": 1787722909537
   },
   {
     "id": 1787315174768,
