@@ -3,13 +3,13 @@
     "id": 1787315174768,
     "date": "2026-08-20",
     "start": "06:30",
-    "end": "13:30",
-    "hours": 7,
+    "end": "16:00",
+    "hours": 9.5,
     "project": "Steam station 2",
     "category": "Site",
     "billable": "yes",
     "notes": "",
-    "updatedAt": 1787315263083
+    "updatedAt": 1787722839642
   },
   {
     "id": 1787315097874,
