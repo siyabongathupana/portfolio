@@ -1,15 +1,15 @@
 [
   {
-    "id": 1787893782269,
-    "date": "2026-08-24",
+    "id": 1787894064004,
+    "date": "2026-08-28",
     "start": "13:00",
     "end": "16:00",
     "hours": 3,
     "project": "Admin",
     "category": "Training",
-    "billable": "no",
+    "billable": "yes",
     "notes": "",
-    "updatedAt": 1787893782269
+    "updatedAt": 1787894064004
   },
   {
     "id": 1787893769052,
@@ -22,6 +22,18 @@
     "billable": "no",
     "notes": "",
     "updatedAt": 1787893832357
+  },
+  {
+    "id": 1787893782269,
+    "date": "2026-08-24",
+    "start": "13:00",
+    "end": "16:00",
+    "hours": 3,
+    "project": "Admin",
+    "category": "Training",
+    "billable": "no",
+    "notes": "",
+    "updatedAt": 1787893782269
   },
   {
     "id": 1787893681301,
