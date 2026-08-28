@@ -1,5 +1,17 @@
 [
   {
+    "id": 1787895467834,
+    "date": "2026-08-21",
+    "start": "07:30",
+    "end": "14:30",
+    "hours": 7,
+    "project": "Sasol Boiler 6",
+    "category": "Site",
+    "billable": "yes",
+    "notes": "",
+    "updatedAt": 1787895467834
+  },
+  {
     "id": 1787808318690,
     "date": "2026-08-26",
     "start": "14:30",
