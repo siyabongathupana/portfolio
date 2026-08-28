@@ -1,5 +1,17 @@
 [
   {
+    "id": 1787894242106,
+    "date": "2026-08-27",
+    "start": "13:00",
+    "end": "15:45",
+    "hours": 2.75,
+    "project": "Admin",
+    "category": "Training",
+    "billable": "no",
+    "notes": "",
+    "updatedAt": 1787894242106
+  },
+  {
     "id": 1787894216505,
     "date": "2026-08-27",
     "start": "06:30",
@@ -77,11 +89,11 @@
     "start": "13:00",
     "end": "15:30",
     "hours": 2.5,
-    "project": "Admin",
+    "project": "Temane T3/T32",
     "category": "Training",
-    "billable": "no",
+    "billable": "yes",
     "notes": "",
-    "updatedAt": 1787893681301
+    "updatedAt": 1787894343809
   },
   {
     "id": 1787723351418,
