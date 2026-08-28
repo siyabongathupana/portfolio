@@ -1,7 +1,19 @@
 [
   {
+    "id": 1787895879782,
+    "date": "2026-08-27",
+    "start": "13:00",
+    "end": "17:05",
+    "hours": 4.08,
+    "project": "Sasol MIBK",
+    "category": "Training",
+    "billable": "no",
+    "notes": "Fixing VM",
+    "updatedAt": 1787895879782
+  },
+  {
     "id": 1787895769315,
-    "date": "2026-08-06",
+    "date": "2026-08-27",
     "start": "07:15",
     "end": "13:00",
     "hours": 5.75,
@@ -9,7 +21,7 @@
     "category": "Documentation",
     "billable": "yes",
     "notes": "Network Schedule",
-    "updatedAt": 1787895769315
+    "updatedAt": 1787895811925
   },
   {
     "id": 1787808318690,
