@@ -1,5 +1,17 @@
 [
   {
+    "id": 1787894721225,
+    "date": "2026-08-27",
+    "start": "10:00",
+    "end": "11:00",
+    "hours": 1,
+    "project": "Steam station 2",
+    "category": "Documentation",
+    "billable": "yes",
+    "notes": "IPD scope",
+    "updatedAt": 1787894721225
+  },
+  {
     "id": 1787894662354,
     "date": "2026-08-26",
     "start": "15:00",
@@ -27,13 +39,13 @@
     "id": 1787894216505,
     "date": "2026-08-27",
     "start": "06:30",
-    "end": "12:00",
-    "hours": 5.5,
+    "end": "10:00",
+    "hours": 3.5,
     "project": "Admin",
     "category": "Training",
     "billable": "no",
     "notes": "",
-    "updatedAt": 1787894216505
+    "updatedAt": 1787894745971
   },
   {
     "id": 1787894156673,
