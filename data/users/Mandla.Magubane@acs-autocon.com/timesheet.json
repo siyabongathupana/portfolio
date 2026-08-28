@@ -1,5 +1,53 @@
 [
   {
+    "id": 1787894628143,
+    "date": "2026-08-25",
+    "start": "13:00",
+    "end": "14:00",
+    "hours": 1,
+    "project": "Other",
+    "category": "Hardware",
+    "billable": "yes",
+    "notes": "",
+    "updatedAt": 1787894628143
+  },
+  {
+    "id": 1787894604382,
+    "date": "2026-08-25",
+    "start": "06:40",
+    "end": "12:00",
+    "hours": 5.33,
+    "project": "Other",
+    "category": "Hardware",
+    "billable": "yes",
+    "notes": "",
+    "updatedAt": 1787894604382
+  },
+  {
+    "id": 1787894585389,
+    "date": "2026-08-24",
+    "start": "13:00",
+    "end": "15:00",
+    "hours": 2,
+    "project": "Other",
+    "category": "Hardware",
+    "billable": "yes",
+    "notes": "",
+    "updatedAt": 1787894585389
+  },
+  {
+    "id": 1787894568541,
+    "date": "2026-08-24",
+    "start": "09:00",
+    "end": "12:00",
+    "hours": 3,
+    "project": "Other",
+    "category": "Hardware",
+    "billable": "yes",
+    "notes": "",
+    "updatedAt": 1787894568541
+  },
+  {
     "id": 1787894545511,
     "date": "2026-08-24",
     "start": "06:30",
