@@ -27,13 +27,13 @@
     "id": 1787894156673,
     "date": "2026-08-26",
     "start": "12:30",
-    "end": "16:30",
-    "hours": 4,
+    "end": "15:00",
+    "hours": 2.5,
     "project": "Admin",
     "category": "Training",
     "billable": "no",
     "notes": "",
-    "updatedAt": 1787894156673
+    "updatedAt": 1787894504546
   },
   {
     "id": 1787894136840,
@@ -53,11 +53,11 @@
     "start": "13:00",
     "end": "16:00",
     "hours": 3,
-    "project": "Admin",
-    "category": "Training",
+    "project": "Temane T3/T32",
+    "category": "Hardware",
     "billable": "yes",
     "notes": "",
-    "updatedAt": 1787894084470
+    "updatedAt": 1787894437674
   },
   {
     "id": 1787893769052,
@@ -65,11 +65,11 @@
     "start": "07:00",
     "end": "12:00",
     "hours": 5,
-    "project": "Admin",
-    "category": "Training",
-    "billable": "no",
+    "project": "Temane T3/T32",
+    "category": "Hardware",
+    "billable": "yes",
     "notes": "",
-    "updatedAt": 1787893832357
+    "updatedAt": 1787894459530
   },
   {
     "id": 1787893681301,
@@ -78,10 +78,10 @@
     "end": "16:00",
     "hours": 3,
     "project": "Temane T3/T32",
-    "category": "Training",
+    "category": "Hardware",
     "billable": "yes",
     "notes": "",
-    "updatedAt": 1787894409914
+    "updatedAt": 1787894446337
   },
   {
     "id": 1787723351418,
