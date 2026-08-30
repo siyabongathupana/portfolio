@@ -46,12 +46,12 @@
                         "Areas and Volumes by integration",
                         "Numerical Integration"
                       ],
-                      "completed": false,
+                      "completed": true,
                       "subCompleted": [
-                        false,
-                        false,
-                        false,
-                        false
+                        true,
+                        true,
+                        true,
+                        true
                       ]
                     }
                   ],
