@@ -468,12 +468,12 @@
                         "Representation of details in pictorial drawings",
                         "Introduction to CAD: Basic 3D models"
                       ],
-                      "completed": false,
+                      "completed": true,
                       "subCompleted": [
-                        false,
-                        false,
-                        false,
-                        false
+                        true,
+                        true,
+                        true,
+                        true
                       ]
                     }
                   ],
