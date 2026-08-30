@@ -76,12 +76,12 @@
                         "Second-Order Differential Equations",
                         "Systems of first-order ODEs"
                       ],
-                      "completed": false,
+                      "completed": true,
                       "subCompleted": [
-                        false,
-                        false,
-                        false,
-                        false
+                        true,
+                        true,
+                        true,
+                        true
                       ]
                     }
                   ],
