@@ -430,13 +430,13 @@
                         "Production of engineering drawings",
                         "Introduction to CAD: Basic 2D entities"
                       ],
-                      "completed": false,
+                      "completed": true,
                       "subCompleted": [
-                        false,
-                        false,
-                        false,
-                        false,
-                        false
+                        true,
+                        true,
+                        true,
+                        true,
+                        true
                       ]
                     }
                   ],
