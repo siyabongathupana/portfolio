@@ -858,7 +858,7 @@
                     {
                       "name": "Quiz 3",
                       "due": "2026-08-23",
-                      "status": "pending",
+                      "status": "submitted",
                       "marks": "",
                       "weight": 10
                     }
