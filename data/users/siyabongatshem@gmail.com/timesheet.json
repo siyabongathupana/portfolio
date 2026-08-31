@@ -1,15 +1,15 @@
 [
   {
-    "id": 1787896445595,
-    "date": "2026-08-07",
+    "id": 1788181361370,
+    "date": "2026-08-31",
     "start": "08:30",
     "end": "16:30",
     "hours": 8,
     "project": "Other",
-    "category": "Admin",
+    "category": "Study Leave",
     "billable": "no",
-    "notes": "",
-    "updatedAt": 1787896445595
+    "notes": "Study Leave",
+    "updatedAt": 1788181361370
   },
   {
     "id": 1787895879782,
@@ -238,6 +238,18 @@
     "billable": "no",
     "notes": "Public Holiday",
     "updatedAt": 1786457868563
+  },
+  {
+    "id": 1787896445595,
+    "date": "2026-08-07",
+    "start": "08:30",
+    "end": "16:30",
+    "hours": 8,
+    "project": "Other",
+    "category": "Admin",
+    "billable": "no",
+    "notes": "",
+    "updatedAt": 1787896445595
   },
   {
     "id": 1787895578933,
