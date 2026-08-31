@@ -412,9 +412,11 @@
                     {
                       "name": "Portfolio Week 2",
                       "due": "2026-08-23",
-                      "status": "pending",
+                      "status": "submitted",
                       "marks": "",
-                      "weight": 10
+                      "weight": 10,
+                      "notes": "",
+                      "submittedDate": "2026-08-31"
                     }
                   ]
                 },
