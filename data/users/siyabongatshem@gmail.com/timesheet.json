@@ -1,5 +1,17 @@
 [
   {
+    "id": 1788273155281,
+    "date": "2026-09-01",
+    "start": "08:40",
+    "end": "15:32",
+    "hours": 6.87,
+    "project": "Sasol MIBK",
+    "category": "Training",
+    "billable": "no",
+    "notes": "",
+    "updatedAt": 1788273155281
+  },
+  {
     "id": 1788181361370,
     "date": "2026-08-31",
     "start": "08:30",
