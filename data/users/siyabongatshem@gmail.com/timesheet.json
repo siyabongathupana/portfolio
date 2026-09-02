@@ -1,5 +1,17 @@
 [
   {
+    "id": 1788360075517,
+    "date": "2026-09-02",
+    "start": "08:30",
+    "end": "12:00",
+    "hours": 3.5,
+    "project": "Sasol MIBK",
+    "category": "Admin",
+    "billable": "no",
+    "notes": "Online CFAT with Andrew",
+    "updatedAt": 1788360075517
+  },
+  {
     "id": 1788273377570,
     "date": "2026-09-01",
     "start": "15:32",
