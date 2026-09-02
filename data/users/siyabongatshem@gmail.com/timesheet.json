@@ -1,5 +1,17 @@
 [
   {
+    "id": 1788360222123,
+    "date": "2026-09-02",
+    "start": "14:48",
+    "end": "16:30",
+    "hours": 1.7,
+    "project": "Sasol MIBK",
+    "category": "Implementation",
+    "billable": "no",
+    "notes": "New Timers",
+    "updatedAt": 1788360222123
+  },
+  {
     "id": 1788360147214,
     "date": "2026-09-02",
     "start": "12:30",
