@@ -1,5 +1,17 @@
 [
   {
+    "id": 1788360147214,
+    "date": "2026-09-02",
+    "start": "12:30",
+    "end": "14:48",
+    "hours": 2.3,
+    "project": "Other",
+    "category": "Meetings",
+    "billable": "no",
+    "notes": "Meeting with Grant About S2 Tuition",
+    "updatedAt": 1788360147214
+  },
+  {
     "id": 1788360075517,
     "date": "2026-09-02",
     "start": "08:30",
