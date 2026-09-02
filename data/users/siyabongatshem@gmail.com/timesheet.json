@@ -7,9 +7,9 @@
     "hours": 1.7,
     "project": "Sasol MIBK",
     "category": "Implementation",
-    "billable": "no",
+    "billable": "yes",
     "notes": "New Timers",
-    "updatedAt": 1788360222123
+    "updatedAt": 1788360240073
   },
   {
     "id": 1788360147214,
