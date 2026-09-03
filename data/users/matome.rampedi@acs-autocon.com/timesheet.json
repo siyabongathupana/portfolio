@@ -1,5 +1,41 @@
 [
   {
+    "id": 1788438460921,
+    "date": "2026-09-01",
+    "start": "15:30",
+    "end": "16:05",
+    "hours": 0.58,
+    "project": "Admin",
+    "category": "Training",
+    "billable": "no",
+    "notes": "",
+    "updatedAt": 1788438460921
+  },
+  {
+    "id": 1788438419057,
+    "date": "2026-09-01",
+    "start": "12:30",
+    "end": "15:00",
+    "hours": 2.5,
+    "project": "Temane T3/T32",
+    "category": "CFAT",
+    "billable": "yes",
+    "notes": "",
+    "updatedAt": 1788438419057
+  },
+  {
+    "id": 1788438396408,
+    "date": "2026-09-01",
+    "start": "09:00",
+    "end": "12:00",
+    "hours": 3,
+    "project": "Temane T3/T32",
+    "category": "CFAT",
+    "billable": "yes",
+    "notes": "",
+    "updatedAt": 1788438396408
+  },
+  {
     "id": 1788438372232,
     "date": "2026-09-01",
     "start": "07:00",
