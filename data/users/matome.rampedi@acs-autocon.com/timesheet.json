@@ -1,5 +1,29 @@
 [
   {
+    "id": 1788438203673,
+    "date": "2026-08-31",
+    "start": "11:30",
+    "end": "12:00",
+    "hours": 0.5,
+    "project": "Admin",
+    "category": "Other",
+    "billable": "no",
+    "notes": "coffee",
+    "updatedAt": 1788438203673
+  },
+  {
+    "id": 1788438164712,
+    "date": "2026-08-31",
+    "start": "09:00",
+    "end": "11:30",
+    "hours": 2.5,
+    "project": "Temane T3/T32",
+    "category": "Other",
+    "billable": "yes",
+    "notes": "CFAT Prep",
+    "updatedAt": 1788438181129
+  },
+  {
     "id": 1788438130912,
     "date": "2026-08-31",
     "start": "07:00",
