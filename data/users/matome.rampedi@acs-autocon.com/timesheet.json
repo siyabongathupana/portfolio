@@ -1,5 +1,29 @@
 [
   {
+    "id": 1788438947992,
+    "date": "2026-09-02",
+    "start": "13:30",
+    "end": "15:45",
+    "hours": 2.25,
+    "project": "Steam station 2",
+    "category": "Meetings",
+    "billable": "yes",
+    "notes": "",
+    "updatedAt": 1788438947992
+  },
+  {
+    "id": 1788438684690,
+    "date": "2026-09-02",
+    "start": "09:00",
+    "end": "09:30",
+    "hours": 0.5,
+    "project": "Steam station 2",
+    "category": "Meetings",
+    "billable": "yes",
+    "notes": "",
+    "updatedAt": 1788438684690
+  },
+  {
     "id": 1788438661576,
     "date": "2026-09-02",
     "start": "06:30",
