@@ -74,14 +74,14 @@
   {
     "id": 1788438661576,
     "date": "2026-09-02",
-    "start": "06:30",
+    "start": "06:45",
     "end": "09:00",
-    "hours": 2.5,
+    "hours": 2.25,
     "project": "Steam station 2",
     "category": "Documentation",
     "billable": "yes",
     "notes": "blr 14 as-built",
-    "updatedAt": 1788438661576
+    "updatedAt": 1788439256928
   },
   {
     "id": 1788438460921,
