@@ -146,14 +146,14 @@
   {
     "id": 1788438277376,
     "date": "2026-08-31",
-    "start": "13:00",
+    "start": "12:30",
     "end": "15:30",
-    "hours": 2.5,
+    "hours": 3,
     "project": "Temane T3/T32",
     "category": "Other",
     "billable": "yes",
     "notes": "CFAT Prep",
-    "updatedAt": 1788438277376
+    "updatedAt": 1788506478018
   },
   {
     "id": 1788438203673,
