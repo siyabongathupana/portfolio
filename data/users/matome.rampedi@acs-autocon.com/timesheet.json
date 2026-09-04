@@ -1,15 +1,39 @@
 [
   {
+    "id": 1788508248207,
+    "date": "2026-09-03",
+    "start": "12:30",
+    "end": "15:15",
+    "hours": 2.75,
+    "project": "Admin",
+    "category": "Training",
+    "billable": "no",
+    "notes": "",
+    "updatedAt": 1788508248207
+  },
+  {
+    "id": 1788508203120,
+    "date": "2026-09-03",
+    "start": "11:30",
+    "end": "12:00",
+    "hours": 0.5,
+    "project": "Admin",
+    "category": "Other",
+    "billable": "no",
+    "notes": "",
+    "updatedAt": 1788508203120
+  },
+  {
     "id": 1788508177847,
     "date": "2026-09-03",
     "start": "08:30",
     "end": "11:30",
     "hours": 3,
     "project": "Admin",
-    "category": "Other",
+    "category": "Training",
     "billable": "no",
     "notes": "",
-    "updatedAt": 1788508177847
+    "updatedAt": 1788508194440
   },
   {
     "id": 1788508008528,
