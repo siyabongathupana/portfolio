@@ -1,5 +1,41 @@
 [
   {
+    "id": 1788501180759,
+    "date": "2026-09-04",
+    "start": "11:00",
+    "end": "12:00",
+    "hours": 1,
+    "project": "Steam Station 2 DCS Replacement",
+    "category": "Meetings",
+    "billable": "yes",
+    "notes": "",
+    "updatedAt": 1788501180759
+  },
+  {
+    "id": 1788501172111,
+    "date": "2026-09-04",
+    "start": "06:40",
+    "end": "11:00",
+    "hours": 4.33,
+    "project": "Steam Station 2 DCS Replacement",
+    "category": "Documentation",
+    "billable": "yes",
+    "notes": "",
+    "updatedAt": 1788501172111
+  },
+  {
+    "id": 1788501123312,
+    "date": "2026-09-03",
+    "start": "12:00",
+    "end": "15:20",
+    "hours": 3.33,
+    "project": "Temane T31/T32",
+    "category": "Hardware",
+    "billable": "yes",
+    "notes": "",
+    "updatedAt": 1788501123312
+  },
+  {
     "id": 1788501116449,
     "date": "2026-09-03",
     "start": "07:30",
