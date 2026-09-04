@@ -38,14 +38,14 @@
   {
     "id": 1788438964689,
     "date": "2026-09-02",
-    "start": "13:00",
+    "start": "12:30",
     "end": "13:30",
-    "hours": 0.5,
+    "hours": 1,
     "project": "Admin",
     "category": "Training",
     "billable": "no",
     "notes": "",
-    "updatedAt": 1788438964689
+    "updatedAt": 1788506545393
   },
   {
     "id": 1788438947992,
