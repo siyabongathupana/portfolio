@@ -1,5 +1,17 @@
 [
   {
+    "id": 1788501644404,
+    "date": "2026-09-04",
+    "start": "14:30",
+    "end": "15:30",
+    "hours": 1,
+    "project": "Temane T31/T32",
+    "category": "Documentation",
+    "billable": "yes",
+    "notes": "",
+    "updatedAt": 1788501644404
+  },
+  {
     "id": 1788501204014,
     "date": "2026-09-04",
     "start": "13:00",
