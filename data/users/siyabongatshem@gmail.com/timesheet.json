@@ -14,14 +14,14 @@
   {
     "id": 1788875374065,
     "date": "2026-09-08",
-    "start": "15:00",
-    "end": "15:49",
-    "hours": 0.82,
+    "start": "12:30",
+    "end": "16:30",
+    "hours": 4,
     "project": "Sasol MIBK",
     "category": "Training",
     "billable": "no",
-    "notes": "CFAT Meeting-Pump/Tank Lineups",
-    "updatedAt": 1788875374065
+    "notes": "RS485/CFAT Meeting-Pump/Tank Lineups",
+    "updatedAt": 1788875712480
   },
   {
     "id": 1788875335965,
