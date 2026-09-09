@@ -3,256 +3,517 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Offline Timesheet Viewer</title>
+    <title>Offline Timesheet · Your Portfolio</title>
     <link rel="icon" type="image/png" href="favicon.png" />
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
     <style>
+        /* ─── Base ─── */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
-            background: #eef3fc;
             font-family: 'Inter', sans-serif;
-            padding: 30px 20px;
+            background: #0b2b3b;
             min-height: 100vh;
+            padding: 30px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
+
         .container {
-            max-width: 1000px;
+            max-width: 1100px;
+            width: 100%;
             margin: 0 auto;
         }
-        .card {
-            border-radius: 28px;
-            border: none;
-            box-shadow: 0 12px 40px rgba(0,0,0,0.06);
-            padding: 30px;
-            background: white;
-            margin-bottom: 25px;
+
+        /* ─── Glass card ─── */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border-radius: 32px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            padding: 32px 38px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
         }
-        h1 {
-            font-weight: 700;
-            color: #0b2b3b;
+
+        /* ─── Header ─── */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-bottom: 8px;
+        }
+        .header h1 {
+            font-weight: 800;
             font-size: 2rem;
+            color: #fff;
+            letter-spacing: -0.02em;
         }
-        h1 span {
+        .header h1 span {
             color: #2fc7ff;
         }
-        .sub {
-            color: #5a7d9a;
-            font-size: 0.95rem;
-            margin-bottom: 25px;
+        .header .badge-offline {
+            background: rgba(47, 199, 255, 0.15);
+            color: #2fc7ff;
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 4px 16px;
+            border-radius: 40px;
+            border: 1px solid rgba(47, 199, 255, 0.2);
+            letter-spacing: 0.04em;
         }
+        .sub {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.95rem;
+            margin-bottom: 28px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            padding-bottom: 18px;
+        }
+        .sub i {
+            color: #2fc7ff;
+            margin-right: 8px;
+        }
+
+        /* ─── Drop zone ─── */
         .drop-zone {
-            border: 2px dashed #cbd5e1;
-            border-radius: 24px;
-            padding: 40px 20px;
+            border: 2px dashed rgba(47, 199, 255, 0.25);
+            border-radius: 20px;
+            padding: 44px 20px;
             text-align: center;
             transition: 0.25s;
-            background: #f8fafc;
+            background: rgba(255, 255, 255, 0.02);
             cursor: pointer;
+            position: relative;
         }
         .drop-zone:hover,
         .drop-zone.dragover {
             border-color: #2fc7ff;
-            background: #f0f7ff;
+            background: rgba(47, 199, 255, 0.05);
         }
         .drop-zone i {
-            font-size: 3rem;
+            font-size: 3.2rem;
             color: #2fc7ff;
             display: block;
-            margin-bottom: 10px;
+            margin-bottom: 12px;
+        }
+        .drop-zone .title {
+            color: #fff;
+            font-weight: 600;
+            font-size: 1.1rem;
         }
         .drop-zone .hint {
-            color: #8a9fb0;
-            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.35);
+            font-size: 0.85rem;
+            margin-top: 4px;
         }
-        .file-info {
-            background: #f1f5f9;
-            padding: 10px 16px;
+        .drop-zone .file-input-hidden {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        /* ─── Buttons ─── */
+        .btn-delta {
+            background: #2fc7ff;
+            color: #0b2b3b;
+            border: none;
             border-radius: 40px;
+            padding: 10px 28px;
+            font-weight: 600;
+            transition: 0.2s;
+        }
+        .btn-delta:hover {
+            background: #1d9fcf;
+            transform: translateY(-2px);
+            color: #0b2b3b;
+            box-shadow: 0 8px 30px rgba(47, 199, 255, 0.2);
+        }
+        .btn-outline-delta {
+            border: 1px solid rgba(47, 199, 255, 0.3);
+            background: transparent;
+            color: #2fc7ff;
+            border-radius: 40px;
+            padding: 10px 24px;
+            font-weight: 500;
+            transition: 0.2s;
+        }
+        .btn-outline-delta:hover {
+            background: rgba(47, 199, 255, 0.08);
+            color: #2fc7ff;
+        }
+        .btn-outline-light-sm {
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: transparent;
+            color: rgba(255, 255, 255, 0.5);
+            border-radius: 40px;
+            padding: 6px 18px;
+            font-size: 0.75rem;
+            transition: 0.2s;
+        }
+        .btn-outline-light-sm:hover {
+            background: rgba(255, 255, 255, 0.04);
+            color: #fff;
+        }
+
+        .file-status {
             display: inline-flex;
             align-items: center;
             gap: 8px;
+            color: rgba(255, 255, 255, 0.6);
             font-size: 0.85rem;
-            margin-top: 12px;
-        }
-        .btn-primary-glow {
-            background: linear-gradient(135deg, #2fc7ff, #0984e3);
-            border: none;
+            padding: 6px 16px;
+            background: rgba(255, 255, 255, 0.04);
             border-radius: 40px;
-            padding: 12px 32px;
-            font-weight: 600;
-            color: white;
-            transition: 0.25s;
+            border: 1px solid rgba(255, 255, 255, 0.04);
         }
-        .btn-primary-glow:hover {
-            transform: scale(1.02);
-            box-shadow: 0 8px 25px rgba(47,199,255,0.3);
-            color: white;
+        .file-status i {
+            color: #28a745;
         }
-        .btn-outline-secondary {
-            border-radius: 40px;
-            border: 1px solid #d0d8e0;
-            color: #5a7d9a;
-        }
-        .btn-outline-secondary:hover {
-            background: #f0f4fa;
-        }
-        .table-wrap {
-            max-height: 500px;
-            overflow-y: auto;
+
+        /* ─── Paste area ─── */
+        .paste-area {
+            background: rgba(255, 255, 255, 0.02);
             border-radius: 16px;
-            border: 1px solid #e8edf4;
+            padding: 16px;
+            margin-top: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+        }
+        .paste-area textarea {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 12px;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.85rem;
+            padding: 14px;
+            width: 100%;
+            resize: vertical;
+            min-height: 140px;
+            outline: none;
+            transition: 0.2s;
+        }
+        .paste-area textarea:focus {
+            border-color: #2fc7ff;
+            box-shadow: 0 0 0 3px rgba(47, 199, 255, 0.08);
+        }
+        .paste-area textarea::placeholder {
+            color: rgba(255, 255, 255, 0.2);
+        }
+
+        /* ─── Alert ─── */
+        .alert-custom {
+            border-radius: 16px;
+            padding: 14px 20px;
+            margin-top: 16px;
+            border: 1px solid transparent;
+            display: none;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9rem;
+        }
+        .alert-custom.show { display: flex; }
+        .alert-custom.error {
+            background: rgba(220, 53, 69, 0.12);
+            border-color: rgba(220, 53, 69, 0.2);
+            color: #f8a8b0;
+        }
+        .alert-custom.success {
+            background: rgba(40, 167, 69, 0.12);
+            border-color: rgba(40, 167, 69, 0.2);
+            color: #8cd4a0;
+        }
+        .alert-custom.info {
+            background: rgba(47, 199, 255, 0.08);
+            border-color: rgba(47, 199, 255, 0.12);
+            color: #8acff5;
+        }
+
+        /* ─── Results ─── */
+        .results {
+            display: none;
+            margin-top: 28px;
+            border-top: 1px solid rgba(255, 255, 255, 0.04);
+            padding-top: 24px;
+        }
+        .results.show { display: block; }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .results-header h4 {
+            color: #fff;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+        .results-header h4 i {
+            color: #2fc7ff;
+            margin-right: 8px;
+        }
+        .results-header .count-badge {
+            background: rgba(255, 255, 255, 0.04);
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 0.75rem;
+            padding: 4px 14px;
+            border-radius: 40px;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        /* ─── Stats grid ─── */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 16px;
+            padding: 14px 12px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            transition: 0.2s;
+        }
+        .stat-card:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(47, 199, 255, 0.1);
+        }
+        .stat-card .number {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #fff;
+            line-height: 1.2;
+        }
+        .stat-card .number.green { color: #28a745; }
+        .stat-card .number.red { color: #dc3545; }
+        .stat-card .number.blue { color: #2fc7ff; }
+        .stat-card .number.orange { color: #fd7e14; }
+        .stat-card .number.purple { color: #a29bfe; }
+        .stat-card .label {
+            font-size: 0.6rem;
+            color: rgba(255, 255, 255, 0.35);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-top: 2px;
+        }
+
+        /* ─── Table ─── */
+        .table-wrap {
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            overflow: hidden;
+            max-height: 480px;
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.15);
         }
         .table {
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             margin: 0;
+            color: rgba(255, 255, 255, 0.8);
+            width: 100%;
+            border-collapse: collapse;
         }
         .table thead {
             position: sticky;
             top: 0;
             z-index: 2;
-            background: #f8fafc;
         }
-        .table th {
+        .table thead th {
+            background: rgba(11, 43, 59, 0.95);
+            color: rgba(255, 255, 255, 0.5);
             font-weight: 600;
+            font-size: 0.65rem;
             text-transform: uppercase;
-            font-size: 0.7rem;
-            letter-spacing: 0.04em;
-            border-bottom: 2px solid #e2e8f0;
+            letter-spacing: 0.06em;
             padding: 10px 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
         }
-        .table td {
+        .table tbody td {
             padding: 8px 12px;
-            border-bottom: 1px solid #f1f5f9;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
             vertical-align: middle;
         }
         .table tbody tr:hover td {
-            background: #f8fafc;
+            background: rgba(255, 255, 255, 0.02);
         }
+        .table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
         .badge-billable {
-            font-size: 0.6rem;
+            font-size: 0.55rem;
             padding: 3px 12px;
             border-radius: 30px;
             font-weight: 600;
             text-transform: uppercase;
-        }
-        .badge-billable.yes { background: #d4edda; color: #155724; }
-        .badge-billable.no { background: #f8d7da; color: #721c24; }
-        .summary-stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-            gap: 12px;
-            margin: 20px 0 15px;
-        }
-        .stat-box {
-            background: #f8fafc;
-            border-radius: 16px;
-            padding: 12px 16px;
-            text-align: center;
-            border: 1px solid #e8edf4;
-        }
-        .stat-box .number {
-            font-size: 1.6rem;
-            font-weight: 700;
-            color: #0b2b3b;
-        }
-        .stat-box .label {
-            font-size: 0.65rem;
-            color: #5a7d9a;
-            text-transform: uppercase;
             letter-spacing: 0.04em;
         }
-        .stat-box .number.green { color: #28a745; }
-        .stat-box .number.red { color: #dc3545; }
-        .stat-box .number.blue { color: #2fc7ff; }
-        .stat-box .number.orange { color: #fd7e14; }
-        .footer-note {
-            font-size: 0.7rem;
-            color: #a0b8cc;
-            text-align: center;
-            margin-top: 30px;
-            border-top: 1px solid #e8edf4;
-            padding-top: 20px;
+        .badge-billable.yes {
+            background: rgba(40, 167, 69, 0.15);
+            color: #6bcb8a;
         }
-        .footer-note a {
-            color: #2fc7ff;
-            text-decoration: none;
+        .badge-billable.no {
+            background: rgba(220, 53, 69, 0.15);
+            color: #f08080;
         }
-        .footer-note a:hover { text-decoration: underline; }
-        @media (max-width: 576px) {
-            .card { padding: 20px; }
-            .table { font-size: 0.7rem; }
-            .stat-box .number { font-size: 1.2rem; }
+
+        .totals-row td {
+            background: rgba(255, 255, 255, 0.03);
+            border-top: 2px solid rgba(47, 199, 255, 0.15);
+            font-weight: 600;
+            color: #fff;
+            padding: 10px 12px;
         }
+
         .empty-state {
             text-align: center;
             padding: 40px 20px;
-            color: #8a9fb0;
+            color: rgba(255, 255, 255, 0.2);
         }
-        .empty-state i { font-size: 3rem; display: block; margin-bottom: 16px; opacity: 0.3; }
+        .empty-state i {
+            font-size: 3rem;
+            display: block;
+            margin-bottom: 12px;
+            opacity: 0.3;
+        }
+
+        /* ─── Scrollbar ─── */
+        .table-wrap::-webkit-scrollbar { width: 4px; height: 4px; }
+        .table-wrap::-webkit-scrollbar-track { background: transparent; }
+        .table-wrap::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+        }
+        .table-wrap::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.15); }
+
+        /* ─── Footer ─── */
+        .footer-note {
+            margin-top: 28px;
+            font-size: 0.7rem;
+            color: rgba(255, 255, 255, 0.15);
+            text-align: center;
+            border-top: 1px solid rgba(255, 255, 255, 0.03);
+            padding-top: 20px;
+        }
+        .footer-note a {
+            color: rgba(47, 199, 255, 0.5);
+            text-decoration: none;
+        }
+        .footer-note a:hover {
+            color: #2fc7ff;
+            text-decoration: underline;
+        }
+
+        /* ─── Responsive ─── */
+        @media (max-width: 600px) {
+            .glass-card { padding: 20px; }
+            .header h1 { font-size: 1.4rem; }
+            .stats-grid { grid-template-columns: repeat(3, 1fr); }
+            .stat-card .number { font-size: 1.2rem; }
+            .table { font-size: 0.7rem; }
+            .table thead th, .table tbody td { padding: 6px 8px; }
+            .drop-zone { padding: 30px 16px; }
+        }
+        @media (max-width: 400px) {
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="card">
-        <h1><i class="fa fa-file-text-o" style="color:#2fc7ff;margin-right:12px;"></i><span>Offline</span> Timesheet Viewer</h1>
-        <p class="sub">
-            <i class="fa fa-cloud-download" style="color:#2fc7ff;"></i>
-            Upload your <strong>timesheet.json</strong> file (or paste its content) to view your entries – no internet required.
-        </p>
+    <div class="glass-card">
 
-        <!-- Upload area -->
-        <div class="drop-zone" id="dropZone">
-            <i class="fa fa-cloud-upload"></i>
-            <div><strong>Drag & drop</strong> your timesheet.json here</div>
-            <div class="hint">or click to browse</div>
-            <input type="file" id="fileInput" accept=".json,application/json" style="display:none;" />
+        <!-- Header -->
+        <div class="header">
+            <h1><span>Offline</span> Timesheet</h1>
+            <span class="badge-offline"><i class="fa fa-wifi" style="opacity:0.4;"></i> No network needed</span>
+        </div>
+        <div class="sub">
+            <i class="fa fa-cloud-download"></i>
+            Upload your <strong>timesheet.json</strong> or paste its content – view your entries instantly.
         </div>
 
-        <div class="d-flex justify-content-between align-items-center flex-wrap mt-3">
-            <div>
-                <button class="btn btn-primary-glow" id="loadBtn"><i class="fa fa-upload"></i> Load from file</button>
-                <button class="btn btn-outline-secondary ml-2" id="pasteBtn"><i class="fa fa-code"></i> Paste JSON</button>
+        <!-- Drop zone -->
+        <div class="drop-zone" id="dropZone">
+            <i class="fa fa-cloud-upload"></i>
+            <div class="title">Drop your timesheet.json here</div>
+            <div class="hint">or click to browse</div>
+            <input type="file" id="fileInput" accept=".json,application/json" class="file-input-hidden" />
+        </div>
+
+        <!-- Actions -->
+        <div class="d-flex flex-wrap align-items-center justify-content-between mt-3" style="gap:10px;">
+            <div class="d-flex flex-wrap" style="gap:8px;">
+                <button class="btn-delta" id="loadBtn"><i class="fa fa-upload"></i> Load File</button>
+                <button class="btn-outline-delta" id="pasteBtn"><i class="fa fa-code"></i> Paste JSON</button>
+                <button class="btn-outline-light-sm" id="clearBtn" style="display:none;"><i class="fa fa-times"></i> Clear</button>
             </div>
-            <span id="fileStatus" class="file-info" style="display:none;">
-                <i class="fa fa-check-circle" style="color:#28a745;"></i> <span id="fileName">file.json</span>
+            <span class="file-status" id="fileStatus" style="display:none;">
+                <i class="fa fa-check-circle"></i> <span id="fileName">file.json</span>
             </span>
         </div>
 
-        <!-- Paste modal (hidden) -->
-        <div id="pasteArea" style="display:none; margin-top:16px;">
-            <textarea id="jsonInput" class="form-control" rows="8" placeholder="Paste your timesheet JSON here..."></textarea>
-            <button class="btn btn-primary-glow mt-2" id="parsePasteBtn"><i class="fa fa-play"></i> Parse JSON</button>
+        <!-- Paste area -->
+        <div class="paste-area" id="pasteArea" style="display:none;">
+            <textarea id="jsonInput" placeholder="Paste your timesheet JSON here..."></textarea>
+            <div class="mt-2">
+                <button class="btn-delta" id="parsePasteBtn"><i class="fa fa-play"></i> Parse JSON</button>
+                <button class="btn-outline-light-sm" id="hidePasteBtn">Cancel</button>
+                <span style="color:rgba(255,255,255,0.15);font-size:0.7rem;margin-left:12px;">Ctrl+Enter to parse</span>
+            </div>
         </div>
 
-        <!-- Error / success -->
-        <div id="messageBox" class="alert mt-3" style="display:none;"></div>
+        <!-- Alert -->
+        <div class="alert-custom" id="messageBox"></div>
 
         <!-- Results -->
-        <div id="results" style="display:none;">
-            <hr />
-            <div class="summary-stats" id="statsContainer"></div>
+        <div class="results" id="results">
+            <div class="results-header">
+                <h4><i class="fa fa-clock-o"></i> Your Entries</h4>
+                <span class="count-badge" id="totalCount">0 entries</span>
+            </div>
+
+            <!-- Stats -->
+            <div class="stats-grid" id="statsContainer"></div>
+
+            <!-- Table -->
             <div class="table-wrap">
-                <table class="table" id="entriesTable">
+                <table class="table">
                     <thead>
                         <tr>
-                            <th>Date</th><th>Start</th><th>End</th><th>Hours</th>
-                            <th>Project</th><th>Category</th><th>Billable</th><th>Notes</th>
+                            <th>Date</th>
+                            <th>Start</th>
+                            <th>End</th>
+                            <th>Hours</th>
+                            <th>Project</th>
+                            <th>Category</th>
+                            <th>Billable</th>
+                            <th>Notes</th>
                         </tr>
                     </thead>
                     <tbody id="entriesBody"></tbody>
                     <tfoot id="entriesFoot" style="display:none;"></tfoot>
                 </table>
             </div>
-            <div class="mt-3 text-muted small">
-                <i class="fa fa-info-circle"></i> Total entries: <span id="totalCount">0</span>
-            </div>
         </div>
-    </div>
 
-    <div class="footer-note">
-        <i class="fa fa-github"></i> Data from your portfolio repository ·
-        <a href="login.html">Go to full login</a>
+        <div class="footer-note">
+            <i class="fa fa-github"></i> Data from your portfolio · 
+            <a href="login.html">Go to full login</a>
+        </div>
     </div>
 </div>
 
@@ -263,13 +524,16 @@
     (function() {
         'use strict';
 
+        // DOM refs
         const dropZone = document.getElementById('dropZone');
         const fileInput = document.getElementById('fileInput');
         const loadBtn = document.getElementById('loadBtn');
         const pasteBtn = document.getElementById('pasteBtn');
+        const clearBtn = document.getElementById('clearBtn');
         const pasteArea = document.getElementById('pasteArea');
         const jsonInput = document.getElementById('jsonInput');
         const parsePasteBtn = document.getElementById('parsePasteBtn');
+        const hidePasteBtn = document.getElementById('hidePasteBtn');
         const fileStatus = document.getElementById('fileStatus');
         const fileName = document.getElementById('fileName');
         const messageBox = document.getElementById('messageBox');
@@ -281,37 +545,44 @@
 
         let currentData = null;
 
-        // ─── show / hide messages ───
-        function showMessage(text, type = 'danger') {
-            messageBox.style.display = 'block';
-            messageBox.className = 'alert alert-' + type;
+        // ─── Alert helpers ───
+        function showMessage(text, type = 'error') {
+            messageBox.className = 'alert-custom show ' + type;
             messageBox.textContent = text;
         }
-
         function hideMessage() {
-            messageBox.style.display = 'none';
+            messageBox.className = 'alert-custom';
             messageBox.textContent = '';
         }
 
-        // ─── render entries ───
+        // ─── Render ───
         function renderEntries(entries) {
             entriesBody.innerHTML = '';
             entriesFoot.style.display = 'none';
+
             if (!entries || entries.length === 0) {
-                entriesBody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><i class="fa fa-inbox"></i>No entries found.</div></td></tr>`;
-                totalCount.textContent = '0';
-                results.style.display = 'block';
+                entriesBody.innerHTML =
+                    `<tr><td colspan="8"><div class="empty-state"><i class="fa fa-inbox"></i>No entries found.</div></td></tr>`;
+                totalCount.textContent = '0 entries';
+                results.classList.add('show');
                 return;
             }
 
-            // Sort by date descending
             const sorted = [...entries].sort((a, b) => (a.date < b.date ? 1 : -1));
-            let totalHours = 0, billableHours = 0, nonBillable = 0;
+            let totalHours = 0,
+                billableHours = 0,
+                nonBillable = 0;
+            const projects = new Set();
+            const days = new Set();
+
             sorted.forEach(e => {
                 const hrs = parseFloat(e.hours) || 0;
                 totalHours += hrs;
                 if (e.billable === 'yes') billableHours += hrs;
                 else nonBillable += hrs;
+                if (e.project) projects.add(e.project);
+                if (e.date) days.add(e.date);
+
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td>${e.date || '—'}</td>
@@ -328,37 +599,35 @@
 
             // Totals row
             const trFoot = document.createElement('tr');
-            trFoot.className = 'table-active font-weight-bold';
+            trFoot.className = 'totals-row';
             trFoot.innerHTML = `
                 <td colspan="3" style="text-align:right;"><strong>Totals</strong></td>
                 <td><strong>${totalHours.toFixed(2)}</strong></td>
                 <td colspan="1"></td>
                 <td colspan="1"></td>
-                <td><span style="color:#155724;">${billableHours.toFixed(2)}</span> / <span style="color:#721c24;">${nonBillable.toFixed(2)}</span></td>
+                <td><span style="color:#6bcb8a;">${billableHours.toFixed(2)}</span> / <span style="color:#f08080;">${nonBillable.toFixed(2)}</span></td>
                 <td></td>
             `;
             entriesFoot.appendChild(trFoot);
             entriesFoot.style.display = 'table-footer-group';
 
             // Stats
-            const uniqueProjects = new Set(entries.map(e => e.project)).size;
-            const uniqueDays = new Set(entries.map(e => e.date)).size;
-            const avgDaily = uniqueDays > 0 ? totalHours / uniqueDays : 0;
-
+            const avgDaily = days.size > 0 ? totalHours / days.size : 0;
             statsContainer.innerHTML = `
-                <div class="stat-box"><div class="number blue">${totalHours.toFixed(1)}</div><div class="label">Total Hours</div></div>
-                <div class="stat-box"><div class="number green">${billableHours.toFixed(1)}</div><div class="label">Billable</div></div>
-                <div class="stat-box"><div class="number red">${nonBillable.toFixed(1)}</div><div class="label">Non-Billable</div></div>
-                <div class="stat-box"><div class="number orange">${uniqueProjects}</div><div class="label">Projects</div></div>
-                <div class="stat-box"><div class="number">${uniqueDays}</div><div class="label">Days</div></div>
-                <div class="stat-box"><div class="number">${avgDaily.toFixed(1)}</div><div class="label">Avg / Day</div></div>
+                <div class="stat-card"><div class="number blue">${totalHours.toFixed(1)}</div><div class="label">Total Hours</div></div>
+                <div class="stat-card"><div class="number green">${billableHours.toFixed(1)}</div><div class="label">Billable</div></div>
+                <div class="stat-card"><div class="number red">${nonBillable.toFixed(1)}</div><div class="label">Non-Billable</div></div>
+                <div class="stat-card"><div class="number orange">${projects.size}</div><div class="label">Projects</div></div>
+                <div class="stat-card"><div class="number purple">${days.size}</div><div class="label">Days</div></div>
+                <div class="stat-card"><div class="number">${avgDaily.toFixed(1)}</div><div class="label">Avg / Day</div></div>
             `;
 
-            totalCount.textContent = sorted.length;
-            results.style.display = 'block';
+            totalCount.textContent = sorted.length + ' entries';
+            results.classList.add('show');
+            clearBtn.style.display = 'inline-block';
         }
 
-        // ─── load from file ───
+        // ─── Load from file ───
         function loadFile(file) {
             hideMessage();
             if (!file) return;
@@ -367,54 +636,67 @@
                 try {
                     const data = JSON.parse(e.target.result);
                     if (!Array.isArray(data)) {
-                        showMessage('The file does not contain a valid timesheet array.', 'danger');
+                        showMessage('The file does not contain a valid timesheet array.', 'error');
                         return;
                     }
                     currentData = data;
                     renderEntries(data);
                     fileStatus.style.display = 'inline-flex';
                     fileName.textContent = file.name;
-                    // Hide paste area if visible
                     pasteArea.style.display = 'none';
                 } catch (err) {
-                    showMessage('Failed to parse JSON: ' + err.message, 'danger');
+                    showMessage('Failed to parse JSON: ' + err.message, 'error');
                 }
             };
             reader.onerror = function() {
-                showMessage('Failed to read file.', 'danger');
+                showMessage('Failed to read file.', 'error');
             };
             reader.readAsText(file);
         }
 
-        // ─── parse pasted JSON ───
+        // ─── Parse pasted ───
         function parsePasted() {
             hideMessage();
             const text = jsonInput.value.trim();
             if (!text) {
-                showMessage('Please paste some JSON content.', 'warning');
+                showMessage('Please paste some JSON content.', 'info');
                 return;
             }
             try {
                 const data = JSON.parse(text);
                 if (!Array.isArray(data)) {
-                    showMessage('Pasted content is not an array of entries.', 'danger');
+                    showMessage('Pasted content is not an array of entries.', 'error');
                     return;
                 }
                 currentData = data;
                 renderEntries(data);
                 fileStatus.style.display = 'none';
-                // Keep paste area visible
+                showMessage('✅ Parsed ' + data.length + ' entries successfully.', 'success');
+                setTimeout(hideMessage, 3000);
             } catch (err) {
-                showMessage('Invalid JSON: ' + err.message, 'danger');
+                showMessage('Invalid JSON: ' + err.message, 'error');
             }
         }
 
-        // ─── event listeners ───
+        // ─── Clear ───
+        function clearAll() {
+            currentData = null;
+            entriesBody.innerHTML = '';
+            entriesFoot.style.display = 'none';
+            statsContainer.innerHTML = '';
+            results.classList.remove('show');
+            fileStatus.style.display = 'none';
+            clearBtn.style.display = 'none';
+            pasteArea.style.display = 'none';
+            jsonInput.value = '';
+            hideMessage();
+            totalCount.textContent = '0 entries';
+        }
+
+        // ─── Events ───
         dropZone.addEventListener('click', () => fileInput.click());
-        dropZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            dropZone.classList.add('dragover');
-        });
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault();
+            dropZone.classList.add('dragover'); });
         dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
         dropZone.addEventListener('drop', (e) => {
             e.preventDefault();
@@ -423,13 +705,11 @@
             if (files.length && files[0].type === 'application/json') {
                 loadFile(files[0]);
             } else {
-                showMessage('Please drop a valid JSON file.', 'warning');
+                showMessage('Please drop a valid JSON file.', 'info');
             }
         });
         fileInput.addEventListener('change', () => {
-            if (fileInput.files.length) {
-                loadFile(fileInput.files[0]);
-            }
+            if (fileInput.files.length) loadFile(fileInput.files[0]);
             fileInput.value = '';
         });
 
@@ -444,9 +724,9 @@
             }
         });
 
+        hidePasteBtn.addEventListener('click', () => { pasteArea.style.display = 'none'; });
         parsePasteBtn.addEventListener('click', parsePasted);
 
-        // Allow Ctrl+Enter in textarea
         jsonInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
                 e.preventDefault();
@@ -454,12 +734,15 @@
             }
         });
 
-        // ─── if URL has ?paste, open paste area ───
+        clearBtn.addEventListener('click', clearAll);
+
+        // ─── Init ───
+        console.log('✅ Offline Timesheet Viewer ready.');
+
+        // If URL has ?paste, open paste area
         if (window.location.search.includes('paste')) {
             pasteArea.style.display = 'block';
         }
-
-        console.log('✅ Offline Timesheet Viewer ready.');
     })();
 </script>
 </body>
