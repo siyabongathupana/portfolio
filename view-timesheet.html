@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Quick Timesheet · Your Portfolio</title>
+    <link rel="icon" type="image/png" href="favicon.png" />
+
+    <!-- Bootstrap + Fonts -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+
+    <!-- Core scripts (needed for crypto, api, config) -->
+    <script src="config.js"></script>
+    <script src="crypto.js"></script>
+    <script src="api.js"></script>
+
+    <style>
+        /* ─── reset & base ─── */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #eef3fc;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            margin: 0;
+        }
+
+        /* ─── glass card ─── */
+        .quick-card {
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-radius: 40px;
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.08), 0 10px 30px rgba(0, 0, 0, 0.04);
+            padding: 40px 44px;
+            max-width: 720px;
+            width: 100%;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        .quick-card h2 {
+            font-weight: 700;
+            font-size: 1.8rem;
+            color: #0b2b3b;
+            letter-spacing: -0.02em;
+            margin-bottom: 6px;
+        }
+        .quick-card h2 span {
+            color: #2fc7ff;
+        }
+        .quick-card .sub {
+            color: #5a7d9a;
+            font-size: 0.9rem;
+            font-weight: 400;
+            margin-bottom: 28px;
+            border-bottom: 1px solid #e8edf4;
+            padding-bottom: 16px;
+        }
+
+        /* ─── form ─── */
+        .form-group label {
+            font-weight: 600;
+            font-size: 0.8rem;
+            color: #1e2a3e;
+            letter-spacing: 0.01em;
+            margin-bottom: 4px;
+        }
+        .form-control {
+            border-radius: 16px;
+            border: 1px solid #e2e8f0;
+            padding: 12px 18px;
+            font-size: 0.95rem;
+            transition: 0.2s;
+            background: #fafcff;
+            height: 54px;
+        }
+        .form-control:focus {
+            border-color: #2fc7ff;
+            box-shadow: 0 0 0 4px rgba(47, 199, 255, 0.12);
+            background: white;
+        }
+        .form-control::placeholder {
+            color: #a0b8cc;
+        }
+        .input-group .form-control {
+            border-radius: 16px 0 0 16px;
+        }
+        .input-group-append .btn {
+            border-radius: 0 16px 16px 0;
+            padding: 0 18px;
+            background: #fafcff;
+            border: 1px solid #e2e8f0;
+            border-left: none;
+            color: #5a7d9a;
+        }
+        .input-group-append .btn:hover {
+            background: #f0f4fa;
+            color: #0b2b3b;
+        }
+
+        .btn-primary-glow {
+            background: linear-gradient(135deg, #2fc7ff, #0984e3);
+            border: none;
+            border-radius: 40px;
+            padding: 14px 28px;
+            font-weight: 600;
+            font-size: 1rem;
+            color: white;
+            transition: 0.25s;
+            width: 100%;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .btn-primary-glow:hover {
+            transform: scale(1.01);
+            box-shadow: 0 8px 30px rgba(47, 199, 255, 0.25);
+            color: white;
+        }
+        .btn-primary-glow:disabled {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        .btn-outline-secondary-sm {
+            border-radius: 40px;
+            padding: 6px 18px;
+            font-size: 0.75rem;
+            border: 1px solid #e2e8f0;
+            background: transparent;
+            color: #5a7d9a;
+            transition: 0.2s;
+        }
+        .btn-outline-secondary-sm:hover {
+            background: #f0f4fa;
+            color: #0b2b3b;
+        }
+
+        /* ─── spinner ─── */
+        .spinner-border-sm {
+            width: 1.2rem;
+            height: 1.2rem;
+            border-width: 2px;
+        }
+
+        /* ─── error / success ─── */
+        .alert-box {
+            border-radius: 16px;
+            padding: 14px 18px;
+            font-size: 0.9rem;
+            margin-top: 16px;
+            display: none;
+            align-items: center;
+            gap: 10px;
+            border: 1px solid transparent;
+        }
+        .alert-box.show {
+            display: flex;
+        }
+        .alert-box.error {
+            background: #fff5f5;
+            border-color: #fcc;
+            color: #b33;
+        }
+        .alert-box.success {
+            background: #f0faf4;
+            border-color: #b8e6c8;
+            color: #1a6e3a;
+        }
+        .alert-box.info {
+            background: #f0f7ff;
+            border-color: #b8d4f0;
+            color: #1a4e7a;
+        }
+
+        /* ─── entries table ─── */
+        .entries-wrapper {
+            margin-top: 28px;
+            border-top: 1px solid #e8edf4;
+            padding-top: 20px;
+            display: none;
+        }
+        .entries-wrapper.show {
+            display: block;
+        }
+
+        .entries-wrapper h4 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #0b2b3b;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .entries-wrapper h4 .count {
+            font-weight: 400;
+            color: #5a7d9a;
+            font-size: 0.8rem;
+            background: #eef3fc;
+            padding: 2px 12px;
+            border-radius: 30px;
+        }
+
+        .table-wrap {
+            max-height: 380px;
+            overflow-y: auto;
+            border-radius: 16px;
+            border: 1px solid #e8edf4;
+            background: white;
+        }
+        .table-wrap table {
+            width: 100%;
+            font-size: 0.78rem;
+            border-collapse: collapse;
+            margin: 0;
+        }
+        .table-wrap thead {
+            position: sticky;
+            top: 0;
+            z-index: 2;
+        }
+        .table-wrap thead th {
+            background: #f8fafc;
+            color: #1e2a3e;
+            font-weight: 600;
+            padding: 10px 12px;
+            border-bottom: 2px solid #e2e8f0;
+            text-align: left;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .table-wrap tbody td {
+            padding: 8px 12px;
+            border-bottom: 1px solid #f1f5f9;
+            vertical-align: middle;
+        }
+        .table-wrap tbody tr:hover td {
+            background: #f8fafc;
+        }
+        .table-wrap tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .badge-billable {
+            font-size: 0.6rem;
+            padding: 2px 10px;
+            border-radius: 30px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .badge-billable.yes {
+            background: #d4edda;
+            color: #155724;
+        }
+        .badge-billable.no {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #8a9fb0;
+        }
+        .empty-state i {
+            font-size: 2.4rem;
+            display: block;
+            margin-bottom: 12px;
+            opacity: 0.4;
+        }
+
+        /* ─── footer ─── */
+        .footer-note {
+            margin-top: 20px;
+            font-size: 0.7rem;
+            color: #a0b8cc;
+            text-align: center;
+            border-top: 1px solid #e8edf4;
+            padding-top: 16px;
+        }
+        .footer-note a {
+            color: #2fc7ff;
+            text-decoration: none;
+        }
+        .footer-note a:hover {
+            text-decoration: underline;
+        }
+
+        /* ─── responsive ─── */
+        @media (max-width: 540px) {
+            .quick-card {
+                padding: 28px 20px;
+                border-radius: 28px;
+            }
+            .quick-card h2 {
+                font-size: 1.4rem;
+            }
+            .form-control {
+                font-size: 0.85rem;
+                padding: 10px 14px;
+                height: 48px;
+            }
+            .btn-primary-glow {
+                height: 48px;
+                font-size: 0.9rem;
+            }
+            .table-wrap table {
+                font-size: 0.7rem;
+            }
+            .table-wrap thead th,
+            .table-wrap tbody td {
+                padding: 6px 8px;
+            }
+            .entries-wrapper h4 {
+                font-size: 0.9rem;
+            }
+        }
+
+        /* ─── scrollbar ─── */
+        .table-wrap::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        .table-wrap::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .table-wrap::-webkit-scrollbar-thumb {
+            background: #d0d8e0;
+            border-radius: 8px;
+        }
+        .table-wrap::-webkit-scrollbar-thumb:hover {
+            background: #b0bcc8;
+        }
+
+        /* ─── totals row ─── */
+        .totals-row {
+            background: #f8fafc;
+            font-weight: 600;
+            border-top: 2px solid #e2e8f0;
+        }
+        .totals-row td {
+            padding: 10px 12px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="quick-card" id="app">
+        <!-- Header -->
+        <h2><span>Quick</span> Timesheet</h2>
+        <div class="sub">
+            <i class="fa fa-lock" style="color:#2fc7ff;margin-right:6px;"></i>
+            Enter your credentials to view your entries
+            <span style="display:inline-block;margin-left:10px;font-size:0.7rem;color:#a0b8cc;background:#f0f4fa;padding:0 12px;border-radius:30px;">read‑only</span>
+        </div>
+
+        <!-- Login Form -->
+        <form id="loginForm" autocomplete="off">
+            <div class="form-group">
+                <label><i class="fa fa-envelope-o" style="margin-right:6px;color:#2fc7ff;"></i> Email</label>
+                <input type="email" id="emailInput" class="form-control" placeholder="your@email.com" required autofocus />
+            </div>
+            <div class="form-group">
+                <label><i class="fa fa-key" style="margin-right:6px;color:#2fc7ff;"></i> Passphrase</label>
+                <div class="input-group">
+                    <input type="password" id="passphraseInput" class="form-control" placeholder="Your passphrase" required />
+                    <div class="input-group-append">
+                        <button class="btn" type="button" id="togglePassBtn" tabindex="-1">
+                            <i class="fa fa-eye" id="toggleIcon"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <button type="submit" class="btn-primary-glow" id="loginBtn">
+                <i class="fa fa-unlock-alt"></i> View My Timesheet
+            </button>
+        </form>
+
+        <!-- Alert box -->
+        <div id="alertBox" class="alert-box"></div>
+
+        <!-- Entries -->
+        <div class="entries-wrapper" id="entriesWrapper">
+            <h4>
+                <i class="fa fa-clock-o" style="color:#2fc7ff;"></i> Your Entries
+                <span class="count" id="entryCount">0</span>
+            </h4>
+            <div class="table-wrap" id="tableWrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Start</th>
+                            <th>End</th>
+                            <th>Hours</th>
+                            <th>Project</th>
+                            <th>Category</th>
+                            <th>Billable</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody id="entriesBody"></tbody>
+                    <tfoot id="entriesFoot" style="display:none;"></tfoot>
+                </table>
+            </div>
+            <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;justify-content:space-between;align-items:center;">
+                <button class="btn-outline-secondary-sm" id="refreshBtn"><i class="fa fa-refresh"></i> Refresh</button>
+                <button class="btn-outline-secondary-sm" id="logoutBtn"><i class="fa fa-sign-out"></i> Logout</button>
+                <span style="font-size:0.7rem;color:#a0b8cc;" id="userLabel"></span>
+            </div>
+        </div>
+
+        <div class="footer-note">
+            <i class="fa fa-github"></i> Data stored securely on GitHub ·
+            <a href="login.html">Go to full login</a>
+        </div>
+    </div>
+
+    <!-- ─── scripts ─── -->
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+    <script>
+        (function() {
+            'use strict';
+
+            // ─── DOM refs ───
+            const form = document.getElementById('loginForm');
+            const emailInput = document.getElementById('emailInput');
+            const passInput = document.getElementById('passphraseInput');
+            const loginBtn = document.getElementById('loginBtn');
+            const alertBox = document.getElementById('alertBox');
+            const entriesWrapper = document.getElementById('entriesWrapper');
+            const entriesBody = document.getElementById('entriesBody');
+            const entriesFoot = document.getElementById('entriesFoot');
+            const entryCount = document.getElementById('entryCount');
+            const userLabel = document.getElementById('userLabel');
+            const refreshBtn = document.getElementById('refreshBtn');
+            const logoutBtn = document.getElementById('logoutBtn');
+            const togglePassBtn = document.getElementById('togglePassBtn');
+            const toggleIcon = document.getElementById('toggleIcon');
+
+            let currentEmail = null;
+            let currentToken = null;
+            let currentEntries = [];
+
+            // ─── toggle password visibility ───
+            togglePassBtn.addEventListener('click', function() {
+                const type = passInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                passInput.setAttribute('type', type);
+                toggleIcon.className = type === 'password' ? 'fa fa-eye' : 'fa fa-eye-slash';
+            });
+
+            // ─── alert helper ───
+            function showAlert(message, type = 'error') {
+                alertBox.className = 'alert-box show ' + type;
+                alertBox.innerHTML = '<i class="fa ' +
+                    (type === 'error' ? 'fa-exclamation-circle' :
+                        type === 'success' ? 'fa-check-circle' : 'fa-info-circle') +
+                    '"></i> ' + message;
+            }
+
+            function hideAlert() {
+                alertBox.className = 'alert-box';
+                alertBox.innerHTML = '';
+            }
+
+            // ─── loading state ───
+            function setLoading(loading) {
+                if (loading) {
+                    loginBtn.disabled = true;
+                    loginBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Loading…';
+                } else {
+                    loginBtn.disabled = false;
+                    loginBtn.innerHTML = '<i class="fa fa-unlock-alt"></i> View My Timesheet';
+                }
+            }
+
+            // ─── format date ───
+            function formatDate(d) {
+                if (!d) return '—';
+                return d;
+            }
+
+            // ─── render entries ───
+            function renderEntries(entries) {
+                entriesBody.innerHTML = '';
+                entriesFoot.style.display = 'none';
+
+                if (!entries || entries.length === 0) {
+                    entriesBody.innerHTML =
+                        `<tr><td colspan="8"><div class="empty-state"><i class="fa fa-inbox"></i>No entries found.</div></td></tr>`;
+                    entryCount.textContent = '0';
+                    return;
+                }
+
+                // Sort by date descending
+                const sorted = [...entries].sort((a, b) => (a.date < b.date ? 1 : -1));
+
+                let totalHours = 0;
+                let billableHours = 0;
+
+                sorted.forEach(e => {
+                    const hrs = parseFloat(e.hours) || 0;
+                    totalHours += hrs;
+                    if (e.billable === 'yes') billableHours += hrs;
+
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${formatDate(e.date)}</td>
+                        <td>${e.start || '—'}</td>
+                        <td>${e.end || '—'}</td>
+                        <td><strong>${hrs.toFixed(2)}</strong></td>
+                        <td>${e.project || '—'}</td>
+                        <td>${e.category || '—'}</td>
+                        <td><span class="badge-billable ${e.billable === 'yes' ? 'yes' : 'no'}">${e.billable === 'yes' ? 'Yes' : 'No'}</span></td>
+                        <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${e.notes || '—'}</td>
+                    `;
+                    entriesBody.appendChild(tr);
+                });
+
+                // Totals row
+                const nonBillable = totalHours - billableHours;
+                const trFoot = document.createElement('tr');
+                trFoot.className = 'totals-row';
+                trFoot.innerHTML = `
+                    <td colspan="3" style="text-align:right;"><strong>Totals</strong></td>
+                    <td><strong>${totalHours.toFixed(2)}</strong></td>
+                    <td colspan="1"></td>
+                    <td colspan="1"></td>
+                    <td><span style="color:#155724;">${billableHours.toFixed(2)}</span> / <span style="color:#721c24;">${nonBillable.toFixed(2)}</span></td>
+                    <td></td>
+                `;
+                entriesFoot.appendChild(trFoot);
+                entriesFoot.style.display = 'table-footer-group';
+
+                entryCount.textContent = sorted.length;
+            }
+
+            // ─── core: fetch and decrypt ───
+            async function fetchTimesheet(email, passphrase) {
+                const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+
+                // 1. Fetch account.json (public, no auth needed)
+                const encUser = encodeURIComponent(email);
+                const accountPath = `${dataPath}/users/${encUser}/account.json`;
+                const accountUrl =
+                    `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${accountPath}`;
+
+                const accResp = await fetch(accountUrl);
+                if (!accResp.ok) {
+                    if (accResp.status === 404) {
+                        throw new Error('Account not found. Please check your email.');
+                    }
+                    throw new Error(`GitHub error: ${accResp.status}`);
+                }
+                const encryptedBlob = await accResp.json();
+
+                // 2. Decrypt with passphrase
+                let decrypted;
+                try {
+                    decrypted = await window.CryptoUtil.decrypt(encryptedBlob, passphrase);
+                } catch (e) {
+                    throw new Error('Invalid passphrase. Please try again.');
+                }
+
+                let accountData;
+                try {
+                    accountData = JSON.parse(decrypted);
+                } catch (e) {
+                    throw new Error('Account data is corrupted.');
+                }
+
+                if (accountData.test !== 'VALID') {
+                    throw new Error('Invalid account data.');
+                }
+
+                const token = accountData.token;
+                if (!token || !token.startsWith('ghp_') && !token.startsWith('github_pat_')) {
+                    throw new Error('GitHub token not found or invalid in account.');
+                }
+
+                // 3. Fetch timesheet.json using the token
+                const timesheetPath = `${dataPath}/users/${encUser}/timesheet.json`;
+                const timesheetUrl =
+                    `https://api.github.com/repos/${owner}/${repo}/contents/${timesheetPath}?ref=${branch}`;
+
+                const tsResp = await fetch(timesheetUrl, {
+                    headers: {
+                        'Authorization': `token ${token}`,
+                        'Accept': 'application/vnd.github.v3+json'
+                    }
+                });
+
+                let entries = [];
+                if (tsResp.ok) {
+                    const data = await tsResp.json();
+                    const content = atob(data.content.replace(/\n/g, ''));
+                    try {
+                        const parsed = JSON.parse(content);
+                        if (Array.isArray(parsed)) entries = parsed;
+                    } catch (e) {
+                        console.warn('Timesheet parse failed:', e);
+                    }
+                } else if (tsResp.status === 404) {
+                    // No timesheet yet – that's fine
+                    entries = [];
+                } else {
+                    throw new Error(`Failed to fetch timesheet: ${tsResp.status}`);
+                }
+
+                return { token, entries };
+            }
+
+            // ─── login handler ───
+            async function handleLogin(e) {
+                e.preventDefault();
+                hideAlert();
+
+                const email = emailInput.value.trim();
+                const passphrase = passInput.value;
+
+                if (!email) {
+                    showAlert('Please enter your email address.', 'error');
+                    emailInput.focus();
+                    return;
+                }
+                if (!passphrase) {
+                    showAlert('Please enter your passphrase.', 'error');
+                    passInput.focus();
+                    return;
+                }
+                if (!email.includes('@')) {
+                    showAlert('Please enter a valid email address.', 'error');
+                    return;
+                }
+
+                setLoading(true);
+
+                try {
+                    const result = await fetchTimesheet(email, passphrase);
+                    currentEmail = email;
+                    currentToken = result.token;
+                    currentEntries = result.entries;
+
+                    // Show success
+                    showAlert(
+                        `✅ Loaded ${result.entries.length} entries for ${email}`,
+                        'success'
+                    );
+
+                    // Render
+                    renderEntries(result.entries);
+                    entriesWrapper.classList.add('show');
+                    userLabel.textContent = '👤 ' + email;
+                    form.style.display = 'none';
+
+                } catch (err) {
+                    console.error('Login error:', err);
+                    showAlert('❌ ' + err.message, 'error');
+                    entriesWrapper.classList.remove('show');
+                } finally {
+                    setLoading(false);
+                }
+            }
+
+            // ─── refresh ───
+            async function refreshData() {
+                if (!currentEmail || !currentToken) {
+                    showAlert('Please log in first.', 'error');
+                    return;
+                }
+
+                hideAlert();
+                setLoading(true);
+
+                try {
+                    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+                    const encUser = encodeURIComponent(currentEmail);
+                    const timesheetPath = `${dataPath}/users/${encUser}/timesheet.json`;
+                    const timesheetUrl =
+                        `https://api.github.com/repos/${owner}/${repo}/contents/${timesheetPath}?ref=${branch}`;
+
+                    const tsResp = await fetch(timesheetUrl, {
+                        headers: {
+                            'Authorization': `token ${currentToken}`,
+                            'Accept': 'application/vnd.github.v3+json'
+                        }
+                    });
+
+                    let entries = [];
+                    if (tsResp.ok) {
+                        const data = await tsResp.json();
+                        const content = atob(data.content.replace(/\n/g, ''));
+                        try {
+                            const parsed = JSON.parse(content);
+                            if (Array.isArray(parsed)) entries = parsed;
+                        } catch (e) {
+                            console.warn('Timesheet parse failed:', e);
+                        }
+                    } else if (tsResp.status === 404) {
+                        entries = [];
+                    } else {
+                        throw new Error(`Failed to fetch timesheet: ${tsResp.status}`);
+                    }
+
+                    currentEntries = entries;
+                    renderEntries(entries);
+                    showAlert(`✅ Refreshed — ${entries.length} entries`, 'success');
+
+                } catch (err) {
+                    console.error('Refresh error:', err);
+                    showAlert('❌ ' + err.message, 'error');
+                } finally {
+                    setLoading(false);
+                }
+            }
+
+            // ─── logout ───
+            function logout() {
+                currentEmail = null;
+                currentToken = null;
+                currentEntries = [];
+                entriesWrapper.classList.remove('show');
+                form.style.display = 'block';
+                userLabel.textContent = '';
+                passInput.value = '';
+                emailInput.value = '';
+                hideAlert();
+                entriesBody.innerHTML = '';
+                entriesFoot.innerHTML = '';
+                entriesFoot.style.display = 'none';
+                entryCount.textContent = '0';
+                emailInput.focus();
+                showAlert('👋 Logged out successfully.', 'info');
+                setTimeout(hideAlert, 3000);
+            }
+
+            // ─── event listeners ───
+            form.addEventListener('submit', handleLogin);
+            refreshBtn.addEventListener('click', refreshData);
+            logoutBtn.addEventListener('click', logout);
+
+            // Enter key on passphrase triggers login
+            passInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    form.dispatchEvent(new Event('submit'));
+                }
+            });
+
+            // ─── auto-focus ───
+            emailInput.focus();
+
+            // ─── if there's a cached session, try to restore? ───
+            // (we don't store session to keep it simple & secure – user must re-enter)
+
+            console.log('✅ Quick Timesheet ready.');
+        })();
+    </script>
+
+</body>
+</html>
