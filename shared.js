@@ -306,16 +306,42 @@ window.AccountManager = {
       });
     } catch (e) { console.warn('User email failed', e); }
   },
+  
   async fetchAccount(username) {
-    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const encUser = encodeURIComponent(username);
-    const url = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${dataPath}/users/${encUser}/account.json`;
-    try {
-      const resp = await fetch(url);
-      if (!resp.ok) return null;
-      return await resp.json();
-    } catch { return null; }
-  },
+  const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+  const encUser = encodeURIComponent(username);
+  const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${dataPath}/users/${encUser}/account.json`;
+  const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${dataPath}/users/${encUser}/account.json?ref=${branch}`;
+
+  // 1. Try the raw CDN (fast, but may be down)
+  try {
+    const resp = await fetch(rawUrl);
+    if (resp.ok) return await resp.json();
+    // If it's a 503 or 429, fall through to the API
+    if (resp.status !== 503 && resp.status !== 429) return null;
+  } catch (e) {
+    console.warn('Raw CDN fetch failed, trying API fallback...', e);
+  }
+
+  // 2. Fallback: use the authenticated GitHub API
+  try {
+    const user = window.SessionManager?.getCurrentUser?.();
+    if (!user || !user.pat) return null;
+    const resp = await fetch(apiUrl, {
+      headers: {
+        Authorization: `token ${user.pat}`,
+        Accept: 'application/vnd.github.v3+json'
+      }
+    });
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    // Decode base64 content
+    return JSON.parse(atob(data.content.replace(/\n/g, '')));
+  } catch (e) {
+    console.error('API fallback also failed:', e);
+    return null;
+  }
+}
   
   async isEmailVerified(email) {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
