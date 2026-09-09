@@ -1,5 +1,17 @@
 [
   {
+    "id": 1788933492102,
+    "date": "2026-09-09",
+    "start": "07:10",
+    "end": "08:00",
+    "hours": 0.83,
+    "project": "PSS Work",
+    "category": "Admin",
+    "billable": "no",
+    "notes": "",
+    "updatedAt": 1788933492102
+  },
+  {
     "id": 1788875612302,
     "date": "2026-09-08",
     "start": "09:12",
