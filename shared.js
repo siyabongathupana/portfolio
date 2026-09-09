@@ -383,17 +383,17 @@ window.AccountManager = {
     await window.Logger.logActivity('account', 'register', `New user registered: ${username}`, { email: username });
     return true;
   },
-  async login(username, passphrase) {
-    const blocked = await this.getBlockedUsers();
-    if (blocked.includes(username)) throw new Error('Your account has been blocked. Contact the administrator.');
-    const blob = await this.fetchAccount(username);
-    if (!blob) throw new Error('User not found');
-    const decrypted = await window.CryptoUtil.decrypt(blob, passphrase);
-    const data = JSON.parse(decrypted);
-    if (data.test !== 'VALID') throw new Error('Corrupted account');
-    await window.Logger.logActivity('account', 'login', `User logged in: ${username}`);
-    return data.token;
-  },
+ async login(username, passphrase) {
+  const blocked = await this.getBlockedUsers();
+  if (blocked.includes(username)) throw new Error('Your account has been blocked. Contact the administrator.');
+  const blob = await this.fetchAccount(username);
+  if (!blob) throw new Error('User not found');
+  const decrypted = await window.CryptoUtil.decrypt(blob, passphrase);
+  const data = JSON.parse(decrypted);
+  if (data.test !== 'VALID') throw new Error('Corrupted account');
+  await window.Logger.logActivity('account', 'login', `User logged in: ${username}`);
+  return data.token;
+}
   async getBlockedUsers() {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const url = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${dataPath}/blocked_users.json`;
