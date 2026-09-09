@@ -1,5 +1,17 @@
 [
   {
+    "id": 1788940532873,
+    "date": "2026-09-09",
+    "start": "08:00",
+    "end": "09:55",
+    "hours": 1.92,
+    "project": "Omnia Phase 3",
+    "category": "Documentation",
+    "billable": "yes",
+    "notes": "As-Built SFDS Review",
+    "updatedAt": 1788940532873
+  },
+  {
     "id": 1788933492102,
     "date": "2026-09-09",
     "start": "07:10",
