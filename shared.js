@@ -267,7 +267,9 @@ window.compressImage = function(file, maxW = 1600, maxH = 1600, quality = 0.85) 
   });
 };
 
+// =========================== FIXED ACCOUNT MANAGER ===========================
 window.AccountManager = {
+  // ----- email helpers (unchanged) -----
   async _ensureEmailJS() {
     if (typeof emailjs === 'undefined') {
       await new Promise((resolve, reject) => {
@@ -306,43 +308,41 @@ window.AccountManager = {
       });
     } catch (e) { console.warn('User email failed', e); }
   },
-  
+
+  // ========== FIXED fetchAccount with CDN + API fallback ==========
   async fetchAccount(username) {
-  const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-  const encUser = encodeURIComponent(username);
-  const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${dataPath}/users/${encUser}/account.json`;
-  const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${dataPath}/users/${encUser}/account.json?ref=${branch}`;
+    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+    const encUser = encodeURIComponent(username);
+    const path = `${dataPath}/users/${encUser}/account.json`;
+    const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${path}`;
+    const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`;
 
-  // 1. Try the raw CDN (fast, but may be down)
-  try {
-    const resp = await fetch(rawUrl);
-    if (resp.ok) return await resp.json();
-    // If it's a 503 or 429, fall through to the API
-    if (resp.status !== 503 && resp.status !== 429) return null;
-  } catch (e) {
-    console.warn('Raw CDN fetch failed, trying API fallback...', e);
-  }
+    // 1) Try the raw CDN first (fastest)
+    try {
+      const resp = await fetch(rawUrl);
+      if (resp.ok) return await resp.json();
+      // if it's a 503 or 429, fall through to API
+      if (resp.status !== 503 && resp.status !== 429) return null;
+    } catch (e) {
+      console.warn('Raw CDN fetch failed, trying API fallback...', e);
+    }
 
-  // 2. Fallback: use the authenticated GitHub API
-  try {
-    const user = window.SessionManager?.getCurrentUser?.();
-    if (!user || !user.pat) return null;
-    const resp = await fetch(apiUrl, {
-      headers: {
-        Authorization: `token ${user.pat}`,
-        Accept: 'application/vnd.github.v3+json'
-      }
-    });
-    if (!resp.ok) return null;
-    const data = await resp.json();
-    // Decode base64 content
-    return JSON.parse(atob(data.content.replace(/\n/g, '')));
-  } catch (e) {
-    console.error('API fallback also failed:', e);
-    return null;
-  }
-}
-  
+    // 2) Fallback: GitHub API (public repo → no token needed)
+    try {
+      const resp = await fetch(apiUrl, {
+        headers: { 'Accept': 'application/vnd.github.v3+json' }
+      });
+      if (!resp.ok) return null;
+      const data = await resp.json();
+      // Decode base64 content
+      return JSON.parse(atob(data.content.replace(/\n/g, '')));
+    } catch (e) {
+      console.error('API fallback also failed:', e);
+      return null;
+    }
+  },
+
+  // ----- rest of AccountManager methods (unchanged) -----
   async isEmailVerified(email) {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(email);
@@ -364,7 +364,6 @@ window.AccountManager = {
     } catch (err) {}
     return false;
   },
-  
   async register(username, passphrase, pat) {
     const payload = JSON.stringify({ test: 'VALID', token: pat });
     const encrypted = await window.CryptoUtil.encrypt(payload, passphrase);
@@ -482,6 +481,7 @@ window.AccountManager = {
   }
 };
 
+// ===================== portfolioData =====================
 window.portfolioData = (() => {
   const PROJECTS_KEY = 'portfolioProjects';
   const CERTS_KEY = 'portfolioCertificates';
