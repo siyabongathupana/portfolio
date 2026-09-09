@@ -2,242 +2,238 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <title>Quick Timesheet · Your Portfolio</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Offline Timesheet Viewer</title>
     <link rel="icon" type="image/png" href="favicon.png" />
-
-    <!-- Bootstrap + Fonts -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
-
-    <!-- Core scripts -->
-    <script src="config.js"></script>
-    <script src="crypto.js"></script>
-    <script src="api.js"></script>
-
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
     <style>
-        /* ─── styles (same as before, compact) ─── */
-        * { box-sizing: border-box; margin:0; padding:0; }
         body {
-            font-family: 'Inter', sans-serif;
             background: #eef3fc;
+            font-family: 'Inter', sans-serif;
+            padding: 30px 20px;
             min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-            margin: 0;
         }
-        .quick-card {
-            background: rgba(255,255,255,0.92);
-            backdrop-filter: blur(16px);
-            border-radius: 40px;
-            box-shadow: 0 30px 80px rgba(0,0,0,0.08), 0 10px 30px rgba(0,0,0,0.04);
-            padding: 40px 44px;
-            max-width: 720px;
-            width: 100%;
-            border: 1px solid rgba(255,255,255,0.5);
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
         }
-        .quick-card h2 { font-weight: 700; font-size: 1.8rem; color: #0b2b3b; margin-bottom: 6px; }
-        .quick-card h2 span { color: #2fc7ff; }
-        .quick-card .sub {
-            color: #5a7d9a;
-            font-size: 0.9rem;
-            margin-bottom: 28px;
-            border-bottom: 1px solid #e8edf4;
-            padding-bottom: 16px;
-        }
-        .form-group label { font-weight: 600; font-size: 0.8rem; color: #1e2a3e; margin-bottom: 4px; }
-        .form-control {
-            border-radius: 16px;
-            border: 1px solid #e2e8f0;
-            padding: 12px 18px;
-            font-size: 0.95rem;
-            transition: 0.2s;
-            background: #fafcff;
-            height: 54px;
-        }
-        .form-control:focus {
-            border-color: #2fc7ff;
-            box-shadow: 0 0 0 4px rgba(47,199,255,0.12);
+        .card {
+            border-radius: 28px;
+            border: none;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.06);
+            padding: 30px;
             background: white;
+            margin-bottom: 25px;
         }
-        .input-group .form-control { border-radius: 16px 0 0 16px; }
-        .input-group-append .btn {
-            border-radius: 0 16px 16px 0;
-            padding: 0 18px;
-            background: #fafcff;
-            border: 1px solid #e2e8f0;
-            border-left: none;
+        h1 {
+            font-weight: 700;
+            color: #0b2b3b;
+            font-size: 2rem;
+        }
+        h1 span {
+            color: #2fc7ff;
+        }
+        .sub {
             color: #5a7d9a;
+            font-size: 0.95rem;
+            margin-bottom: 25px;
+        }
+        .drop-zone {
+            border: 2px dashed #cbd5e1;
+            border-radius: 24px;
+            padding: 40px 20px;
+            text-align: center;
+            transition: 0.25s;
+            background: #f8fafc;
+            cursor: pointer;
+        }
+        .drop-zone:hover,
+        .drop-zone.dragover {
+            border-color: #2fc7ff;
+            background: #f0f7ff;
+        }
+        .drop-zone i {
+            font-size: 3rem;
+            color: #2fc7ff;
+            display: block;
+            margin-bottom: 10px;
+        }
+        .drop-zone .hint {
+            color: #8a9fb0;
+            font-size: 0.9rem;
+        }
+        .file-info {
+            background: #f1f5f9;
+            padding: 10px 16px;
+            border-radius: 40px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            margin-top: 12px;
         }
         .btn-primary-glow {
             background: linear-gradient(135deg, #2fc7ff, #0984e3);
             border: none;
             border-radius: 40px;
-            padding: 14px 28px;
+            padding: 12px 32px;
             font-weight: 600;
-            font-size: 1rem;
             color: white;
             transition: 0.25s;
-            width: 100%;
-            height: 56px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
         }
-        .btn-primary-glow:hover { transform: scale(1.01); box-shadow: 0 8px 30px rgba(47,199,255,0.25); color:white; }
-        .btn-primary-glow:disabled { opacity:0.6; pointer-events:none; }
-        .btn-outline-secondary-sm {
+        .btn-primary-glow:hover {
+            transform: scale(1.02);
+            box-shadow: 0 8px 25px rgba(47,199,255,0.3);
+            color: white;
+        }
+        .btn-outline-secondary {
             border-radius: 40px;
-            padding: 6px 18px;
-            font-size: 0.75rem;
-            border: 1px solid #e2e8f0;
-            background: transparent;
+            border: 1px solid #d0d8e0;
             color: #5a7d9a;
-            transition: 0.2s;
         }
-        .btn-outline-secondary-sm:hover { background: #f0f4fa; color: #0b2b3b; }
-        .alert-box {
-            border-radius: 16px;
-            padding: 14px 18px;
-            font-size: 0.9rem;
-            margin-top: 16px;
-            display: none;
-            align-items: center;
-            gap: 10px;
-            border: 1px solid transparent;
-        }
-        .alert-box.show { display: flex; }
-        .alert-box.error { background: #fff5f5; border-color: #fcc; color: #b33; }
-        .alert-box.success { background: #f0faf4; border-color: #b8e6c8; color: #1a6e3a; }
-        .alert-box.info { background: #f0f7ff; border-color: #b8d4f0; color: #1a4e7a; }
-        .entries-wrapper {
-            margin-top: 28px;
-            border-top: 1px solid #e8edf4;
-            padding-top: 20px;
-            display: none;
-        }
-        .entries-wrapper.show { display: block; }
-        .entries-wrapper h4 {
-            font-size: 1rem;
-            font-weight: 600;
-            color: #0b2b3b;
-            margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .entries-wrapper h4 .count {
-            font-weight: 400;
-            color: #5a7d9a;
-            font-size: 0.8rem;
-            background: #eef3fc;
-            padding: 2px 12px;
-            border-radius: 30px;
+        .btn-outline-secondary:hover {
+            background: #f0f4fa;
         }
         .table-wrap {
-            max-height: 380px;
+            max-height: 500px;
             overflow-y: auto;
             border-radius: 16px;
             border: 1px solid #e8edf4;
-            background: white;
         }
-        .table-wrap table { width: 100%; font-size: 0.78rem; border-collapse: collapse; margin: 0; }
-        .table-wrap thead { position: sticky; top: 0; z-index: 2; }
-        .table-wrap thead th {
+        .table {
+            font-size: 0.85rem;
+            margin: 0;
+        }
+        .table thead {
+            position: sticky;
+            top: 0;
+            z-index: 2;
             background: #f8fafc;
-            color: #1e2a3e;
-            font-weight: 600;
-            padding: 10px 12px;
-            border-bottom: 2px solid #e2e8f0;
-            text-align: left;
-            font-size: 0.7rem;
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
         }
-        .table-wrap tbody td { padding: 8px 12px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
-        .table-wrap tbody tr:hover td { background: #f8fafc; }
-        .table-wrap tbody tr:last-child td { border-bottom: none; }
+        .table th {
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.7rem;
+            letter-spacing: 0.04em;
+            border-bottom: 2px solid #e2e8f0;
+            padding: 10px 12px;
+        }
+        .table td {
+            padding: 8px 12px;
+            border-bottom: 1px solid #f1f5f9;
+            vertical-align: middle;
+        }
+        .table tbody tr:hover td {
+            background: #f8fafc;
+        }
         .badge-billable {
             font-size: 0.6rem;
-            padding: 2px 10px;
+            padding: 3px 12px;
             border-radius: 30px;
             font-weight: 600;
             text-transform: uppercase;
         }
         .badge-billable.yes { background: #d4edda; color: #155724; }
         .badge-billable.no { background: #f8d7da; color: #721c24; }
-        .empty-state { text-align: center; padding: 40px 20px; color: #8a9fb0; }
-        .empty-state i { font-size: 2.4rem; display: block; margin-bottom: 12px; opacity: 0.4; }
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 12px;
+            margin: 20px 0 15px;
+        }
+        .stat-box {
+            background: #f8fafc;
+            border-radius: 16px;
+            padding: 12px 16px;
+            text-align: center;
+            border: 1px solid #e8edf4;
+        }
+        .stat-box .number {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #0b2b3b;
+        }
+        .stat-box .label {
+            font-size: 0.65rem;
+            color: #5a7d9a;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .stat-box .number.green { color: #28a745; }
+        .stat-box .number.red { color: #dc3545; }
+        .stat-box .number.blue { color: #2fc7ff; }
+        .stat-box .number.orange { color: #fd7e14; }
         .footer-note {
-            margin-top: 20px;
             font-size: 0.7rem;
             color: #a0b8cc;
             text-align: center;
+            margin-top: 30px;
             border-top: 1px solid #e8edf4;
-            padding-top: 16px;
+            padding-top: 20px;
         }
-        .footer-note a { color: #2fc7ff; text-decoration: none; }
+        .footer-note a {
+            color: #2fc7ff;
+            text-decoration: none;
+        }
         .footer-note a:hover { text-decoration: underline; }
-        @media (max-width: 540px) {
-            .quick-card { padding: 28px 20px; border-radius: 28px; }
-            .quick-card h2 { font-size: 1.4rem; }
-            .form-control { font-size: 0.85rem; padding: 10px 14px; height: 48px; }
-            .btn-primary-glow { height: 48px; font-size: 0.9rem; }
-            .table-wrap table { font-size: 0.7rem; }
-            .table-wrap thead th, .table-wrap tbody td { padding: 6px 8px; }
+        @media (max-width: 576px) {
+            .card { padding: 20px; }
+            .table { font-size: 0.7rem; }
+            .stat-box .number { font-size: 1.2rem; }
         }
-        .table-wrap::-webkit-scrollbar { width: 4px; height: 4px; }
-        .table-wrap::-webkit-scrollbar-track { background: transparent; }
-        .table-wrap::-webkit-scrollbar-thumb { background: #d0d8e0; border-radius: 8px; }
-        .totals-row { background: #f8fafc; font-weight: 600; border-top: 2px solid #e2e8f0; }
-        .totals-row td { padding: 10px 12px; }
-        .spinner-border-sm { width: 1.2rem; height: 1.2rem; border-width: 2px; }
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #8a9fb0;
+        }
+        .empty-state i { font-size: 3rem; display: block; margin-bottom: 16px; opacity: 0.3; }
     </style>
 </head>
 <body>
 
-    <div class="quick-card" id="app">
-        <h2><span>Quick</span> Timesheet</h2>
-        <div class="sub">
-            <i class="fa fa-lock" style="color:#2fc7ff;margin-right:6px;"></i>
-            Enter your credentials to view your entries
-            <span style="display:inline-block;margin-left:10px;font-size:0.7rem;color:#a0b8cc;background:#f0f4fa;padding:0 12px;border-radius:30px;">read‑only</span>
+<div class="container">
+    <div class="card">
+        <h1><i class="fa fa-file-text-o" style="color:#2fc7ff;margin-right:12px;"></i><span>Offline</span> Timesheet Viewer</h1>
+        <p class="sub">
+            <i class="fa fa-cloud-download" style="color:#2fc7ff;"></i>
+            Upload your <strong>timesheet.json</strong> file (or paste its content) to view your entries – no internet required.
+        </p>
+
+        <!-- Upload area -->
+        <div class="drop-zone" id="dropZone">
+            <i class="fa fa-cloud-upload"></i>
+            <div><strong>Drag & drop</strong> your timesheet.json here</div>
+            <div class="hint">or click to browse</div>
+            <input type="file" id="fileInput" accept=".json,application/json" style="display:none;" />
         </div>
 
-        <form id="loginForm" autocomplete="off">
-            <div class="form-group">
-                <label><i class="fa fa-envelope-o" style="margin-right:6px;color:#2fc7ff;"></i> Email</label>
-                <input type="email" id="emailInput" class="form-control" placeholder="your@email.com" required autofocus />
+        <div class="d-flex justify-content-between align-items-center flex-wrap mt-3">
+            <div>
+                <button class="btn btn-primary-glow" id="loadBtn"><i class="fa fa-upload"></i> Load from file</button>
+                <button class="btn btn-outline-secondary ml-2" id="pasteBtn"><i class="fa fa-code"></i> Paste JSON</button>
             </div>
-            <div class="form-group">
-                <label><i class="fa fa-key" style="margin-right:6px;color:#2fc7ff;"></i> Passphrase</label>
-                <div class="input-group">
-                    <input type="password" id="passphraseInput" class="form-control" placeholder="Your passphrase" required />
-                    <div class="input-group-append">
-                        <button class="btn" type="button" id="togglePassBtn" tabindex="-1">
-                            <i class="fa fa-eye" id="toggleIcon"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-            <button type="submit" class="btn-primary-glow" id="loginBtn">
-                <i class="fa fa-unlock-alt"></i> View My Timesheet
-            </button>
-        </form>
+            <span id="fileStatus" class="file-info" style="display:none;">
+                <i class="fa fa-check-circle" style="color:#28a745;"></i> <span id="fileName">file.json</span>
+            </span>
+        </div>
 
-        <div id="alertBox" class="alert-box"></div>
+        <!-- Paste modal (hidden) -->
+        <div id="pasteArea" style="display:none; margin-top:16px;">
+            <textarea id="jsonInput" class="form-control" rows="8" placeholder="Paste your timesheet JSON here..."></textarea>
+            <button class="btn btn-primary-glow mt-2" id="parsePasteBtn"><i class="fa fa-play"></i> Parse JSON</button>
+        </div>
 
-        <div class="entries-wrapper" id="entriesWrapper">
-            <h4>
-                <i class="fa fa-clock-o" style="color:#2fc7ff;"></i> Your Entries
-                <span class="count" id="entryCount">0</span>
-            </h4>
-            <div class="table-wrap" id="tableWrap">
-                <table>
+        <!-- Error / success -->
+        <div id="messageBox" class="alert mt-3" style="display:none;"></div>
+
+        <!-- Results -->
+        <div id="results" style="display:none;">
+            <hr />
+            <div class="summary-stats" id="statsContainer"></div>
+            <div class="table-wrap">
+                <table class="table" id="entriesTable">
                     <thead>
                         <tr>
                             <th>Date</th><th>Start</th><th>End</th><th>Hours</th>
@@ -248,261 +244,223 @@
                     <tfoot id="entriesFoot" style="display:none;"></tfoot>
                 </table>
             </div>
-            <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;justify-content:space-between;align-items:center;">
-                <button class="btn-outline-secondary-sm" id="refreshBtn"><i class="fa fa-refresh"></i> Refresh</button>
-                <button class="btn-outline-secondary-sm" id="logoutBtn"><i class="fa fa-sign-out"></i> Logout</button>
-                <span style="font-size:0.7rem;color:#a0b8cc;" id="userLabel"></span>
+            <div class="mt-3 text-muted small">
+                <i class="fa fa-info-circle"></i> Total entries: <span id="totalCount">0</span>
             </div>
-        </div>
-
-        <div class="footer-note">
-            <i class="fa fa-github"></i> Data stored securely on GitHub ·
-            <a href="login.html">Go to full login</a>
         </div>
     </div>
 
-    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <div class="footer-note">
+        <i class="fa fa-github"></i> Data from your portfolio repository ·
+        <a href="login.html">Go to full login</a>
+    </div>
+</div>
 
-    <script>
-        (function() {
-            'use strict';
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+<script>
+    (function() {
+        'use strict';
 
-            // ─── DOM refs ───
-            const form = document.getElementById('loginForm');
-            const emailInput = document.getElementById('emailInput');
-            const passInput = document.getElementById('passphraseInput');
-            const loginBtn = document.getElementById('loginBtn');
-            const alertBox = document.getElementById('alertBox');
-            const entriesWrapper = document.getElementById('entriesWrapper');
-            const entriesBody = document.getElementById('entriesBody');
-            const entriesFoot = document.getElementById('entriesFoot');
-            const entryCount = document.getElementById('entryCount');
-            const userLabel = document.getElementById('userLabel');
-            const refreshBtn = document.getElementById('refreshBtn');
-            const logoutBtn = document.getElementById('logoutBtn');
-            const togglePassBtn = document.getElementById('togglePassBtn');
-            const toggleIcon = document.getElementById('toggleIcon');
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const loadBtn = document.getElementById('loadBtn');
+        const pasteBtn = document.getElementById('pasteBtn');
+        const pasteArea = document.getElementById('pasteArea');
+        const jsonInput = document.getElementById('jsonInput');
+        const parsePasteBtn = document.getElementById('parsePasteBtn');
+        const fileStatus = document.getElementById('fileStatus');
+        const fileName = document.getElementById('fileName');
+        const messageBox = document.getElementById('messageBox');
+        const results = document.getElementById('results');
+        const entriesBody = document.getElementById('entriesBody');
+        const entriesFoot = document.getElementById('entriesFoot');
+        const statsContainer = document.getElementById('statsContainer');
+        const totalCount = document.getElementById('totalCount');
 
-            let currentEmail = null;
-            let currentToken = null;
-            let currentEntries = [];
+        let currentData = null;
 
-            // ─── toggle password visibility ───
-            togglePassBtn.addEventListener('click', function() {
-                const type = passInput.getAttribute('type') === 'password' ? 'text' : 'password';
-                passInput.setAttribute('type', type);
-                toggleIcon.className = type === 'password' ? 'fa fa-eye' : 'fa fa-eye-slash';
-            });
+        // ─── show / hide messages ───
+        function showMessage(text, type = 'danger') {
+            messageBox.style.display = 'block';
+            messageBox.className = 'alert alert-' + type;
+            messageBox.textContent = text;
+        }
 
-            function showAlert(message, type = 'error') {
-                alertBox.className = 'alert-box show ' + type;
-                alertBox.innerHTML = '<i class="fa ' +
-                    (type === 'error' ? 'fa-exclamation-circle' :
-                        type === 'success' ? 'fa-check-circle' : 'fa-info-circle') +
-                    '"></i> ' + message;
-            }
-            function hideAlert() {
-                alertBox.className = 'alert-box';
-                alertBox.innerHTML = '';
-            }
+        function hideMessage() {
+            messageBox.style.display = 'none';
+            messageBox.textContent = '';
+        }
 
-            function setLoading(loading) {
-                if (loading) {
-                    loginBtn.disabled = true;
-                    loginBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Loading…';
-                } else {
-                    loginBtn.disabled = false;
-                    loginBtn.innerHTML = '<i class="fa fa-unlock-alt"></i> View My Timesheet';
-                }
+        // ─── render entries ───
+        function renderEntries(entries) {
+            entriesBody.innerHTML = '';
+            entriesFoot.style.display = 'none';
+            if (!entries || entries.length === 0) {
+                entriesBody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><i class="fa fa-inbox"></i>No entries found.</div></td></tr>`;
+                totalCount.textContent = '0';
+                results.style.display = 'block';
+                return;
             }
 
-            function formatDate(d) { return d || '—'; }
-
-            function renderEntries(entries) {
-                entriesBody.innerHTML = '';
-                entriesFoot.style.display = 'none';
-                if (!entries || entries.length === 0) {
-                    entriesBody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><i class="fa fa-inbox"></i>No entries found.</div></td></tr>`;
-                    entryCount.textContent = '0';
-                    return;
-                }
-                const sorted = [...entries].sort((a, b) => (a.date < b.date ? 1 : -1));
-                let totalHours = 0, billableHours = 0;
-                sorted.forEach(e => {
-                    const hrs = parseFloat(e.hours) || 0;
-                    totalHours += hrs;
-                    if (e.billable === 'yes') billableHours += hrs;
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                        <td>${formatDate(e.date)}</td>
-                        <td>${e.start || '—'}</td>
-                        <td>${e.end || '—'}</td>
-                        <td><strong>${hrs.toFixed(2)}</strong></td>
-                        <td>${e.project || '—'}</td>
-                        <td>${e.category || '—'}</td>
-                        <td><span class="badge-billable ${e.billable === 'yes' ? 'yes' : 'no'}">${e.billable === 'yes' ? 'Yes' : 'No'}</span></td>
-                        <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${e.notes || '—'}</td>
-                    `;
-                    entriesBody.appendChild(tr);
-                });
-                const nonBillable = totalHours - billableHours;
-                const trFoot = document.createElement('tr');
-                trFoot.className = 'totals-row';
-                trFoot.innerHTML = `
-                    <td colspan="3" style="text-align:right;"><strong>Totals</strong></td>
-                    <td><strong>${totalHours.toFixed(2)}</strong></td>
-                    <td colspan="1"></td>
-                    <td colspan="1"></td>
-                    <td><span style="color:#155724;">${billableHours.toFixed(2)}</span> / <span style="color:#721c24;">${nonBillable.toFixed(2)}</span></td>
-                    <td></td>
+            // Sort by date descending
+            const sorted = [...entries].sort((a, b) => (a.date < b.date ? 1 : -1));
+            let totalHours = 0, billableHours = 0, nonBillable = 0;
+            sorted.forEach(e => {
+                const hrs = parseFloat(e.hours) || 0;
+                totalHours += hrs;
+                if (e.billable === 'yes') billableHours += hrs;
+                else nonBillable += hrs;
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${e.date || '—'}</td>
+                    <td>${e.start || '—'}</td>
+                    <td>${e.end || '—'}</td>
+                    <td><strong>${hrs.toFixed(2)}</strong></td>
+                    <td>${e.project || '—'}</td>
+                    <td>${e.category || '—'}</td>
+                    <td><span class="badge-billable ${e.billable === 'yes' ? 'yes' : 'no'}">${e.billable === 'yes' ? 'Yes' : 'No'}</span></td>
+                    <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${e.notes || '—'}</td>
                 `;
-                entriesFoot.appendChild(trFoot);
-                entriesFoot.style.display = 'table-footer-group';
-                entryCount.textContent = sorted.length;
-            }
+                entriesBody.appendChild(tr);
+            });
 
-            // ─── FETCH USING RAW GITHUB (no API, no rate limits) ───
-            async function fetchRawFile(path) {
-                const { owner, repo, branch } = window.REPO_CONFIG;
-                const url = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${path}`;
-                const resp = await fetch(url);
-                if (!resp.ok) {
-                    if (resp.status === 404) return null;
-                    throw new Error(`HTTP ${resp.status} – ${resp.statusText}`);
-                }
-                return await resp.json();
-            }
+            // Totals row
+            const trFoot = document.createElement('tr');
+            trFoot.className = 'table-active font-weight-bold';
+            trFoot.innerHTML = `
+                <td colspan="3" style="text-align:right;"><strong>Totals</strong></td>
+                <td><strong>${totalHours.toFixed(2)}</strong></td>
+                <td colspan="1"></td>
+                <td colspan="1"></td>
+                <td><span style="color:#155724;">${billableHours.toFixed(2)}</span> / <span style="color:#721c24;">${nonBillable.toFixed(2)}</span></td>
+                <td></td>
+            `;
+            entriesFoot.appendChild(trFoot);
+            entriesFoot.style.display = 'table-footer-group';
 
-            async function fetchTimesheet(email, passphrase) {
-                const { dataPath } = window.REPO_CONFIG;
-                const encUser = encodeURIComponent(email);
-                const accountPath = `${dataPath}/users/${encUser}/account.json`;
+            // Stats
+            const uniqueProjects = new Set(entries.map(e => e.project)).size;
+            const uniqueDays = new Set(entries.map(e => e.date)).size;
+            const avgDaily = uniqueDays > 0 ? totalHours / uniqueDays : 0;
 
-                // 1. Fetch encrypted account.json from raw
-                const encryptedBlob = await fetchRawFile(accountPath);
-                if (!encryptedBlob) {
-                    throw new Error('Account not found. Please check your email.');
-                }
+            statsContainer.innerHTML = `
+                <div class="stat-box"><div class="number blue">${totalHours.toFixed(1)}</div><div class="label">Total Hours</div></div>
+                <div class="stat-box"><div class="number green">${billableHours.toFixed(1)}</div><div class="label">Billable</div></div>
+                <div class="stat-box"><div class="number red">${nonBillable.toFixed(1)}</div><div class="label">Non-Billable</div></div>
+                <div class="stat-box"><div class="number orange">${uniqueProjects}</div><div class="label">Projects</div></div>
+                <div class="stat-box"><div class="number">${uniqueDays}</div><div class="label">Days</div></div>
+                <div class="stat-box"><div class="number">${avgDaily.toFixed(1)}</div><div class="label">Avg / Day</div></div>
+            `;
 
-                // 2. Decrypt
-                let decrypted;
+            totalCount.textContent = sorted.length;
+            results.style.display = 'block';
+        }
+
+        // ─── load from file ───
+        function loadFile(file) {
+            hideMessage();
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
                 try {
-                    decrypted = await window.CryptoUtil.decrypt(encryptedBlob, passphrase);
-                } catch (e) {
-                    throw new Error('Invalid passphrase. Please try again.');
-                }
-                let accountData;
-                try {
-                    accountData = JSON.parse(decrypted);
-                } catch (e) {
-                    throw new Error('Account data is corrupted.');
-                }
-                if (accountData.test !== 'VALID') {
-                    throw new Error('Invalid account data.');
-                }
-                const token = accountData.token;
-                if (!token || (!token.startsWith('ghp_') && !token.startsWith('github_pat_'))) {
-                    throw new Error('GitHub token not found in account.');
-                }
-
-                // 3. Fetch timesheet.json from raw (no auth needed – public repo)
-                const timesheetPath = `${dataPath}/users/${encUser}/timesheet.json`;
-                let entries = [];
-                try {
-                    const data = await fetchRawFile(timesheetPath);
-                    if (data && Array.isArray(data)) entries = data;
-                } catch (e) {
-                    if (e.message.includes('404')) {
-                        entries = [];
-                    } else {
-                        throw e;
+                    const data = JSON.parse(e.target.result);
+                    if (!Array.isArray(data)) {
+                        showMessage('The file does not contain a valid timesheet array.', 'danger');
+                        return;
                     }
-                }
-
-                return { token, entries };
-            }
-
-            // ─── login handler ───
-            async function handleLogin(e) {
-                e.preventDefault();
-                hideAlert();
-                const email = emailInput.value.trim();
-                const passphrase = passInput.value;
-                if (!email) { showAlert('Please enter your email address.', 'error'); emailInput.focus(); return; }
-                if (!passphrase) { showAlert('Please enter your passphrase.', 'error'); passInput.focus(); return; }
-                if (!email.includes('@')) { showAlert('Enter a valid email address.', 'error'); return; }
-
-                setLoading(true);
-                try {
-                    const result = await fetchTimesheet(email, passphrase);
-                    currentEmail = email;
-                    currentToken = result.token;
-                    currentEntries = result.entries;
-                    showAlert(`✅ Loaded ${result.entries.length} entries for ${email}`, 'success');
-                    renderEntries(result.entries);
-                    entriesWrapper.classList.add('show');
-                    userLabel.textContent = '👤 ' + email;
-                    form.style.display = 'none';
+                    currentData = data;
+                    renderEntries(data);
+                    fileStatus.style.display = 'inline-flex';
+                    fileName.textContent = file.name;
+                    // Hide paste area if visible
+                    pasteArea.style.display = 'none';
                 } catch (err) {
-                    console.error('Login error:', err);
-                    showAlert('❌ ' + err.message, 'error');
-                    entriesWrapper.classList.remove('show');
-                } finally {
-                    setLoading(false);
+                    showMessage('Failed to parse JSON: ' + err.message, 'danger');
                 }
-            }
+            };
+            reader.onerror = function() {
+                showMessage('Failed to read file.', 'danger');
+            };
+            reader.readAsText(file);
+        }
 
-            // ─── refresh ───
-            async function refreshData() {
-                if (!currentEmail) {
-                    showAlert('Please log in first.', 'error');
+        // ─── parse pasted JSON ───
+        function parsePasted() {
+            hideMessage();
+            const text = jsonInput.value.trim();
+            if (!text) {
+                showMessage('Please paste some JSON content.', 'warning');
+                return;
+            }
+            try {
+                const data = JSON.parse(text);
+                if (!Array.isArray(data)) {
+                    showMessage('Pasted content is not an array of entries.', 'danger');
                     return;
                 }
-                hideAlert();
-                setLoading(true);
-                try {
-                    const result = await fetchTimesheet(currentEmail, passInput.value);
-                    currentToken = result.token;
-                    currentEntries = result.entries;
-                    renderEntries(result.entries);
-                    showAlert(`✅ Refreshed — ${result.entries.length} entries`, 'success');
-                } catch (err) {
-                    showAlert('❌ ' + err.message, 'error');
-                } finally {
-                    setLoading(false);
-                }
+                currentData = data;
+                renderEntries(data);
+                fileStatus.style.display = 'none';
+                // Keep paste area visible
+            } catch (err) {
+                showMessage('Invalid JSON: ' + err.message, 'danger');
             }
+        }
 
-            function logout() {
-                currentEmail = null;
-                currentToken = null;
-                currentEntries = [];
-                entriesWrapper.classList.remove('show');
-                form.style.display = 'block';
-                userLabel.textContent = '';
-                passInput.value = '';
-                emailInput.value = '';
-                hideAlert();
-                entriesBody.innerHTML = '';
-                entriesFoot.innerHTML = '';
-                entriesFoot.style.display = 'none';
-                entryCount.textContent = '0';
-                emailInput.focus();
-                showAlert('👋 Logged out successfully.', 'info');
-                setTimeout(hideAlert, 3000);
+        // ─── event listeners ───
+        dropZone.addEventListener('click', () => fileInput.click());
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length && files[0].type === 'application/json') {
+                loadFile(files[0]);
+            } else {
+                showMessage('Please drop a valid JSON file.', 'warning');
             }
+        });
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length) {
+                loadFile(fileInput.files[0]);
+            }
+            fileInput.value = '';
+        });
 
-            form.addEventListener('submit', handleLogin);
-            refreshBtn.addEventListener('click', refreshData);
-            logoutBtn.addEventListener('click', logout);
-            passInput.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter') { e.preventDefault(); form.dispatchEvent(new Event('submit')); }
-            });
-            emailInput.focus();
-            console.log('✅ Quick Timesheet (raw GitHub) ready.');
-        })();
-    </script>
+        loadBtn.addEventListener('click', () => fileInput.click());
+
+        pasteBtn.addEventListener('click', () => {
+            if (pasteArea.style.display === 'none') {
+                pasteArea.style.display = 'block';
+                jsonInput.focus();
+            } else {
+                pasteArea.style.display = 'none';
+            }
+        });
+
+        parsePasteBtn.addEventListener('click', parsePasted);
+
+        // Allow Ctrl+Enter in textarea
+        jsonInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                parsePasted();
+            }
+        });
+
+        // ─── if URL has ?paste, open paste area ───
+        if (window.location.search.includes('paste')) {
+            pasteArea.style.display = 'block';
+        }
+
+        console.log('✅ Offline Timesheet Viewer ready.');
+    })();
+</script>
 </body>
 </html>
