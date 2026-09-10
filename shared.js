@@ -267,9 +267,7 @@ window.compressImage = function(file, maxW = 1600, maxH = 1600, quality = 0.85) 
   });
 };
 
-// =========================== FIXED ACCOUNT MANAGER ===========================
 window.AccountManager = {
-  // ----- email helpers (unchanged) -----
   async _ensureEmailJS() {
     if (typeof emailjs === 'undefined') {
       await new Promise((resolve, reject) => {
@@ -308,41 +306,17 @@ window.AccountManager = {
       });
     } catch (e) { console.warn('User email failed', e); }
   },
-
-  // ========== FIXED fetchAccount with CDN + API fallback ==========
   async fetchAccount(username) {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(username);
-    const path = `${dataPath}/users/${encUser}/account.json`;
-    const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${path}`;
-    const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`;
-
-    // 1) Try the raw CDN first (fastest)
+    const url = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${dataPath}/users/${encUser}/account.json`;
     try {
-      const resp = await fetch(rawUrl);
-      if (resp.ok) return await resp.json();
-      // if it's a 503 or 429, fall through to API
-      if (resp.status !== 503 && resp.status !== 429) return null;
-    } catch (e) {
-      console.warn('Raw CDN fetch failed, trying API fallback...', e);
-    }
-
-    // 2) Fallback: GitHub API (public repo → no token needed)
-    try {
-      const resp = await fetch(apiUrl, {
-        headers: { 'Accept': 'application/vnd.github.v3+json' }
-      });
+      const resp = await fetch(url);
       if (!resp.ok) return null;
-      const data = await resp.json();
-      // Decode base64 content
-      return JSON.parse(atob(data.content.replace(/\n/g, '')));
-    } catch (e) {
-      console.error('API fallback also failed:', e);
-      return null;
-    }
+      return await resp.json();
+    } catch { return null; }
   },
-
-  // ----- rest of AccountManager methods (unchanged) -----
+  
   async isEmailVerified(email) {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const encUser = encodeURIComponent(email);
@@ -364,6 +338,7 @@ window.AccountManager = {
     } catch (err) {}
     return false;
   },
+  
   async register(username, passphrase, pat) {
     const payload = JSON.stringify({ test: 'VALID', token: pat });
     const encrypted = await window.CryptoUtil.encrypt(payload, passphrase);
@@ -383,17 +358,17 @@ window.AccountManager = {
     await window.Logger.logActivity('account', 'register', `New user registered: ${username}`, { email: username });
     return true;
   },
- async login(username, passphrase) {
-  const blocked = await this.getBlockedUsers();
-  if (blocked.includes(username)) throw new Error('Your account has been blocked. Contact the administrator.');
-  const blob = await this.fetchAccount(username);
-  if (!blob) throw new Error('User not found');
-  const decrypted = await window.CryptoUtil.decrypt(blob, passphrase);
-  const data = JSON.parse(decrypted);
-  if (data.test !== 'VALID') throw new Error('Corrupted account');
-  await window.Logger.logActivity('account', 'login', `User logged in: ${username}`);
-  return data.token;
-}
+  async login(username, passphrase) {
+    const blocked = await this.getBlockedUsers();
+    if (blocked.includes(username)) throw new Error('Your account has been blocked. Contact the administrator.');
+    const blob = await this.fetchAccount(username);
+    if (!blob) throw new Error('User not found');
+    const decrypted = await window.CryptoUtil.decrypt(blob, passphrase);
+    const data = JSON.parse(decrypted);
+    if (data.test !== 'VALID') throw new Error('Corrupted account');
+    await window.Logger.logActivity('account', 'login', `User logged in: ${username}`);
+    return data.token;
+  },
   async getBlockedUsers() {
     const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
     const url = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${dataPath}/blocked_users.json`;
@@ -481,7 +456,6 @@ window.AccountManager = {
   }
 };
 
-// ===================== portfolioData =====================
 window.portfolioData = (() => {
   const PROJECTS_KEY = 'portfolioProjects';
   const CERTS_KEY = 'portfolioCertificates';
