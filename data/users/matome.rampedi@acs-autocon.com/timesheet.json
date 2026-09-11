@@ -3,13 +3,13 @@
     "id": 1789105163625,
     "date": "2026-09-09",
     "start": "06:30",
-    "end": "10:30",
-    "hours": 4,
+    "end": "11:30",
+    "hours": 5,
     "project": "Admin",
     "category": "Training",
     "billable": "no",
     "notes": "",
-    "updatedAt": 1789105163625
+    "updatedAt": 1789105350737
   },
   {
     "id": 1789105017659,
