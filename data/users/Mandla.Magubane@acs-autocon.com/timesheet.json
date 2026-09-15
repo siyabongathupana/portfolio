@@ -1,5 +1,17 @@
 [
   {
+    "id": 1789459967006,
+    "date": "2026-09-10",
+    "start": "13:30",
+    "end": "14:00",
+    "hours": 0.5,
+    "project": "Other",
+    "category": "Admin",
+    "billable": "no",
+    "notes": "",
+    "updatedAt": 1789459967006
+  },
+  {
     "id": 1789459908852,
     "date": "2026-09-10",
     "start": "13:00",
