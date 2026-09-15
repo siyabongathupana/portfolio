@@ -1,5 +1,17 @@
 [
   {
+    "id": 1789459459153,
+    "date": "2026-09-07",
+    "start": "06:30",
+    "end": "11:30",
+    "hours": 5,
+    "project": "Temane T31/T32",
+    "category": "Hardware",
+    "billable": "yes",
+    "notes": "",
+    "updatedAt": 1789459459153
+  },
+  {
     "id": 1788501644404,
     "date": "2026-09-04",
     "start": "14:30",
