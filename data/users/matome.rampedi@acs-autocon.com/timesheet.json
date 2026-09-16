@@ -9,11 +9,11 @@
     "category": "Documentation",
     "billable": "yes",
     "notes": "",
-    "updatedAt": 1789542869961
+    "updatedAt": 1789542928513
   },
   {
     "id": 1789542832385,
-    "date": "2026-09-16",
+    "date": "2026-09-15",
     "start": "11:30",
     "end": "12:00",
     "hours": 0.5,
@@ -21,11 +21,11 @@
     "category": "Other",
     "billable": "no",
     "notes": "",
-    "updatedAt": 1789542832385
+    "updatedAt": 1789542922786
   },
   {
     "id": 1789542814264,
-    "date": "2026-09-16",
+    "date": "2026-09-15",
     "start": "06:50",
     "end": "11:30",
     "hours": 4.67,
@@ -33,11 +33,11 @@
     "category": "Documentation",
     "billable": "yes",
     "notes": "review",
-    "updatedAt": 1789542814264
+    "updatedAt": 1789542914873
   },
   {
     "id": 1789542439249,
-    "date": "2026-09-16",
+    "date": "2026-09-14",
     "start": "12:30",
     "end": "15:15",
     "hours": 2.75,
@@ -45,11 +45,11 @@
     "category": "Documentation",
     "billable": "yes",
     "notes": "",
-    "updatedAt": 1789542439249
+    "updatedAt": 1789542901136
   },
   {
     "id": 1789542370560,
-    "date": "2026-09-16",
+    "date": "2026-09-14",
     "start": "11:30",
     "end": "12:00",
     "hours": 0.5,
@@ -57,7 +57,7 @@
     "category": "Other",
     "billable": "no",
     "notes": "",
-    "updatedAt": 1789542370560
+    "updatedAt": 1789542888993
   },
   {
     "id": 1789542356354,
