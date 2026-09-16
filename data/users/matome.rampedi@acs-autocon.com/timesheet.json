@@ -1,5 +1,29 @@
 [
   {
+    "id": 1789542869961,
+    "date": "2026-09-15",
+    "start": "12:30",
+    "end": "15:30",
+    "hours": 3,
+    "project": "Steam station 2",
+    "category": "Documentation",
+    "billable": "yes",
+    "notes": "",
+    "updatedAt": 1789542869961
+  },
+  {
+    "id": 1789542832385,
+    "date": "2026-09-16",
+    "start": "11:30",
+    "end": "12:00",
+    "hours": 0.5,
+    "project": "Admin",
+    "category": "Other",
+    "billable": "no",
+    "notes": "",
+    "updatedAt": 1789542832385
+  },
+  {
     "id": 1789542814264,
     "date": "2026-09-16",
     "start": "06:50",
@@ -37,7 +61,7 @@
   },
   {
     "id": 1789542356354,
-    "date": "2026-09-16",
+    "date": "2026-09-14",
     "start": "06:30",
     "end": "11:30",
     "hours": 5,
@@ -45,7 +69,7 @@
     "category": "Documentation",
     "billable": "yes",
     "notes": "",
-    "updatedAt": 1789542356354
+    "updatedAt": 1789542881778
   },
   {
     "id": 1789105647296,
