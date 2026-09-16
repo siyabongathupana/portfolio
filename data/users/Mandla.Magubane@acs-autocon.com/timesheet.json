@@ -13,7 +13,7 @@
   },
   {
     "id": 1789460250379,
-    "date": "2026-09-14",
+    "date": "2026-09-15",
     "start": "06:30",
     "end": "09:45",
     "hours": 3.25,
@@ -21,7 +21,7 @@
     "category": "Documentation",
     "billable": "yes",
     "notes": "",
-    "updatedAt": 1789460250379
+    "updatedAt": 1789543941647
   },
   {
     "id": 1789460227609,
