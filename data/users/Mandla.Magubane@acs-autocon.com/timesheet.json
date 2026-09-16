@@ -1,17 +1,5 @@
 [
   {
-    "id": 1789460275844,
-    "date": "2026-09-14",
-    "start": "09:45",
-    "end": "12:00",
-    "hours": 2.25,
-    "project": "Other",
-    "category": "Training",
-    "billable": "no",
-    "notes": "",
-    "updatedAt": 1789460275844
-  },
-  {
     "id": 1789460250379,
     "date": "2026-09-15",
     "start": "06:30",
@@ -22,6 +10,18 @@
     "billable": "yes",
     "notes": "",
     "updatedAt": 1789543941647
+  },
+  {
+    "id": 1789460275844,
+    "date": "2026-09-15",
+    "start": "09:45",
+    "end": "12:00",
+    "hours": 2.25,
+    "project": "Other",
+    "category": "Training",
+    "billable": "no",
+    "notes": "",
+    "updatedAt": 1789551984212
   },
   {
     "id": 1789460227609,
