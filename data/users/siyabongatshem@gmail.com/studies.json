@@ -92,9 +92,11 @@
                     {
                       "name": "Weekly Quiz 3",
                       "due": "2026-08-23",
-                      "status": "submitted",
-                      "marks": "",
-                      "weight": 10
+                      "status": "graded",
+                      "marks": "100",
+                      "weight": 10,
+                      "notes": "",
+                      "gradedDate": "2026-09-17"
                     }
                   ]
                 },
