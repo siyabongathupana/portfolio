@@ -827,8 +827,10 @@
                       "name": "Quiz 2",
                       "due": "2026-08-16",
                       "status": "submitted",
-                      "marks": "",
-                      "weight": 10
+                      "marks": "60",
+                      "weight": 10,
+                      "notes": "",
+                      "submittedDate": "2026-09-17"
                     }
                   ]
                 },
