@@ -60,8 +60,10 @@
                       "name": "Weekly Quiz 2",
                       "due": "2026-08-16",
                       "status": "submitted",
-                      "marks": "4.5",
-                      "weight": 10
+                      "marks": "100",
+                      "weight": 10,
+                      "notes": "",
+                      "submittedDate": "2026-09-17"
                     }
                   ]
                 },
