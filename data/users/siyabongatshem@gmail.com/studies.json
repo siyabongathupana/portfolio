@@ -1335,15 +1335,15 @@
                         "Dilution",
                         "Fundamentals of Stoichiometry"
                       ],
-                      "completed": false,
+                      "completed": true,
                       "subCompleted": [
-                        false,
-                        false,
-                        false,
-                        false,
-                        false,
-                        false,
-                        false
+                        true,
+                        true,
+                        true,
+                        true,
+                        true,
+                        true,
+                        true
                       ]
                     }
                   ],
