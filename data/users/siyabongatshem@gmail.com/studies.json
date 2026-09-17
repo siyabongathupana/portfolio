@@ -869,8 +869,10 @@
                       "name": "Quiz 3",
                       "due": "2026-08-23",
                       "status": "submitted",
-                      "marks": "",
-                      "weight": 10
+                      "marks": "100",
+                      "weight": 10,
+                      "notes": "",
+                      "submittedDate": "2026-09-17"
                     }
                   ]
                 },
