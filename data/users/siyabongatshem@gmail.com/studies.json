@@ -1366,11 +1366,12 @@
                     {
                       "name": "Quiz 3",
                       "due": "2026-08-23",
-                      "status": "submitted",
+                      "status": "graded",
                       "marks": "100",
                       "weight": 10,
                       "submittedDate": "2026-09-17",
-                      "notes": ""
+                      "notes": "",
+                      "gradedDate": "2026-09-17"
                     }
                   ]
                 },
