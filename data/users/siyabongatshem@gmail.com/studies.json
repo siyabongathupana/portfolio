@@ -147,10 +147,11 @@
                     {
                       "name": "Test (Invigilated)",
                       "due": "2026-09-17",
-                      "status": "not-started",
+                      "status": "submitted",
                       "marks": "",
                       "weight": 25,
-                      "notes": ""
+                      "notes": "",
+                      "submittedDate": "2026-09-17"
                     }
                   ]
                 },
