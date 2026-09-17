@@ -943,9 +943,10 @@
                     {
                       "name": "Test (Invigilated)",
                       "due": "2026-09-18",
-                      "status": "pending",
+                      "status": "submitted",
                       "marks": "",
-                      "weight": 25
+                      "weight": 25,
+                      "submittedDate": "2026-09-17"
                     },
                     {
                       "name": "Quiz 5",
