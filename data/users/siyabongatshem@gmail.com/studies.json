@@ -115,9 +115,11 @@
                     {
                       "name": "Weekly Quiz 4",
                       "due": "2026-09-06",
-                      "status": "pending",
+                      "status": "submitted",
                       "marks": "",
-                      "weight": 10
+                      "weight": 10,
+                      "notes": "",
+                      "submittedDate": "2026-09-17"
                     }
                   ]
                 },
