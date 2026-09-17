@@ -658,10 +658,11 @@
                   "assignments": [
                     {
                       "name": "CAD Practical Project",
-                      "due": "",
-                      "status": "pending",
+                      "due": "2026-10-23",
+                      "status": "not-started",
                       "marks": "",
-                      "weight": 25
+                      "weight": 25,
+                      "notes": ""
                     }
                   ]
                 },
