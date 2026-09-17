@@ -1327,11 +1327,12 @@
                     {
                       "name": "Quiz 2",
                       "due": "2026-08-16",
-                      "status": "submitted",
+                      "status": "graded",
                       "marks": "80",
                       "weight": 10,
                       "notes": "",
-                      "submittedDate": "2026-09-17"
+                      "submittedDate": "2026-09-17",
+                      "gradedDate": "2026-09-17"
                     }
                   ]
                 },
