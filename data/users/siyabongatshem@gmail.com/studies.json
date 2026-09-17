@@ -559,12 +559,12 @@
                         "Assembly Drawings",
                         "Types of Assembly Drawings"
                       ],
-                      "completed": false,
+                      "completed": true,
                       "subCompleted": [
-                        false,
-                        false,
-                        false,
-                        false
+                        true,
+                        true,
+                        true,
+                        true
                       ]
                     }
                   ],
