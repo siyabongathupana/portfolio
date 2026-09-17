@@ -146,10 +146,11 @@
                   "assignments": [
                     {
                       "name": "Test (Invigilated)",
-                      "due": "",
-                      "status": "pending",
+                      "due": "2026-09-17",
+                      "status": "not-started",
                       "marks": "",
-                      "weight": 25
+                      "weight": 25,
+                      "notes": ""
                     }
                   ]
                 },
