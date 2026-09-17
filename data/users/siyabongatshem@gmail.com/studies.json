@@ -134,12 +134,12 @@
                         "Interpolation and curve fitting",
                         "Numerical differentiation"
                       ],
-                      "completed": false,
+                      "completed": true,
                       "subCompleted": [
-                        false,
-                        false,
-                        false,
-                        false
+                        true,
+                        true,
+                        true,
+                        true
                       ]
                     }
                   ],
