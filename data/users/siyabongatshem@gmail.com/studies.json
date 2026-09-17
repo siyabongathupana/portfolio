@@ -911,9 +911,10 @@
                       "name": "Quiz 4",
                       "due": "2026-08-30",
                       "status": "submitted",
-                      "marks": "",
+                      "marks": "100",
                       "weight": 10,
-                      "submittedDate": "2026-09-17"
+                      "submittedDate": "2026-09-17",
+                      "notes": ""
                     }
                   ]
                 },
