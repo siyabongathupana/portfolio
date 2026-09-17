@@ -568,9 +568,10 @@
                     {
                       "name": "Portfolio Week 6",
                       "due": "2026-09-20",
-                      "status": "pending",
+                      "status": "submitted",
                       "marks": "",
-                      "weight": 10
+                      "weight": 10,
+                      "submittedDate": "2026-09-17"
                     }
                   ]
                 },
