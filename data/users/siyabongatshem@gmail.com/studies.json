@@ -572,9 +572,10 @@
                       "name": "Portfolio Week 6",
                       "due": "2026-09-20",
                       "status": "submitted",
-                      "marks": "",
+                      "marks": "100",
                       "weight": 10,
-                      "submittedDate": "2026-09-17"
+                      "submittedDate": "2026-09-17",
+                      "notes": ""
                     }
                   ]
                 },
