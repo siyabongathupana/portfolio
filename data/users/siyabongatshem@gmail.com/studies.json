@@ -1567,9 +1567,10 @@
                     {
                       "name": "Assessment 3",
                       "due": "2026-10-23",
-                      "status": "pending",
+                      "status": "not-started",
                       "marks": "",
-                      "weight": 25
+                      "weight": 25,
+                      "notes": ""
                     }
                   ]
                 },
