@@ -104,10 +104,10 @@
                         "Introduction to PDE",
                         "Applications in Engineering"
                       ],
-                      "completed": false,
+                      "completed": true,
                       "subCompleted": [
-                        false,
-                        false
+                        true,
+                        true
                       ]
                     }
                   ],
