@@ -1,15 +1,27 @@
 [
   {
-    "id": 1789714655025,
+    "id": 1789714667626,
     "date": "2026-09-18",
-    "start": "09:30",
-    "end": "12:00",
+    "start": "13:00",
+    "end": "15:30",
     "hours": 2.5,
     "project": "Other",
     "category": "Training",
     "billable": "no",
     "notes": "",
-    "updatedAt": 1789714655025
+    "updatedAt": 1789714667626
+  },
+  {
+    "id": 1789714655025,
+    "date": "2026-09-18",
+    "start": "09:30",
+    "end": "10:00",
+    "hours": 0.5,
+    "project": "Steam Station 2 Effluent Upgrade",
+    "category": "Hardware",
+    "billable": "yes",
+    "notes": "",
+    "updatedAt": 1789714899708
   },
   {
     "id": 1789714623663,
