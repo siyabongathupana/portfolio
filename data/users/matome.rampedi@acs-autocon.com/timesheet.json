@@ -7,9 +7,9 @@
     "hours": 2.5,
     "project": "Admin",
     "category": "Training",
-    "billable": "yes",
+    "billable": "no",
     "notes": "",
-    "updatedAt": 1789723136101
+    "updatedAt": 1789723141992
   },
   {
     "id": 1789723055686,
@@ -18,10 +18,10 @@
     "end": "12:00",
     "hours": 0.5,
     "project": "Admin",
-    "category": "Training",
-    "billable": "yes",
+    "category": "Other",
+    "billable": "no",
     "notes": "",
-    "updatedAt": 1789723055686
+    "updatedAt": 1789723167542
   },
   {
     "id": 1789723023944,
@@ -31,9 +31,9 @@
     "hours": 5,
     "project": "Admin",
     "category": "Training",
-    "billable": "yes",
+    "billable": "no",
     "notes": "",
-    "updatedAt": 1789723023944
+    "updatedAt": 1789723177422
   },
   {
     "id": 1789542869961,
