@@ -896,7 +896,7 @@
                       "due": "2026-08-23",
                       "status": "graded",
                       "marks": "100",
-                      "weight": 10,
+                      "weight": 1,
                       "notes": "",
                       "submittedDate": "2026-09-17",
                       "gradedDate": "2026-09-17"
