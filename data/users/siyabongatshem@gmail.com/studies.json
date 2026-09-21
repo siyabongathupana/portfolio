@@ -478,11 +478,12 @@
                     {
                       "name": "Portfolio Week 3",
                       "due": "2026-08-30",
-                      "status": "submitted",
+                      "status": "graded",
                       "marks": "100",
                       "weight": 1,
                       "notes": "",
-                      "submittedDate": "2026-09-17"
+                      "submittedDate": "2026-09-17",
+                      "gradedDate": "2026-09-21"
                     },
                     {
                       "name": "Assessmet2 - Test",
