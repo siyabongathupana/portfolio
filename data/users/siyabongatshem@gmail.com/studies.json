@@ -443,11 +443,12 @@
                     {
                       "name": "Portfolio Week 2",
                       "due": "2026-08-23",
-                      "status": "submitted",
+                      "status": "graded",
                       "marks": "100",
                       "weight": 1,
                       "notes": "",
-                      "submittedDate": "2026-08-31"
+                      "submittedDate": "2026-08-31",
+                      "gradedDate": "2026-09-21"
                     }
                   ]
                 },
