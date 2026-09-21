@@ -495,7 +495,7 @@
   console.log('✅ Authorized user:', user.username);
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  //  DEFAULT DATA (same as before – BIA109, BSC107, BSC104, BSC106)
+  //  DEFAULT DATA
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   function getDefaultData() {
     function topic(name, subtopics) {
@@ -619,10 +619,11 @@
   let searchTerm = '';
   let searchTimeout = null;
   let gradeModalOpen = false;
-  let submitModalContext = null; // { yi, si, ui, wi, ai }
+  let submitModalContext = null;
+  let userFullName = "";   // ← populated from user_meta.json
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  //  SAVE MANAGER (same as before – simplified)
+  //  SAVE MANAGER
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   let saveVersion = 0;
   let savedVersion = 0;
@@ -841,7 +842,6 @@
     topic.completed = topic.subCompleted.every(Boolean);
   }
 
-  // ── Date helpers (calendar‑only comparison) ──
   function dateOnly(value) {
     if (!value) return null;
     const parts = value.split('-').map(Number);
@@ -856,7 +856,6 @@
     return diff;
   }
 
-  // ── Central assignment state function ──
   function getAssignmentState(a) {
     if (a.status === 'submitted') return 'submitted';
     if (a.status === 'graded') return 'graded';
@@ -868,7 +867,6 @@
     return a.status || 'not-started';
   }
 
-  // ── Risk score ──
   function computeRisk(a) {
     const state = getAssignmentState(a);
     if (state === 'submitted' || state === 'graded') return { score: 0, level: 'low', label: 'Done' };
@@ -890,7 +888,6 @@
     return { score, level, label: level === 'high' ? 'High risk' : (level === 'medium' ? 'Medium' : 'Low') };
   }
 
-  // ── Flatten assignments ──
   function getAllAssignments() {
     const all = [];
     studyData.years.forEach((year, yi) => {
@@ -907,31 +904,19 @@
     return all;
   }
 
-  // ── Streak ──
   function computeStreak() {
-    // Streak = consecutive days with at least one completed topic or submitted assignment in the last N days
     const today = new Date();
     today.setHours(0,0,0,0);
     let streak = 0;
     let best = parseInt(localStorage.getItem('bestStreak') || '0');
     const allAssignments = getAllAssignments();
     const completedDates = new Set();
-    // completed topics
-    studyData.years.forEach(y => y.semesters.forEach(s => s.units.forEach(u => u.weeks.forEach(w => w.topics.forEach(t => {
-      if (t.completed && t.subtopics && t.subtopics.length > 0) {
-        // We don't have a date per topic, so we'll approximate by using today if it was completed? Not perfect.
-        // Instead, we use the last modified date? For simplicity, we'll track submission dates of assignments.
-      }
-    })))));
-    // For streak, we'll use assignment submitted dates
     allAssignments.forEach(a => {
       if (a.submittedDate) {
         const d = dateOnly(a.submittedDate);
         if (d) completedDates.add(d.toISOString().split('T')[0]);
       }
     });
-    // Also consider topic completions? We'll just use submitted assignments for simplicity.
-    // If no submitted assignments, streak is 0.
     let current = new Date(today);
     while (true) {
       const key = current.toISOString().split('T')[0];
@@ -949,7 +934,6 @@
     return { current: streak, best };
   }
 
-  // ── Weighted academic progress ──
   function computeWeightedProgress() {
     const all = getAllAssignments();
     let totalWeight = 0, earnedWeight = 0;
@@ -960,8 +944,6 @@
         const marks = parseFloat(a.marks);
         if (!isNaN(marks) && marks >= 0) {
           earnedWeight += w * (marks / 100);
-        } else {
-          // if submitted but not graded, assume full marks? Better to count as 0 for progress
         }
       }
     });
@@ -969,7 +951,6 @@
     return Math.round((earnedWeight / totalWeight) * 100);
   }
 
-  // ── Assignment health counts ──
   function getAssignmentHealth() {
     const all = getAllAssignments();
     const counts = { 'not-started': 0, 'in-progress': 0, 'due-soon': 0, 'overdue': 0, 'submitted': 0, 'graded': 0 };
@@ -980,7 +961,6 @@
     return counts;
   }
 
-  // ── Get unique units ──
   function getUnits() {
     const units = [];
     studyData.years.forEach(y => y.semesters.forEach(s => s.units.forEach(u => {
@@ -1026,7 +1006,6 @@
     const container = document.getElementById('deadlinesContainer');
     if (!container) return;
     const all = getAllAssignments();
-    // Only include active (not submitted/graded)
     const active = all.filter(a => {
       const state = getAssignmentState(a);
       return state !== 'submitted' && state !== 'graded';
@@ -1136,7 +1115,6 @@
   }
 
   function renderKPI() {
-    // Three KPIs: Learning (topics), Coursework (submissions), Academic (weighted)
     let totalTopics = 0, doneTopics = 0;
     studyData.years.forEach(y => y.semesters.forEach(s => s.units.forEach(u => u.weeks.forEach(w => w.topics.forEach(t => {
       totalTopics += t.subtopics.length;
@@ -1162,7 +1140,6 @@
       const state = getAssignmentState(a);
       return state === 'overdue' || state === 'due-soon';
     });
-    // Sort: overdue first, then due-soon by days
     active.sort((a,b) => {
       const da = daysUntil(a.due) || 999;
       const db = daysUntil(b.due) || 999;
@@ -1259,7 +1236,6 @@
     if (!container) return;
     const all = getAllAssignments();
     const units = getUnits();
-    // Filters
     const filterUnit = document.getElementById('filterUnit')?.value || 'all';
     const filterStatus = document.getElementById('filterStatus')?.value || 'all';
     const search = document.getElementById('searchAssignments')?.value?.toLowerCase() || '';
@@ -1272,7 +1248,6 @@
     }
     if (search) filtered = filtered.filter(a => a.name.toLowerCase().includes(search) || a.unitCode.toLowerCase().includes(search));
 
-    // Build table
     let html = `<div class="all-assignments-tab">
       <div class="filter-bar">
         <div class="form-group" style="margin:0;">
@@ -1331,7 +1306,6 @@
     html += `</tbody></table></div>`;
     container.innerHTML = html;
 
-    // Attach listeners for filters
     document.getElementById('filterUnit')?.addEventListener('change', renderAllAssignmentsTab);
     document.getElementById('filterStatus')?.addEventListener('change', renderAllAssignmentsTab);
     document.getElementById('searchAssignments')?.addEventListener('input', renderAllAssignmentsTab);
@@ -1503,7 +1477,6 @@
               `;
               weekDiv.querySelector('.level-body').appendChild(tDiv);
             });
-            // Assignments in this week – now as cards
             const assignments = week.assignments || [];
             if (assignments.length) {
               const assSection = document.createElement('div');
@@ -1583,7 +1556,7 @@
   }
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  //  TOGGLE FUNCTIONS (they now call markDirty)
+  //  TOGGLE FUNCTIONS
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   window.toggleExpand = function(key) {
     expanded[key] = !expanded[key];
@@ -1738,7 +1711,7 @@
   };
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  //  CRUD OPERATIONS (simplified – same as before but with markDirty)
+  //  CRUD OPERATIONS
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   function openModal(title, bodyHTML, onSave) {
     const modal = document.getElementById('genericModal');
@@ -1766,7 +1739,6 @@
     }
   });
 
-  // ─── Years ───
   window.addYear = function() {
     openModal('Add Year', `
       <div class="form-group"><label>Year Name (e.g. 2026)</label><input type="text" id="yearName" placeholder="2026" /></div>
@@ -1795,7 +1767,6 @@
     markDirty();
   };
 
-  // ─── Semesters ───
   window.addSemester = function(yi) {
     openModal('Add Semester', `
       <div class="form-group"><label>Semester Name (e.g. Semester 2)</label><input type="text" id="semesterName" placeholder="Semester 2" /></div>
@@ -1824,7 +1795,6 @@
     markDirty();
   };
 
-  // ─── Units ───
   window.addUnit = function(yi, si) {
     openModal('Add Unit', `
       <div class="form-group"><label>Unit Code</label><input type="text" id="unitCode" placeholder="BSC106" /></div>
@@ -1863,7 +1833,6 @@
     markDirty();
   };
 
-  // ─── Weeks ───
   window.addWeek = function(yi, si, ui) {
     openModal('Add Week', `
       <div class="form-group"><label>Week Number</label><input type="number" id="weekNumber" min="1" step="1" value="1" /></div>
@@ -1893,7 +1862,6 @@
     markDirty();
   };
 
-  // ─── Topics ───
   window.addTopic = function(yi, si, ui, wi) {
     openModal('Add Topic', `
       <div class="form-group"><label>Topic Name</label><input type="text" id="topicName" placeholder="e.g. Multivariable Calculus" /></div>
@@ -1924,7 +1892,6 @@
     markDirty();
   };
 
-  // ─── Subtopics ───
   window.addSubtopic = function(yi, si, ui, wi, ti) {
     openModal('Add Subtopic', `
       <div class="form-group"><label>Subtopic Name</label><input type="text" id="subtopicName" placeholder="e.g. Partial derivatives" /></div>
@@ -1954,7 +1921,6 @@
     markDirty();
   };
 
-  // ─── Assignments (enhanced) ───
   window.addAssignment = function(yi, si, ui, wi) {
     openModal('Add Assignment', `
       <div class="form-group"><label>Assignment Name *</label><input type="text" id="assName" placeholder="e.g. Quiz 1" /></div>
@@ -2025,7 +1991,6 @@
       ass.marks = marks || '';
       ass.weight = weight;
       ass.notes = notes || '';
-      // If status is submitted/graded, ensure submittedDate is set if not already
       if (status === 'submitted' && !ass.submittedDate) ass.submittedDate = new Date().toISOString().split('T')[0];
       if (status === 'graded' && !ass.gradedDate) ass.gradedDate = new Date().toISOString().split('T')[0];
       return true;
@@ -2040,13 +2005,14 @@
     markDirty();
   };
 
-  // ─── Grade modal ───
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  //  GRADE MODAL
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   window.openGradeModal = function(yi, si, ui) {
     gradeModalOpen = true;
     const modal = document.getElementById('gradeModal');
     const unit = studyData.years[yi]?.semesters[si]?.units[ui];
     if (!unit) return;
-    // Reuse existing grade calculation
     function calculateUnitGrade(unit) {
       const allAssignments = [];
       (unit.weeks || []).forEach(week => {
@@ -2134,6 +2100,20 @@
     }
     body.innerHTML = html;
     document.getElementById('gradeModalTitle').textContent = `📊 Grade Calculator – ${unit.code} ${unit.name}`;
+
+    // ── ADD per-unit grade report button ──
+    if (body && !body.querySelector('.export-unit-grade-btn')) {
+      const btnBar = document.createElement('div');
+      btnBar.className = 'd-flex justify-content-end mb-2';
+      btnBar.innerHTML = `<button class="btn btn-sm btn-excel export-unit-grade-btn">
+        <i class="fa fa-file-excel-o"></i> Export This Module for Sponsor
+      </button>`;
+      body.prepend(btnBar);
+      btnBar.querySelector('.export-unit-grade-btn').addEventListener('click', () => {
+        window.exportGradeReport(unit.code);
+      });
+    }
+
     if (result && result.grade !== null) {
       setTimeout(() => {
         const targetInput = document.getElementById('targetGradeInput');
@@ -2230,7 +2210,7 @@
   });
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  //  EXCEL EXPORT – ENHANCED ACADEMIC REPORT
+  //  EXCEL EXPORT – ENHANCED ACADEMIC REPORT (existing)
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   window.exportToExcel = async function() {
     if (!studyData.years.length) {
@@ -2244,7 +2224,6 @@
       workbook.creator = user.username;
       workbook.created = new Date();
 
-      // Helper functions
       function styleHeader(row, height = 28, bgColor = 'FF0B2B3B') {
         row.height = height;
         row.eachCell(cell => {
@@ -2272,7 +2251,6 @@
       titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
       titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
       oRow += 2;
-      // KPIs: Overall Progress, Assignments, Submitted, Remaining, Overdue, Due this week
       const allAss = getAllAssignments();
       const health = getAssignmentHealth();
       const totalAssign = allAss.length;
@@ -2280,7 +2258,6 @@
       const remaining = totalAssign - submitted;
       const overdue = health.overdue;
       const dueSoon = health['due-soon'];
-      // Overall progress (topics)
       let totalTopics = 0, doneTopics = 0;
       studyData.years.forEach(y => y.semesters.forEach(s => s.units.forEach(u => u.weeks.forEach(w => w.topics.forEach(t => {
         totalTopics += t.subtopics.length;
@@ -2308,7 +2285,6 @@
       });
       oRow += 2;
 
-      // Unit cards
       const unitData = [];
       studyData.years.forEach(y => y.semesters.forEach(s => s.units.forEach(u => {
         let totalSub = 0, doneSub = 0;
@@ -2340,7 +2316,6 @@
       });
       oRow += unitData.length + 1;
 
-      // Assignment health summary
       overviewSheet.getCell(`A${oRow}`).value = '📋 Assignment Health';
       overviewSheet.getCell(`A${oRow}`).font = { bold: true, size: 14 };
       oRow++;
@@ -2372,7 +2347,6 @@
       const assignSheet = workbook.addWorksheet('Assignments', {
         pageSetup: { orientation: 'landscape', fitToPage: true }
       });
-      let aRow = 1;
       const assignHeaders = ['Priority', 'Assignment', 'Unit', 'Due Date', 'Status', 'Days Left', 'Submitted Date', 'Marks', 'Weight'];
       const headerRow = assignSheet.addRow(assignHeaders);
       styleHeader(headerRow);
@@ -2392,20 +2366,18 @@
           a.marks || '—',
           a.weight || 0
         ]);
-        // Color status cell
         const statusCell = row.getCell(5);
         statusCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: statusColors[state] || 'FFE0E0E0' } };
         statusCell.font = { bold: true };
         row.eachCell(cell => {
           cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
         });
-        // Overdue: red text
         if (state === 'overdue') {
           row.getCell(6).font = { color: { argb: 'FFDC3545' }, bold: true };
         }
       });
 
-      // ─── SHEET 3: DEADLINES (active only) ───
+      // ─── SHEET 3: DEADLINES ───
       const deadSheet = workbook.addWorksheet('Deadlines', {
         pageSetup: { orientation: 'landscape', fitToPage: true }
       });
@@ -2432,11 +2404,10 @@
         if (state === 'overdue') row.getCell(5).font = { color: { argb: 'FFDC3545' }, bold: true };
       });
 
-      // ─── SHEET 4: STUDY PLAN (week/topic structure – simplified) ───
+      // ─── SHEET 4: STUDY PLAN ───
       const planSheet = workbook.addWorksheet('Study Plan', {
         pageSetup: { orientation: 'landscape', fitToPage: true }
       });
-      let pRow = 1;
       const planHeaders = ['Unit', 'Week', 'Topic', 'Subtopics', 'Progress'];
       const planRow = planSheet.addRow(planHeaders);
       styleHeader(planRow);
@@ -2455,11 +2426,10 @@
         row.eachCell(cell => cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } });
       })))));
 
-      // ─── SHEET 5: ANALYTICS (charts as tables) ───
+      // ─── SHEET 5: ANALYTICS ───
       const analyticsSheet = workbook.addWorksheet('Analytics', {
         pageSetup: { orientation: 'landscape', fitToPage: true }
       });
-      // Weekly hours (dummy: we'll use topic progress per week)
       const weeklyProgress = {};
       studyData.years.forEach(y => y.semesters.forEach(s => s.units.forEach(u => u.weeks.forEach(w => {
         const key = y.name + ' W' + w.number;
@@ -2481,7 +2451,7 @@
         analyticsSheet.addRow([k, done, total, pct + '%']);
       });
 
-      // ─── SHEET 6: DATA (structured machine-readable) ───
+      // ─── SHEET 6: DATA ───
       const dataSheet = workbook.addWorksheet('Data', {
         pageSetup: { orientation: 'landscape', fitToPage: true }
       });
@@ -2507,11 +2477,443 @@
         ]);
       });
 
-      // Write and save
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       saveAs(blob, `Academic_Report_${new Date().toISOString().slice(0,10)}.xlsx`);
       showToast('✅ Academic report exported!', 'success');
+    } catch (err) {
+      console.error(err);
+      showToast('Export failed: ' + err.message, 'error');
+    } finally {
+      window.hideLoading();
+    }
+  };
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  //  GRADE REPORT EXPORT  (sponsor-ready)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  window.exportGradeReport = async function (unitCodeFilter = null) {
+    if (!studyData.years.length) { showToast('No data to export.', 'error'); return; }
+    window.showLoading('Generating grade report...');
+    try {
+      const ExcelJS = window.ExcelJS;
+      const workbook = new ExcelJS.Workbook();
+      workbook.creator = user.username;
+      workbook.created = new Date();
+
+      const parseMarks = (m) => {
+        if (m === null || m === undefined || m === '') return null;
+        const n = parseFloat(String(m).replace('%', '').trim());
+        return isNaN(n) ? null : Math.min(100, Math.max(0, n));
+      };
+      const saGrade = (pct) => {
+        if (pct >= 75) return { grade: 'Distinction', symbol: 'A', color: 'FF28A745' };
+        if (pct >= 70) return { grade: 'Merit',       symbol: 'B', color: 'FF17A2B8' };
+        if (pct >= 60) return { grade: 'Credit',      symbol: 'C', color: 'FF2FC7FF' };
+        if (pct >= 50) return { grade: 'Pass',        symbol: 'D', color: 'FFFFC107' };
+        return              { grade: 'Fail',        symbol: 'F', color: 'FFDC3545' };
+      };
+      const typeOf = (name) => {
+        const n = (name || '').toLowerCase();
+        if (n.includes('quiz'))     return 'Quiz';
+        if (n.includes('test'))     return 'Test';
+        if (n.includes('exam'))     return 'Exam';
+        if (n.includes('portfolio'))return 'Portfolio';
+        if (n.includes('project'))  return 'Project';
+        if (n.includes('assignment'))return 'Assignment';
+        return 'Assessment';
+      };
+
+      const units = [];
+      studyData.years.forEach(y => y.semesters.forEach(s => s.units.forEach(u => {
+        if (unitCodeFilter && u.code !== unitCodeFilter) return;
+        units.push({ unit: u, year: y.name, semester: s.name });
+      })));
+      if (!units.length) { showToast('No units match filter.', 'error'); return; }
+
+      const studentName = userFullName || user.username;
+
+      // ══════════ SHEET 1 — SUMMARY ══════════
+      const summary = workbook.addWorksheet('Grade Summary', {
+        pageSetup: { orientation: 'portrait', fitToPage: true, fitToWidth: 1 }
+      });
+      summary.columns = [
+        { width: 5 }, { width: 14 }, { width: 36 }, { width: 14 },
+        { width: 14 }, { width: 14 }, { width: 8 }, { width: 12 }
+      ];
+
+      summary.mergeCells('A1:H1');
+      const t = summary.getCell('A1');
+      t.value = 'ACADEMIC GRADE REPORT';
+      t.font = { size: 24, bold: true, color: { argb: 'FFFFFFFF' } };
+      t.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
+      t.alignment = { horizontal: 'center', vertical: 'middle' };
+      summary.getRow(1).height = 46;
+
+      summary.mergeCells('A2:H2');
+      const st = summary.getCell('A2');
+      st.value = 'Prepared for Sponsor Review';
+      st.font = { size: 12, italic: true, color: { argb: 'FF2FC7FF' } };
+      st.alignment = { horizontal: 'center', vertical: 'middle' };
+      summary.getRow(2).height = 22;
+
+      summary.mergeCells('A4:H4');
+      const ih = summary.getCell('A4');
+      ih.value = 'STUDENT INFORMATION';
+      ih.font = { bold: true, size: 12, color: { argb: 'FFFFFFFF' } };
+      ih.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2C3E50' } };
+      ih.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
+      summary.getRow(4).height = 22;
+
+      const info = [
+        ['Student Name:',   studentName],
+        ['Institution:',    'Engineering Programme'],
+        ['Report Date:',    new Date().toLocaleDateString('en-ZA', { year: 'numeric', month: 'long', day: 'numeric' })],
+        ['Academic Year:',  studyData.years.map(y => y.name).join(', ')]
+      ];
+      info.forEach((row, i) => {
+        const r = 5 + i;
+        summary.mergeCells(r, 1, r, 2);
+        summary.getCell(r, 1).value = row[0];
+        summary.getCell(r, 1).font = { bold: true, color: { argb: 'FF0B2B3B' } };
+        summary.getCell(r, 1).alignment = { horizontal: 'right', vertical: 'middle' };
+        summary.mergeCells(r, 3, r, 8);
+        summary.getCell(r, 3).value = row[1];
+        summary.getCell(r, 3).alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
+        summary.getRow(r).height = 20;
+      });
+
+      const hdrRowIdx = 10;
+      summary.mergeCells(`A${hdrRowIdx}:H${hdrRowIdx}`);
+      const mh = summary.getCell(`A${hdrRowIdx}`);
+      mh.value = 'MODULE PERFORMANCE SUMMARY';
+      mh.font = { bold: true, size: 12, color: { argb: 'FFFFFFFF' } };
+      mh.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2C3E50' } };
+      mh.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
+      summary.getRow(hdrRowIdx).height = 22;
+
+      const sHeaders = ['#', 'Module Code', 'Module Name', 'Assessments', 'Weighted %', 'Grade', 'Sym', 'Progress'];
+      const sHeadRow = summary.getRow(hdrRowIdx + 1);
+      sHeaders.forEach((h, i) => {
+        const c = sHeadRow.getCell(i + 1);
+        c.value = h;
+        c.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10 };
+        c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
+        c.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+        c.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+      });
+      summary.getRow(hdrRowIdx + 1).height = 30;
+
+      const moduleSummaries = [];
+      units.forEach((item, idx) => {
+        const u = item.unit;
+        const allAss = [];
+        u.weeks.forEach(w => (w.assignments || []).forEach(a => allAss.push(a)));
+
+        let totalWeight = 0, weightedScore = 0;
+        let graded = 0, submitted = 0, pending = 0;
+
+        allAss.forEach(a => {
+          const w = parseFloat(a.weight) || 0;
+          const m = parseMarks(a.marks);
+          if (a.status === 'graded') graded++;
+          else if (a.status === 'submitted') submitted++;
+          else pending++;
+          if (m !== null && (a.status === 'graded' || a.status === 'submitted')) {
+            totalWeight += w;
+            weightedScore += m * (w / 100);
+          }
+        });
+        const avg = totalWeight > 0 ? (weightedScore / totalWeight) * 100 : null;
+        const g = avg !== null ? saGrade(avg) : { grade: 'N/A', symbol: '—', color: 'FF999999' };
+        const progress = allAss.length ? Math.round(((graded + submitted) / allAss.length) * 100) : 0;
+
+        moduleSummaries.push({ ...item, avg, saGrade: g, progress, totalAss: allAss.length, graded, submitted, pending, allAss });
+
+        const r = hdrRowIdx + 2 + idx;
+        const row = summary.getRow(r);
+        row.getCell(1).value = idx + 1;
+        row.getCell(2).value = u.code;
+        row.getCell(3).value = u.name;
+        row.getCell(4).value = `${graded}/${allAss.length}`;
+        row.getCell(5).value = avg !== null ? avg.toFixed(1) + '%' : '—';
+        row.getCell(6).value = g.grade;
+        row.getCell(7).value = g.symbol;
+        row.getCell(8).value = progress + '%';
+
+        for (let c = 1; c <= 8; c++) {
+          const cell = row.getCell(c);
+          cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+          cell.alignment = { vertical: 'middle', horizontal: (c === 3) ? 'left' : 'center', wrapText: c === 3, indent: c === 3 ? 1 : 0 };
+          if (idx % 2 === 0) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } };
+        }
+        row.getCell(5).font = { bold: true, color: { argb: g.color } };
+        row.getCell(6).font = { bold: true, color: { argb: g.color } };
+        row.getCell(7).font = { bold: true, size: 12, color: { argb: g.color } };
+        row.height = 24;
+      });
+
+      const validAvgs = moduleSummaries.filter(m => m.avg !== null).map(m => m.avg);
+      const overall = validAvgs.length ? validAvgs.reduce((a, b) => a + b, 0) / validAvgs.length : null;
+      const overallRow = hdrRowIdx + 2 + moduleSummaries.length + 1;
+      summary.mergeCells(overallRow, 1, overallRow, 8);
+      const oc = summary.getCell(overallRow, 1);
+      oc.value = overall !== null
+        ? `OVERALL AVERAGE:  ${overall.toFixed(1)}%   ·   ${saGrade(overall).grade}`
+        : 'OVERALL AVERAGE:  N/A';
+      oc.font = { bold: true, size: 14, color: { argb: 'FFFFFFFF' } };
+      oc.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
+      oc.alignment = { horizontal: 'center', vertical: 'middle' };
+      summary.getRow(overallRow).height = 30;
+
+      const legendRow = overallRow + 2;
+      summary.mergeCells(legendRow, 1, legendRow, 8);
+      const lh = summary.getCell(legendRow, 1);
+      lh.value = 'SOUTH AFRICAN GRADING SCALE';
+      lh.font = { bold: true, size: 11, color: { argb: 'FFFFFFFF' } };
+      lh.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2C3E50' } };
+      lh.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
+
+      const legend = [
+        ['A', '75 – 100%', 'Distinction', 'FF28A745'],
+        ['B', '70 – 74%',  'Merit',       'FF17A2B8'],
+        ['C', '60 – 69%',  'Credit',      'FF2FC7FF'],
+        ['D', '50 – 59%',  'Pass',        'FFFFC107'],
+        ['F', '0 – 49%',   'Fail',        'FFDC3545']
+      ];
+      legend.forEach((l, i) => {
+        const r = legendRow + 1 + i;
+        summary.getCell(r, 1).value = l[0];
+        summary.getCell(r, 1).font = { bold: true, size: 12, color: { argb: l[3] } };
+        summary.getCell(r, 1).alignment = { horizontal: 'center' };
+        summary.mergeCells(r, 2, r, 4);
+        summary.getCell(r, 2).value = l[1];
+        summary.getCell(r, 2).alignment = { horizontal: 'center' };
+        summary.mergeCells(r, 5, r, 8);
+        summary.getCell(r, 5).value = l[2];
+        summary.getCell(r, 5).font = { color: { argb: l[3] }, bold: true };
+        summary.getCell(r, 5).alignment = { horizontal: 'left', indent: 1 };
+        summary.getRow(r).height = 18;
+      });
+
+      // ══════════ PER-MODULE SHEETS ══════════
+      moduleSummaries.forEach((m) => {
+        const u = m.unit;
+        const sheetName = (u.code + '_' + u.name).substring(0, 30).replace(/[*?:/\\\[\]]/g, '_');
+        const ws = workbook.addWorksheet(sheetName, {
+          pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1 }
+        });
+        ws.columns = [
+          { width: 5 }, { width: 34 }, { width: 12 }, { width: 8 }, { width: 12 },
+          { width: 14 }, { width: 10 }, { width: 12 }, { width: 10 }, { width: 14 },
+          { width: 12 }, { width: 8 }, { width: 26 }
+        ];
+
+        ws.mergeCells('A1:M1');
+        const ut = ws.getCell('A1');
+        ut.value = `${u.code}  —  ${u.name}`;
+        ut.font = { size: 18, bold: true, color: { argb: 'FFFFFFFF' } };
+        ut.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
+        ut.alignment = { horizontal: 'center', vertical: 'middle' };
+        ws.getRow(1).height = 36;
+
+        ws.mergeCells('A2:M2');
+        const um = ws.getCell('A2');
+        um.value = `${m.year} · ${m.semester} · ${studentName} · Generated ${new Date().toLocaleDateString('en-ZA')}`;
+        um.font = { size: 10, italic: true, color: { argb: 'FF0B2B3B' } };
+        um.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE6F4FA' } };
+        um.alignment = { horizontal: 'center', vertical: 'middle' };
+        ws.getRow(2).height = 20;
+
+        const kpiDefs = [
+          { range: 'A4:C4', text: `Weighted Average:  ${m.avg !== null ? m.avg.toFixed(1) + '%' : 'N/A'}`, bg: m.saGrade.color },
+          { range: 'D4:F4', text: `Grade:  ${m.saGrade.grade}  (${m.saGrade.symbol})`,                     bg: m.saGrade.color },
+          { range: 'G4:I4', text: `Graded:  ${m.graded} of ${m.totalAss}`,                                  bg: 'FF0B2B3B' },
+          { range: 'J4:M4', text: `Submitted: ${m.submitted}  ·  Pending: ${m.pending}`,                    bg: 'FF2C3E50' }
+        ];
+        kpiDefs.forEach(k => {
+          ws.mergeCells(k.range);
+          const cell = ws.getCell(k.range.split(':')[0]);
+          cell.value = k.text;
+          cell.font = { bold: true, size: 11, color: { argb: 'FFFFFFFF' } };
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: k.bg } };
+          cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        });
+        ws.getRow(4).height = 30;
+
+        const headers = ['#', 'Assessment', 'Type', 'Week', 'Due Date', 'Status', 'Weight %', 'Marks', 'Percent', 'Contribution', 'Grade', 'Sym', 'Notes'];
+        const hr = ws.getRow(6);
+        headers.forEach((h, i) => {
+          const c = hr.getCell(i + 1);
+          c.value = h;
+          c.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10 };
+          c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
+          c.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+          c.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+        });
+        hr.height = 32;
+
+        const sorted = [...m.allAss].map(a => {
+          let wk = '—';
+          u.weeks.forEach(w => { if ((w.assignments || []).includes(a)) wk = 'W' + w.number; });
+          return { ...a, wk };
+        }).sort((a, b) => {
+          if (!a.due && !b.due) return 0;
+          if (!a.due) return 1;
+          if (!b.due) return -1;
+          return new Date(a.due) - new Date(b.due);
+        });
+
+        sorted.forEach((a, i) => {
+          const mk = parseMarks(a.marks);
+          const wt = parseFloat(a.weight) || 0;
+          const contrib = mk !== null ? (mk * wt / 100) : null;
+          const g = mk !== null ? saGrade(mk) : null;
+
+          let sLabel = 'Not Started', sColor = 'FFF0F0F0';
+          if (a.status === 'graded')        { sLabel = 'Graded';      sColor = 'FFD4EDDA'; }
+          else if (a.status === 'submitted') { sLabel = 'Submitted';   sColor = 'FFD1ECF1'; }
+          else if (a.status === 'in-progress'){ sLabel = 'In Progress'; sColor = 'FFCCE5FF'; }
+          if ((a.status === 'not-started' || a.status === 'in-progress') && a.due) {
+            const diff = daysUntil(a.due);
+            if (diff !== null && diff < 0) { sLabel = 'Overdue'; sColor = 'FFF8D7DA'; }
+          }
+
+          const r = 7 + i;
+          const row = ws.getRow(r);
+          row.getCell(1).value = i + 1;
+          row.getCell(2).value = a.name;
+          row.getCell(3).value = typeOf(a.name);
+          row.getCell(4).value = a.wk;
+          row.getCell(5).value = a.due || '—';
+          row.getCell(6).value = sLabel;
+          row.getCell(7).value = wt;
+          row.getCell(8).value = a.marks || '—';
+          row.getCell(9).value = mk !== null ? mk.toFixed(1) + '%' : '—';
+          row.getCell(10).value = contrib !== null ? contrib.toFixed(2) : '—';
+          row.getCell(11).value = g ? g.grade : '—';
+          row.getCell(12).value = g ? g.symbol : '—';
+          row.getCell(13).value = a.notes || '';
+
+          for (let c = 1; c <= 13; c++) {
+            const cell = row.getCell(c);
+            cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+            cell.alignment = { vertical: 'middle', horizontal: (c === 2 || c === 13) ? 'left' : 'center', wrapText: c === 2 || c === 13, indent: (c === 2 || c === 13) ? 1 : 0 };
+            if (i % 2 === 0 && c !== 6) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } };
+          }
+          row.getCell(6).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: sColor } };
+          row.getCell(6).font = { size: 9, bold: true };
+          if (g) {
+            row.getCell(9).font  = { bold: true, color: { argb: g.color } };
+            row.getCell(11).font = { bold: true, color: { argb: g.color } };
+            row.getCell(12).font = { bold: true, size: 11, color: { argb: g.color } };
+          }
+          row.height = 22;
+        });
+
+        let cr = 7 + sorted.length + 1;
+        ws.mergeCells(cr, 1, cr, 13);
+        const cbh = ws.getCell(cr, 1);
+        cbh.value = 'BREAKDOWN BY ASSESSMENT TYPE';
+        cbh.font = { bold: true, size: 11, color: { argb: 'FFFFFFFF' } };
+        cbh.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2C3E50' } };
+        cbh.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
+        ws.getRow(cr).height = 22;
+        cr++;
+
+        const catH = ['Type', 'Count', 'Total Weight', 'Weighted Contribution', 'Average %'];
+        const cHr = ws.getRow(cr);
+        catH.forEach((h, i) => {
+          const c = cHr.getCell(i + 1);
+          c.value = h;
+          c.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10 };
+          c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
+          c.alignment = { horizontal: 'center', vertical: 'middle' };
+          c.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+        });
+        cr++;
+
+        const groups = {};
+        sorted.forEach(a => {
+          const t = typeOf(a.name);
+          if (!groups[t]) groups[t] = { count: 0, totalWeight: 0, weighted: 0, sum: 0, n: 0 };
+          const g = groups[t]; g.count++;
+          const mk = parseMarks(a.marks);
+          const wt = parseFloat(a.weight) || 0;
+          if (mk !== null && (a.status === 'graded' || a.status === 'submitted')) {
+            g.totalWeight += wt;
+            g.weighted += mk * wt / 100;
+            g.sum += mk; g.n++;
+          }
+        });
+
+        Object.entries(groups).forEach(([type, g]) => {
+          const avg = g.n ? g.sum / g.n : null;
+          const row = ws.getRow(cr);
+          row.getCell(1).value = type;
+          row.getCell(2).value = g.count;
+          row.getCell(3).value = g.totalWeight.toFixed(1) + '%';
+          row.getCell(4).value = g.weighted.toFixed(2);
+          row.getCell(5).value = avg !== null ? avg.toFixed(1) + '%' : '—';
+          for (let c = 1; c <= 5; c++) {
+            const cell = row.getCell(c);
+            cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+            cell.alignment = { horizontal: c === 1 ? 'left' : 'center', vertical: 'middle', indent: c === 1 ? 1 : 0 };
+          }
+          if (avg !== null) row.getCell(5).font = { bold: true, color: { argb: saGrade(avg).color } };
+          row.height = 20;
+          cr++;
+        });
+
+        ws.views = [{ state: 'frozen', ySplit: 6 }];
+      });
+
+      // ══════════ NOTES SHEET ══════════
+      const notes = workbook.addWorksheet('Methodology & Notes');
+      notes.columns = [{ width: 28 }, { width: 90 }];
+
+      notes.mergeCells('A1:B1');
+      const nt = notes.getCell('A1');
+      nt.value = 'METHODOLOGY & NOTES';
+      nt.font = { size: 16, bold: true, color: { argb: 'FFFFFFFF' } };
+      nt.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
+      nt.alignment = { horizontal: 'center', vertical: 'middle' };
+      notes.getRow(1).height = 30;
+
+      const docNotes = [
+        ['Calculation Method',  'Weighted average = Σ(mark × weight) / Σ(weight). Only assessments with recorded marks and status Submitted or Graded are counted.'],
+        ['Weight Distribution', 'Each assessment carries a weight (%) representing its contribution to the final module mark. Weights for a full module should sum to 100%.'],
+        ['Pending Assessments', 'Assessments without marks do not affect the current average and are labelled Pending / Overdue.'],
+        ['SA Grading Scale',    'A: 75–100% (Distinction) · B: 70–74% (Merit) · C: 60–69% (Credit) · D: 50–59% (Pass) · F: 0–49% (Fail).'],
+        ['Progress Metric',     'Progress = (Submitted + Graded) ÷ Total Assessments × 100.'],
+        ['Data Source',         'Generated from the student\'s personal Study Manager, which is updated regularly throughout the semester.'],
+        ['Confidentiality',     'This report contains academic performance data. Please handle confidentially and share only with authorised parties.'],
+        ['Contact',             `Student: ${user.username}`]
+      ];
+
+      let nr = 3;
+      docNotes.forEach(([label, val]) => {
+        const lc = notes.getCell(nr, 1);
+        lc.value = label;
+        lc.font = { bold: true, color: { argb: 'FF0B2B3B' } };
+        lc.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE6F4FA' } };
+        lc.alignment = { vertical: 'top', wrapText: true, indent: 1 };
+        lc.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+        const vc = notes.getCell(nr, 2);
+        vc.value = val;
+        vc.alignment = { vertical: 'top', wrapText: true, indent: 1 };
+        vc.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+        nr++;
+      });
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const stamp = new Date().toISOString().slice(0, 10);
+      const fname = unitCodeFilter
+        ? `Grade_Report_${unitCodeFilter}_${stamp}.xlsx`
+        : `Grade_Report_All_Modules_${stamp}.xlsx`;
+      saveAs(blob, fname);
+      showToast('✅ Grade report exported!', 'success');
     } catch (err) {
       console.error(err);
       showToast('Export failed: ' + err.message, 'error');
@@ -2543,6 +2945,7 @@
           </div>
           <button class="btn btn-sync" id="syncBtn" title="Ctrl+S to save"><i class="fa fa-cloud-download"></i> Sync</button>
           <button class="btn btn-excel" id="exportBtn"><i class="fa fa-file-excel-o"></i> Excel</button>
+          <button class="btn btn-grade" id="gradeReportBtn" title="Export sponsor-ready grade report"><i class="fa fa-graduation-cap"></i> Grade Report</button>
           <button class="btn btn-outline-secondary" id="exportJsonBtn" style="border-color:var(--border-subtle);color:var(--text-secondary);"><i class="fa fa-download"></i> JSON</button>
           <button class="btn btn-outline-secondary" id="importJsonBtn" style="border-color:var(--border-subtle);color:var(--text-secondary);"><i class="fa fa-upload"></i> Import</button>
           <button class="btn btn-success-glow" id="addYearBtn"><i class="fa fa-plus"></i> Add Year</button>
@@ -2623,6 +3026,7 @@
 
     document.getElementById('addYearBtn').addEventListener('click', window.addYear);
     document.getElementById('exportBtn').addEventListener('click', window.exportToExcel);
+    document.getElementById('gradeReportBtn').addEventListener('click', () => window.exportGradeReport());
     document.getElementById('exportJsonBtn').addEventListener('click', function() {
       const blob = new Blob([JSON.stringify(studyData, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -2676,7 +3080,6 @@
       });
     }
 
-    // ─── Keyboard shortcuts ───
     document.addEventListener('keydown', (e) => {
       if (e.ctrlKey && e.key === 'e') { e.preventDefault(); expandAll(); }
       if (e.ctrlKey && e.key === 'w') { e.preventDefault(); collapseAll(); }
@@ -2687,6 +3090,14 @@
         if (searchInput2) { searchInput2.focus(); searchInput2.select(); }
       }
     });
+
+    // ─── Try to load full name from user_meta.json ───
+    try {
+      const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+      const encUser = encodeURIComponent(user.username);
+      const meta = await GitHubAPI.getFileContent(owner, repo, `${dataPath}/users/${encUser}/user_meta.json`, branch, user.pat);
+      if (meta && meta.content) userFullName = JSON.parse(meta.content).fullName || "";
+    } catch (e) { /* ignore */ }
 
     // ─── Initial load ───
     await loadData();
@@ -2741,6 +3152,7 @@
   window.updateGradeMark = updateGradeMark;
   window.updateWhatIf = updateWhatIf;
   window.exportToExcel = exportToExcel;
+  window.exportGradeReport = exportGradeReport;
   window.studyManager = { studyData, render, markDirty };
 })();
 </script>
