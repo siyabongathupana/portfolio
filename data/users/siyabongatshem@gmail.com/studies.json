@@ -1504,6 +1504,18 @@
                       "submittedDate": "2026-09-17",
                       "notes": "",
                       "gradedDate": "2026-09-17"
+                    },
+                    {
+                      "id": "ass_1789993764309px8t",
+                      "name": "Assessment 2 (Mid Semester Test)",
+                      "due": "2026-09-29",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 25,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
                     }
                   ]
                 },
