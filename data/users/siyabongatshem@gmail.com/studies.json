@@ -1107,10 +1107,11 @@
                   "assignments": [
                     {
                       "name": "Quiz 8",
-                      "due": "",
-                      "status": "pending",
+                      "due": "2026-10-11",
+                      "status": "not-started",
                       "marks": "",
-                      "weight": 10
+                      "weight": 10,
+                      "notes": ""
                     }
                   ]
                 },
