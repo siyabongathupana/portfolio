@@ -520,9 +520,11 @@
                     {
                       "name": "Portfolio Week 4",
                       "due": "2026-09-06",
-                      "status": "submitted",
+                      "status": "graded",
                       "marks": "100",
-                      "weight": 10
+                      "weight": 10,
+                      "notes": "",
+                      "gradedDate": "2026-09-21"
                     }
                   ]
                 },
