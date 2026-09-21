@@ -314,10 +314,11 @@
                   "assignments": [
                     {
                       "name": "Weekly Quiz 10",
-                      "due": "",
-                      "status": "pending",
+                      "due": null,
+                      "status": "not-started",
                       "marks": "",
-                      "weight": 10
+                      "weight": 1,
+                      "notes": ""
                     }
                   ]
                 },
