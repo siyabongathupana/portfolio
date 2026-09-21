@@ -709,10 +709,11 @@
                   "assignments": [
                     {
                       "name": "Portfolio Week 10",
-                      "due": "",
-                      "status": "pending",
+                      "due": "2026-11-01",
+                      "status": "not-started",
                       "marks": "",
-                      "weight": 10
+                      "weight": 10,
+                      "notes": ""
                     }
                   ]
                 },
