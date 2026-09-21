@@ -2707,10 +2707,10 @@
       doc.text('ACADEMIC GRADE REPORT', pageWidth / 2, 20, { align: 'center' });
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(12);
-      doc.text('Prepared for Sponsor Review', pageWidth / 2, 30, { align: 'center' });
+      doc.text('Prepared for Review', pageWidth / 2, 30, { align: 'center' });
       doc.setFontSize(9);
       doc.setTextColor(200, 220, 235);
-      doc.text('Engineering Programme', pageWidth / 2, 37, { align: 'center' });
+      doc.text('Engineering Institude of Technology', pageWidth / 2, 37, { align: 'center' });
 
       let y = 60;
       doc.setDrawColor(220, 228, 235);
@@ -2727,7 +2727,7 @@
       doc.setTextColor(...textGray);
       const infoLines = [
         ['Student Name:',   studentName],
-        ['Institution:',    'Engineering Programme'],
+        ['Institution:',    'Engineering Institute of Technology'],
         ['Report Date:',    new Date().toLocaleDateString('en-ZA', { year: 'numeric', month: 'long', day: 'numeric' })],
         ['Academic Year:',  studyData.years.map(y => y.name).join(', ')]
       ];
