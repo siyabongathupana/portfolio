@@ -1,5 +1,17 @@
 [
   {
+    "id": 1789969083411,
+    "date": "2026-09-14",
+    "start": "08:30",
+    "end": "16:30",
+    "hours": 8,
+    "project": "Other",
+    "category": "Study Leave",
+    "billable": "no",
+    "notes": "",
+    "updatedAt": 1789969083411
+  },
+  {
     "id": 1789048580734,
     "date": "2026-09-10",
     "start": "14:40",
