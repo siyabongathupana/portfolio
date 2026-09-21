@@ -1076,9 +1076,10 @@
                     {
                       "name": "Quiz 7",
                       "due": "2026-10-04",
-                      "status": "pending",
+                      "status": "not-started",
                       "marks": "",
-                      "weight": 10
+                      "weight": 1,
+                      "notes": ""
                     }
                   ]
                 },
