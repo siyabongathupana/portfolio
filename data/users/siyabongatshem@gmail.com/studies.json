@@ -1287,10 +1287,11 @@
                     },
                     {
                       "name": "Final Exam",
-                      "due": "",
-                      "status": "pending",
+                      "due": null,
+                      "status": "not-started",
                       "marks": "",
-                      "weight": 40
+                      "weight": 40,
+                      "notes": ""
                     }
                   ]
                 }
