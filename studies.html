@@ -2243,7 +2243,7 @@
 
       summary.mergeCells('A2:H2');
       const st = summary.getCell('A2');
-      st.value = 'Prepared for Sponsor Review';
+      st.value = 'Prepared for Review';
       st.font = { size: 12, italic: true, color: { argb: 'FF2FC7FF' } };
       st.alignment = { horizontal: 'center', vertical: 'middle' };
       summary.getRow(2).height = 22;
@@ -2258,7 +2258,7 @@
 
       const info = [
         ['Student Name:',   studentName],
-        ['Institution:',    'Engineering Programme'],
+        ['Institution:',    'EIT - Engineering Institution of Technology'],
         ['Report Date:',    new Date().toLocaleDateString('en-ZA', { year: 'numeric', month: 'long', day: 'numeric' })],
         ['Academic Year:',  studyData.years.map(y => y.name).join(', ')]
       ];
