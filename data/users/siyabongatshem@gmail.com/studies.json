@@ -602,11 +602,12 @@
                     {
                       "name": "Portfolio Week 6",
                       "due": "2026-09-20",
-                      "status": "submitted",
+                      "status": "graded",
                       "marks": "100",
-                      "weight": 10,
+                      "weight": 1,
                       "submittedDate": "2026-09-17",
-                      "notes": ""
+                      "notes": "",
+                      "gradedDate": "2026-09-21"
                     }
                   ]
                 },
