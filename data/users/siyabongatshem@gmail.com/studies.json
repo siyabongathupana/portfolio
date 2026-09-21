@@ -1574,9 +1574,10 @@
                     {
                       "name": "Quiz 8",
                       "due": "2026-10-11",
-                      "status": "pending",
+                      "status": "not-started",
                       "marks": "",
-                      "weight": 10
+                      "weight": 10,
+                      "notes": ""
                     }
                   ]
                 },
