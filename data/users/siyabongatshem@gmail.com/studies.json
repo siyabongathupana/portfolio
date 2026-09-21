@@ -1193,10 +1193,11 @@
                   "assignments": [
                     {
                       "name": "Quiz 10",
-                      "due": "",
-                      "status": "pending",
+                      "due": "2026-10-25",
+                      "status": "not-started",
                       "marks": "",
-                      "weight": 10
+                      "weight": 10,
+                      "notes": ""
                     }
                   ]
                 },
