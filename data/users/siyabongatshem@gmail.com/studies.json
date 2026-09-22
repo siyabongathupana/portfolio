@@ -232,6 +232,18 @@
                       "status": "pending",
                       "marks": "",
                       "weight": 10
+                    },
+                    {
+                      "id": "ass_1790065326788su7c",
+                      "name": "Assessment 3 - Practical Report",
+                      "due": "2026-10-16",
+                      "status": "in-progress",
+                      "marks": "",
+                      "weight": 25,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
                     }
                   ]
                 },
@@ -847,10 +859,10 @@
                         "Formatting Numbers in Program Output",
                         "Interactive Mode, Batch Mode, and Data Files"
                       ],
-                      "completed": false,
+                      "completed": true,
                       "subCompleted": [
                         true,
-                        false,
+                        true,
                         true,
                         true,
                         true,
