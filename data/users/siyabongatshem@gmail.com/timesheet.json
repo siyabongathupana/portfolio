@@ -1,5 +1,29 @@
 [
   {
+    "id": 1790055458973,
+    "date": "2026-09-21",
+    "start": "07:15",
+    "end": "15:30",
+    "hours": 8.25,
+    "project": "Sasol Boiler 7",
+    "category": "Documentation",
+    "billable": "yes",
+    "notes": "Prepare Report for Site (Johan Uys)",
+    "updatedAt": 1790055458973
+  },
+  {
+    "id": 1790055398951,
+    "date": "2026-09-21",
+    "start": "12:00",
+    "end": "15:30",
+    "hours": 3.5,
+    "project": "Sasol Boiler 7",
+    "category": "Other",
+    "billable": "yes",
+    "notes": "Day-to-Day (Historization)",
+    "updatedAt": 1790055398951
+  },
+  {
     "id": 1790055349390,
     "date": "2026-09-21",
     "start": "07:00",
