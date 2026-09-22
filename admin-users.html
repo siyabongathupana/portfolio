@@ -21,7 +21,8 @@
     .stat-tile:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.06); }
     .stat-tile .n { font-size: 2rem; font-weight: 800; color: #0b2b3b; line-height: 1; }
     .stat-tile .l { font-size: 0.72rem; color: #5a7d9a; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px; }
-    .stat-tile .n.blue { color: #2fc7ff; } .stat-tile .n.green { color: #28a745; } .stat-tile .n.orange { color: #fd7e14; } .stat-tile .n.purple { color: #a29bfe; }
+    .stat-tile .n.blue { color: #2fc7ff; } .stat-tile .n.green { color: #28a745; }
+    .stat-tile .n.orange { color: #fd7e14; } .stat-tile .n.purple { color: #a29bfe; }
 
     .user-card { background: white; border-radius: 14px; padding: 16px 20px; border: 1px solid #e2e8f0; margin-bottom: 12px; transition: 0.15s; }
     .user-card:hover { border-color: rgba(47,199,255,0.4); box-shadow: 0 6px 18px rgba(0,0,0,0.04); }
@@ -39,6 +40,7 @@
     .perm-chip:hover { transform: translateY(-1px); border-color: #2fc7ff; }
     .perm-chip.on { background: linear-gradient(135deg,#2fc7ff,#0984e3); color: white; border-color: transparent; box-shadow: 0 2px 8px rgba(47,199,255,0.25); }
     .perm-chip.loading { opacity: 0.5; pointer-events: none; }
+    .perm-chip.disabled { cursor: not-allowed; opacity: 0.6; }
 
     .activity-row { display: grid; grid-template-columns: 150px 130px 1fr; gap: 12px; padding: 8px 14px; border-bottom: 1px solid #f1f5f9; font-size: 0.82rem; }
     .activity-row:hover { background: #f8fafc; }
@@ -136,11 +138,12 @@
         <div class="form-group">
           <label>GitHub PAT *</label>
           <input type="password" id="cPat" class="form-control" placeholder="ghp_…">
-          <small class="text-muted">The user's own token, or a shared one. Needs <strong>repo</strong> scope. <a href="https://github.com/settings/tokens" target="_blank">Create one</a>.</small>
+          <small class="text-muted">User's own token or a shared one. Needs <strong>repo</strong> scope. <a href="https://github.com/settings/tokens" target="_blank">Create one</a>.</small>
         </div>
         <div class="form-group">
           <label>Page Access</label>
           <div class="perm-row" id="createPermRow"></div>
+          <small class="text-muted d-block mt-1">Click to toggle. Users only see pages they have access to.</small>
         </div>
         <div id="cAlert" class="alert" style="display:none;"></div>
       </div>
@@ -203,7 +206,11 @@
   let allUsers = [];
 
   function esc(s) { return (s || '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
-  function fmtDate(ts) { return ts ? new Date(ts).toLocaleString() : '—'; }
+
+  function toast(msg, type) {
+    if (typeof window.showToast === 'function') return window.showToast(msg, type);
+    alert(msg);
+  }
 
   function renderStats() {
     document.getElementById('sTotal').textContent  = allUsers.length;
@@ -212,11 +219,10 @@
     document.getElementById('sNoAcc').textContent  = allUsers.filter(u => !u.hasAccount).length;
   }
 
-  function renderPermChips(user, container, clickable = false) {
-    container.innerHTML = PERMS.map(p => {
-      const on = user.permissions.includes(p.key);
-      return `<span class="perm-chip ${on ? 'on' : ''}" data-email="${esc(user.email)}" data-perm="${p.key}" ${clickable ? '' : 'style="cursor:default;"'}>${p.label}</span>`;
-    }).join('');
+  function chipHTML(user, p) {
+    const on = user.permissions.includes(p.key);
+    const disabled = user.isAdmin ? 'disabled' : '';
+    return `<span class="perm-chip ${on ? 'on' : ''} ${disabled}" data-user-email="${esc(user.email)}" data-perm="${p.key}">${p.label}</span>`;
   }
 
   function renderUsers() {
@@ -230,12 +236,19 @@
       return;
     }
     box.innerHTML = filtered.map(u => {
-      const initials = (u.name || u.email)[0].toUpperCase();
-      const roleBadge = u.isAdmin ? '<span class="badge-role-admin">ADMIN</span>' : '<span class="badge-role-user">user</span>';
+      const initials = (u.name || u.email || '?')[0].toUpperCase();
+      const roleBadge = u.isAdmin
+        ? '<span class="badge-role-admin">ADMIN</span>'
+        : '<span class="badge-role-user">user</span>';
       const noAcc = u.hasAccount ? '' : ' <span class="badge-no-account">no login</span>';
-      const legacyNote = u.isLegacy ? ' <span style="font-size:0.68rem;color:#8a9fb0;">(legacy · full access)</span>' : '';
+      const legacyNote = u.isLegacy
+        ? ' <span class="legacy-note" style="font-size:0.68rem;color:#8a9fb0;">(legacy · full access)</span>'
+        : '';
+      const errNote = u.error
+        ? ` <span style="font-size:0.68rem;color:#dc3545;">⚠ ${esc(u.error)}</span>`
+        : '';
       return `
-        <div class="user-card" data-email="${esc(u.email)}">
+        <div class="user-card" data-user-email="${esc(u.email)}">
           <div class="d-flex align-items-center flex-wrap" style="gap:16px;">
             <div class="user-avatar">${esc(initials)}</div>
             <div style="flex:1; min-width:220px;">
@@ -245,7 +258,7 @@
                 📁 <strong>${u.projects}</strong> · 🎓 <strong>${u.certificates}</strong> · ⏱️ <strong>${u.timesheetEntries}</strong>
               </div>
             </div>
-            <div class="text-right">${roleBadge}${noAcc}${legacyNote}</div>
+            <div class="text-right">${roleBadge}${noAcc}${legacyNote}${errNote}</div>
             <div style="display:flex; gap:6px; flex-wrap:wrap;">
               <button class="btn btn-sm btn-outline-warning reset-btn" data-email="${esc(u.email)}" title="Reset password"><i class="fa fa-key"></i></button>
               <button class="btn btn-sm btn-outline-primary view-btn" data-email="${esc(u.email)}" title="View activity"><i class="fa fa-history"></i></button>
@@ -254,50 +267,66 @@
           </div>
           <div class="perm-row">
             <span class="label"><i class="fa fa-shield"></i> Page access:</span>
-            <span class="perm-chips-container"></span>
+            ${PERMS.map(p => chipHTML(u, p)).join('')}
           </div>
         </div>
       `;
     }).join('');
 
-    // Fill permission chips per user
-    box.querySelectorAll('.user-card').forEach(card => {
-      const email = card.dataset.email;
-      const user = allUsers.find(u => u.email === email);
-      if (!user) return;
-      renderPermChips(user, card.querySelector('.perm-chips-container'), true);
-    });
+    // Per-card button handlers
+    box.querySelectorAll('.reset-btn').forEach(b =>
+      b.addEventListener('click', () => openReset(b.dataset.email)));
+    box.querySelectorAll('.view-btn').forEach(b =>
+      b.addEventListener('click', () => viewActivity(b.dataset.email)));
+    box.querySelectorAll('.delete-btn').forEach(b =>
+      b.addEventListener('click', () => doDelete(b.dataset.email)));
 
-    // Wire up chips
+    // Permission chip handlers — update ONLY the chip, no re-render
     box.querySelectorAll('.perm-chip').forEach(chip => {
-      chip.addEventListener('click', async () => {
-        const email = chip.dataset.email;
-        const perm = chip.dataset.perm;
-        const user = allUsers.find(u => u.email === email);
+      chip.addEventListener('click', async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const email = chip.dataset.userEmail;
+        const perm  = chip.dataset.perm;
+        const user  = allUsers.find(u => u.email === email);
         if (!user) return;
-        if (user.isAdmin) {
-          alert('Admins always have full access. Remove them from APP_CONFIG.adminUsers to change.');
-          return;
-        }
+        if (user.isAdmin) { toast('Admins always have full access.', 'info'); return; }
+        if (chip.classList.contains('loading')) return;
+
         const currentlyOn = chip.classList.contains('on');
         chip.classList.add('loading');
+
         try {
           await window.Auth.setUserPermission(email, perm, !currentlyOn);
-          // Update local state
-          if (currentlyOn) user.permissions = user.permissions.filter(p => p !== perm);
-          else user.permissions = [...user.permissions, perm];
-          user.isLegacy = false; // Once edited, no longer legacy
-          renderUsers();
+
+          // Update local model
+          if (currentlyOn) {
+            user.permissions = user.permissions.filter(p => p !== perm);
+          } else {
+            user.permissions = [...new Set([...user.permissions, perm])];
+          }
+          const wasLegacy = user.isLegacy;
+          user.isLegacy = false;
+
+          // Update the chip visually — no full re-render
+          chip.classList.toggle('on', !currentlyOn);
+
+          // Remove the legacy note on this card if it was there
+          if (wasLegacy) {
+            const card = chip.closest('.user-card');
+            if (card) card.querySelectorAll('.legacy-note').forEach(n => n.remove());
+          }
+
+          toast(`${perm} ${currentlyOn ? 'revoked' : 'granted'} for ${email}`, 'success');
         } catch (err) {
-          alert('Failed to update: ' + err.message);
+          console.error('Permission toggle failed:', err);
+          toast('Failed: ' + (err.message || err), 'error');
+        } finally {
           chip.classList.remove('loading');
         }
       });
     });
-
-    box.querySelectorAll('.reset-btn').forEach(b => b.addEventListener('click', () => openReset(b.dataset.email)));
-    box.querySelectorAll('.view-btn').forEach(b => b.addEventListener('click', () => viewActivity(b.dataset.email)));
-    box.querySelectorAll('.delete-btn').forEach(b => b.addEventListener('click', () => doDelete(b.dataset.email)));
   }
 
   function populateActivityDropdown() {
@@ -305,7 +334,7 @@
     const current = sel.value;
     sel.innerHTML = '<option value="">Select a user…</option>' +
       allUsers.map(u => `<option value="${esc(u.email)}">${esc(u.email)}</option>`).join('');
-    if (current) sel.value = current;
+    if (current && allUsers.find(u => u.email === current)) sel.value = current;
   }
 
   async function loadAll() {
@@ -316,8 +345,10 @@
       renderUsers();
       populateActivityDropdown();
     } catch (err) {
+      console.error(err);
       document.getElementById('usersList').innerHTML =
         `<div class="alert alert-danger">Failed to load users: ${esc(err.message)}</div>`;
+      toast('Failed to load users: ' + err.message, 'error');
     } finally { window.hideLoading(); }
   }
 
@@ -327,30 +358,30 @@
     for (let i = 0; i < 10; i++) p += chars[Math.floor(Math.random() * chars.length)];
     return p;
   }
-  document.getElementById('genPassBtn').addEventListener('click', () => {
-    document.getElementById('cPassword').value = genPassword();
-  });
-  document.getElementById('genPassBtn2').addEventListener('click', () => {
-    document.getElementById('rPassword').value = genPassword();
-  });
+  document.getElementById('genPassBtn').addEventListener('click', () =>
+    document.getElementById('cPassword').value = genPassword());
+  document.getElementById('genPassBtn2').addEventListener('click', () =>
+    document.getElementById('rPassword').value = genPassword());
 
   // Build create modal permission chips
   function buildCreatePermChips() {
     const container = document.getElementById('createPermRow');
     container.innerHTML = PERMS.map(p =>
-      `<span class="perm-chip on" data-perm="${p.key}" data-create>${p.label}</span>`
+      `<span class="perm-chip on" data-create-perm="${p.key}">${p.label}</span>`
     ).join('');
-    container.querySelectorAll('[data-create]').forEach(chip => {
-      chip.addEventListener('click', () => chip.classList.toggle('on'));
+    container.querySelectorAll('[data-create-perm]').forEach(chip => {
+      chip.addEventListener('click', (e) => {
+        e.preventDefault();
+        chip.classList.toggle('on');
+      });
     });
   }
-  buildCreatePermChips();
 
   document.getElementById('newUserBtn').addEventListener('click', () => {
     ['cEmail','cName','cPassword','cPat'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('cRole').value = 'user';
     document.getElementById('cAlert').style.display = 'none';
-    buildCreatePermChips(); // reset all to on
+    buildCreatePermChips();
     $('#createModal').modal('show');
   });
 
@@ -362,7 +393,9 @@
     const password = document.getElementById('cPassword').value;
     const pat = document.getElementById('cPat').value.trim();
     const role = document.getElementById('cRole').value;
-    const permissions = Array.from(document.querySelectorAll('#createPermRow .perm-chip.on')).map(c => c.dataset.perm);
+    const permissions = Array.from(
+      document.querySelectorAll('#createPermRow .perm-chip.on')
+    ).map(c => c.dataset.createPerm);
 
     if (!email || !password || !pat) {
       box.className = 'alert alert-danger';
@@ -376,10 +409,13 @@
     try {
       await window.Auth.createUser({ email, name, password, pat, role, permissions });
       box.className = 'alert alert-success';
-      box.innerHTML = `✅ User <strong>${esc(email)}</strong> created.<br>Password: <code style="background:#f1f5f9;padding:2px 8px;border-radius:4px;">${esc(password)}</code><br><small>Copy it now — you can reset later if needed.</small>`;
+      box.innerHTML = `✅ User <strong>${esc(email)}</strong> created.<br>
+        Password: <code style="background:#f1f5f9;padding:2px 8px;border-radius:4px;">${esc(password)}</code><br>
+        <small>Copy it now — you can reset later if needed.</small>`;
       box.style.display = 'block';
       setTimeout(async () => { $('#createModal').modal('hide'); await loadAll(); }, 4000);
     } catch (err) {
+      console.error(err);
       box.className = 'alert alert-danger';
       box.textContent = err.message;
       box.style.display = 'block';
@@ -416,10 +452,12 @@
     try {
       await window.Auth.resetUserPassword(email, password, pat);
       box.className = 'alert alert-success';
-      box.innerHTML = `✅ Password reset for <strong>${esc(email)}</strong>.<br>New password: <code style="background:#f1f5f9;padding:2px 8px;border-radius:4px;">${esc(password)}</code>`;
+      box.innerHTML = `✅ Password reset for <strong>${esc(email)}</strong>.<br>
+        New password: <code style="background:#f1f5f9;padding:2px 8px;border-radius:4px;">${esc(password)}</code>`;
       box.style.display = 'block';
       setTimeout(async () => { $('#resetModal').modal('hide'); await loadAll(); }, 3500);
     } catch (err) {
+      console.error(err);
       box.className = 'alert alert-danger';
       box.textContent = err.message;
       box.style.display = 'block';
@@ -430,13 +468,15 @@
   });
 
   async function doDelete(email) {
-    if (!confirm(`Delete the LOGIN for ${email}?\n\nData files (projects, timesheet, etc.) are kept for safety.`)) return;
+    if (!confirm(`Delete the LOGIN for ${email}?\n\nData files (projects, timesheet, studies, etc.) are kept for safety.`)) return;
     try {
       window.showLoading('Deleting account…');
       await window.Auth.deleteUserAccount(email);
       await loadAll();
+      toast(`Deleted ${email}`, 'success');
     } catch (err) {
-      alert('Delete failed: ' + err.message);
+      console.error(err);
+      toast('Delete failed: ' + err.message, 'error');
     } finally { window.hideLoading(); }
   }
 
@@ -464,6 +504,7 @@
         </div>
       `).join('');
     } catch (err) {
+      console.error(err);
       box.innerHTML = `<div class="alert alert-danger m-3">Failed: ${esc(err.message)}</div>`;
     }
   }
