@@ -1,4 +1,4 @@
-// auth.js — Admin-managed accounts + per-page permission checks
+// auth.js — Admin-managed accounts + per-page permission checks + nav visibility
 // Purely additive. Never touches existing login flow.
 
 window.Auth = (() => {
@@ -54,8 +54,8 @@ window.Auth = (() => {
       body: JSON.stringify(body)
     });
     if (!resp.ok) {
-      const e = await resp.json();
-      throw new Error(e.message || 'Write failed');
+      const e = await resp.json().catch(() => ({}));
+      throw new Error(e.message || `Write ${path} failed: ${resp.status}`);
     }
     return resp.json();
   }
@@ -70,7 +70,7 @@ window.Auth = (() => {
       body: JSON.stringify({ message, sha, branch })
     });
     if (!resp.ok) {
-      const e = await resp.json();
+      const e = await resp.json().catch(() => ({}));
       throw new Error(e.message || 'Delete failed');
     }
     return resp.json();
@@ -82,7 +82,7 @@ window.Auth = (() => {
   function getEffectivePermissions(stored) {
     if (!Array.isArray(stored)) return [];
     if (stored.includes('all')) return [...ALL_KNOWN];
-    return stored;
+    return stored.filter(p => ALL_KNOWN.includes(p));
   }
 
   async function getPermissionsForUser(email, patOverride) {
@@ -92,12 +92,12 @@ window.Auth = (() => {
     const path = `${window.REPO_CONFIG.dataPath}/users/${encUser}/user_meta.json`;
     try {
       const file = await readJson(path, patOverride);
-      // Legacy user (no meta file) → grant full access (backward compat)
-      if (!file || !file.data) return [...ALL_KNOWN];
-      // Admin-created user → use their permissions array
+      // Legacy user (no meta file, or meta with no permissions field) → full access
+      if (!file || !file.data || !Array.isArray(file.data.permissions)) {
+        return [...ALL_KNOWN];
+      }
       return getEffectivePermissions(file.data.permissions);
     } catch (e) {
-      // On error, default to full (backward compat)
       return [...ALL_KNOWN];
     }
   }
@@ -108,8 +108,10 @@ window.Auth = (() => {
     const encUser = encodeURIComponent(email);
     const path = `${window.REPO_CONFIG.dataPath}/users/${encUser}/user_meta.json`;
     const existing = await readJson(path);
-    const data = existing?.data || { email, permissions: [] };
-    const current = getEffectivePermissions(data.permissions);
+    const wasLegacy = !existing?.data || !Array.isArray(existing.data.permissions);
+    const data = existing?.data || { email };
+    // If legacy (no permissions field), start from full set so toggle makes sense
+    const current = wasLegacy ? [...ALL_KNOWN] : getEffectivePermissions(data.permissions);
     let next;
     if (enabled) {
       next = current.includes(permission) ? current : [...current, permission];
@@ -131,7 +133,7 @@ window.Auth = (() => {
     const path = `${window.REPO_CONFIG.dataPath}/users/${encUser}/user_meta.json`;
     const existing = await readJson(path);
     const data = existing?.data || { email };
-    data.permissions = [...new Set(permissionsArray.filter(p => ALL_KNOWN.includes(p)))];
+    data.permissions = [...new Set((permissionsArray || []).filter(p => ALL_KNOWN.includes(p)))];
     data.email = email;
     data.updatedAt = Date.now();
     await writeJson(path, data, `Set permissions for ${email}`, existing?.sha);
@@ -160,24 +162,17 @@ window.Auth = (() => {
 
   async function checkPageAccess(required) {
     const u = getUser();
-    // 1. Must be logged in (except for "public" which just returns true)
     if (!u) {
       const back = encodeURIComponent(location.pathname + location.search);
       window.location.href = `login.html?redirect=${back}`;
       return false;
     }
-
-    // 2. Admin-only page
     if (required === 'admin') {
       if (isAdminEmail(u.username)) return true;
       showDenied('This page is restricted to administrators only.');
       return false;
     }
-
-    // 3. Just needs login
     if (required === 'authenticated') return true;
-
-    // 4. Specific permission
     const perms = await getPermissionsForUser(u.username);
     if (perms.includes(required)) return true;
     showDenied(
@@ -188,37 +183,97 @@ window.Auth = (() => {
   }
 
   // ═══════════════════════════════════════════════════════
-  //  ACTIVITY LOGGING
+  //  NAV VISIBILITY
+  // ═══════════════════════════════════════════════════════
+  function isCurrentUserAdmin() {
+    const u = getUser();
+    return !!(u && isAdminEmail(u.username));
+  }
+
+  function applyNavVisibility() {
+    const admin = isCurrentUserAdmin();
+    const loggedIn = !!getUser();
+
+    document.querySelectorAll('[data-admin-only]').forEach(el => {
+      el.style.display = admin ? '' : 'none';
+    });
+    document.querySelectorAll('[data-auth-only]').forEach(el => {
+      el.style.display = loggedIn ? '' : 'none';
+    });
+    document.querySelectorAll('[data-guest-only]').forEach(el => {
+      el.style.display = loggedIn ? 'none' : '';
+    });
+
+    document.body.classList.toggle('is-admin', !!admin);
+    document.body.classList.toggle('is-logged-in', loggedIn);
+  }
+
+  async function applyNavPermissions() {
+    const u = getUser();
+    if (!u) return;
+    let perms;
+    try { perms = await getPermissionsForUser(u.username); }
+    catch { perms = []; }
+    document.querySelectorAll('[data-requires-link]').forEach(el => {
+      const needed = el.getAttribute('data-requires-link');
+      el.style.display = perms.includes(needed) ? '' : 'none';
+    });
+  }
+
+  // ═══════════════════════════════════════════════════════
+  //  ACTIVITY LOGGING (fixed — no more clobbering the log file)
   // ═══════════════════════════════════════════════════════
   async function logActivity(module, action, details) {
     try {
       const u = getUser();
+      if (!u || !u.pat) return;
       const entry = JSON.stringify({
         timestamp: new Date().toISOString(),
         module, action, details,
-        user: u?.username || 'anonymous',
+        user: u.username || 'anonymous',
         page: window.location.pathname
       }) + '\n';
+
       const encUser = encodeURIComponent(u.username);
       const path = `${window.REPO_CONFIG.dataPath}/users/${encUser}/logs/activity.ndjson`;
+      const url = `https://api.github.com/repos/${window.REPO_CONFIG.owner}/${window.REPO_CONFIG.repo}/contents/${path}`;
+
+      // Read current file (may not exist)
       let sha = null, existing = '';
       const f = await readFileRaw(path).catch(() => null);
       if (f) { sha = f.sha; existing = f.raw; }
-      await writeJson(path, null, '', sha); // placeholder; use raw write below
-      // Actually write raw text — writeJson stringifies, so do it manually:
-      const url = `https://api.github.com/repos/${window.REPO_CONFIG.owner}/${window.REPO_CONFIG.repo}/contents/${path}`;
-      const body = {
+
+      const putBody = {
         message: `Log: ${action}`,
         content: btoa(unescape(encodeURIComponent(entry + existing))),
         branch: window.REPO_CONFIG.branch
       };
-      if (sha) body.sha = sha;
-      await fetch(url, {
+      if (sha) putBody.sha = sha;
+
+      let resp = await fetch(url, {
         method: 'PUT',
         headers: { Authorization: `token ${u.pat}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
+        body: JSON.stringify(putBody)
       });
-    } catch (e) { console.warn('Log failed:', e); }
+
+      // Retry once on 409 (sha conflict)
+      if (resp.status === 409) {
+        const retry = await readFileRaw(path).catch(() => null);
+        const retryBody = {
+          message: `Log: ${action}`,
+          content: btoa(unescape(encodeURIComponent(entry + (retry?.raw || '')))),
+          branch: window.REPO_CONFIG.branch
+        };
+        if (retry) retryBody.sha = retry.sha;
+        await fetch(url, {
+          method: 'PUT',
+          headers: { Authorization: `token ${u.pat}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify(retryBody)
+        });
+      }
+    } catch (e) {
+      console.warn('Log failed:', e);
+    }
   }
 
   // ═══════════════════════════════════════════════════════
@@ -236,8 +291,6 @@ window.Auth = (() => {
     const encUser = encodeURIComponent(email);
     const base = `${window.REPO_CONFIG.dataPath}/users/${encUser}`;
     const accountPath  = `${base}/account.json`;
-    const verifiedPath = `${base}/verified.json`;
-    const metaPath     = `${base}/user_meta.json`;
 
     const existing = await readFileRaw(accountPath);
     if (existing) throw new Error('An account with this email already exists. Use "Reset Password" instead.');
@@ -248,21 +301,25 @@ window.Auth = (() => {
     );
     await writeJson(accountPath, encrypted, `Create account for ${email}`);
 
-    await writeJson(verifiedPath, { verified: true, createdAt: Date.now() },
+    await writeJson(`${base}/verified.json`,
+      { verified: true, createdAt: Date.now() },
       `Mark ${email} as verified`);
 
     const sanitizedPerms = [...new Set((permissions || []).filter(p => ALL_KNOWN.includes(p)))];
 
-    await writeJson(metaPath, {
-      email, name: name || email.split('@')[0], role,
+    await writeJson(`${base}/user_meta.json`, {
+      email,
+      name: name || email.split('@')[0],
+      role,
       permissions: sanitizedPerms,
       createdBy: getUser().username,
       createdAt: Date.now()
     }, `Metadata for ${email}`);
 
-    // Ensure user folder has empty data files
+    // Initialize empty data files so the user starts clean
     await initializeUserFolder(email, pat);
 
+    // Add to global verified list
     try {
       const listPath = `${window.REPO_CONFIG.dataPath}/verified_users.json`;
       const existingList = await readJson(listPath);
@@ -284,11 +341,13 @@ window.Auth = (() => {
       'projects.json': {},
       'certificates.json': [],
       'timesheet.json': [],
-      'studies.json': { years: [] },
+      'studies.json': { years: [] },   // ← EMPTY, not the admin's template
       'user_meta.json': { email, permissions: [], createdAt: Date.now() }
     };
     for (const [name, content] of Object.entries(files)) {
       const path = `${base}/${name}`;
+      // Skip user_meta.json — createUser just wrote it with real permissions
+      if (name === 'user_meta.json') continue;
       const check = await fetch(
         `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`,
         { headers: { Authorization: `token ${token}` } }
@@ -351,35 +410,59 @@ window.Auth = (() => {
     });
     if (!resp.ok) throw new Error(`List users failed: ${resp.status}`);
     const items = await resp.json();
-    const folders = items.filter(i => i.type === 'dir').map(i => decodeURIComponent(i.name));
+
+    let folders;
+    try {
+      folders = items.filter(i => i.type === 'dir')
+        .map(i => { try { return decodeURIComponent(i.name); } catch { return i.name; } });
+    } catch (e) {
+      folders = items.filter(i => i.type === 'dir').map(i => i.name);
+    }
 
     const users = [];
     for (const email of folders) {
-      const encUser = encodeURIComponent(email);
-      const base = `${dataPath}/users/${encUser}`;
-      const account = await readFileRaw(`${base}/account.json`).catch(() => null);
-      const meta    = await readJson(`${base}/user_meta.json`).catch(() => null);
-      let projects = 0, certificates = 0, timesheetEntries = 0;
-      try { const p = await readJson(`${base}/projects.json`); if (p?.data) projects = Object.keys(p.data).length; } catch {}
-      try { const c = await readJson(`${base}/certificates.json`); if (Array.isArray(c?.data)) certificates = c.data.length; } catch {}
-      try { const t = await readJson(`${base}/timesheet.json`); if (Array.isArray(t?.data)) timesheetEntries = t.data.length; } catch {}
+      try {
+        const encUser = encodeURIComponent(email);
+        const base = `${dataPath}/users/${encUser}`;
+        const account = await readFileRaw(`${base}/account.json`).catch(() => null);
+        const meta    = await readJson(`${base}/user_meta.json`).catch(() => null);
 
-      const isAdmin = isAdminEmail(email);
-      const isLegacy = !meta?.data;
-      const rawPerms = meta?.data?.permissions;
-      const effective = isAdmin || isLegacy ? [...ALL_KNOWN] : getEffectivePermissions(rawPerms);
+        let projects = 0, certificates = 0, timesheetEntries = 0;
+        try { const p = await readJson(`${base}/projects.json`); if (p?.data && typeof p.data === 'object') projects = Object.keys(p.data).length; } catch {}
+        try { const c = await readJson(`${base}/certificates.json`); if (Array.isArray(c?.data)) certificates = c.data.length; } catch {}
+        try { const t = await readJson(`${base}/timesheet.json`); if (Array.isArray(t?.data)) timesheetEntries = t.data.length; } catch {}
 
-      users.push({
-        email,
-        name: meta?.data?.name || '',
-        role: meta?.data?.role || (isAdmin ? 'admin' : 'user'),
-        createdAt: meta?.data?.createdAt || null,
-        hasAccount: !!account,
-        isAdmin,
-        isLegacy,
-        permissions: effective,
-        projects, certificates, timesheetEntries
-      });
+        const isAdmin = isAdminEmail(email);
+        const isLegacy = !meta?.data || !Array.isArray(meta.data.permissions);
+        const effective = (isAdmin || isLegacy) ? [...ALL_KNOWN] : getEffectivePermissions(meta.data.permissions);
+
+        users.push({
+          email,
+          name: meta?.data?.name || '',
+          role: meta?.data?.role || (isAdmin ? 'admin' : 'user'),
+          createdAt: meta?.data?.createdAt || null,
+          hasAccount: !!account,
+          isAdmin,
+          isLegacy,
+          permissions: effective,
+          projects, certificates, timesheetEntries
+        });
+      } catch (userErr) {
+        // Never let one bad user folder break the whole list
+        console.warn('Failed to load user folder', email, userErr);
+        users.push({
+          email,
+          name: '',
+          role: isAdminEmail(email) ? 'admin' : 'user',
+          createdAt: null,
+          hasAccount: false,
+          isAdmin: isAdminEmail(email),
+          isLegacy: true,
+          permissions: [...ALL_KNOWN],
+          projects: 0, certificates: 0, timesheetEntries: 0,
+          error: userErr.message
+        });
+      }
     }
     users.sort((a, b) => a.email.localeCompare(b.email));
     return users;
@@ -419,6 +502,25 @@ window.Auth = (() => {
     return true;
   }
 
+  function clearSession() {
+    try { window.SessionManager.logout(); } catch {}
+  }
+
+  // ═══════════════════════════════════════════════════════
+  //  AUTO-RUN: apply nav visibility on page load
+  // ═══════════════════════════════════════════════════════
+  function autoRun() {
+    setTimeout(async () => {
+      applyNavVisibility();
+      try { await applyNavPermissions(); } catch {}
+    }, 0);
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', autoRun);
+  } else {
+    autoRun();
+  }
+
   return {
     // Admin
     createUser, resetUserPassword, deleteUserAccount, listUsers,
@@ -429,6 +531,10 @@ window.Auth = (() => {
     getPermissionsForUser, checkPageAccess, getEffectivePermissions,
     ALL_KNOWN,
     // Utilities
-    logActivity
+    logActivity,
+    // Nav
+    applyNavVisibility, applyNavPermissions, isCurrentUserAdmin,
+    // Session
+    clearSession
   };
 })();
