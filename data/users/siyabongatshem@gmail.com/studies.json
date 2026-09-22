@@ -847,10 +847,10 @@
                         "Formatting Numbers in Program Output",
                         "Interactive Mode, Batch Mode, and Data Files"
                       ],
-                      "completed": true,
+                      "completed": false,
                       "subCompleted": [
                         true,
-                        true,
+                        false,
                         true,
                         true,
                         true,
