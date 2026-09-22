@@ -229,9 +229,10 @@
                     {
                       "name": "Weekly Quiz 7",
                       "due": "",
-                      "status": "pending",
+                      "status": "submitted",
                       "marks": "",
-                      "weight": 10
+                      "weight": 10,
+                      "submittedDate": "2026-09-22"
                     },
                     {
                       "id": "ass_1790065326788su7c",
