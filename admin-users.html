@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User Management | Your Portfolio</title>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="config.js"></script>
+  <script src="crypto.js"></script>
+  <script src="api.js"></script>
+  <script src="shared.js"></script>
+  <script src="auth.js"></script>
+  <style>
+    body { background: #eef3fc; font-family: 'Inter', sans-serif; }
+    .wrap { max-width: 1400px; margin: 20px auto; padding: 0 20px; }
+    .stat-tile { background: white; border-radius: 16px; padding: 20px; border: 1px solid #e2e8f0; text-align: center; transition: 0.15s; }
+    .stat-tile:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.06); }
+    .stat-tile .n { font-size: 2rem; font-weight: 800; color: #0b2b3b; line-height: 1; }
+    .stat-tile .l { font-size: 0.72rem; color: #5a7d9a; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px; }
+    .stat-tile .n.blue { color: #2fc7ff; } .stat-tile .n.green { color: #28a745; } .stat-tile .n.orange { color: #fd7e14; } .stat-tile .n.purple { color: #a29bfe; }
+
+    .user-card { background: white; border-radius: 14px; padding: 16px 20px; border: 1px solid #e2e8f0; margin-bottom: 12px; transition: 0.15s; }
+    .user-card:hover { border-color: rgba(47,199,255,0.4); box-shadow: 0 6px 18px rgba(0,0,0,0.04); }
+    .user-avatar { width: 46px; height: 46px; border-radius: 50%; background: linear-gradient(135deg,#2fc7ff,#0984e3); color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.15rem; flex-shrink: 0; }
+    .badge-role-admin { background: #0b2b3b; color: #2fc7ff; padding: 3px 10px; border-radius: 20px; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.03em; }
+    .badge-role-user { background: #e2e8f0; color: #4a627a; padding: 3px 10px; border-radius: 20px; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.03em; }
+    .badge-no-account { background: #fff3cd; color: #856404; padding: 3px 10px; border-radius: 20px; font-size: 0.68rem; font-weight: 700; }
+
+    .perm-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; align-items: center; }
+    .perm-row .label { font-size: 0.72rem; color: #8a9fb0; margin-right: 4px; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
+    .perm-chip {
+      padding: 5px 14px; border-radius: 40px; font-size: 0.75rem; font-weight: 600; cursor: pointer;
+      border: 1.5px solid #e2e8f0; background: #f8fafc; color: #8a9fb0; transition: all 0.15s; user-select: none;
+    }
+    .perm-chip:hover { transform: translateY(-1px); border-color: #2fc7ff; }
+    .perm-chip.on { background: linear-gradient(135deg,#2fc7ff,#0984e3); color: white; border-color: transparent; box-shadow: 0 2px 8px rgba(47,199,255,0.25); }
+    .perm-chip.loading { opacity: 0.5; pointer-events: none; }
+
+    .activity-row { display: grid; grid-template-columns: 150px 130px 1fr; gap: 12px; padding: 8px 14px; border-bottom: 1px solid #f1f5f9; font-size: 0.82rem; }
+    .activity-row:hover { background: #f8fafc; }
+    .activity-row .t { color: #8a9fb0; font-family: monospace; font-size: 0.72rem; }
+    .activity-row .a { color: #2fc7ff; font-weight: 600; }
+    @media (max-width: 768px) { .activity-row { grid-template-columns: 1fr; gap: 2px; } }
+  </style>
+</head>
+<body data-requires="admin" style="visibility:hidden;">
+
+<script src="page-guard.js"></script>
+
+<nav class="navbar navbar-expand-lg" style="background:#0b2b3b; padding:12px 0;">
+  <div class="container">
+    <a class="navbar-brand text-white" href="index.html"><span style="color:#2fc7ff;">Your</span> Portfolio</a>
+    <div class="ml-auto d-flex align-items-center">
+      <span class="text-white-50 small mr-3 d-none d-md-inline" id="currentUserLabel"></span>
+      <a href="admin.html" class="btn btn-outline-light btn-sm mr-2"><i class="fa fa-dashboard"></i> Dashboard</a>
+      <button class="btn btn-outline-danger btn-sm" id="logoutBtn"><i class="fa fa-sign-out"></i> Logout</button>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap mt-4">
+  <h2 class="mb-1"><i class="fa fa-users" style="color:#2fc7ff;"></i> User Management</h2>
+  <p class="text-muted mb-4">Create accounts, control page access, and monitor activity.</p>
+
+  <div class="row mb-4">
+    <div class="col-md-3 col-6 mb-3"><div class="stat-tile"><div class="n blue" id="sTotal">—</div><div class="l">Total</div></div></div>
+    <div class="col-md-3 col-6 mb-3"><div class="stat-tile"><div class="n green" id="sActive">—</div><div class="l">With Login</div></div></div>
+    <div class="col-md-3 col-6 mb-3"><div class="stat-tile"><div class="n orange" id="sAdmin">—</div><div class="l">Admins</div></div></div>
+    <div class="col-md-3 col-6 mb-3"><div class="stat-tile"><div class="n purple" id="sNoAcc">—</div><div class="l">No Login</div></div></div>
+  </div>
+
+  <ul class="nav nav-tabs mb-3">
+    <li class="nav-item"><a class="nav-link active" data-toggle="tab" href="#tUsers">Users</a></li>
+    <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#tActivity">Activity</a></li>
+  </ul>
+
+  <div class="tab-content">
+    <div class="tab-pane fade show active" id="tUsers">
+      <div class="d-flex justify-content-between mb-3 flex-wrap">
+        <input type="text" id="search" class="form-control mr-2 mb-2" placeholder="🔍 Search email or name…" style="max-width:340px;">
+        <div class="mb-2">
+          <button class="btn btn-outline-secondary mr-2" id="refreshBtn"><i class="fa fa-refresh"></i> Refresh</button>
+          <button class="btn btn-primary" id="newUserBtn" style="background:#2fc7ff;border:none;color:#0b2b3b;font-weight:600;border-radius:40px;"><i class="fa fa-user-plus"></i> Create User</button>
+        </div>
+      </div>
+      <div id="usersList"><div class="text-center text-muted py-5"><i class="fa fa-spinner fa-spin"></i> Loading…</div></div>
+    </div>
+
+    <div class="tab-pane fade" id="tActivity">
+      <div class="row mb-3">
+        <div class="col-md-4 mb-2">
+          <select id="activityUser" class="form-control"><option value="">Select a user…</option></select>
+        </div>
+        <div class="col-md-8 mb-2 text-right">
+          <button class="btn btn-outline-secondary" id="refreshActivityBtn"><i class="fa fa-refresh"></i> Refresh</button>
+        </div>
+      </div>
+      <div class="card" style="border-radius:14px;overflow:hidden;">
+        <div id="activityList"><div class="text-center text-muted py-5">Pick a user to view activity.</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Create User Modal -->
+<div class="modal fade" id="createModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content" style="border-radius:16px;">
+      <div class="modal-header"><h5><i class="fa fa-user-plus"></i> Create User Account</h5><button class="close" data-dismiss="modal">&times;</button></div>
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="col-md-6"><div class="form-group"><label>Email *</label><input type="email" id="cEmail" class="form-control" placeholder="user@example.com"></div></div>
+          <div class="col-md-6"><div class="form-group"><label>Full Name</label><input type="text" id="cName" class="form-control" placeholder="John Doe"></div></div>
+        </div>
+        <div class="form-row">
+          <div class="col-md-6">
+            <div class="form-group">
+              <label>Password *</label>
+              <div class="input-group">
+                <input type="text" id="cPassword" class="form-control">
+                <div class="input-group-append"><button class="btn btn-outline-secondary" id="genPassBtn" type="button"><i class="fa fa-magic"></i></button></div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="form-group">
+              <label>Role</label>
+              <select id="cRole" class="form-control"><option value="user">User</option><option value="admin">Admin</option></select>
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>GitHub PAT *</label>
+          <input type="password" id="cPat" class="form-control" placeholder="ghp_…">
+          <small class="text-muted">The user's own token, or a shared one. Needs <strong>repo</strong> scope. <a href="https://github.com/settings/tokens" target="_blank">Create one</a>.</small>
+        </div>
+        <div class="form-group">
+          <label>Page Access</label>
+          <div class="perm-row" id="createPermRow"></div>
+        </div>
+        <div id="cAlert" class="alert" style="display:none;"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+        <button class="btn btn-primary" id="createConfirm" style="background:#2fc7ff;border:none;color:#0b2b3b;font-weight:600;border-radius:40px;"><i class="fa fa-check"></i> Create User</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Reset Password Modal -->
+<div class="modal fade" id="resetModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content" style="border-radius:16px;">
+      <div class="modal-header"><h5><i class="fa fa-key"></i> Reset Password</h5><button class="close" data-dismiss="modal">&times;</button></div>
+      <div class="modal-body">
+        <p>Resetting password for: <strong id="rEmailDisplay"></strong></p>
+        <input type="hidden" id="rEmail">
+        <div class="form-group">
+          <label>New Password *</label>
+          <div class="input-group">
+            <input type="text" id="rPassword" class="form-control">
+            <div class="input-group-append"><button class="btn btn-outline-secondary" id="genPassBtn2" type="button"><i class="fa fa-magic"></i></button></div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>GitHub PAT *</label>
+          <input type="password" id="rPat" class="form-control" placeholder="ghp_…">
+          <small class="text-muted">You must supply a fresh PAT — the old one cannot be recovered.</small>
+        </div>
+        <div id="rAlert" class="alert" style="display:none;"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+        <button class="btn btn-warning" id="resetConfirm" style="border-radius:40px;font-weight:600;"><i class="fa fa-refresh"></i> Reset Password</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+<script>
+(function () {
+  const $ = window.jQuery;
+  const session = window.SessionManager.getCurrentUser();
+  if (!session) { window.location.href = 'login.html?redirect=admin-users.html'; return; }
+  document.getElementById('currentUserLabel').textContent = session.username;
+
+  const PERMS = [
+    { key: 'studies',      label: 'Studies' },
+    { key: 'timesheet',    label: 'Timesheet' },
+    { key: 'analytics',    label: 'Analytics' },
+    { key: 'projects',     label: 'Projects' },
+    { key: 'certificates', label: 'Certificates' }
+  ];
+
+  let allUsers = [];
+
+  function esc(s) { return (s || '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+  function fmtDate(ts) { return ts ? new Date(ts).toLocaleString() : '—'; }
+
+  function renderStats() {
+    document.getElementById('sTotal').textContent  = allUsers.length;
+    document.getElementById('sActive').textContent = allUsers.filter(u => u.hasAccount).length;
+    document.getElementById('sAdmin').textContent  = allUsers.filter(u => u.isAdmin).length;
+    document.getElementById('sNoAcc').textContent  = allUsers.filter(u => !u.hasAccount).length;
+  }
+
+  function renderPermChips(user, container, clickable = false) {
+    container.innerHTML = PERMS.map(p => {
+      const on = user.permissions.includes(p.key);
+      return `<span class="perm-chip ${on ? 'on' : ''}" data-email="${esc(user.email)}" data-perm="${p.key}" ${clickable ? '' : 'style="cursor:default;"'}>${p.label}</span>`;
+    }).join('');
+  }
+
+  function renderUsers() {
+    const q = (document.getElementById('search').value || '').toLowerCase();
+    const filtered = allUsers.filter(u =>
+      !q || u.email.toLowerCase().includes(q) || (u.name || '').toLowerCase().includes(q)
+    );
+    const box = document.getElementById('usersList');
+    if (!filtered.length) {
+      box.innerHTML = '<div class="text-center text-muted py-5">No users found.</div>';
+      return;
+    }
+    box.innerHTML = filtered.map(u => {
+      const initials = (u.name || u.email)[0].toUpperCase();
+      const roleBadge = u.isAdmin ? '<span class="badge-role-admin">ADMIN</span>' : '<span class="badge-role-user">user</span>';
+      const noAcc = u.hasAccount ? '' : ' <span class="badge-no-account">no login</span>';
+      const legacyNote = u.isLegacy ? ' <span style="font-size:0.68rem;color:#8a9fb0;">(legacy · full access)</span>' : '';
+      return `
+        <div class="user-card" data-email="${esc(u.email)}">
+          <div class="d-flex align-items-center flex-wrap" style="gap:16px;">
+            <div class="user-avatar">${esc(initials)}</div>
+            <div style="flex:1; min-width:220px;">
+              <div style="font-weight:700; color:#0b2b3b;">${esc(u.name || u.email.split('@')[0])}</div>
+              <div style="font-size:0.82rem; color:#5a7d9a;">${esc(u.email)}</div>
+              <div style="font-size:0.72rem; color:#8a9fb0; margin-top:2px;">
+                📁 <strong>${u.projects}</strong> · 🎓 <strong>${u.certificates}</strong> · ⏱️ <strong>${u.timesheetEntries}</strong>
+              </div>
+            </div>
+            <div class="text-right">${roleBadge}${noAcc}${legacyNote}</div>
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+              <button class="btn btn-sm btn-outline-warning reset-btn" data-email="${esc(u.email)}" title="Reset password"><i class="fa fa-key"></i></button>
+              <button class="btn btn-sm btn-outline-primary view-btn" data-email="${esc(u.email)}" title="View activity"><i class="fa fa-history"></i></button>
+              <button class="btn btn-sm btn-outline-danger delete-btn" data-email="${esc(u.email)}" title="Delete login"><i class="fa fa-trash"></i></button>
+            </div>
+          </div>
+          <div class="perm-row">
+            <span class="label"><i class="fa fa-shield"></i> Page access:</span>
+            <span class="perm-chips-container"></span>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    // Fill permission chips per user
+    box.querySelectorAll('.user-card').forEach(card => {
+      const email = card.dataset.email;
+      const user = allUsers.find(u => u.email === email);
+      if (!user) return;
+      renderPermChips(user, card.querySelector('.perm-chips-container'), true);
+    });
+
+    // Wire up chips
+    box.querySelectorAll('.perm-chip').forEach(chip => {
+      chip.addEventListener('click', async () => {
+        const email = chip.dataset.email;
+        const perm = chip.dataset.perm;
+        const user = allUsers.find(u => u.email === email);
+        if (!user) return;
+        if (user.isAdmin) {
+          alert('Admins always have full access. Remove them from APP_CONFIG.adminUsers to change.');
+          return;
+        }
+        const currentlyOn = chip.classList.contains('on');
+        chip.classList.add('loading');
+        try {
+          await window.Auth.setUserPermission(email, perm, !currentlyOn);
+          // Update local state
+          if (currentlyOn) user.permissions = user.permissions.filter(p => p !== perm);
+          else user.permissions = [...user.permissions, perm];
+          user.isLegacy = false; // Once edited, no longer legacy
+          renderUsers();
+        } catch (err) {
+          alert('Failed to update: ' + err.message);
+          chip.classList.remove('loading');
+        }
+      });
+    });
+
+    box.querySelectorAll('.reset-btn').forEach(b => b.addEventListener('click', () => openReset(b.dataset.email)));
+    box.querySelectorAll('.view-btn').forEach(b => b.addEventListener('click', () => viewActivity(b.dataset.email)));
+    box.querySelectorAll('.delete-btn').forEach(b => b.addEventListener('click', () => doDelete(b.dataset.email)));
+  }
+
+  function populateActivityDropdown() {
+    const sel = document.getElementById('activityUser');
+    const current = sel.value;
+    sel.innerHTML = '<option value="">Select a user…</option>' +
+      allUsers.map(u => `<option value="${esc(u.email)}">${esc(u.email)}</option>`).join('');
+    if (current) sel.value = current;
+  }
+
+  async function loadAll() {
+    window.showLoading('Loading users…');
+    try {
+      allUsers = await window.Auth.listUsers();
+      renderStats();
+      renderUsers();
+      populateActivityDropdown();
+    } catch (err) {
+      document.getElementById('usersList').innerHTML =
+        `<div class="alert alert-danger">Failed to load users: ${esc(err.message)}</div>`;
+    } finally { window.hideLoading(); }
+  }
+
+  function genPassword() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
+    let p = '';
+    for (let i = 0; i < 10; i++) p += chars[Math.floor(Math.random() * chars.length)];
+    return p;
+  }
+  document.getElementById('genPassBtn').addEventListener('click', () => {
+    document.getElementById('cPassword').value = genPassword();
+  });
+  document.getElementById('genPassBtn2').addEventListener('click', () => {
+    document.getElementById('rPassword').value = genPassword();
+  });
+
+  // Build create modal permission chips
+  function buildCreatePermChips() {
+    const container = document.getElementById('createPermRow');
+    container.innerHTML = PERMS.map(p =>
+      `<span class="perm-chip on" data-perm="${p.key}" data-create>${p.label}</span>`
+    ).join('');
+    container.querySelectorAll('[data-create]').forEach(chip => {
+      chip.addEventListener('click', () => chip.classList.toggle('on'));
+    });
+  }
+  buildCreatePermChips();
+
+  document.getElementById('newUserBtn').addEventListener('click', () => {
+    ['cEmail','cName','cPassword','cPat'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('cRole').value = 'user';
+    document.getElementById('cAlert').style.display = 'none';
+    buildCreatePermChips(); // reset all to on
+    $('#createModal').modal('show');
+  });
+
+  document.getElementById('createConfirm').addEventListener('click', async () => {
+    const box = document.getElementById('cAlert');
+    box.style.display = 'none';
+    const email = document.getElementById('cEmail').value.trim();
+    const name  = document.getElementById('cName').value.trim();
+    const password = document.getElementById('cPassword').value;
+    const pat = document.getElementById('cPat').value.trim();
+    const role = document.getElementById('cRole').value;
+    const permissions = Array.from(document.querySelectorAll('#createPermRow .perm-chip.on')).map(c => c.dataset.perm);
+
+    if (!email || !password || !pat) {
+      box.className = 'alert alert-danger';
+      box.textContent = 'Email, password, and PAT are required.';
+      box.style.display = 'block';
+      return;
+    }
+    const btn = document.getElementById('createConfirm');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Creating…';
+    try {
+      await window.Auth.createUser({ email, name, password, pat, role, permissions });
+      box.className = 'alert alert-success';
+      box.innerHTML = `✅ User <strong>${esc(email)}</strong> created.<br>Password: <code style="background:#f1f5f9;padding:2px 8px;border-radius:4px;">${esc(password)}</code><br><small>Copy it now — you can reset later if needed.</small>`;
+      box.style.display = 'block';
+      setTimeout(async () => { $('#createModal').modal('hide'); await loadAll(); }, 4000);
+    } catch (err) {
+      box.className = 'alert alert-danger';
+      box.textContent = err.message;
+      box.style.display = 'block';
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa fa-check"></i> Create User';
+    }
+  });
+
+  function openReset(email) {
+    document.getElementById('rEmail').value = email;
+    document.getElementById('rEmailDisplay').textContent = email;
+    document.getElementById('rPassword').value = '';
+    document.getElementById('rPat').value = '';
+    document.getElementById('rAlert').style.display = 'none';
+    $('#resetModal').modal('show');
+  }
+
+  document.getElementById('resetConfirm').addEventListener('click', async () => {
+    const box = document.getElementById('rAlert');
+    box.style.display = 'none';
+    const email = document.getElementById('rEmail').value;
+    const password = document.getElementById('rPassword').value;
+    const pat = document.getElementById('rPat').value.trim();
+    if (!password || !pat) {
+      box.className = 'alert alert-danger';
+      box.textContent = 'Password and PAT are required.';
+      box.style.display = 'block';
+      return;
+    }
+    const btn = document.getElementById('resetConfirm');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Resetting…';
+    try {
+      await window.Auth.resetUserPassword(email, password, pat);
+      box.className = 'alert alert-success';
+      box.innerHTML = `✅ Password reset for <strong>${esc(email)}</strong>.<br>New password: <code style="background:#f1f5f9;padding:2px 8px;border-radius:4px;">${esc(password)}</code>`;
+      box.style.display = 'block';
+      setTimeout(async () => { $('#resetModal').modal('hide'); await loadAll(); }, 3500);
+    } catch (err) {
+      box.className = 'alert alert-danger';
+      box.textContent = err.message;
+      box.style.display = 'block';
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa fa-refresh"></i> Reset Password';
+    }
+  });
+
+  async function doDelete(email) {
+    if (!confirm(`Delete the LOGIN for ${email}?\n\nData files (projects, timesheet, etc.) are kept for safety.`)) return;
+    try {
+      window.showLoading('Deleting account…');
+      await window.Auth.deleteUserAccount(email);
+      await loadAll();
+    } catch (err) {
+      alert('Delete failed: ' + err.message);
+    } finally { window.hideLoading(); }
+  }
+
+  async function viewActivity(email) {
+    document.getElementById('activityUser').value = email;
+    $('.nav-tabs a[href="#tActivity"]').tab('show');
+    await loadActivity(email);
+  }
+
+  async function loadActivity(email) {
+    if (!email) return;
+    const box = document.getElementById('activityList');
+    box.innerHTML = '<div class="text-center text-muted py-5"><i class="fa fa-spinner fa-spin"></i> Loading…</div>';
+    try {
+      const entries = await window.Auth.getUserActivity(email, 300);
+      if (!entries.length) {
+        box.innerHTML = '<div class="text-center text-muted py-5">No activity recorded for this user.</div>';
+        return;
+      }
+      box.innerHTML = entries.map(a => `
+        <div class="activity-row">
+          <div class="t">${esc((a.timestamp || '').replace('T', ' ').slice(0, 19))}</div>
+          <div class="a">${esc(a.action || a.module || '')}</div>
+          <div>${esc(a.details || '')}</div>
+        </div>
+      `).join('');
+    } catch (err) {
+      box.innerHTML = `<div class="alert alert-danger m-3">Failed: ${esc(err.message)}</div>`;
+    }
+  }
+
+  document.getElementById('activityUser').addEventListener('change', e => loadActivity(e.target.value));
+  document.getElementById('refreshActivityBtn').addEventListener('click', () =>
+    loadActivity(document.getElementById('activityUser').value));
+  document.getElementById('refreshBtn').addEventListener('click', loadAll);
+  document.getElementById('search').addEventListener('input', renderUsers);
+
+  document.getElementById('logoutBtn').addEventListener('click', () => {
+    window.SessionManager.logout();
+    window.location.href = 'login.html';
+  });
+
+  loadAll();
+})();
+</script>
+</body>
+</html>
