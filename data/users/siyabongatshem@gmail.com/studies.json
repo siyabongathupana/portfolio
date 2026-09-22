@@ -228,11 +228,13 @@
                   "assignments": [
                     {
                       "name": "Weekly Quiz 7",
-                      "due": "",
-                      "status": "submitted",
-                      "marks": "",
-                      "weight": 10,
-                      "submittedDate": "2026-09-22"
+                      "due": null,
+                      "status": "graded",
+                      "marks": "60",
+                      "weight": 1,
+                      "submittedDate": "2026-09-22",
+                      "notes": "",
+                      "gradedDate": "2026-09-22"
                     },
                     {
                       "id": "ass_1790065326788su7c",
