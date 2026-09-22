@@ -47,7 +47,7 @@
   const TIMESHEET_PROJECTS_FILE = "timesheet_projects.json";
   const USER_META_FILE = "user_meta.json";
   const PREFS_FILE = "preferences.json";
-  const LOCAL_STORAGE_KEY = 'timesheet_entries_cache';
+  const LOCAL_STORAGE_KEY = 'timesheet_entries_cache_' + encodeURIComponent(user.username);
 
   let entries = [];
   let timesheetProjects = [];
