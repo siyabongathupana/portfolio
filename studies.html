@@ -307,7 +307,7 @@
     .topic-item.compact .subtopic-list { display: none !important; }
     .topic-item.compact .topic-header .meta { display: none; }
 
-    /* Assignment cards */
+    /* Assignment cards (in tree) */
     .assignment-card { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 14px; padding: 14px 18px; margin-bottom: 10px; transition: 0.2s; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
     .assignment-card:hover { border-color: rgba(47,199,255,0.3); }
     .assignment-card .info { flex: 1; min-width: 200px; }
@@ -362,22 +362,6 @@
     .workload-chart h4 { font-size: 1rem; font-weight: 600; color: var(--text-primary); margin-bottom: 12px; }
     .workload-chart .chart-container { height: 120px; }
 
-    /* All assignments tab */
-    .all-assignments-tab { margin-top: 30px; }
-    .all-assignments-tab .filter-bar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 16px; }
-    .all-assignments-tab .filter-bar input, .all-assignments-tab .filter-bar select { background: rgba(255,255,255,0.08); border: 1px solid var(--border-subtle); border-radius: 40px; padding: 6px 16px; color: var(--text-primary); font-size: 0.8rem; outline: none; }
-    .all-assignments-tab .filter-bar input:focus, .all-assignments-tab .filter-bar select:focus { border-color: var(--accent); }
-    .all-assignments-tab table { width: 100%; font-size: 0.85rem; border-collapse: collapse; }
-    .all-assignments-tab table th { text-align: left; padding: 10px 12px; border-bottom: 2px solid var(--border-subtle); color: var(--text-secondary); font-weight: 600; }
-    .all-assignments-tab table td { padding: 8px 12px; border-bottom: 1px solid var(--border-subtle); color: var(--text-primary); }
-    .all-assignments-tab table .status-badge-sm { font-size: 0.65rem; padding: 2px 10px; border-radius: 40px; font-weight: 600; display: inline-block; }
-    .all-assignments-tab table .status-badge-sm.not-started { background: rgba(255,255,255,0.08); color: var(--text-primary); }
-    .all-assignments-tab table .status-badge-sm.in-progress { background: rgba(47,199,255,0.22); color: var(--accent); }
-    .all-assignments-tab table .status-badge-sm.due-soon { background: rgba(253,203,110,0.22); color: var(--orange); }
-    .all-assignments-tab table .status-badge-sm.overdue { background: rgba(225,112,85,0.22); color: #ff9b85; }
-    .all-assignments-tab table .status-badge-sm.submitted { background: rgba(0,184,148,0.22); color: #4ae4b8; }
-    .all-assignments-tab table .status-badge-sm.graded { background: rgba(162,155,254,0.22); color: #c9c3ff; }
-
     /* Study streak */
     .study-streak { background: var(--bg-card); border-radius: 16px; padding: 16px 20px; border: 1px solid var(--border-subtle); margin: 20px 0 30px; display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
     .study-streak .streak-number { font-size: 2.2rem; font-weight: 800; color: var(--orange); }
@@ -391,6 +375,312 @@
     .risk-bar .fill.high { background: var(--red); }
     .risk-bar .fill.medium { background: var(--orange); }
     .risk-bar .fill.low { background: var(--green); }
+
+    /* ───────── Neat All-Assignments View ───────── */
+    .all-assignments-tab {
+      margin-top: 30px;
+      background: var(--bg-card);
+      border-radius: 16px;
+      padding: 20px;
+      border: 1px solid var(--border-subtle);
+    }
+    .all-assignments-tab .tab-heading {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .all-assignments-tab .tab-heading h4 {
+      font-weight: 700;
+      font-size: 1.05rem;
+      color: var(--text-primary);
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .all-assignments-tab .tab-heading h4 i { color: var(--accent); }
+    .all-assignments-tab .tab-heading .tab-total {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border-subtle);
+      border-radius: 40px;
+      padding: 4px 12px;
+    }
+
+    .all-assignments-tab .quick-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+    .all-assignments-tab .quick-pills .pill {
+      padding: 6px 14px;
+      border-radius: 40px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: 0.15s;
+      user-select: none;
+    }
+    .all-assignments-tab .quick-pills .pill:hover {
+      background: rgba(255,255,255,0.09);
+    }
+    .all-assignments-tab .quick-pills .pill.active {
+      background: rgba(47,199,255,0.2);
+      border-color: rgba(47,199,255,0.5);
+      color: var(--accent);
+    }
+    .all-assignments-tab .quick-pills .pill.active.overdue {
+      background: rgba(225,112,85,0.22);
+      border-color: rgba(225,112,85,0.55);
+      color: #ff9b85;
+    }
+    .all-assignments-tab .quick-pills .pill.active.due-soon {
+      background: rgba(253,203,110,0.22);
+      border-color: rgba(253,203,110,0.55);
+      color: var(--orange);
+    }
+    .all-assignments-tab .quick-pills .pill.active.submitted {
+      background: rgba(0,184,148,0.22);
+      border-color: rgba(0,184,148,0.55);
+      color: #4ae4b8;
+    }
+    .all-assignments-tab .quick-pills .pill.active.graded {
+      background: rgba(162,155,254,0.22);
+      border-color: rgba(162,155,254,0.55);
+      color: #c9c3ff;
+    }
+
+    .all-assignments-tab .filter-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .all-assignments-tab .filter-row select,
+    .all-assignments-tab .filter-row input {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border-subtle);
+      border-radius: 40px;
+      padding: 7px 16px;
+      color: var(--text-primary);
+      font-size: 0.82rem;
+      outline: none;
+      transition: 0.2s;
+    }
+    .all-assignments-tab .filter-row select option { background: #1a2233; }
+    .all-assignments-tab .filter-row select:focus,
+    .all-assignments-tab .filter-row input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(47,199,255,0.12);
+    }
+    .all-assignments-tab .filter-row input { flex: 1; min-width: 200px; }
+    .all-assignments-tab .filter-row input::placeholder { color: var(--text-secondary); }
+
+    .all-assignments-tab .quick-stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    .all-assignments-tab .qstat {
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 4px 12px;
+      border-radius: 40px;
+      background: rgba(255,255,255,0.05);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-subtle);
+    }
+    .all-assignments-tab .qstat.overdue { background: rgba(225,112,85,0.15); color: #ff9b85; border-color: rgba(225,112,85,0.25); }
+    .all-assignments-tab .qstat.due-soon { background: rgba(253,203,110,0.15); color: var(--orange); border-color: rgba(253,203,110,0.25); }
+    .all-assignments-tab .qstat.in-progress { background: rgba(47,199,255,0.15); color: var(--accent); border-color: rgba(47,199,255,0.25); }
+    .all-assignments-tab .qstat.submitted { background: rgba(0,184,148,0.15); color: #4ae4b8; border-color: rgba(0,184,148,0.25); }
+    .all-assignments-tab .qstat.graded { background: rgba(162,155,254,0.15); color: #c9c3ff; border-color: rgba(162,155,254,0.25); }
+
+    .assign-group {
+      margin-bottom: 10px;
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      overflow: hidden;
+      background: rgba(255,255,255,0.02);
+      transition: 0.2s;
+    }
+    .assign-group.open { background: rgba(255,255,255,0.035); }
+    .assign-group.urgent { border-color: rgba(225,112,85,0.25); }
+
+    .assign-group-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      cursor: pointer;
+      transition: 0.15s;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .assign-group-header:hover { background: rgba(255,255,255,0.03); }
+    .assign-group-header .group-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.9rem;
+      color: var(--text-primary);
+      min-width: 0;
+    }
+    .assign-group-header .group-title i.chev {
+      color: var(--text-secondary);
+      font-size: 0.7rem;
+      width: 12px;
+      transition: 0.15s;
+    }
+    .assign-group-header .group-title strong {
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 0.02em;
+    }
+    .assign-group-header .group-count {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      white-space: nowrap;
+    }
+    .assign-group-header .group-chips {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .assign-group-header .group-chips .chip {
+      font-size: 0.68rem;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 40px;
+    }
+    .assign-group-header .group-chips .chip.overdue { background: rgba(225,112,85,0.22); color: #ff9b85; }
+    .assign-group-header .group-chips .chip.due-soon { background: rgba(253,203,110,0.22); color: var(--orange); }
+    .assign-group-header .group-chips .chip.pending { background: rgba(255,255,255,0.08); color: var(--text-secondary); }
+    .assign-group-header .group-chips .chip.submitted { background: rgba(0,184,148,0.2); color: #4ae4b8; }
+    .assign-group-header .group-chips .chip.graded { background: rgba(162,155,254,0.2); color: #c9c3ff; }
+
+    .assign-group-body { display: none; padding: 4px 8px 8px; }
+    .assign-group.open .assign-group-body { display: block; }
+
+    .assign-row {
+      display: grid;
+      grid-template-columns: 24px 1fr 95px 70px 100px auto;
+      align-items: center;
+      gap: 12px;
+      padding: 9px 12px;
+      border-radius: 10px;
+      margin-bottom: 4px;
+      transition: 0.15s;
+      border: 1px solid transparent;
+    }
+    .assign-row:hover {
+      background: rgba(255,255,255,0.03);
+      border-color: var(--border-subtle);
+    }
+    .assign-row .ar-status { text-align: center; font-size: 0.9rem; }
+    .assign-row .ar-main { min-width: 0; }
+    .assign-row .ar-name {
+      font-weight: 500;
+      font-size: 0.85rem;
+      color: var(--text-primary);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .assign-row .ar-meta {
+      font-size: 0.7rem;
+      color: var(--text-secondary);
+      margin-top: 1px;
+    }
+    .assign-row .ar-time {
+      font-size: 0.72rem;
+      color: var(--text-secondary);
+      text-align: center;
+    }
+    .assign-row.overdue .ar-time { color: #ff9b85; font-weight: 600; }
+    .assign-row.due-soon .ar-time { color: var(--orange); font-weight: 600; }
+    .assign-row .ar-marks {
+      font-size: 0.82rem;
+      text-align: center;
+      color: var(--text-primary);
+    }
+    .assign-row .ar-badge {
+      font-size: 0.62rem;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 40px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      text-align: center;
+      white-space: nowrap;
+    }
+    .assign-row .ar-badge.not-started { background: rgba(255,255,255,0.08); color: var(--text-secondary); }
+    .assign-row .ar-badge.in-progress { background: rgba(47,199,255,0.2); color: var(--accent); }
+    .assign-row .ar-badge.due-soon { background: rgba(253,203,110,0.22); color: var(--orange); }
+    .assign-row .ar-badge.overdue { background: rgba(225,112,85,0.22); color: #ff9b85; }
+    .assign-row .ar-badge.submitted { background: rgba(0,184,148,0.2); color: #4ae4b8; }
+    .assign-row .ar-badge.graded { background: rgba(162,155,254,0.2); color: #c9c3ff; }
+
+    .assign-row .ar-actions {
+      display: flex;
+      gap: 4px;
+    }
+    .assign-row .ar-actions .btn-xs {
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      border: none;
+      font-size: 0.72rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: 0.15s;
+      background: rgba(255,255,255,0.06);
+      color: var(--text-primary);
+      padding: 0;
+      cursor: pointer;
+    }
+    .assign-row .ar-actions .btn-xs:hover { transform: translateY(-1px); }
+    .assign-row .ar-actions .btn-submit { background: rgba(0,184,148,0.18); color: #4ae4b8; }
+    .assign-row .ar-actions .btn-submit:hover { background: rgba(0,184,148,0.35); }
+    .assign-row .ar-actions .btn-edit-ass:hover { background: rgba(47,199,255,0.25); color: var(--accent); }
+    .assign-row .ar-actions .btn-del-ass:hover { background: rgba(225,112,85,0.25); color: #ff9b85; }
+
+    .empty-assignments {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+    .empty-assignments i { display: block; font-size: 2.5rem; margin-bottom: 12px; opacity: 0.35; }
+
+    @media (max-width: 900px) {
+      .assign-row {
+        grid-template-columns: 24px 1fr auto;
+        grid-template-rows: auto auto;
+        gap: 6px 12px;
+      }
+      .assign-row .ar-status { grid-row: 1 / 3; align-self: flex-start; padding-top: 2px; }
+      .assign-row .ar-main { grid-column: 2; }
+      .assign-row .ar-actions { grid-column: 3; grid-row: 1 / 3; align-self: center; }
+      .assign-row .ar-time,
+      .assign-row .ar-marks,
+      .assign-row .ar-badge { display: none; }
+    }
+    @media (max-width: 600px) {
+      .all-assignments-tab { padding: 14px; }
+      .assign-group-header .group-chips { display: none; }
+    }
   </style>
 </head>
 <body>
@@ -544,9 +834,6 @@
   }
   console.log('✅ Authorized user:', user.username);
 
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  //  DEFAULT DATA — VERBATIM
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   function getDefaultData() {
     function topic(name, subtopics) {
       return { name, subtopics: subtopics || [], completed: false, subCompleted: [] };
@@ -656,12 +943,10 @@
     };
   }
 
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  //  STATE
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   let studyData = { years: [] };
   let expanded = {};
   let compactMode = false;
+  let assignmentsStatusFilter = 'active';
   let searchTerm = '';
   let searchTimeout = null;
   let gradeModalOpen = false;
@@ -1034,9 +1319,6 @@
     return null;
   }
 
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  //  HELPERS
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   function escapeHtml(str) { if (!str) return ''; return String(str).replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m] || m); }
   function showToast(msg, type = 'info') {
     const container = document.getElementById('toastContainer');
@@ -1172,9 +1454,6 @@
     try { fn(); } catch (e) { console.error('Render error:', e); showToast('Render error: ' + e.message, 'error'); }
   }
 
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  //  RENDER FUNCTIONS
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   function renderStats() {
     let totalUnits = 0, totalWeeks = 0, totalTopics = 0, doneTopics = 0, totalAssign = 0, pendingAssign = 0;
     studyData.years.forEach(y => y.semesters.forEach(s => s.units.forEach(u => {
@@ -1426,78 +1705,210 @@
     `;
   }
 
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  //  NEAT ALL ASSIGNMENTS VIEW (grouped by unit)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   function renderAllAssignmentsTab() {
     const container = document.getElementById('allAssignmentsTab');
     if (!container) return;
+
+    const filterUnit = document.getElementById('filterUnit')?.value || 'all';
+    const searchRaw = document.getElementById('searchAssignments')?.value || '';
+    const search = searchRaw.toLowerCase();
+    const statusFilter = assignmentsStatusFilter;
+
     const all = getAllAssignments();
     const units = getUnits();
-    const filterUnit = document.getElementById('filterUnit')?.value || 'all';
-    const filterStatus = document.getElementById('filterStatus')?.value || 'all';
-    const search = document.getElementById('searchAssignments')?.value?.toLowerCase() || '';
 
     let filtered = all;
     if (filterUnit !== 'all') filtered = filtered.filter(a => a.unitCode === filterUnit);
-    if (filterStatus !== 'all') filtered = filtered.filter(a => getAssignmentState(a) === filterStatus);
-    if (search) filtered = filtered.filter(a => a.name.toLowerCase().includes(search) || a.unitCode.toLowerCase().includes(search));
+    if (statusFilter !== 'all') {
+      if (statusFilter === 'active') {
+        filtered = filtered.filter(a => {
+          const s = getAssignmentState(a);
+          return s !== 'submitted' && s !== 'graded';
+        });
+      } else {
+        filtered = filtered.filter(a => getAssignmentState(a) === statusFilter);
+      }
+    }
+    if (search) {
+      filtered = filtered.filter(a =>
+        a.name.toLowerCase().includes(search) ||
+        a.unitCode.toLowerCase().includes(search) ||
+        (a.notes || '').toLowerCase().includes(search)
+      );
+    }
+
+    const grouped = {};
+    filtered.forEach(a => {
+      if (!grouped[a.unitCode]) grouped[a.unitCode] = [];
+      grouped[a.unitCode].push(a);
+    });
+
+    const statCounts = { overdue: 0, 'due-soon': 0, 'in-progress': 0, 'not-started': 0, submitted: 0, graded: 0 };
+    filtered.forEach(a => { statCounts[getAssignmentState(a)]++; });
 
     let html = `<div class="all-assignments-tab">
-      <div class="filter-bar">
-        <div class="form-group" style="margin:0;">
-          <select id="filterUnit" class="form-control form-control-sm" style="width:auto;display:inline-block;">
-            <option value="all">All Units</option>
-            ${units.map(u => `<option value="${u.code}" ${filterUnit === u.code ? 'selected' : ''}>${u.code}</option>`).join('')}
-          </select>
-        </div>
-        <div class="form-group" style="margin:0;">
-          <select id="filterStatus" class="form-control form-control-sm" style="width:auto;display:inline-block;">
-            <option value="all">All Status</option>
-            <option value="not-started" ${filterStatus === 'not-started' ? 'selected' : ''}>Not Started</option>
-            <option value="in-progress" ${filterStatus === 'in-progress' ? 'selected' : ''}>In Progress</option>
-            <option value="due-soon" ${filterStatus === 'due-soon' ? 'selected' : ''}>Due Soon</option>
-            <option value="overdue" ${filterStatus === 'overdue' ? 'selected' : ''}>Overdue</option>
-            <option value="submitted" ${filterStatus === 'submitted' ? 'selected' : ''}>Submitted</option>
-            <option value="graded" ${filterStatus === 'graded' ? 'selected' : ''}>Graded</option>
-          </select>
-        </div>
-        <div class="form-group" style="margin:0;flex:1;">
-          <input type="text" id="searchAssignments" class="form-control form-control-sm" placeholder="🔍 Search assignments..." value="${escapeHtml(search)}">
-        </div>
+      <div class="tab-heading">
+        <h4><i class="fa fa-tasks"></i> All Assignments</h4>
+        <span class="tab-total">${filtered.length} shown${filtered.length !== all.length ? ` · ${all.length} total` : ''}</span>
       </div>
-      <table>
-        <thead><tr><th>Assignment</th><th>Unit</th><th>Due</th><th>Status</th><th>Marks</th><th>Actions</th></tr></thead>
-        <tbody>`;
+
+      <div class="quick-pills">
+        <div class="pill ${statusFilter === 'active' ? 'active' : ''}" data-status="active">Active</div>
+        <div class="pill ${statusFilter === 'overdue' ? 'active overdue' : ''}" data-status="overdue">Overdue${statCounts.overdue ? ' · ' + statCounts.overdue : ''}</div>
+        <div class="pill ${statusFilter === 'due-soon' ? 'active due-soon' : ''}" data-status="due-soon">Due Soon${statCounts['due-soon'] ? ' · ' + statCounts['due-soon'] : ''}</div>
+        <div class="pill ${statusFilter === 'submitted' ? 'active submitted' : ''}" data-status="submitted">Submitted</div>
+        <div class="pill ${statusFilter === 'graded' ? 'active graded' : ''}" data-status="graded">Graded</div>
+        <div class="pill ${statusFilter === 'all' ? 'active' : ''}" data-status="all">All</div>
+      </div>
+
+      <div class="filter-row">
+        <select id="filterUnit">
+          <option value="all">All Units</option>
+          ${units.map(u => `<option value="${u.code}" ${filterUnit === u.code ? 'selected' : ''}>${u.code} — ${escapeHtml(u.name)}</option>`).join('')}
+        </select>
+        <input type="text" id="searchAssignments" placeholder="🔍 Search assignments or notes..." value="${escapeHtml(searchRaw)}">
+      </div>
+    `;
+
     if (!filtered.length) {
-      html += `<tr><td colspan="6" class="text-center text-muted">No assignments match.</td></tr>`;
+      html += `<div class="empty-assignments">
+        <i class="fa fa-inbox"></i>
+        No assignments match the current filter.
+      </div>`;
     } else {
-      filtered.forEach(a => {
-        const state = getAssignmentState(a);
-        const statusMap = {
-          'not-started': '⚪ Not Started','in-progress': '🔵 In Progress','due-soon': '🟠 Due Soon',
-          'overdue': '🔴 Overdue','submitted': '✅ Submitted','graded': '🎓 Graded'
-        };
-        const marks = a.marks || '—';
-        html += `<tr>
-          <td><strong>${escapeHtml(a.name)}</strong></td>
-          <td>${a.unitCode}</td>
-          <td>${a.due || '—'}</td>
-          <td><span class="status-badge-sm ${state}">${statusMap[state] || state}</span></td>
-          <td>${marks}</td>
-          <td>
-            ${state !== 'submitted' && state !== 'graded' ? `<button class="btn btn-sm btn-submit" onclick="openSubmitModal(${a.yi}, ${a.si}, ${a.ui}, ${a.wi}, ${a.ai})">✓ Submit</button>` : ''}
-            <button class="btn btn-sm btn-edit-ass" onclick="editAssignment(${a.yi}, ${a.si}, ${a.ui}, ${a.wi}, ${a.ai})"><i class="fa fa-pencil"></i></button>
-            <button class="btn btn-sm btn-del-ass" onclick="deleteAssignment(${a.yi}, ${a.si}, ${a.ui}, ${a.wi}, ${a.ai})"><i class="fa fa-trash"></i></button>
-          </td>
-        </tr>`;
+      if (filtered.length !== all.length) {
+        html += `<div class="quick-stats">`;
+        if (statCounts.overdue) html += `<span class="qstat overdue">🔴 ${statCounts.overdue} Overdue</span>`;
+        if (statCounts['due-soon']) html += `<span class="qstat due-soon">🟠 ${statCounts['due-soon']} Due Soon</span>`;
+        if (statCounts['in-progress']) html += `<span class="qstat in-progress">🔵 ${statCounts['in-progress']} In Progress</span>`;
+        if (statCounts.submitted) html += `<span class="qstat submitted">✅ ${statCounts.submitted} Submitted</span>`;
+        if (statCounts.graded) html += `<span class="qstat graded">🎓 ${statCounts.graded} Graded</span>`;
+        html += `</div>`;
+      }
+
+      Object.entries(grouped).forEach(([unitCode, items]) => {
+        items.sort((a, b) => {
+          const sA = getAssignmentState(a);
+          const sB = getAssignmentState(b);
+          const doneA = sA === 'submitted' || sA === 'graded';
+          const doneB = sB === 'submitted' || sB === 'graded';
+          if (doneA !== doneB) return doneA ? 1 : -1;
+          const dA = a.due ? new Date(a.due).getTime() : Infinity;
+          const dB = b.due ? new Date(b.due).getTime() : Infinity;
+          return dA - dB;
+        });
+
+        const us = { overdue: 0, 'due-soon': 0, pending: 0, submitted: 0, graded: 0 };
+        items.forEach(a => {
+          const s = getAssignmentState(a);
+          if (s === 'overdue') us.overdue++;
+          else if (s === 'due-soon') us['due-soon']++;
+          else if (s === 'submitted') us.submitted++;
+          else if (s === 'graded') us.graded++;
+          else us.pending++;
+        });
+
+        const key = `assignments_${unitCode}`;
+        const userToggled = expanded[key];
+        const autoExpand = (statusFilter === 'overdue' || statusFilter === 'due-soon')
+          || (statusFilter === 'active' && (us.overdue > 0 || us['due-soon'] > 0));
+        const isExpanded = userToggled !== undefined ? userToggled : autoExpand;
+        const isUrgent = us.overdue > 0 || us['due-soon'] > 0;
+
+        html += `
+          <div class="assign-group ${isExpanded ? 'open' : ''} ${isUrgent ? 'urgent' : ''}" data-unit="${escapeHtml(unitCode)}">
+            <div class="assign-group-header" onclick="toggleAssignGroup('${escapeHtml(unitCode)}')">
+              <div class="group-title">
+                <i class="fa fa-chevron-${isExpanded ? 'down' : 'right'} chev"></i>
+                <strong>${escapeHtml(unitCode)}</strong>
+                <span class="group-count">${items.length} item${items.length === 1 ? '' : 's'}</span>
+              </div>
+              <div class="group-chips">
+                ${us.overdue ? `<span class="chip overdue">${us.overdue} overdue</span>` : ''}
+                ${us['due-soon'] ? `<span class="chip due-soon">${us['due-soon']} due soon</span>` : ''}
+                ${us.pending ? `<span class="chip pending">${us.pending} pending</span>` : ''}
+                ${us.submitted ? `<span class="chip submitted">${us.submitted} submitted</span>` : ''}
+                ${us.graded ? `<span class="chip graded">${us.graded} graded</span>` : ''}
+              </div>
+            </div>
+            <div class="assign-group-body">
+              ${items.map(a => renderAssignRow(a)).join('')}
+            </div>
+          </div>
+        `;
       });
     }
-    html += `</tbody></table></div>`;
+
+    html += `</div>`;
     container.innerHTML = html;
 
+    container.querySelectorAll('.quick-pills .pill').forEach(p => {
+      p.addEventListener('click', () => {
+        assignmentsStatusFilter = p.dataset.status;
+        renderAllAssignmentsTab();
+      });
+    });
     document.getElementById('filterUnit')?.addEventListener('change', renderAllAssignmentsTab);
-    document.getElementById('filterStatus')?.addEventListener('change', renderAllAssignmentsTab);
     document.getElementById('searchAssignments')?.addEventListener('input', renderAllAssignmentsTab);
   }
 
+  function renderAssignRow(a) {
+    const state = getAssignmentState(a);
+    const stateMap = {
+      'not-started': { label: 'Not Started', icon: '⚪' },
+      'in-progress': { label: 'In Progress', icon: '🔵' },
+      'due-soon':    { label: 'Due Soon',    icon: '🟠' },
+      'overdue':     { label: 'Overdue',     icon: '🔴' },
+      'submitted':   { label: 'Submitted',   icon: '✅' },
+      'graded':      { label: 'Graded',      icon: '🎓' }
+    };
+    const s = stateMap[state] || { label: state, icon: '' };
+
+    let timeStr = '—';
+    const diff = daysUntil(a.due);
+    if (state === 'submitted') timeStr = a.submittedDate ? `Submitted ${a.submittedDate}` : 'Submitted';
+    else if (state === 'graded') timeStr = a.gradedDate ? `Graded ${a.gradedDate}` : 'Graded';
+    else if (diff !== null && diff !== undefined) timeStr = diff < 0 ? `${Math.abs(diff)}d overdue` : (diff === 0 ? 'Today' : `in ${diff}d`);
+
+    const marksStr = a.marks ? `<strong>${escapeHtml(a.marks)}</strong>` : '—';
+
+    return `
+      <div class="assign-row ${state}">
+        <div class="ar-status">${s.icon}</div>
+        <div class="ar-main">
+          <div class="ar-name">${escapeHtml(a.name)}</div>
+          <div class="ar-meta">Week ${a.weekNum} · Due ${a.due || '—'} · Weight ${a.weight || 0}%</div>
+        </div>
+        <div class="ar-time">${timeStr}</div>
+        <div class="ar-marks">${marksStr}</div>
+        <div class="ar-badge ${state}">${s.label}</div>
+        <div class="ar-actions">
+          ${state !== 'submitted' && state !== 'graded' ? `<button class="btn-xs btn-submit" onclick="openSubmitModal(${a.yi}, ${a.si}, ${a.ui}, ${a.wi}, ${a.ai})" title="Submit"><i class="fa fa-check"></i></button>` : ''}
+          <button class="btn-xs btn-edit-ass" onclick="editAssignment(${a.yi}, ${a.si}, ${a.ui}, ${a.wi}, ${a.ai})" title="Edit"><i class="fa fa-pencil"></i></button>
+          <button class="btn-xs btn-del-ass" onclick="deleteAssignment(${a.yi}, ${a.si}, ${a.ui}, ${a.wi}, ${a.ai})" title="Delete"><i class="fa fa-trash"></i></button>
+        </div>
+      </div>
+    `;
+  }
+
+  window.toggleAssignGroup = function(unitCode) {
+    const key = `assignments_${unitCode}`;
+    const group = document.querySelector(`.assign-group[data-unit="${unitCode}"]`);
+    const currentlyOpen = group && group.classList.contains('open');
+    expanded[key] = !currentlyOpen;
+    if (group) {
+      group.classList.toggle('open', expanded[key]);
+      const icon = group.querySelector('.group-title i.chev');
+      if (icon) icon.className = `fa fa-chevron-${expanded[key] ? 'down' : 'right'} chev`;
+    }
+  };
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  //  TREE RENDER
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   function renderTree() {
     const container = document.getElementById('treeContainer');
     if (!container) return;
@@ -1733,9 +2144,6 @@
     safeRender(renderTree);
   }
 
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  //  TOGGLE / CRUD FUNCTIONS
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   window.toggleExpand = function(key) { expanded[key] = !expanded[key]; render(); };
 
   window.toggleTopicComplete = function(el, yi, si, ui, wi, ti) {
@@ -2105,9 +2513,6 @@
     render(); markDirty();
   };
 
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  //  GRADE INTELLIGENCE MODAL
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   function calculateUnitGrade(unit) {
     const allAssignments = [];
     (unit.weeks || []).forEach(week => {
@@ -2322,8 +2727,6 @@
       return;
     }
 
-    const achieved = result.achievedWeight;
-    const currentPct = result.grade || 0;
     const weightedSum = result.weightedSum;
     const totalWeight = result.totalWeight;
     const missingW = result.missingMarks;
@@ -2381,7 +2784,6 @@
     }
   };
 
-  // Keep updateWhatIf for backward-compat (not used in new modal but safe)
   window.updateWhatIf = function() { /* superseded by updateGradeIntelTarget */ };
 
   document.getElementById('gradeModalClose').addEventListener('click', function() {
@@ -2389,9 +2791,6 @@
     gradeModalOpen = false;
   });
 
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  //  EXCEL EXPORT — FULL STUDY PLAN
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   window.exportToExcel = async function() {
     if (!studyData.years.length) { showToast('No data to export.', 'error'); return; }
     window.showLoading('Generating academic report...');
@@ -2503,9 +2902,6 @@
     }
   };
 
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  //  GRADE REPORT — EXCEL
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   window.exportGradeReport = async function (unitCodeFilter = null) {
     if (!studyData.years.length) { showToast('No data to export.', 'error'); return; }
     window.showLoading('Generating grade report...');
@@ -2558,7 +2954,7 @@
       summary.getRow(1).height = 46;
       summary.mergeCells('A2:H2');
       const st = summary.getCell('A2');
-      st.value = 'Prepared for Review';
+      st.value = 'Prepared for Sponsor Review';
       st.font = { size: 12, italic: true, color: { argb: 'FF2FC7FF' } };
       st.alignment = { horizontal: 'center', vertical: 'middle' };
       summary.getRow(2).height = 22;
@@ -2573,7 +2969,7 @@
 
       const info = [
         ['Student Name:', studentName],
-        ['Institution:', 'Engineering Institude Of Technology'],
+        ['Institution:', 'Engineering Programme'],
         ['Report Date:', new Date().toLocaleDateString('en-ZA', { year: 'numeric', month: 'long', day: 'numeric' })],
         ['Academic Year:', studyData.years.map(y => y.name).join(', ')]
       ];
@@ -2768,9 +3164,6 @@
     }
   };
 
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  //  GRADE REPORT — PDF
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   window.exportGradeReportPDF = async function (unitCodeFilter = null) {
     if (!studyData.years.length) { showToast('No data to export.', 'error'); return; }
     window.showLoading('Generating PDF grade report...');
@@ -2845,7 +3238,6 @@
       const validAvgs = modules.filter(m => m.avg !== null).map(m => m.avg);
       const overall = validAvgs.length ? validAvgs.reduce((a, b) => a + b, 0) / validAvgs.length : null;
 
-      // COVER
       doc.setFillColor(...darkNavy);
       doc.rect(0, 0, pageWidth, 42, 'F');
       doc.setFillColor(...accent);
@@ -2856,10 +3248,10 @@
       doc.text('ACADEMIC GRADE REPORT', pageWidth / 2, 20, { align: 'center' });
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(12);
-      doc.text('Prepared for Review', pageWidth / 2, 30, { align: 'center' });
+      doc.text('Prepared for Sponsor Review', pageWidth / 2, 30, { align: 'center' });
       doc.setFontSize(9);
       doc.setTextColor(200, 220, 235);
-      doc.text('Engineering Institude of Technology', pageWidth / 2, 37, { align: 'center' });
+      doc.text('Engineering Programme', pageWidth / 2, 37, { align: 'center' });
 
       let y = 60;
       doc.setDrawColor(220, 228, 235);
@@ -2874,7 +3266,7 @@
       doc.setTextColor(...textGray);
       const infoLines = [
         ['Student Name:', studentName],
-        ['Institution:', 'Engineering Institude of Technology'],
+        ['Institution:', 'Engineering Programme'],
         ['Report Date:', new Date().toLocaleDateString('en-ZA', { year: 'numeric', month: 'long', day: 'numeric' })],
         ['Academic Year:', studyData.years.map(y => y.name).join(', ')]
       ];
@@ -2935,7 +3327,6 @@
       doc.setTextColor(150, 150, 150);
       doc.text('Generated by Your Portfolio · Study Manager', pageWidth / 2, pageHeight - 15, { align: 'center' });
 
-      // SUMMARY
       doc.addPage();
       let sy = 20;
       doc.setFillColor(...darkNavy);
@@ -3000,7 +3391,6 @@
       doc.text('OVERALL AVERAGE', 26, afterY + 9);
       doc.text(overall !== null ? overall.toFixed(1) + '%  ·  ' + og.grade : 'N/A', pageWidth - 26, afterY + 9, { align: 'right' });
 
-      // PER MODULE
       modules.forEach((m) => {
         doc.addPage();
         const u = m.unit;
@@ -3152,9 +3542,6 @@
     }
   };
 
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  //  INIT
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   async function init() {
     console.log('📦 Study Manager initializing...');
     const contentArea = document.getElementById('contentArea');
@@ -3235,7 +3622,6 @@
       </div>
     `;
 
-    // ─── Search wiring ───
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
       const searchBar = searchInput.closest('.search-bar');
@@ -3513,7 +3899,6 @@
     init();
   }
 
-  // Expose globals for inline onclick handlers
   window.toggleExpand = toggleExpand;
   window.toggleTopicComplete = toggleTopicComplete;
   window.toggleSubtopic = toggleSubtopic;
