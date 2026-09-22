@@ -987,7 +987,7 @@
     label.textContent = messages[status] || 'Saved';
   }
 
-  const CACHE_KEY = 'studies_data_cache';
+  const CACHE_KEY = 'studies_data_cache_' + encodeURIComponent(user.username);
   function saveToCache(data) {
     try { localStorage.setItem(CACHE_KEY, JSON.stringify({ data, timestamp: Date.now(), version: '2.0' })); } catch(e) {}
   }
