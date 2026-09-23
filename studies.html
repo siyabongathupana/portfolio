@@ -13,7 +13,6 @@
   <script src="crypto.js"></script>
   <script src="api.js"></script>
   <script src="shared.js"></script>
-  <script src="auth.js"></script>       <!-- NEW -->
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -684,9 +683,8 @@
     }
   </style>
 </head>
+<body>
 
-<body data-requires="studies" style="visibility:hidden;">
-<script src="page-guard.js"></script>
 <nav class="navbar navbar-expand-lg">
   <div class="container-fluid px-3 px-md-4">
     <a class="navbar-brand" href="index.html"><span>✦</span> Your<span style="color:#e0e8ee;">Portfolio</span></a>
@@ -987,7 +985,7 @@
     label.textContent = messages[status] || 'Saved';
   }
 
-  const CACHE_KEY = 'studies_data_cache_' + encodeURIComponent(user.username);
+  const CACHE_KEY = 'studies_data_cache';
   function saveToCache(data) {
     try { localStorage.setItem(CACHE_KEY, JSON.stringify({ data, timestamp: Date.now(), version: '2.0' })); } catch(e) {}
   }
@@ -1024,29 +1022,28 @@
     return null;
   }
 
-   async function loadData() {
+  async function loadData() {
     const loaderEl = document.getElementById('initialLoading');
     if (loaderEl) loaderEl.style.display = 'flex';
     try {
       let data = loadFromCache();
       if (data) { studyData = data; render(); }
-
       const result = await loadFromGitHub();
-      if (result && result.data) {
+      if (result) {
         studyData = result.data;
         currentFileSha = result.sha;
         lastSyncedSha = result.sha;
-        if (!studyData.years) studyData.years = [];
         render();
         saveToCache(studyData);
-      } else {
-        // No file yet, or file has no `years` — start EMPTY.
-        // Do NOT seed the admin's template. User builds their own plan.
-        if (!studyData.years || studyData.years.length === 0) {
-          studyData = { years: [] };
-          render();
-          // Don't markDirty() — no auto-create until the user adds something
-        }
+      } else if (!studyData.years || studyData.years.length === 0) {
+        studyData = getDefaultData();
+        render();
+        markDirty();
+      }
+      if (!studyData.years || studyData.years.length === 0) {
+        studyData = getDefaultData();
+        render();
+        markDirty();
       }
       return true;
     } catch (err) {
@@ -3570,10 +3567,6 @@
           <button class="btn btn-outline-secondary" id="exportJsonBtn" style="border:1px solid var(--border-subtle);color:var(--text-primary);"><i class="fa fa-download"></i> JSON</button>
           <button class="btn btn-outline-secondary" id="importJsonBtn" style="border:1px solid var(--border-subtle);color:var(--text-primary);"><i class="fa fa-upload"></i> Import</button>
           <button class="btn btn-success-glow" id="addYearBtn"><i class="fa fa-plus"></i> Add Year</button>
-                    <button class="btn btn-outline-warning" id="loadSamplePlanBtn" data-admin-only
-                  style="border:1px solid rgba(253,203,110,0.4);color:#fdcb6e;display:none;">
-            <i class="fa fa-magic"></i> Load Sample Plan
-          </button>
           <button class="btn btn-outline-light" id="historyBtn" style="border:1px solid var(--border-subtle);color:var(--text-primary);"><i class="fa fa-history"></i> History</button>
           <button class="btn btn-outline-light" id="resetBtn" style="border:1px solid var(--border-subtle);color:var(--text-primary);"><i class="fa fa-refresh"></i> Reset</button>
           <div class="save-status">
@@ -3819,22 +3812,6 @@
 
     document.getElementById('historyBtn').addEventListener('click', () => window.showVersionHistory());
     document.getElementById('addYearBtn').addEventListener('click', window.addYear);
-        // Load sample plan — admin only, replaces OWN studies data
-    const sampleBtn = document.getElementById('loadSamplePlanBtn');
-    if (sampleBtn && window.APP_CONFIG.adminUsers.includes(user.username)) {
-      sampleBtn.style.display = '';
-      sampleBtn.addEventListener('click', () => {
-        if (!confirm(
-          'Load the sample BEng curriculum into your OWN account?\n\n' +
-          'This will REPLACE your current studies data.'
-        )) return;
-        studyData = getDefaultData();
-        expanded = {};
-        render();
-        markDirty();
-        showToast('📚 Sample plan loaded', 'success');
-      });
-    }
     document.getElementById('exportBtn').addEventListener('click', window.exportToExcel);
     document.getElementById('gradeReportBtn').addEventListener('click', () => window.exportGradeReport());
     document.getElementById('gradeReportPdfBtn').addEventListener('click', () => window.exportGradeReportPDF());
