@@ -1308,9 +1308,11 @@
                     {
                       "name": "C Programming Project",
                       "due": "2026-10-16",
-                      "status": "in-progress",
+                      "status": "submitted",
                       "marks": "",
-                      "weight": 25
+                      "weight": 25,
+                      "notes": "",
+                      "submittedDate": "2026-09-26"
                     },
                     {
                       "name": "Final Exam",
