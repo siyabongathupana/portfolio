@@ -1541,10 +1541,10 @@
                       "id": "ass_1789993764309px8t",
                       "name": "Assessment 2 (Mid Semester Test)",
                       "due": "2026-09-29",
-                      "status": "not-started",
+                      "status": "submitted",
                       "marks": "",
                       "weight": 25,
-                      "submittedDate": null,
+                      "submittedDate": "2026-09-27",
                       "gradedDate": null,
                       "notes": "",
                       "priority": "normal"
