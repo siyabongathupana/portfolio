@@ -1516,13 +1516,13 @@
                         "Site location and equipment spacing",
                         "Process safety (HAZOP procedure and documentation)"
                       ],
-                      "completed": false,
+                      "completed": true,
                       "subCompleted": [
                         true,
                         true,
                         true,
-                        false,
-                        false
+                        true,
+                        true
                       ]
                     }
                   ],
