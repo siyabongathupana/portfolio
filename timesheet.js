@@ -491,7 +491,13 @@
       notes = document.getElementById('taskNotes').value.trim();
     }
     if (!date || !start || !end || !project || !category) { showToast("Please fill all required fields.", "error"); return; }
-    const hours = calcHours(start, end);
+    
+    // Support for live timer override (excludes pause time)
+    let hours = calcHours(start, end);
+    if (window.__timerOverrideHours != null && !duplicateData) {
+      hours = window.__timerOverrideHours;
+      window.__timerOverrideHours = null;
+    }
     if (hours <= 0) { showToast("End time must be after start time.", "error"); return; }
 
     const newEntry = { id: Date.now(), date, start, end, hours, project, category, billable, notes, updatedAt: Date.now() };
