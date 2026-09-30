@@ -38,112 +38,6 @@
       padding: 20px;
       box-shadow: 0 8px 20px rgba(0,0,0,0.05);
     }
-
-      /* ── Live Timer ── */
-  .timer-card {
-    background: linear-gradient(135deg, #0b2b3b 0%, #1a4d5f 100%);
-    border-radius: 20px;
-    padding: 22px 24px;
-    margin-bottom: 25px;
-    color: #fff;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-    border: 1px solid rgba(47,199,255,0.15);
-  }
-  .timer-card h6 { font-weight: 700; color: #fff; margin-bottom: 0; letter-spacing: 0.02em; }
-  .timer-card h6 i { color: #2fc7ff; margin-right: 8px; }
-  .timer-status-badge {
-    padding: 4px 14px; border-radius: 40px;
-    font-size: 0.72rem; font-weight: 700;
-    letter-spacing: 0.04em; text-transform: uppercase;
-  }
-  .timer-status-badge.idle    { background: rgba(255,255,255,0.1);  color: rgba(255,255,255,0.6); }
-  .timer-status-badge.running { background: rgba(40,167,69,0.22);   color: #6ee08a; animation: timerPulse 2s ease-in-out infinite; }
-  .timer-status-badge.paused  { background: rgba(255,193,7,0.22);   color: #ffd35c; }
-  @keyframes timerPulse {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(110,224,138,0.5); }
-    50%      { box-shadow: 0 0 0 8px rgba(110,224,138,0); }
-  }
-  .timer-display {
-    font-family: 'SF Mono', Menlo, Consolas, monospace;
-    font-size: 3.2rem; font-weight: 700; letter-spacing: 0.04em;
-    text-align: center; color: #fff;
-    margin: 12px 0 10px;
-    text-shadow: 0 2px 20px rgba(47,199,255,0.3);
-    font-variant-numeric: tabular-nums;
-  }
-  .timer-task-info {
-    display: flex; justify-content: center; gap: 20px;
-    flex-wrap: wrap; font-size: 0.85rem;
-    color: rgba(255,255,255,0.85); margin-bottom: 14px;
-  }
-  .timer-task-info i { color: #2fc7ff; margin-right: 5px; }
-  .timer-setup {
-    background: rgba(255,255,255,0.06);
-    border-radius: 14px; padding: 14px 16px;
-    margin: 10px 0 14px;
-    border: 1px solid rgba(255,255,255,0.06);
-  }
-  .timer-setup label {
-    color: rgba(255,255,255,0.75); font-size: 0.72rem;
-    font-weight: 600; text-transform: uppercase;
-    letter-spacing: 0.04em; margin-bottom: 4px;
-  }
-  .timer-setup .form-control {
-    background: rgba(255,255,255,0.09);
-    border: 1px solid rgba(255,255,255,0.1);
-    color: #fff; border-radius: 10px;
-  }
-  .timer-setup .form-control:focus {
-    background: rgba(255,255,255,0.14);
-    border-color: #2fc7ff; color: #fff;
-    box-shadow: 0 0 0 3px rgba(47,199,255,0.15);
-  }
-  .timer-setup .form-control option { background: #0b2b3b; color: #fff; }
-  .timer-actions {
-    display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;
-  }
-  .timer-actions .btn {
-    border-radius: 40px; font-weight: 600;
-    padding: 10px 28px; font-size: 0.9rem;
-    min-width: 150px; border: none;
-  }
-  .timer-actions .btn-warning { background: #ffc107; color: #333; }
-  .timer-actions .btn-warning:hover { background: #e0a800; color: #fff; }
-  .timer-actions .btn-success { background: #28a745; color: #fff; }
-  .timer-actions .btn-success:hover { background: #218838; }
-  .timer-actions .btn-danger  { background: #dc3545; color: #fff; }
-  .timer-actions .btn-danger:hover { background: #c82333; }
-  .timer-segments {
-    margin-top: 16px; padding-top: 14px;
-    border-top: 1px solid rgba(255,255,255,0.08);
-  }
-  .timer-segments small {
-    color: rgba(255,255,255,0.5); font-size: 0.72rem;
-    text-transform: uppercase; letter-spacing: 0.05em;
-    font-weight: 600;
-  }
-  .timer-segments-list {
-    list-style: none; padding: 0; margin: 8px 0 0;
-    font-family: 'SF Mono', Menlo, Consolas, monospace;
-    font-size: 0.78rem;
-  }
-  .timer-segments-list li {
-    padding: 4px 0; color: rgba(255,255,255,0.75);
-    display: flex; gap: 10px; align-items: center;
-  }
-  .timer-segments-list .seg-label { font-weight: 700; min-width: 70px; }
-  .timer-segments-list .seg-label.work  { color: #6ee08a; }
-  .timer-segments-list .seg-label.pause { color: #ffd35c; }
-  .timer-segments-list .seg-dur { color: rgba(255,255,255,0.5); margin-left: auto; }
-  .timer-segments-list .seg-total {
-    margin-top: 8px; padding-top: 8px;
-    border-top: 1px dashed rgba(255,255,255,0.1);
-    color: #6ee08a !important;
-  }
-  @media (max-width: 768px) {
-    .timer-display { font-size: 2.2rem; }
-    .timer-actions .btn { min-width: 110px; padding: 8px 18px; font-size: 0.82rem; }
-  }
     .quick-log-card {
       background: #f8fafc;
       border-radius: 20px;
@@ -313,75 +207,6 @@
           </div>
         </div>
       </div>
-    </div>
-  </div>
-
-    <!-- ─── Live Timer ─── -->
-  <div class="timer-card" id="timerCard">
-    <div class="d-flex justify-content-between align-items-center flex-wrap mb-2">
-      <h6><i class="fa fa-hourglass-half"></i> Live Timer</h6>
-      <span class="timer-status-badge idle" id="timerStatusBadge">Idle</span>
-    </div>
-
-    <div class="timer-display" id="timerDisplay">00:00:00</div>
-
-    <div class="timer-task-info" id="timerTaskInfo" style="display:none;">
-      <span><i class="fa fa-cubes"></i> <span id="timerProject">—</span></span>
-      <span><i class="fa fa-tag"></i> <span id="timerCategory">—</span></span>
-      <span id="timerNotesWrap"><i class="fa fa-sticky-note-o"></i> <span id="timerNotes">—</span></span>
-    </div>
-
-    <!-- Idle setup form -->
-    <div class="timer-setup" id="timerSetup">
-      <div class="form-row">
-        <div class="col-12 col-md-4 mb-2">
-          <label>Project</label>
-          <select id="timerProjectSelect" class="form-control"></select>
-        </div>
-        <div class="col-12 col-md-3 mb-2">
-          <label>Category</label>
-          <select id="timerCategorySelect" class="form-control">
-            <option>Training</option>
-            <option>Meetings</option>
-            <option>CFAT</option>
-            <option>IFAT</option>
-            <option>Implementation</option>
-            <option>Documentation</option>
-            <option>Graphics</option>
-            <option>Software</option>
-            <option>Hardware</option>
-            <option>Study Leave</option>
-            <option>Admin</option>
-            <option>Back-Punching</option>
-            <option>Site</option>
-            <option>Other</option>
-          </select>
-        </div>
-        <div class="col-6 col-md-2 mb-2">
-          <label>Billable</label>
-          <select id="timerBillableSelect" class="form-control">
-            <option value="yes">Yes</option>
-            <option value="no">No</option>
-          </select>
-        </div>
-        <div class="col-6 col-md-3 mb-2">
-          <label>Notes</label>
-          <input type="text" id="timerNotesInput" class="form-control" placeholder="Optional">
-        </div>
-      </div>
-    </div>
-
-    <div class="timer-actions">
-      <button class="btn btn-delta"     id="timerStartBtn"><i class="fa fa-play"></i> Start Work</button>
-      <button class="btn btn-warning"   id="timerPauseBtn"   style="display:none;"><i class="fa fa-pause"></i> Pause</button>
-      <button class="btn btn-success"   id="timerResumeBtn"  style="display:none;"><i class="fa fa-play"></i> Resume</button>
-      <button class="btn btn-danger"    id="timerStopBtn"    style="display:none;"><i class="fa fa-stop"></i> Stop &amp; Log</button>
-      <button class="btn btn-outline-light btn-sm" id="timerDiscardBtn" style="display:none;"><i class="fa fa-times"></i> Discard</button>
-    </div>
-
-    <div class="timer-segments" id="timerSegments" style="display:none;">
-      <small>Session segments</small>
-      <ul id="timerSegmentsList" class="timer-segments-list"></ul>
     </div>
   </div>
 
@@ -592,7 +417,6 @@
 <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script>
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 <script src="timesheet.js"></script>
-<script src="timer.js"></script>
 <script src="trafficlight-full.js"></script>
 </body>
 </html>
