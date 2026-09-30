@@ -316,6 +316,75 @@
     </div>
   </div>
 
+    <!-- ─── Live Timer ─── -->
+  <div class="timer-card" id="timerCard">
+    <div class="d-flex justify-content-between align-items-center flex-wrap mb-2">
+      <h6><i class="fa fa-hourglass-half"></i> Live Timer</h6>
+      <span class="timer-status-badge idle" id="timerStatusBadge">Idle</span>
+    </div>
+
+    <div class="timer-display" id="timerDisplay">00:00:00</div>
+
+    <div class="timer-task-info" id="timerTaskInfo" style="display:none;">
+      <span><i class="fa fa-cubes"></i> <span id="timerProject">—</span></span>
+      <span><i class="fa fa-tag"></i> <span id="timerCategory">—</span></span>
+      <span id="timerNotesWrap"><i class="fa fa-sticky-note-o"></i> <span id="timerNotes">—</span></span>
+    </div>
+
+    <!-- Idle setup form -->
+    <div class="timer-setup" id="timerSetup">
+      <div class="form-row">
+        <div class="col-12 col-md-4 mb-2">
+          <label>Project</label>
+          <select id="timerProjectSelect" class="form-control"></select>
+        </div>
+        <div class="col-12 col-md-3 mb-2">
+          <label>Category</label>
+          <select id="timerCategorySelect" class="form-control">
+            <option>Training</option>
+            <option>Meetings</option>
+            <option>CFAT</option>
+            <option>IFAT</option>
+            <option>Implementation</option>
+            <option>Documentation</option>
+            <option>Graphics</option>
+            <option>Software</option>
+            <option>Hardware</option>
+            <option>Study Leave</option>
+            <option>Admin</option>
+            <option>Back-Punching</option>
+            <option>Site</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="col-6 col-md-2 mb-2">
+          <label>Billable</label>
+          <select id="timerBillableSelect" class="form-control">
+            <option value="yes">Yes</option>
+            <option value="no">No</option>
+          </select>
+        </div>
+        <div class="col-6 col-md-3 mb-2">
+          <label>Notes</label>
+          <input type="text" id="timerNotesInput" class="form-control" placeholder="Optional">
+        </div>
+      </div>
+    </div>
+
+    <div class="timer-actions">
+      <button class="btn btn-delta"     id="timerStartBtn"><i class="fa fa-play"></i> Start Work</button>
+      <button class="btn btn-warning"   id="timerPauseBtn"   style="display:none;"><i class="fa fa-pause"></i> Pause</button>
+      <button class="btn btn-success"   id="timerResumeBtn"  style="display:none;"><i class="fa fa-play"></i> Resume</button>
+      <button class="btn btn-danger"    id="timerStopBtn"    style="display:none;"><i class="fa fa-stop"></i> Stop &amp; Log</button>
+      <button class="btn btn-outline-light btn-sm" id="timerDiscardBtn" style="display:none;"><i class="fa fa-times"></i> Discard</button>
+    </div>
+
+    <div class="timer-segments" id="timerSegments" style="display:none;">
+      <small>Session segments</small>
+      <ul id="timerSegmentsList" class="timer-segments-list"></ul>
+    </div>
+  </div>
+
   <!-- Quick Log Form -->
   <div class="quick-log-card">
     <h6 class="mb-3"><i class="fa fa-pencil-square-o"></i> Log Task</h6>
@@ -523,6 +592,7 @@
 <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script>
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 <script src="timesheet.js"></script>
+<script src="timer.js"></script>
 <script src="trafficlight-full.js"></script>
 </body>
 </html>
