@@ -1104,10 +1104,11 @@
                     {
                       "name": "Quiz 7",
                       "due": "2026-10-04",
-                      "status": "not-started",
+                      "status": "submitted",
                       "marks": "",
                       "weight": 1,
-                      "notes": ""
+                      "notes": "",
+                      "submittedDate": "2026-10-01"
                     }
                   ]
                 },
