@@ -504,7 +504,7 @@
                       "name": "Assessmet2 - Test",
                       "due": "2026-09-01",
                       "status": "submitted",
-                      "marks": "",
+                      "marks": "0.5",
                       "weight": 25,
                       "notes": "",
                       "submittedDate": "2026-09-17"
