@@ -43,7 +43,7 @@
     .btn-grade { background: rgba(162,155,254,0.2); color: #c9c3ff; }
     .btn-grade:hover { background: rgba(162,155,254,0.32); color: #dcd7ff; }
 
-    /* ─── Scope selector ─── */
+    /* ─── Scope selector — improved positioning ─── */
     .scope-selector { position: relative; }
     .scope-btn {
       background: rgba(255,255,255,0.08);
@@ -59,17 +59,19 @@
       gap: 8px;
       cursor: pointer;
       transition: 0.2s;
+      white-space: nowrap;
     }
     .scope-btn:hover { background: rgba(47,199,255,0.15); color: var(--accent); }
     .scope-btn i.fa-calendar-o { color: var(--accent); }
     .scope-btn i.fa-caret-down { font-size: 0.7rem; opacity: 0.6; }
     .scope-btn.custom { border-color: rgba(47,199,255,0.45); background: rgba(47,199,255,0.1); }
     .scope-btn.custom i.fa-calendar-o { color: var(--accent); }
+
     .scope-panel {
       position: absolute;
-      top: calc(100% + 6px);
-      right: 0;
-      min-width: 340px;
+      min-width: 320px;
+      width: 320px;
+      max-width: calc(100vw - 24px);
       background: var(--bg-card);
       border: 1px solid var(--border-subtle);
       border-radius: 16px;
@@ -77,92 +79,56 @@
       z-index: 250;
       padding: 8px;
       display: none;
-      max-height: 460px;
       overflow-y: auto;
+      /* top/bottom/left/right/max-height all set by JS */
     }
     .scope-panel.open { display: block; }
-    .scope-panel .sp-label {
-      font-size: 0.65rem;
-      color: var(--text-secondary);
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      font-weight: 700;
-      padding: 8px 12px 4px;
-    }
-    .scope-panel .sp-item, .scope-panel .sp-sem {
-      padding: 9px 12px;
-      border-radius: 10px;
-      cursor: pointer;
-      font-size: 0.85rem;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      transition: 0.15s;
-      color: var(--text-primary);
-    }
+    .scope-panel .sp-label { font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; padding: 8px 12px 4px; }
+    .scope-panel .sp-item, .scope-panel .sp-sem { padding: 9px 12px; border-radius: 10px; cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; gap: 10px; transition: 0.15s; color: var(--text-primary); }
     .scope-panel .sp-item:hover, .scope-panel .sp-sem:hover { background: rgba(255,255,255,0.05); }
-    .scope-panel .sp-item.active, .scope-panel .sp-sem.active {
-      background: rgba(47,199,255,0.15);
-      color: var(--accent);
-      font-weight: 600;
-    }
-    .scope-panel .sp-check {
-      width: 16px; height: 16px; border-radius: 4px;
-      border: 2px solid rgba(255,255,255,0.2);
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
-      font-size: 0.6rem;
-      color: transparent;
-    }
-    .scope-panel .sp-item.active .sp-check, .scope-panel .sp-sem.active .sp-check {
-      background: var(--accent); border-color: var(--accent); color: #fff;
-    }
-    .scope-panel .sp-sub {
-      font-size: 0.7rem;
-      color: var(--text-secondary);
-      margin-left: auto;
-      font-weight: 400;
-    }
+    .scope-panel .sp-item.active, .scope-panel .sp-sem.active { background: rgba(47,199,255,0.15); color: var(--accent); font-weight: 600; }
+    .scope-panel .sp-check { width: 16px; height: 16px; border-radius: 4px; border: 2px solid rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 0.6rem; color: transparent; }
+    .scope-panel .sp-item.active .sp-check, .scope-panel .sp-sem.active .sp-check { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .scope-panel .sp-sub { font-size: 0.7rem; color: var(--text-secondary); margin-left: auto; font-weight: 400; }
     .scope-panel .sp-divider { height: 1px; background: var(--border-subtle); margin: 6px 8px; }
-    .scope-panel .sp-year {
-      padding: 8px 12px 4px;
-      font-size: 0.7rem;
-      color: var(--accent);
-      font-weight: 700;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-    }
+    .scope-panel .sp-year { padding: 8px 12px 4px; font-size: 0.7rem; color: var(--accent); font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; }
     .scope-panel .sp-sem { padding-left: 24px; }
     .scope-panel .sp-empty { padding: 20px; text-align: center; color: var(--text-secondary); font-size: 0.85rem; }
 
-    /* Scope banner */
-    .scope-banner {
-      background: linear-gradient(90deg, rgba(47,199,255,0.12), transparent 70%);
-      border-left: 3px solid var(--accent);
-      padding: 10px 16px;
-      border-radius: 10px;
-      font-size: 0.82rem;
-      margin-bottom: 22px;
-      display: none;
-      align-items: center;
-      gap: 10px;
-      color: var(--text-secondary);
-    }
+    .scope-banner { background: linear-gradient(90deg, rgba(47,199,255,0.12), transparent 70%); border-left: 3px solid var(--accent); padding: 10px 16px; border-radius: 10px; font-size: 0.82rem; margin-bottom: 22px; display: none; align-items: center; gap: 10px; color: var(--text-secondary); }
     .scope-banner.show { display: flex; }
     .scope-banner strong { color: var(--accent); }
-    .scope-banner .scope-reset {
-      margin-left: auto;
-      background: transparent;
-      border: 1px solid var(--border-subtle);
-      border-radius: 40px;
-      padding: 5px 14px;
-      font-size: 0.72rem;
-      color: var(--text-primary);
-      cursor: pointer;
-      transition: 0.15s;
-      font-weight: 600;
-    }
+    .scope-banner .scope-reset { margin-left: auto; background: transparent; border: 1px solid var(--border-subtle); border-radius: 40px; padding: 5px 14px; font-size: 0.72rem; color: var(--text-primary); cursor: pointer; transition: 0.15s; font-weight: 600; }
     .scope-banner .scope-reset:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ─── Command palette ─── */
+    .cmd-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.72); backdrop-filter: blur(6px); z-index: 2000; align-items: flex-start; justify-content: center; padding: 10vh 20px 20px; }
+    .cmd-modal.open { display: flex; }
+    .cmd-box { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 18px; width: 100%; max-width: 620px; overflow: hidden; box-shadow: 0 30px 80px rgba(0,0,0,0.7); animation: cmdIn 0.2s ease; max-height: 78vh; display: flex; flex-direction: column; }
+    @keyframes cmdIn { from { opacity: 0; transform: scale(0.97) translateY(-8px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+    .cmd-input-wrap { display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--border-subtle); flex-shrink: 0; }
+    .cmd-input-wrap i.fa-bolt { color: var(--accent); font-size: 1.1rem; }
+    .cmd-input-wrap input { flex: 1; background: transparent; border: none; outline: none; color: var(--text-primary); font-size: 1rem; font-family: inherit; padding: 4px 0; }
+    .cmd-input-wrap input::placeholder { color: var(--text-secondary); }
+    .cmd-hint { font-size: 0.68rem; color: var(--text-secondary); opacity: 0.75; white-space: nowrap; background: rgba(255,255,255,0.05); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 2px 8px; font-family: monospace; }
+    .cmd-results { flex: 1; overflow-y: auto; padding: 6px; min-height: 120px; }
+    .cmd-group-label { font-size: 0.62rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; padding: 10px 12px 4px; }
+    .cmd-item { display: flex; align-items: center; gap: 12px; padding: 9px 12px; border-radius: 10px; cursor: pointer; transition: 0.1s; }
+    .cmd-item:hover, .cmd-item.active { background: rgba(47,199,255,0.12); }
+    .cmd-item.active { box-shadow: inset 2px 0 0 var(--accent); }
+    .cmd-item .ci-icon { font-size: 1rem; width: 22px; text-align: center; flex-shrink: 0; }
+    .cmd-item .ci-body { flex: 1; min-width: 0; }
+    .cmd-item .ci-label { font-size: 0.88rem; color: var(--text-primary); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .cmd-item .ci-label mark { background: rgba(47,199,255,0.35); color: #fff; border-radius: 2px; padding: 0 2px; }
+    .cmd-item .ci-sub { font-size: 0.72rem; color: var(--text-secondary); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .cmd-item .ci-tag { font-size: 0.6rem; padding: 2px 8px; border-radius: 30px; background: rgba(255,255,255,0.08); color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; flex-shrink: 0; }
+    .cmd-item .ci-tag.action { background: rgba(47,199,255,0.2); color: var(--accent); }
+    .cmd-item .ci-tag.nav { background: rgba(0,184,148,0.2); color: #4ae4b8; }
+    .cmd-item .ci-tag.scope { background: rgba(162,155,254,0.2); color: #c9c3ff; }
+    .cmd-empty { padding: 40px 20px; text-align: center; color: var(--text-secondary); font-size: 0.85rem; }
+    .cmd-footer { padding: 8px 16px; border-top: 1px solid var(--border-subtle); font-size: 0.7rem; color: var(--text-secondary); display: flex; gap: 18px; justify-content: center; background: rgba(0,0,0,0.15); flex-shrink: 0; flex-wrap: wrap; }
+    .cmd-footer span { display: flex; align-items: center; gap: 5px; }
+    .cmd-footer kbd { background: rgba(255,255,255,0.08); padding: 1px 7px; border-radius: 4px; font-family: monospace; font-size: 0.68rem; color: var(--text-primary); border: 1px solid rgba(255,255,255,0.06); }
 
     .stats-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 16px; margin-bottom: 30px; }
     .stat-item { background: var(--bg-card); border-radius: 16px; padding: 16px 20px; border: 1px solid var(--border-subtle); text-align: center; transition: 0.2s; position: relative; }
@@ -223,7 +189,6 @@
     .btn-add-ass { background: rgba(255,255,255,0.06); color: var(--text-primary); border: 1px dashed var(--border-subtle); border-radius: 40px; padding: 4px 14px; min-height: 32px; font-size: 0.7rem; transition: 0.2s; }
     .btn-add-ass:hover { border-color: var(--accent); color: var(--accent); background: rgba(47,199,255,0.08); }
 
-    /* Grade modal */
     .grade-modal .modal-box { max-width: 760px; }
     .grade-modal .grade-summary { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin: 16px 0 20px; }
     .grade-modal .grade-summary .card { background: rgba(255,255,255,0.05); border-radius: 12px; padding: 12px 16px; text-align: center; border: 1px solid var(--border-subtle); }
@@ -356,7 +321,9 @@
       .study-header h1 { font-size: 1.5rem; }
       .study-header .actions .btn { font-size: 0.7rem; padding: 6px 14px; min-height: 38px; }
       .scope-btn { font-size: 0.72rem; padding: 6px 14px; min-height: 38px; }
-      .scope-panel { min-width: 260px; }
+      .scope-panel { min-width: 260px; width: 260px; }
+      .cmd-box { max-height: 85vh; }
+      .cmd-footer { font-size: 0.65rem; gap: 10px; }
       .stats-bar { grid-template-columns: repeat(3, 1fr); gap: 10px; }
       .stat-item .number { font-size: 1.2rem; }
       .level-header { flex-direction: column; align-items: stretch; }
@@ -611,6 +578,23 @@
   </div>
 </div>
 
+<!-- Command Palette -->
+<div class="cmd-modal" id="cmdPalette">
+  <div class="cmd-box">
+    <div class="cmd-input-wrap">
+      <i class="fa fa-bolt"></i>
+      <input type="text" id="cmdInput" placeholder="Search commands, units, topics, assignments..." autocomplete="off" spellcheck="false">
+      <span class="cmd-hint">ESC</span>
+    </div>
+    <div class="cmd-results" id="cmdResults"></div>
+    <div class="cmd-footer">
+      <span><kbd>↑</kbd><kbd>↓</kbd> Navigate</span>
+      <span><kbd>Enter</kbd> Run</span>
+      <span><kbd>Esc</kbd> Close</span>
+    </div>
+  </div>
+</div>
+
 <div class="modal-custom" id="genericModal">
   <div class="modal-box">
     <h3 id="modalTitle">Add Item</h3>
@@ -756,21 +740,12 @@
     if (loader) loader.style.display = 'none';
     return;
   }
-  console.log('✅ Authorized user:', user.username);
 
-  // ─────────────────────────────────────────────────────────────
-  //  DEFAULT DATA
-  // ─────────────────────────────────────────────────────────────
+  // ─── DEFAULT DATA ───
   function getDefaultData() {
-    function topic(name, subtopics) {
-      return { name, subtopics: subtopics || [], completed: false, subCompleted: [] };
-    }
+    function topic(name, subtopics) { return { name, subtopics: subtopics || [], completed: false, subCompleted: [] }; }
     function makeWeekly(name, due, weight) {
-      return {
-        id: 'ass_' + name.replace(/\s+/g, '_') + '_' + due,
-        name, due, status: 'not-started', marks: '', weight,
-        submittedDate: null, gradedDate: null, notes: '', priority: 'normal'
-      };
+      return { id: 'ass_' + name.replace(/\s+/g, '_') + '_' + due, name, due, status: 'not-started', marks: '', weight, submittedDate: null, gradedDate: null, notes: '', priority: 'normal' };
     }
 
     const bia109 = {
@@ -845,18 +820,14 @@
       ]
     };
 
-    // Weekly items (weeks 2-11, 1% each)
     const addWeeklyItems = (unit, weeksArray, extraLabel) => {
-      weeksArray.forEach((w) => {
-        unit.weeks[w - 1].assignments.push(makeWeekly(`${extraLabel} Week ${w}`, `2026-08-${String(10 + w).padStart(2,'0')}`, 1));
-      });
+      weeksArray.forEach((w) => { unit.weeks[w - 1].assignments.push(makeWeekly(`${extraLabel} Week ${w}`, `2026-08-${String(10 + w).padStart(2,'0')}`, 1)); });
     };
     addWeeklyItems(bsc107, [2,3,4,5,6,7,8,9,10,11], 'Weekly Quiz');
     addWeeklyItems(bsc104, [2,3,4,5,6,7,8,9,10,11], 'Weekly Portfolio');
     addWeeklyItems(bsc106, [2,3,4,5,6,7,8,9,10,11], 'Weekly Quiz');
     addWeeklyItems(bia109, [2,3,4,5,6,7,8,9,10,11], 'Weekly Quiz');
 
-    // Assignment 2 (Test) = 25%
     [bia109, bsc107, bsc104, bsc106].forEach(u => {
       const prefix = u.code.toLowerCase();
       u.weeks[4].assignments.push({ id: `ass_${prefix}_test2`, name: 'Assignment 2 (Test)', due: '2026-08-20', status: 'not-started', marks: '', weight: 25, submittedDate: null, gradedDate: null, notes: '', priority: 'normal' });
@@ -867,10 +838,7 @@
     return {
       years: [{
         name: '2026',
-        semesters: [{
-          name: 'Semester 2',
-          units: [bsc106, bsc104, bsc107, bia109]
-        }]
+        semesters: [{ name: 'Semester 2', units: [bsc106, bsc104, bsc107, bia109] }]
       }]
     };
   }
@@ -883,21 +851,12 @@
   let gradeModalOpen = false;
   let submitModalContext = null;
 
-  let saveVersion = 0;
-  let savedVersion = 0;
-  let isSaving = false;
-  let currentFileSha = null;
-  let lastSyncedSha = null;
-  let saveStatus = 'saved';
-  let debounceTimer = null;
-  let maxWaitTimer = null;
-  const DEBOUNCE_DELAY = 1000;
-  const MAX_SAVE_DELAY = 5000;
+  let saveVersion = 0, savedVersion = 0, isSaving = false, currentFileSha = null, lastSyncedSha = null;
+  let saveStatus = 'saved', debounceTimer = null, maxWaitTimer = null;
+  const DEBOUNCE_DELAY = 1000, MAX_SAVE_DELAY = 5000;
   let isOffline = false;
 
-  // ─────────────────────────────────────────────────────────────
-  //  SCOPE MANAGEMENT
-  // ─────────────────────────────────────────────────────────────
+  // ─── SCOPE ───
   const SCOPE_KEY = 'studies_scope_v1';
   let scope = { mode: 'auto', yearName: null, semesterName: null };
 
@@ -906,49 +865,37 @@
       const raw = localStorage.getItem(SCOPE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
-        if (parsed && typeof parsed === 'object' && parsed.mode) {
-          return { mode: parsed.mode, yearName: parsed.yearName || null, semesterName: parsed.semesterName || null };
-        }
+        if (parsed && typeof parsed === 'object' && parsed.mode) return { mode: parsed.mode, yearName: parsed.yearName || null, semesterName: parsed.semesterName || null };
       }
     } catch(e) {}
     return { mode: 'auto', yearName: null, semesterName: null };
   }
-  function saveScopeToStorage() {
-    try { localStorage.setItem(SCOPE_KEY, JSON.stringify(scope)); } catch(e) {}
-  }
+  function saveScopeToStorage() { try { localStorage.setItem(SCOPE_KEY, JSON.stringify(scope)); } catch(e) {} }
 
   function detectAutoScope() {
     if (!studyData.years || !studyData.years.length) return null;
     const now = new Date();
     const currentYear = String(now.getFullYear());
-    const month = now.getMonth(); // 0=Jan
-    // SA academic calendar: Jan–Jun → Semester 1, Jul–Dec → Semester 2
-    const semNum = (month >= 0 && month <= 5) ? 1 : 2;
-    const semName = 'Semester ' + semNum;
+    const month = now.getMonth();
+    const semName = 'Semester ' + ((month >= 0 && month <= 5) ? 1 : 2);
 
     let year = studyData.years.find(y => y.name === currentYear);
     if (!year) year = studyData.years[studyData.years.length - 1];
     if (!year) return null;
-
     let sem = year.semesters.find(s => s.name === semName);
     if (!sem && year.semesters.length) sem = year.semesters[0];
-
     return { yearName: year.name, semesterName: sem ? sem.name : null };
   }
 
   function resolveScope() {
-    if (scope.mode === 'auto') {
-      const auto = detectAutoScope();
-      return auto || { yearName: null, semesterName: null };
-    }
+    if (scope.mode === 'auto') { const auto = detectAutoScope(); return auto || { yearName: null, semesterName: null }; }
     if (scope.mode === 'all') return { yearName: null, semesterName: null, all: true };
     return { yearName: scope.yearName, semesterName: scope.semesterName };
   }
 
-  // Returns true if the given (year, semester) should be visible under current scope
   function yearInScope(yearName, resolved) {
     if (scope.mode === 'all') return true;
-    if (!resolved.yearName) return true; // no filter if we couldn't resolve
+    if (!resolved.yearName) return true;
     return yearName === resolved.yearName;
   }
   function semesterInScope(semesterName, resolved) {
@@ -979,9 +926,7 @@
     closeScopePanel();
   }
 
-  window.clearScope = function() {
-    setScope({ mode: 'auto', yearName: null, semesterName: null });
-  };
+  window.clearScope = function() { setScope({ mode: 'auto', yearName: null, semesterName: null }); };
 
   function updateScopeUI() {
     const label = document.getElementById('scopeLabel');
@@ -991,25 +936,16 @@
 
     if (scope.mode === 'auto') {
       const resolved = resolveScope();
-      const autoText = resolved.yearName ? `${resolved.yearName} · ${resolved.semesterName || 'All semesters'}` : 'No data';
+      const autoText = resolved.yearName ? `${resolved.yearName} · ${resolved.semesterName || 'All sems'}` : 'No data';
       label.textContent = `Auto · ${autoText}`;
       btn.classList.remove('custom');
-    } else if (scope.mode === 'all') {
-      label.textContent = 'All years';
-      btn.classList.add('custom');
-    } else if (scope.mode === 'year-only') {
-      label.textContent = `${scope.yearName} · All sems`;
-      btn.classList.add('custom');
-    } else if (scope.mode === 'year-sem') {
-      label.textContent = `${scope.yearName} · ${scope.semesterName}`;
-      btn.classList.add('custom');
-    }
+    } else if (scope.mode === 'all') { label.textContent = 'All years'; btn.classList.add('custom'); }
+    else if (scope.mode === 'year-only') { label.textContent = `${scope.yearName} · All sems`; btn.classList.add('custom'); }
+    else if (scope.mode === 'year-sem') { label.textContent = `${scope.yearName} · ${scope.semesterName}`; btn.classList.add('custom'); }
 
     if (banner) {
-      if (scope.mode === 'auto') {
-        banner.classList.remove('show');
-        banner.innerHTML = '';
-      } else {
+      if (scope.mode === 'auto') { banner.classList.remove('show'); banner.innerHTML = ''; }
+      else {
         let text = '';
         if (scope.mode === 'all') text = 'Showing <strong>all years and semesters</strong>';
         else if (scope.mode === 'year-only') text = `Filtered to <strong>${escapeHtml(scope.yearName)}</strong> (all semesters)`;
@@ -1027,11 +963,7 @@
   function buildScopePanel() {
     const panel = document.getElementById('scopePanel');
     if (!panel) return;
-
-    if (!studyData.years || !studyData.years.length) {
-      panel.innerHTML = '<div class="sp-empty">No data yet</div>';
-      return;
-    }
+    if (!studyData.years || !studyData.years.length) { panel.innerHTML = '<div class="sp-empty">No data yet</div>'; return; }
 
     let html = '';
     const auto = detectAutoScope();
@@ -1039,36 +971,24 @@
 
     html += `<div class="sp-label">Smart scope</div>`;
     html += `<div class="sp-item ${scope.mode === 'auto' ? 'active' : ''}" data-action="auto">
-      <span class="sp-check"><i class="fa fa-check"></i></span>
-      <span>🔄 Auto (current)</span>
-      <span class="sp-sub">${escapeHtml(autoText)}</span>
-    </div>`;
+      <span class="sp-check"><i class="fa fa-check"></i></span><span>🔄 Auto (current)</span><span class="sp-sub">${escapeHtml(autoText)}</span></div>`;
     html += `<div class="sp-item ${scope.mode === 'all' ? 'active' : ''}" data-action="all">
-      <span class="sp-check"><i class="fa fa-check"></i></span>
-      <span>📚 All years &amp; semesters</span>
-    </div>`;
-
-    html += `<div class="sp-divider"></div>`;
-    html += `<div class="sp-label">Pick specific</div>`;
+      <span class="sp-check"><i class="fa fa-check"></i></span><span>📚 All years &amp; semesters</span></div>`;
+    html += `<div class="sp-divider"></div><div class="sp-label">Pick specific</div>`;
 
     studyData.years.forEach(year => {
       html += `<div class="sp-year">${escapeHtml(year.name)}</div>`;
       const isYearOnly = scope.mode === 'year-only' && scope.yearName === year.name;
       html += `<div class="sp-item sp-sem ${isYearOnly ? 'active' : ''}" data-action="year-only" data-year="${escapeHtml(year.name)}">
-        <span class="sp-check"><i class="fa fa-check"></i></span>
-        <span>📅 All semesters</span>
-      </div>`;
+        <span class="sp-check"><i class="fa fa-check"></i></span><span>📅 All semesters</span></div>`;
       year.semesters.forEach(sem => {
         const isActive = scope.mode === 'year-sem' && scope.yearName === year.name && scope.semesterName === sem.name;
         html += `<div class="sp-item sp-sem ${isActive ? 'active' : ''}" data-action="year-sem" data-year="${escapeHtml(year.name)}" data-sem="${escapeHtml(sem.name)}">
-          <span class="sp-check"><i class="fa fa-check"></i></span>
-          <span>📘 ${escapeHtml(sem.name)}</span>
-        </div>`;
+          <span class="sp-check"><i class="fa fa-check"></i></span><span>📘 ${escapeHtml(sem.name)}</span></div>`;
       });
     });
 
     panel.innerHTML = html;
-
     panel.querySelectorAll('.sp-item').forEach(el => {
       el.addEventListener('click', () => {
         const action = el.dataset.action;
@@ -1080,29 +1000,91 @@
     });
   }
 
+  // ★ SMART PANEL POSITIONING — fixes cropping on smaller screens
+  function positionScopePanel() {
+    const panel = document.getElementById('scopePanel');
+    const btn = document.getElementById('scopeBtn');
+    if (!panel || !btn) return;
+
+    // Reset first to get natural size
+    panel.style.top = '';
+    panel.style.bottom = '';
+    panel.style.left = '';
+    panel.style.right = '';
+    panel.style.maxHeight = '';
+
+    requestAnimationFrame(() => {
+      const btnRect = btn.getBoundingClientRect();
+      const panelHeight = panel.scrollHeight || 400;
+      const panelWidth = panel.offsetWidth || 320;
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const margin = 12;
+
+      // ── Horizontal ──
+      // Prefer aligning the panel's left edge with the button's left edge
+      const spaceRight = vw - btnRect.left - margin;
+      const spaceLeft = btnRect.right - margin;
+      if (panelWidth <= spaceRight) {
+        panel.style.left = '0';
+        panel.style.right = 'auto';
+      } else if (panelWidth <= spaceLeft) {
+        panel.style.left = 'auto';
+        panel.style.right = '0';
+      } else {
+        // Neither side fits — clamp to viewport (rare)
+        panel.style.left = '0';
+        panel.style.right = 'auto';
+        panel.style.width = Math.min(panelWidth, vw - margin * 2) + 'px';
+      }
+
+      // ── Vertical ──
+      const spaceBelow = vh - btnRect.bottom - 6 - margin;
+      const spaceAbove = btnRect.top - 6 - margin;
+      const preferredHeight = Math.min(panelHeight, 460);
+
+      if (spaceBelow >= preferredHeight) {
+        panel.style.top = 'calc(100% + 6px)';
+        panel.style.bottom = 'auto';
+        panel.style.maxHeight = '460px';
+      } else if (spaceAbove >= preferredHeight) {
+        panel.style.top = 'auto';
+        panel.style.bottom = 'calc(100% + 6px)';
+        panel.style.maxHeight = '460px';
+      } else if (spaceBelow >= spaceAbove) {
+        panel.style.top = 'calc(100% + 6px)';
+        panel.style.bottom = 'auto';
+        panel.style.maxHeight = Math.max(160, spaceBelow) + 'px';
+      } else {
+        panel.style.top = 'auto';
+        panel.style.bottom = 'calc(100% + 6px)';
+        panel.style.maxHeight = Math.max(160, spaceAbove) + 'px';
+      }
+    });
+  }
+
   function openScopePanel() {
     const panel = document.getElementById('scopePanel');
     if (!panel) return;
     buildScopePanel();
     panel.classList.add('open');
+    // Position after rendering
+    positionScopePanel();
   }
   function closeScopePanel() {
     const panel = document.getElementById('scopePanel');
     if (panel) panel.classList.remove('open');
   }
 
-  // ─────────────────────────────────────────────────────────────
-  //  SAVE / SYNC plumbing
-  // ─────────────────────────────────────────────────────────────
-  window.addEventListener('online', () => {
-    isOffline = false;
-    updateSaveStatusUI('saved');
-    if (savedVersion !== saveVersion) scheduleSave();
+  // Re-position on resize & scroll
+  window.addEventListener('resize', () => {
+    const panel = document.getElementById('scopePanel');
+    if (panel && panel.classList.contains('open')) positionScopePanel();
   });
-  window.addEventListener('offline', () => {
-    isOffline = true;
-    updateSaveStatusUI('offline');
-  });
+
+  // ─── SAVE / SYNC ───
+  window.addEventListener('online', () => { isOffline = false; updateSaveStatusUI('saved'); if (savedVersion !== saveVersion) scheduleSave(); });
+  window.addEventListener('offline', () => { isOffline = true; updateSaveStatusUI('offline'); });
 
   function updateSaveStatusUI(status) {
     saveStatus = status;
@@ -1115,38 +1097,24 @@
   }
 
   const CACHE_KEY = 'studies_data_cache';
-  function saveToCache(data) {
-    try { localStorage.setItem(CACHE_KEY, JSON.stringify({ data, timestamp: Date.now(), version: '3.0' })); } catch(e) {}
-  }
+  function saveToCache(data) { try { localStorage.setItem(CACHE_KEY, JSON.stringify({ data, timestamp: Date.now(), version: '3.0' })); } catch(e) {} }
   function loadFromCache() {
-    try {
-      const raw = localStorage.getItem(CACHE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (parsed && parsed.data && parsed.data.years) return parsed.data;
-      }
-    } catch(e) {}
+    try { const raw = localStorage.getItem(CACHE_KEY); if (raw) { const parsed = JSON.parse(raw); if (parsed && parsed.data && parsed.data.years) return parsed.data; } } catch(e) {}
     return null;
   }
 
   function getStudyPath() {
     const { dataPath } = window.REPO_CONFIG || { dataPath: 'data' };
-    const encUser = encodeURIComponent(user.username);
-    return `${dataPath}/users/${encUser}/studies.json`;
+    return `${dataPath}/users/${encodeURIComponent(user.username)}/studies.json`;
   }
 
   async function loadFromGitHub() {
     const { owner, repo, branch } = window.REPO_CONFIG;
     const path = getStudyPath();
-    const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`;
-    const resp = await fetch(url, { headers: { Authorization: `token ${user.pat}` } });
-    if (!resp.ok) {
-      if (resp.status === 404) return null;
-      throw new Error(`GitHub error: ${resp.status}`);
-    }
+    const resp = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`, { headers: { Authorization: `token ${user.pat}` } });
+    if (!resp.ok) { if (resp.status === 404) return null; throw new Error(`GitHub error: ${resp.status}`); }
     const data = await resp.json();
-    const content = atob(data.content.replace(/\n/g, ''));
-    const parsed = JSON.parse(content);
+    const parsed = JSON.parse(atob(data.content.replace(/\n/g, '')));
     if (parsed && parsed.years) return { data: parsed, sha: data.sha };
     return null;
   }
@@ -1169,16 +1137,10 @@
         render();
         markDirty();
       }
-      if (!studyData.years || studyData.years.length === 0) {
-        studyData = getDefaultData();
-        render();
-        markDirty();
-      }
-      return true;
+      if (!studyData.years || studyData.years.length === 0) { studyData = getDefaultData(); render(); markDirty(); }
     } catch (err) {
       console.error(err);
       showToast('Failed to load study data: ' + err.message, 'error');
-      return false;
     } finally {
       if (loaderEl) loaderEl.style.display = 'none';
       updateSaveStatusUI('saved');
@@ -1188,20 +1150,14 @@
   function markDirty() {
     saveToCache(studyData);
     saveVersion++;
-    if (!isOffline) updateSaveStatusUI('saving');
-    else updateSaveStatusUI('offline');
+    updateSaveStatusUI(isOffline ? 'offline' : 'saving');
     scheduleSave();
   }
 
   function scheduleSave() {
-    clearTimeout(debounceTimer);
-    clearTimeout(maxWaitTimer);
+    clearTimeout(debounceTimer); clearTimeout(maxWaitTimer);
     debounceTimer = setTimeout(() => { debounceTimer = null; maxWaitTimer = null; runSaveManager(); }, DEBOUNCE_DELAY);
-    maxWaitTimer = setTimeout(() => {
-      maxWaitTimer = null;
-      if (debounceTimer) { clearTimeout(debounceTimer); debounceTimer = null; }
-      runSaveManager();
-    }, MAX_SAVE_DELAY);
+    maxWaitTimer = setTimeout(() => { maxWaitTimer = null; if (debounceTimer) { clearTimeout(debounceTimer); debounceTimer = null; } runSaveManager(); }, MAX_SAVE_DELAY);
   }
 
   async function runSaveManager() {
@@ -1214,17 +1170,14 @@
       while (savedVersion !== saveVersion) {
         const versionToSave = saveVersion;
         const dataToSave = JSON.parse(JSON.stringify(studyData));
-
         let remote = null;
         try { remote = await fetchRemoteStudyData(); } catch (e) { console.warn('Remote check failed:', e); }
-
         const remoteSha = remote?.sha || null;
         const remoteContent = remote?.content || null;
         const hasRemoteChanged = remoteSha && lastSyncedSha && remoteSha !== lastSyncedSha;
 
         if (hasRemoteChanged) {
           const resolution = await showSyncConflictDialog(dataToSave, remoteContent, remoteSha);
-
           if (resolution === 'cancel') { isSaving = false; return; }
           if (resolution === 'remote') {
             studyData = remoteContent;
@@ -1280,22 +1233,16 @@
 
   async function fetchRemoteStudyData() {
     const { owner, repo, branch } = window.REPO_CONFIG;
-    const path = getStudyPath();
-    const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`;
-    const resp = await fetch(url, { headers: { Authorization: `token ${user.pat}` } });
+    const resp = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${getStudyPath()}?ref=${branch}`, { headers: { Authorization: `token ${user.pat}` } });
     if (resp.status === 404) return null;
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const data = await resp.json();
-    const content = JSON.parse(atob(data.content.replace(/\n/g, '')));
-    return { sha: data.sha, content };
+    return { sha: data.sha, content: JSON.parse(atob(data.content.replace(/\n/g, ''))) };
   }
 
   function countAssignmentsInData(data) {
     let total = 0, done = 0;
-    (data.years || []).forEach(y => y.semesters.forEach(s => s.units.forEach(u => u.weeks.forEach(w => (w.assignments || []).forEach(a => {
-      total++;
-      if (a.status === 'submitted' || a.status === 'graded') done++;
-    })))));
+    (data.years || []).forEach(y => y.semesters.forEach(s => s.units.forEach(u => u.weeks.forEach(w => (w.assignments || []).forEach(a => { total++; if (a.status === 'submitted' || a.status === 'graded') done++; })))));
     return { total, done };
   }
 
@@ -1304,10 +1251,8 @@
       const modal = document.getElementById('syncConflictModal');
       const localStats = document.getElementById('conflictLocalStats');
       const remoteStats = document.getElementById('conflictRemoteStats');
-
       const localAss = countAssignmentsInData(localData);
       const remoteAss = remoteData ? countAssignmentsInData(remoteData) : { total: 0, done: 0 };
-
       localStats.innerHTML = `<strong>${localAss.total}</strong> assignments<br><strong>${localAss.done}</strong> completed<br><em style="opacity:0.7;">${new Date().toLocaleString()}</em>`;
       remoteStats.innerHTML = remoteData ? `<strong>${remoteAss.total}</strong> assignments<br><strong>${remoteAss.done}</strong> completed<br><em style="opacity:0.7;">${remoteSha ? remoteSha.substring(0, 8) : 'unknown'}</em>` : '<em>No remote data</em>';
 
@@ -1336,7 +1281,6 @@
       btnRemote.addEventListener('click', onRemote);
       btnMerge.addEventListener('click', onMerge);
       cancelBtn.addEventListener('click', onCancel);
-
       modal.classList.add('open');
       setTimeout(() => { try { btnLocal.focus(); } catch(e) {} }, 50);
     });
@@ -1345,25 +1289,16 @@
   function autoMergeStudyData(localData, remoteData) {
     if (!remoteData || !remoteData.years) return localData;
     const remoteMap = new Map();
-    (remoteData.years || []).forEach(y => y.semesters.forEach(s => s.units.forEach(u => u.weeks.forEach(w => (w.assignments || []).forEach(a => {
-      if (a.id) remoteMap.set(a.id, a);
-    })))));
+    (remoteData.years || []).forEach(y => y.semesters.forEach(s => s.units.forEach(u => u.weeks.forEach(w => (w.assignments || []).forEach(a => { if (a.id) remoteMap.set(a.id, a); })))));
     (localData.years || []).forEach(y => y.semesters.forEach(s => s.units.forEach(u => u.weeks.forEach(w => (w.assignments || []).forEach(a => {
       const r = remoteMap.get(a.id);
       if (!r) return;
       const localHasResult = (a.status === 'submitted' || a.status === 'graded') && a.marks;
       const remoteHasResult = (r.status === 'submitted' || r.status === 'graded') && r.marks;
-      if (remoteHasResult && !localHasResult) {
-        a.status = r.status; a.marks = r.marks;
-        a.submittedDate = r.submittedDate || a.submittedDate;
-        a.gradedDate = r.gradedDate || a.gradedDate;
-      } else if (localHasResult && remoteHasResult) {
-        const localDate = a.gradedDate || a.submittedDate || '';
-        const remoteDate = r.gradedDate || r.submittedDate || '';
-        if (remoteDate > localDate) {
-          a.status = r.status; a.marks = r.marks;
-          a.submittedDate = r.submittedDate; a.gradedDate = r.gradedDate;
-        }
+      if (remoteHasResult && !localHasResult) { a.status = r.status; a.marks = r.marks; a.submittedDate = r.submittedDate || a.submittedDate; a.gradedDate = r.gradedDate || a.gradedDate; }
+      else if (localHasResult && remoteHasResult) {
+        const l = a.gradedDate || a.submittedDate || '', rr = r.gradedDate || r.submittedDate || '';
+        if (rr > l) { a.status = r.status; a.marks = r.marks; a.submittedDate = r.submittedDate; a.gradedDate = r.gradedDate; }
       }
     })))));
     return localData;
@@ -1374,20 +1309,13 @@
     const list = document.getElementById('versionList');
     list.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-secondary);">Loading…</div>';
     modal.classList.add('open');
-
     try {
       const { owner, repo, branch } = window.REPO_CONFIG;
-      const path = getStudyPath();
-      const url = `https://api.github.com/repos/${owner}/${repo}/commits?path=${encodeURIComponent(path)}&sha=${branch}&per_page=15`;
+      const url = `https://api.github.com/repos/${owner}/${repo}/commits?path=${encodeURIComponent(getStudyPath())}&sha=${branch}&per_page=15`;
       const resp = await fetch(url, { headers: { Authorization: `token ${user.pat}` } });
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const commits = await resp.json();
-
-      if (!commits.length) {
-        list.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-secondary);">No version history yet.</div>';
-        return;
-      }
-
+      if (!commits.length) { list.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-secondary);">No version history yet.</div>'; return; }
       list.innerHTML = commits.map((c, i) => `
         <div class="version-item">
           <div class="v-info">
@@ -1396,33 +1324,23 @@
             <div class="v-date">${new Date(c.commit.author.date).toLocaleString()}</div>
           </div>
           <div class="v-actions"><button type="button" class="btn" data-sha="${c.sha}">Restore</button></div>
-        </div>
-      `).join('');
-
+        </div>`).join('');
       list.querySelectorAll('button[data-sha]').forEach(btn => {
         btn.addEventListener('click', async () => {
           const sha = btn.dataset.sha;
-          if (!confirm('Replace your current in-editor data with this version?\n\n(Your current data will be saved to browser cache first.)')) return;
+          if (!confirm('Replace your current in-editor data with this version?')) return;
           try {
             const { owner, repo } = window.REPO_CONFIG;
-            const path = getStudyPath();
-            const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${sha}`;
-            const resp = await fetch(url, { headers: { Authorization: `token ${user.pat}` } });
+            const resp = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${getStudyPath()}?ref=${sha}`, { headers: { Authorization: `token ${user.pat}` } });
             if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
             const data = await resp.json();
-            const content = JSON.parse(atob(data.content.replace(/\n/g, '')));
             saveToCache(studyData);
-            studyData = content;
-            currentFileSha = null;
-            lastSyncedSha = null;
-            expandScopedPath();
-            render();
-            markDirty();
+            studyData = JSON.parse(atob(data.content.replace(/\n/g, '')));
+            currentFileSha = null; lastSyncedSha = null;
+            expandScopedPath(); render(); markDirty();
             modal.classList.remove('open');
             showToast(`✅ Restored version ${sha.substring(0, 8)}`, 'success');
-          } catch (err) {
-            showToast('Restore failed: ' + err.message, 'error');
-          }
+          } catch (err) { showToast('Restore failed: ' + err.message, 'error'); }
         });
       });
     } catch (err) {
@@ -1432,12 +1350,11 @@
 
   async function saveToGitHub(data, shaToUse) {
     const { owner, repo, branch } = window.REPO_CONFIG;
-    const path = getStudyPath();
     let sha = shaToUse !== undefined ? shaToUse : currentFileSha;
     try {
-      const result = await GitHubAPI.updateFile(owner, repo, path, data, 'Update study data', branch, user.pat, sha);
+      const result = await GitHubAPI.updateFile(owner, repo, getStudyPath(), data, 'Update study data', branch, user.pat, sha);
       if (result && result.content && result.content.sha) return result.content.sha;
-      const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
+      const file = await GitHubAPI.getFileContent(owner, repo, getStudyPath(), branch, user.pat);
       if (file && file.sha) return file.sha;
       return null;
     } catch (err) {
@@ -1447,10 +1364,8 @@
   }
 
   async function refreshSHAFromGitHub() {
-    const { owner, repo, branch } = window.REPO_CONFIG;
-    const path = getStudyPath();
     try {
-      const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
+      const file = await GitHubAPI.getFileContent(window.REPO_CONFIG.owner, window.REPO_CONFIG.repo, getStudyPath(), window.REPO_CONFIG.branch, user.pat);
       if (file && file.sha) return { sha: file.sha, content: file.content };
     } catch(e) {}
     return null;
@@ -1466,9 +1381,7 @@
     setTimeout(() => { el.style.opacity = '0'; el.style.transform = 'translateX(20px)'; setTimeout(() => el.remove(), 400); }, 3000);
   }
 
-  function getTopic(yi, si, ui, wi, ti) {
-    try { return studyData.years[yi].semesters[si].units[ui].weeks[wi].topics[ti]; } catch { return null; }
-  }
+  function getTopic(yi, si, ui, wi, ti) { try { return studyData.years[yi].semesters[si].units[ui].weeks[wi].topics[ti]; } catch { return null; } }
   function recalcTopicCompletion(topic) {
     if (!topic.subtopics || !topic.subCompleted) { topic.completed = false; return; }
     while (topic.subCompleted.length < topic.subtopics.length) topic.subCompleted.push(false);
@@ -1476,24 +1389,9 @@
     topic.completed = topic.subCompleted.every(Boolean);
   }
 
-  function dateOnly(value) {
-    if (!value) return null;
-    const parts = value.split('-').map(Number);
-    return new Date(parts[0], parts[1]-1, parts[2]);
-  }
-  function formatLocalYMD(dateObj) {
-    const y = dateObj.getFullYear();
-    const m = String(dateObj.getMonth() + 1).padStart(2, '0');
-    const d = String(dateObj.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
-  }
-  function daysUntil(dueDateStr) {
-    if (!dueDateStr) return null;
-    const due = dateOnly(dueDateStr);
-    const today = new Date();
-    today.setHours(0,0,0,0);
-    return Math.ceil((due - today) / (1000*60*60*24));
-  }
+  function dateOnly(value) { if (!value) return null; const parts = value.split('-').map(Number); return new Date(parts[0], parts[1]-1, parts[2]); }
+  function formatLocalYMD(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+  function daysUntil(dueDateStr) { if (!dueDateStr) return null; const due = dateOnly(dueDateStr); const today = new Date(); today.setHours(0,0,0,0); return Math.ceil((due - today) / 86400000); }
 
   function getAssignmentState(a) {
     if (a.status === 'submitted') return 'submitted';
@@ -1512,22 +1410,17 @@
     const weight = parseFloat(a.weight) || 0;
     const diff = daysUntil(a.due);
     let score = 0;
-    if (state === 'overdue') score += 40;
-    else if (state === 'due-soon') score += 20;
+    if (state === 'overdue') score += 40; else if (state === 'due-soon') score += 20;
     if (diff !== null && diff < 0) score += Math.abs(diff) * 2;
     else if (diff !== null && diff <= 3) score += (4 - diff) * 5;
-    if (weight > 30) score += 15;
-    else if (weight > 15) score += 5;
-    if (a.status === 'in-progress') score -= 10;
-    else if (a.status === 'not-started') score += 10;
+    if (weight > 30) score += 15; else if (weight > 15) score += 5;
+    if (a.status === 'in-progress') score -= 10; else if (a.status === 'not-started') score += 10;
     score = Math.min(100, Math.max(0, score));
     let level = 'low';
-    if (score >= 70) level = 'high';
-    else if (score >= 40) level = 'medium';
+    if (score >= 70) level = 'high'; else if (score >= 40) level = 'medium';
     return { score, level, label: level === 'high' ? 'High risk' : (level === 'medium' ? 'Medium' : 'Low') };
   }
 
-  // ─── SCOPED collectors — preserve original indices ───
   function getAllAssignments() {
     const all = [];
     const resolved = resolveScope();
@@ -1554,31 +1447,20 @@
       if (!yearInScope(year.name, resolved)) return;
       year.semesters.forEach((sem) => {
         if (!semesterInScope(sem.name, resolved)) return;
-        sem.units.forEach(u => {
-          if (!units.find(unit => unit.code === u.code)) units.push({ code: u.code, name: u.name });
-        });
+        sem.units.forEach(u => { if (!units.find(unit => unit.code === u.code)) units.push({ code: u.code, name: u.name }); });
       });
     });
     return units;
   }
 
   function computeStreak() {
-    const today = new Date();
-    today.setHours(0,0,0,0);
+    const today = new Date(); today.setHours(0,0,0,0);
     let streak = 0;
     let best = parseInt(localStorage.getItem('bestStreak') || '0');
     const completedDates = new Set();
-    getAllAssignments().forEach(a => {
-      if (a.submittedDate) {
-        const d = dateOnly(a.submittedDate);
-        if (d) completedDates.add(formatLocalYMD(d));
-      }
-    });
+    getAllAssignments().forEach(a => { if (a.submittedDate) { const d = dateOnly(a.submittedDate); if (d) completedDates.add(formatLocalYMD(d)); } });
     let current = new Date(today);
-    while (true) {
-      const key = formatLocalYMD(current);
-      if (completedDates.has(key)) { streak++; current.setDate(current.getDate() - 1); } else break;
-    }
+    while (true) { const key = formatLocalYMD(current); if (completedDates.has(key)) { streak++; current.setDate(current.getDate() - 1); } else break; }
     if (streak > best) { best = streak; localStorage.setItem('bestStreak', String(best)); }
     return { current: streak, best };
   }
@@ -1589,9 +1471,7 @@
     return counts;
   }
 
-  function safeRender(fn) {
-    try { fn(); } catch (e) { console.error('Render error:', e); showToast('Render error: ' + e.message, 'error'); }
-  }
+  function safeRender(fn) { try { fn(); } catch (e) { console.error('Render error:', e); showToast('Render error: ' + e.message, 'error'); } }
 
   function renderStats() {
     let totalYears = 0, totalUnits = 0, totalWeeks = 0, totalTopics = 0, doneTopics = 0, totalAssign = 0, pendingAssign = 0;
@@ -1606,11 +1486,7 @@
           u.weeks.forEach(w => {
             totalWeeks++;
             w.topics.forEach(t => { totalTopics++; if (t.completed) doneTopics++; });
-            w.assignments.forEach(a => {
-              totalAssign++;
-              const state = getAssignmentState(a);
-              if (state !== 'submitted' && state !== 'graded') pendingAssign++;
-            });
+            w.assignments.forEach(a => { totalAssign++; const s = getAssignmentState(a); if (s !== 'submitted' && s !== 'graded') pendingAssign++; });
           });
         });
       });
@@ -1628,27 +1504,18 @@
     const container = document.getElementById('deadlinesContainer');
     if (!container) return;
     const all = getAllAssignments();
-    const active = all.filter(a => {
-      const state = getAssignmentState(a);
-      return state !== 'submitted' && state !== 'graded';
-    });
-    const sorted = active.sort((a,b) => {
-      const da = a.due ? dateOnly(a.due).getTime() : Infinity;
-      const db = b.due ? dateOnly(b.due).getTime() : Infinity;
-      return da - db;
-    });
+    const active = all.filter(a => { const s = getAssignmentState(a); return s !== 'submitted' && s !== 'graded'; });
+    const sorted = active.sort((a,b) => (a.due ? dateOnly(a.due).getTime() : Infinity) - (b.due ? dateOnly(b.due).getTime() : Infinity));
     const upcoming = sorted.slice(0, 5);
     let html = `<div class="deadlines-widget"><h4>⏰ Upcoming Deadlines</h4>`;
     if (!upcoming.length) html += `<p class="text-muted-light">No upcoming deadlines in this scope. 🎉</p>`;
-    else {
-      upcoming.forEach(a => {
-        const diff = daysUntil(a.due);
-        let cls = '', label = '';
-        if (diff !== null && diff < 0) { cls = 'overdue'; label = ' (Overdue)'; }
-        else if (diff !== null && diff <= 3) { cls = 'due-soon'; label = ' (Soon)'; }
-        html += `<div class="deadline-item"><span>${escapeHtml(a.name)} <span class="text-muted-light">(${a.unitCode} W${a.weekNum})</span></span><span class="${cls}">${a.due || '—'}${label}</span></div>`;
-      });
-    }
+    else upcoming.forEach(a => {
+      const diff = daysUntil(a.due);
+      let cls = '', label = '';
+      if (diff !== null && diff < 0) { cls = 'overdue'; label = ' (Overdue)'; }
+      else if (diff !== null && diff <= 3) { cls = 'due-soon'; label = ' (Soon)'; }
+      html += `<div class="deadline-item"><span>${escapeHtml(a.name)} <span class="text-muted-light">(${a.unitCode} W${a.weekNum})</span></span><span class="${cls}">${a.due || '—'}${label}</span></div>`;
+    });
     html += `</div>`;
     container.innerHTML = html;
   }
@@ -1656,18 +1523,15 @@
   function renderAnalytics() {
     const container = document.getElementById('analyticsContainer');
     if (!container) return;
-    const unitData = [];
     const resolved = resolveScope();
+    const unitData = [];
     studyData.years.forEach((year) => {
       if (!yearInScope(year.name, resolved)) return;
       year.semesters.forEach((sem) => {
         if (!semesterInScope(sem.name, resolved)) return;
         sem.units.forEach(u => {
           let totalSub = 0, doneSub = 0;
-          u.weeks.forEach(w => w.topics.forEach(t => {
-            totalSub += t.subtopics.length;
-            doneSub += t.subCompleted.filter(Boolean).length;
-          }));
+          u.weeks.forEach(w => w.topics.forEach(t => { totalSub += t.subtopics.length; doneSub += t.subCompleted.filter(Boolean).length; }));
           const pct = totalSub > 0 ? Math.round((doneSub/totalSub)*100) : 0;
           if (!unitData.find(x => x.code === u.code)) unitData.push({ code: u.code, pct });
         });
@@ -1676,8 +1540,7 @@
     let html = `<div class="analytics-dashboard"><div class="analytics-card"><h4>📊 Unit Progress</h4>`;
     if (!unitData.length) html += `<p class="text-muted-light" style="font-size:0.85rem;">No units in this scope.</p>`;
     unitData.forEach(u => {
-      html += `<div class="stat-row"><span class="label">${escapeHtml(u.code)}</span><span class="value">${u.pct}%</span></div>
-               <div class="mini-progress"><div class="fill" style="width:${u.pct}%"></div></div>`;
+      html += `<div class="stat-row"><span class="label">${escapeHtml(u.code)}</span><span class="value">${u.pct}%</span></div><div class="mini-progress"><div class="fill" style="width:${u.pct}%"></div></div>`;
     });
     html += `</div>`;
 
@@ -1688,11 +1551,7 @@
         if (!semesterInScope(sem.name, resolved)) return;
         sem.units.forEach(u => u.weeks.forEach(w => {
           w.topics.forEach(t => { totalTopics++; if (t.completed) doneTopics++; });
-          w.assignments.forEach(a => {
-            totalAssign++;
-            const state = getAssignmentState(a);
-            if (state !== 'submitted' && state !== 'graded') pendingAssign++;
-          });
+          w.assignments.forEach(a => { totalAssign++; const s = getAssignmentState(a); if (s !== 'submitted' && s !== 'graded') pendingAssign++; });
         }));
       });
     });
@@ -1703,8 +1562,7 @@
       <div class="stat-row" style="margin-top:8px;"><span class="label">Assignments</span><span class="value">${totalAssign}</span></div>
       <div class="stat-row"><span class="label">Pending</span><span class="value">${pendingAssign}</span></div>
     </div>`;
-    html += `<div class="analytics-card"><h4>📅 Weekly Activity</h4><div class="chart-container"><canvas id="weeklyAnalyticsChart"></canvas></div></div>`;
-    html += `</div>`;
+    html += `<div class="analytics-card"><h4>📅 Weekly Activity</h4><div class="chart-container"><canvas id="weeklyAnalyticsChart"></canvas></div></div></div>`;
     container.innerHTML = html;
     setTimeout(() => {
       const canvas = document.getElementById('weeklyAnalyticsChart');
@@ -1717,13 +1575,9 @@
           sem.units.forEach(u => u.weeks.forEach(w => {
             const key = year.name + ' W' + w.number;
             let total = 0, done = 0;
-            w.topics.forEach(t => {
-              total += t.subtopics.length;
-              done += t.subCompleted.filter(Boolean).length;
-            });
+            w.topics.forEach(t => { total += t.subtopics.length; done += t.subCompleted.filter(Boolean).length; });
             if (!weekly[key]) weekly[key] = { total: 0, done: 0 };
-            weekly[key].total += total;
-            weekly[key].done += done;
+            weekly[key].total += total; weekly[key].done += done;
           }));
         });
       });
@@ -1733,20 +1587,14 @@
       if (window.weeklyChart) window.weeklyChart.destroy();
       window.weeklyChart = new Chart(canvas, {
         type: 'bar',
-        data: {
-          labels: labels,
-          datasets: [
-            { label: 'Completed', data: doneData, backgroundColor: 'rgba(0,184,148,0.6)' },
-            { label: 'Total', data: totalData, backgroundColor: 'rgba(47,199,255,0.25)' }
-          ]
-        },
+        data: { labels, datasets: [
+          { label: 'Completed', data: doneData, backgroundColor: 'rgba(0,184,148,0.6)' },
+          { label: 'Total', data: totalData, backgroundColor: 'rgba(47,199,255,0.25)' }
+        ]},
         options: {
           responsive: true, maintainAspectRatio: false,
           plugins: { legend: { labels: { color: '#e0e8ee', font: { size: 9 } } } },
-          scales: {
-            x: { ticks: { color: '#8a9fb0', font: { size: 8 } } },
-            y: { ticks: { color: '#8a9fb0', font: { size: 8 } } }
-          }
+          scales: { x: { ticks: { color: '#8a9fb0', font: { size: 8 } } }, y: { ticks: { color: '#8a9fb0', font: { size: 8 } } } }
         }
       });
     }, 200);
@@ -1759,72 +1607,48 @@
       if (!yearInScope(year.name, resolved)) return;
       year.semesters.forEach((sem) => {
         if (!semesterInScope(sem.name, resolved)) return;
-        sem.units.forEach(u => u.weeks.forEach(w => w.topics.forEach(t => {
-          totalTopics += t.subtopics.length;
-          doneTopics += t.subCompleted.filter(Boolean).length;
-        })));
+        sem.units.forEach(u => u.weeks.forEach(w => w.topics.forEach(t => { totalTopics += t.subtopics.length; doneTopics += t.subCompleted.filter(Boolean).length; })));
       });
     });
-
     const allAssign = getAllAssignments();
     const totalAssign = allAssign.length;
     const submittedAssign = allAssign.filter(a => a.status === 'submitted' || a.status === 'graded').length;
-    const gradedWithMarks = allAssign.filter(a => {
-      const m = parseFloat(a.marks);
-      return !isNaN(m) && (a.status === 'submitted' || a.status === 'graded');
-    }).length;
-
+    const gradedWithMarks = allAssign.filter(a => { const m = parseFloat(a.marks); return !isNaN(m) && (a.status === 'submitted' || a.status === 'graded'); }).length;
     const learningPct = totalTopics > 0 ? Math.round((doneTopics / totalTopics) * 100) : 0;
     const courseworkPct = totalAssign > 0 ? Math.round((submittedAssign / totalAssign) * 100) : 0;
     const masteryPct = totalAssign > 0 ? Math.round((gradedWithMarks / totalAssign) * 100) : 0;
-
-    const kpiLearning = document.getElementById('kpiLearning');
-    const kpiCoursework = document.getElementById('kpiCoursework');
-    const kpiAcademic = document.getElementById('kpiAcademic');
-    if (kpiLearning) kpiLearning.textContent = learningPct + '%';
-    if (kpiCoursework) kpiCoursework.textContent = courseworkPct + '%';
-    if (kpiAcademic) kpiAcademic.textContent = masteryPct + '%';
-
-    const setSub = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
-    setSub('kpiLearningSub',  `${doneTopics}/${totalTopics} subtopics`);
-    setSub('kpiCourseworkSub', `${submittedAssign}/${totalAssign} submitted`);
-    setSub('kpiAcademicSub',   `${gradedWithMarks}/${totalAssign} with marks`);
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    set('kpiLearning', learningPct + '%');
+    set('kpiCoursework', courseworkPct + '%');
+    set('kpiAcademic', masteryPct + '%');
+    set('kpiLearningSub', `${doneTopics}/${totalTopics} subtopics`);
+    set('kpiCourseworkSub', `${submittedAssign}/${totalAssign} submitted`);
+    set('kpiAcademicSub', `${gradedWithMarks}/${totalAssign} with marks`);
   }
 
   function renderPriorityQueue() {
     const container = document.getElementById('priorityQueue');
     if (!container) return;
     const all = getAllAssignments();
-    const active = all.filter(a => {
-      const state = getAssignmentState(a);
-      return state === 'overdue' || state === 'due-soon';
-    });
-    active.sort((a,b) => {
-      const da = daysUntil(a.due) ?? 999;
-      const db = daysUntil(b.due) ?? 999;
-      return da - db;
-    });
+    const active = all.filter(a => { const s = getAssignmentState(a); return s === 'overdue' || s === 'due-soon'; });
+    active.sort((a,b) => (daysUntil(a.due) ?? 999) - (daysUntil(b.due) ?? 999));
     let html = `<div class="priority-queue"><h4>🔥 Priority Queue</h4>`;
-    if (!active.length) {
-      html += `<p class="text-muted-light">No urgent assignments in this scope. Great job!</p>`;
-    } else {
-      active.forEach(a => {
-        const state = getAssignmentState(a);
-        const diff = daysUntil(a.due);
-        const label = state === 'overdue' ? `🔴 ${Math.abs(diff)} days overdue` : `🟠 Due in ${diff} days`;
-        const badgeClass = state === 'overdue' ? 'overdue' : 'due-soon';
-        html += `
-          <div class="priority-item">
-            <div class="prio-info">
-              <span class="badge-status ${badgeClass}">${state === 'overdue' ? 'OVERDUE' : 'DUE SOON'}</span>
-              <span class="title">${escapeHtml(a.name)}</span>
-              <span class="unit">${a.unitCode}</span>
-              <span class="days">${label}</span>
-            </div>
-            <div><button type="button" class="btn btn-sm btn-submit" onclick="openSubmitModal(${a.yi}, ${a.si}, ${a.ui}, ${a.wi}, ${a.ai})">✓ Submit</button></div>
-          </div>`;
-      });
-    }
+    if (!active.length) html += `<p class="text-muted-light">No urgent assignments in this scope. Great job!</p>`;
+    else active.forEach(a => {
+      const state = getAssignmentState(a);
+      const diff = daysUntil(a.due);
+      const label = state === 'overdue' ? `🔴 ${Math.abs(diff)} days overdue` : `🟠 Due in ${diff} days`;
+      const badgeClass = state === 'overdue' ? 'overdue' : 'due-soon';
+      html += `<div class="priority-item">
+        <div class="prio-info">
+          <span class="badge-status ${badgeClass}">${state === 'overdue' ? 'OVERDUE' : 'DUE SOON'}</span>
+          <span class="title">${escapeHtml(a.name)}</span>
+          <span class="unit">${a.unitCode}</span>
+          <span class="days">${label}</span>
+        </div>
+        <div><button type="button" class="btn btn-sm btn-submit" onclick="openSubmitModal(${a.yi}, ${a.si}, ${a.ui}, ${a.wi}, ${a.ai})">✓ Submit</button></div>
+      </div>`;
+    });
     html += `</div>`;
     container.innerHTML = html;
   }
@@ -1832,57 +1656,24 @@
   function renderWorkload() {
     const container = document.getElementById('workloadChart');
     if (!container) return;
-
     const all = getAllAssignments();
-    const today = new Date();
-    today.setHours(0,0,0,0);
-
-    const next7 = [];
-    const next7Keys = [];
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(today);
-      d.setDate(today.getDate() + i);
-      next7.push(d);
-      next7Keys.push(formatLocalYMD(d));
-    }
-
-    const counts = next7Keys.map(key => all.filter(a => {
-      const state = getAssignmentState(a);
-      return a.due === key && state !== 'submitted' && state !== 'graded';
-    }).length);
-
+    const today = new Date(); today.setHours(0,0,0,0);
+    const next7 = [], next7Keys = [];
+    for (let i = 0; i < 7; i++) { const d = new Date(today); d.setDate(today.getDate() + i); next7.push(d); next7Keys.push(formatLocalYMD(d)); }
+    const counts = next7Keys.map(key => all.filter(a => { const s = getAssignmentState(a); return a.due === key && s !== 'submitted' && s !== 'graded'; }).length);
     const labels = next7.map(d => d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }));
-
-    let html = `<div class="workload-chart"><h4>📅 Workload – Next 7 Days</h4><div class="chart-container"><canvas id="workloadCanvas"></canvas></div></div>`;
-    container.innerHTML = html;
-
+    container.innerHTML = `<div class="workload-chart"><h4>📅 Workload – Next 7 Days</h4><div class="chart-container"><canvas id="workloadCanvas"></canvas></div></div>`;
     setTimeout(() => {
       const canvas = document.getElementById('workloadCanvas');
       if (!canvas) return;
       if (window.workloadChart) window.workloadChart.destroy();
       window.workloadChart = new Chart(canvas, {
         type: 'bar',
-        data: {
-          labels: labels,
-          datasets: [{
-            label: 'Assignments due',
-            data: counts,
-            backgroundColor: counts.map(c => c > 0 ? 'rgba(47,199,255,0.65)' : 'rgba(47,199,255,0.15)'),
-            borderColor: '#2fc7ff',
-            borderWidth: 1,
-            borderRadius: 6
-          }]
-        },
+        data: { labels, datasets: [{ label: 'Assignments due', data: counts, backgroundColor: counts.map(c => c > 0 ? 'rgba(47,199,255,0.65)' : 'rgba(47,199,255,0.15)'), borderColor: '#2fc7ff', borderWidth: 1, borderRadius: 6 }] },
         options: {
           responsive: true, maintainAspectRatio: false,
-          plugins: {
-            legend: { display: false },
-            tooltip: { callbacks: { label: (ctx) => `${ctx.parsed.y} assignment${ctx.parsed.y === 1 ? '' : 's'}` } }
-          },
-          scales: {
-            y: { beginAtZero: true, ticks: { color: '#8a9fb0', font: { size: 9 }, precision: 0 }, grid: { color: 'rgba(255,255,255,0.05)' } },
-            x: { ticks: { color: '#8a9fb0', font: { size: 9 } }, grid: { display: false } }
-          }
+          plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => `${ctx.parsed.y} assignment${ctx.parsed.y === 1 ? '' : 's'}` } } },
+          scales: { y: { beginAtZero: true, ticks: { color: '#8a9fb0', font: { size: 9 }, precision: 0 }, grid: { color: 'rgba(255,255,255,0.05)' } }, x: { ticks: { color: '#8a9fb0', font: { size: 9 } }, grid: { display: false } } }
         }
       });
     }, 80);
@@ -1892,54 +1683,34 @@
     const container = document.getElementById('studyStreak');
     if (!container) return;
     const streak = computeStreak();
-    container.innerHTML = `
-      <div class="study-streak">
-        <div><span class="streak-number">🔥 ${streak.current}</span><span class="streak-label"> day streak</span></div>
-        <div class="best">🏆 Best streak: <span>${streak.best}</span> days</div>
-        <div style="margin-left:auto; font-size:0.8rem; color:var(--text-secondary);">Keep going!</div>
-      </div>
-    `;
+    container.innerHTML = `<div class="study-streak">
+      <div><span class="streak-number">🔥 ${streak.current}</span><span class="streak-label"> day streak</span></div>
+      <div class="best">🏆 Best streak: <span>${streak.best}</span> days</div>
+      <div style="margin-left:auto; font-size:0.8rem; color:var(--text-secondary);">Keep going!</div>
+    </div>`;
   }
 
-  // ━━━━━━━ ALL ASSIGNMENTS TAB ━━━━━━━
+  // ─── ALL ASSIGNMENTS TAB ───
   function renderAllAssignmentsTab() {
     const container = document.getElementById('allAssignmentsTab');
     if (!container) return;
-
     const filterUnit = document.getElementById('filterUnit')?.value || 'all';
     const searchRaw = document.getElementById('searchAssignments')?.value || '';
     const search = searchRaw.toLowerCase();
     const statusFilter = assignmentsStatusFilter;
-
     const all = getAllAssignments();
     const units = getUnits();
 
     let filtered = all;
     if (filterUnit !== 'all') filtered = filtered.filter(a => a.unitCode === filterUnit);
     if (statusFilter !== 'all') {
-      if (statusFilter === 'active') {
-        filtered = filtered.filter(a => {
-          const s = getAssignmentState(a);
-          return s !== 'submitted' && s !== 'graded';
-        });
-      } else {
-        filtered = filtered.filter(a => getAssignmentState(a) === statusFilter);
-      }
+      if (statusFilter === 'active') filtered = filtered.filter(a => { const s = getAssignmentState(a); return s !== 'submitted' && s !== 'graded'; });
+      else filtered = filtered.filter(a => getAssignmentState(a) === statusFilter);
     }
-    if (search) {
-      filtered = filtered.filter(a =>
-        a.name.toLowerCase().includes(search) ||
-        a.unitCode.toLowerCase().includes(search) ||
-        (a.notes || '').toLowerCase().includes(search)
-      );
-    }
+    if (search) filtered = filtered.filter(a => a.name.toLowerCase().includes(search) || a.unitCode.toLowerCase().includes(search) || (a.notes || '').toLowerCase().includes(search));
 
     const grouped = {};
-    filtered.forEach(a => {
-      if (!grouped[a.unitCode]) grouped[a.unitCode] = [];
-      grouped[a.unitCode].push(a);
-    });
-
+    filtered.forEach(a => { if (!grouped[a.unitCode]) grouped[a.unitCode] = []; grouped[a.unitCode].push(a); });
     const statCounts = { overdue: 0, 'due-soon': 0, 'in-progress': 0, 'not-started': 0, submitted: 0, graded: 0 };
     filtered.forEach(a => { statCounts[getAssignmentState(a)]++; });
 
@@ -1948,7 +1719,6 @@
         <h4><i class="fa fa-tasks"></i> All Assignments</h4>
         <span class="tab-total">${filtered.length} shown${filtered.length !== all.length ? ` · ${all.length} in scope` : ''}</span>
       </div>
-
       <div class="quick-pills">
         <div class="pill ${statusFilter === 'active' ? 'active' : ''}" data-status="active">Active</div>
         <div class="pill ${statusFilter === 'overdue' ? 'active overdue' : ''}" data-status="overdue">Overdue${statCounts.overdue ? ' · ' + statCounts.overdue : ''}</div>
@@ -1957,21 +1727,13 @@
         <div class="pill ${statusFilter === 'graded' ? 'active graded' : ''}" data-status="graded">Graded</div>
         <div class="pill ${statusFilter === 'all' ? 'active' : ''}" data-status="all">All</div>
       </div>
-
       <div class="filter-row">
-        <select id="filterUnit">
-          <option value="all">All Units</option>
-          ${units.map(u => `<option value="${u.code}" ${filterUnit === u.code ? 'selected' : ''}>${u.code} — ${escapeHtml(u.name)}</option>`).join('')}
-        </select>
+        <select id="filterUnit"><option value="all">All Units</option>${units.map(u => `<option value="${u.code}" ${filterUnit === u.code ? 'selected' : ''}>${u.code} — ${escapeHtml(u.name)}</option>`).join('')}</select>
         <input type="text" id="searchAssignments" placeholder="🔍 Search assignments or notes..." value="${escapeHtml(searchRaw)}">
-      </div>
-    `;
+      </div>`;
 
     if (!filtered.length) {
-      html += `<div class="empty-assignments">
-        <i class="fa fa-inbox"></i>
-        No assignments match the current filter.
-      </div>`;
+      html += `<div class="empty-assignments"><i class="fa fa-inbox"></i>No assignments match the current filter.</div>`;
     } else {
       if (filtered.length !== all.length) {
         html += `<div class="quick-stats">`;
@@ -1982,110 +1744,64 @@
         if (statCounts.graded) html += `<span class="qstat graded">🎓 ${statCounts.graded} Graded</span>`;
         html += `</div>`;
       }
-
       Object.entries(grouped).forEach(([unitCode, items]) => {
         items.sort((a, b) => {
-          const sA = getAssignmentState(a);
-          const sB = getAssignmentState(b);
-          const doneA = sA === 'submitted' || sA === 'graded';
-          const doneB = sB === 'submitted' || sB === 'graded';
+          const sA = getAssignmentState(a), sB = getAssignmentState(b);
+          const doneA = sA === 'submitted' || sA === 'graded', doneB = sB === 'submitted' || sB === 'graded';
           if (doneA !== doneB) return doneA ? 1 : -1;
-          const dA = a.due ? dateOnly(a.due).getTime() : Infinity;
-          const dB = b.due ? dateOnly(b.due).getTime() : Infinity;
-          return dA - dB;
+          return (a.due ? dateOnly(a.due).getTime() : Infinity) - (b.due ? dateOnly(b.due).getTime() : Infinity);
         });
-
         const us = { overdue: 0, 'due-soon': 0, pending: 0, submitted: 0, graded: 0 };
-        items.forEach(a => {
-          const s = getAssignmentState(a);
-          if (s === 'overdue') us.overdue++;
-          else if (s === 'due-soon') us['due-soon']++;
-          else if (s === 'submitted') us.submitted++;
-          else if (s === 'graded') us.graded++;
-          else us.pending++;
-        });
-
+        items.forEach(a => { const s = getAssignmentState(a); if (s === 'overdue') us.overdue++; else if (s === 'due-soon') us['due-soon']++; else if (s === 'submitted') us.submitted++; else if (s === 'graded') us.graded++; else us.pending++; });
         const key = `assignments_${unitCode}`;
         const userToggled = expanded[key];
-        const autoExpand = (statusFilter === 'overdue' || statusFilter === 'due-soon')
-          || (statusFilter === 'active' && (us.overdue > 0 || us['due-soon'] > 0));
+        const autoExpand = (statusFilter === 'overdue' || statusFilter === 'due-soon') || (statusFilter === 'active' && (us.overdue > 0 || us['due-soon'] > 0));
         const isExpanded = userToggled !== undefined ? userToggled : autoExpand;
         const isUrgent = us.overdue > 0 || us['due-soon'] > 0;
-
-        html += `
-          <div class="assign-group ${isExpanded ? 'open' : ''} ${isUrgent ? 'urgent' : ''}" data-unit="${escapeHtml(unitCode)}">
-            <div class="assign-group-header" onclick="toggleAssignGroup('${escapeHtml(unitCode)}')">
-              <div class="group-title">
-                <i class="fa fa-chevron-${isExpanded ? 'down' : 'right'} chev"></i>
-                <strong>${escapeHtml(unitCode)}</strong>
-                <span class="group-count">${items.length} item${items.length === 1 ? '' : 's'}</span>
-              </div>
-              <div class="group-chips">
-                ${us.overdue ? `<span class="chip overdue">${us.overdue} overdue</span>` : ''}
-                ${us['due-soon'] ? `<span class="chip due-soon">${us['due-soon']} due soon</span>` : ''}
-                ${us.pending ? `<span class="chip pending">${us.pending} pending</span>` : ''}
-                ${us.submitted ? `<span class="chip submitted">${us.submitted} submitted</span>` : ''}
-                ${us.graded ? `<span class="chip graded">${us.graded} graded</span>` : ''}
-              </div>
-            </div>
-            <div class="assign-group-body">
-              ${items.map(a => renderAssignRow(a)).join('')}
+        html += `<div class="assign-group ${isExpanded ? 'open' : ''} ${isUrgent ? 'urgent' : ''}" data-unit="${escapeHtml(unitCode)}">
+          <div class="assign-group-header" onclick="toggleAssignGroup('${escapeHtml(unitCode)}')">
+            <div class="group-title"><i class="fa fa-chevron-${isExpanded ? 'down' : 'right'} chev"></i><strong>${escapeHtml(unitCode)}</strong><span class="group-count">${items.length} item${items.length === 1 ? '' : 's'}</span></div>
+            <div class="group-chips">
+              ${us.overdue ? `<span class="chip overdue">${us.overdue} overdue</span>` : ''}
+              ${us['due-soon'] ? `<span class="chip due-soon">${us['due-soon']} due soon</span>` : ''}
+              ${us.pending ? `<span class="chip pending">${us.pending} pending</span>` : ''}
+              ${us.submitted ? `<span class="chip submitted">${us.submitted} submitted</span>` : ''}
+              ${us.graded ? `<span class="chip graded">${us.graded} graded</span>` : ''}
             </div>
           </div>
-        `;
+          <div class="assign-group-body">${items.map(a => renderAssignRow(a)).join('')}</div>
+        </div>`;
       });
     }
-
     html += `</div>`;
     container.innerHTML = html;
-
-    container.querySelectorAll('.quick-pills .pill').forEach(p => {
-      p.addEventListener('click', () => {
-        assignmentsStatusFilter = p.dataset.status;
-        renderAllAssignmentsTab();
-      });
-    });
+    container.querySelectorAll('.quick-pills .pill').forEach(p => p.addEventListener('click', () => { assignmentsStatusFilter = p.dataset.status; renderAllAssignmentsTab(); }));
     document.getElementById('filterUnit')?.addEventListener('change', renderAllAssignmentsTab);
     document.getElementById('searchAssignments')?.addEventListener('input', renderAllAssignmentsTab);
   }
 
   function renderAssignRow(a) {
     const state = getAssignmentState(a);
-    const stateMap = {
-      'not-started': { label: 'Not Started', icon: '⚪' },
-      'in-progress': { label: 'In Progress', icon: '🔵' },
-      'due-soon':    { label: 'Due Soon',    icon: '🟠' },
-      'overdue':     { label: 'Overdue',     icon: '🔴' },
-      'submitted':   { label: 'Submitted',   icon: '✅' },
-      'graded':      { label: 'Graded',      icon: '🎓' }
-    };
+    const stateMap = { 'not-started': { label: 'Not Started', icon: '⚪' }, 'in-progress': { label: 'In Progress', icon: '🔵' }, 'due-soon': { label: 'Due Soon', icon: '🟠' }, 'overdue': { label: 'Overdue', icon: '🔴' }, 'submitted': { label: 'Submitted', icon: '✅' }, 'graded': { label: 'Graded', icon: '🎓' } };
     const s = stateMap[state] || { label: state, icon: '' };
-
     let timeStr = '—';
     const diff = daysUntil(a.due);
     if (state === 'submitted') timeStr = a.submittedDate ? `Submitted ${a.submittedDate}` : 'Submitted';
     else if (state === 'graded') timeStr = a.gradedDate ? `Graded ${a.gradedDate}` : 'Graded';
     else if (diff !== null && diff !== undefined) timeStr = diff < 0 ? `${Math.abs(diff)}d overdue` : (diff === 0 ? 'Today' : `in ${diff}d`);
-
     const marksStr = a.marks ? `<strong>${escapeHtml(a.marks)}</strong>` : '—';
-
-    return `
-      <div class="assign-row ${state}">
-        <div class="ar-status">${s.icon}</div>
-        <div class="ar-main">
-          <div class="ar-name">${escapeHtml(a.name)}</div>
-          <div class="ar-meta">Week ${a.weekNum} · Due ${a.due || '—'} · Weight ${a.weight || 0}%</div>
-        </div>
-        <div class="ar-time">${timeStr}</div>
-        <div class="ar-marks">${marksStr}</div>
-        <div class="ar-badge ${state}">${s.label}</div>
-        <div class="ar-actions">
-          ${state !== 'submitted' && state !== 'graded' ? `<button type="button" class="btn-xs btn-submit" onclick="openSubmitModal(${a.yi}, ${a.si}, ${a.ui}, ${a.wi}, ${a.ai})" title="Submit"><i class="fa fa-check"></i></button>` : ''}
-          <button type="button" class="btn-xs btn-edit-ass" onclick="editAssignment(${a.yi}, ${a.si}, ${a.ui}, ${a.wi}, ${a.ai})" title="Edit"><i class="fa fa-pencil"></i></button>
-          <button type="button" class="btn-xs btn-del-ass" onclick="deleteAssignment(${a.yi}, ${a.si}, ${a.ui}, ${a.wi}, ${a.ai})" title="Delete"><i class="fa fa-trash"></i></button>
-        </div>
+    return `<div class="assign-row ${state}">
+      <div class="ar-status">${s.icon}</div>
+      <div class="ar-main"><div class="ar-name">${escapeHtml(a.name)}</div><div class="ar-meta">Week ${a.weekNum} · Due ${a.due || '—'} · Weight ${a.weight || 0}%</div></div>
+      <div class="ar-time">${timeStr}</div>
+      <div class="ar-marks">${marksStr}</div>
+      <div class="ar-badge ${state}">${s.label}</div>
+      <div class="ar-actions">
+        ${state !== 'submitted' && state !== 'graded' ? `<button type="button" class="btn-xs btn-submit" onclick="openSubmitModal(${a.yi}, ${a.si}, ${a.ui}, ${a.wi}, ${a.ai})" title="Submit"><i class="fa fa-check"></i></button>` : ''}
+        <button type="button" class="btn-xs btn-edit-ass" onclick="editAssignment(${a.yi}, ${a.si}, ${a.ui}, ${a.wi}, ${a.ai})" title="Edit"><i class="fa fa-pencil"></i></button>
+        <button type="button" class="btn-xs btn-del-ass" onclick="deleteAssignment(${a.yi}, ${a.si}, ${a.ui}, ${a.wi}, ${a.ai})" title="Delete"><i class="fa fa-trash"></i></button>
       </div>
-    `;
+    </div>`;
   }
 
   window.toggleAssignGroup = function(unitCode) {
@@ -2100,7 +1816,7 @@
     }
   };
 
-  // ━━━━━━━ TREE RENDER ━━━━━━━
+  // ─── TREE RENDER ───
   function renderTree() {
     const container = document.getElementById('treeContainer');
     if (!container) return;
@@ -2109,7 +1825,6 @@
       container.innerHTML = `<div class="text-center text-muted-light py-5"><i class="fa fa-graduation-cap" style="font-size:3rem;display:block;margin-bottom:12px;opacity:0.3;"></i><h4>No study data yet</h4></div>`;
       return;
     }
-
     const resolved = resolveScope();
     const searchLower = searchTerm.toLowerCase().trim();
     let anyYearRendered = false;
@@ -2117,17 +1832,13 @@
     studyData.years.forEach((year, yi) => {
       if (!yearInScope(year.name, resolved)) return;
       anyYearRendered = true;
-
       const yearKey = `year_${yi}`;
       const isOpen = expanded[yearKey] || false;
       const sec = document.createElement('div');
       sec.className = 'level-section';
       sec.innerHTML = `
         <div class="level-header" onclick="toggleExpand('${yearKey}')">
-          <div>
-            <div class="name">📅 ${escapeHtml(year.name)}</div>
-            <div class="meta">${year.semesters.length} semesters</div>
-          </div>
+          <div><div class="name">📅 ${escapeHtml(year.name)}</div><div class="meta">${year.semesters.length} semesters</div></div>
           <div class="actions">
             <button type="button" class="btn btn-add" onclick="event.stopPropagation();addSemester(${yi})"><i class="fa fa-plus"></i> Semester</button>
             <button type="button" class="btn btn-edit" onclick="event.stopPropagation();editYear(${yi})"><i class="fa fa-pencil"></i></button>
@@ -2135,8 +1846,7 @@
             <i class="fa fa-chevron-${isOpen ? 'up' : 'down'}" style="color:var(--text-secondary);"></i>
           </div>
         </div>
-        <div class="level-body ${isOpen ? 'open' : ''}">
-      `;
+        <div class="level-body ${isOpen ? 'open' : ''}">`;
       year.semesters.forEach((semester, si) => {
         if (!semesterInScope(semester.name, resolved)) return;
         const semKey = `semester_${yi}_${si}`;
@@ -2146,10 +1856,7 @@
         semDiv.style.marginBottom = '12px';
         semDiv.innerHTML = `
           <div class="level-header" onclick="toggleExpand('${semKey}')">
-            <div>
-              <div class="name">📘 ${escapeHtml(semester.name)}</div>
-              <div class="meta">${semester.units.length} units</div>
-            </div>
+            <div><div class="name">📘 ${escapeHtml(semester.name)}</div><div class="meta">${semester.units.length} units</div></div>
             <div class="actions">
               <button type="button" class="btn btn-add" onclick="event.stopPropagation();addUnit(${yi}, ${si})"><i class="fa fa-plus"></i> Unit</button>
               <button type="button" class="btn btn-edit" onclick="event.stopPropagation();editSemester(${yi}, ${si})"><i class="fa fa-pencil"></i></button>
@@ -2157,8 +1864,7 @@
               <i class="fa fa-chevron-${semOpen ? 'up' : 'down'}" style="color:var(--text-secondary);"></i>
             </div>
           </div>
-          <div class="level-body ${semOpen ? 'open' : ''}">
-        `;
+          <div class="level-body ${semOpen ? 'open' : ''}">`;
         semester.units.forEach((unit, ui) => {
           const unitKey = `unit_${yi}_${si}_${ui}`;
           const unitOpen = expanded[unitKey] || false;
@@ -2173,10 +1879,7 @@
           unitCard.style.borderLeft = unit.color ? `4px solid ${unit.color}` : '';
           unitCard.innerHTML = `
             <div class="level-header" onclick="toggleExpand('${unitKey}')">
-              <div>
-                <div class="name">${escapeHtml(unit.code)} – ${escapeHtml(unit.name)}</div>
-                <div class="meta">${doneWeeks}/${weeks.length} weeks · ${pct}%</div>
-              </div>
+              <div><div class="name">${escapeHtml(unit.code)} – ${escapeHtml(unit.name)}</div><div class="meta">${doneWeeks}/${weeks.length} weeks · ${pct}%</div></div>
               <div class="actions">
                 <button type="button" class="btn btn-add" onclick="event.stopPropagation();addWeek(${yi}, ${si}, ${ui})"><i class="fa fa-plus"></i> Week</button>
                 <button type="button" class="btn btn-grade" onclick="event.stopPropagation();openGradeModal(${yi}, ${si}, ${ui})"><i class="fa fa-calculator"></i> Grade</button>
@@ -2185,8 +1888,7 @@
                 <i class="fa fa-chevron-${unitOpen ? 'up' : 'down'}" style="color:var(--text-secondary);"></i>
               </div>
             </div>
-            <div class="level-body ${unitOpen ? 'open' : ''}">
-          `;
+            <div class="level-body ${unitOpen ? 'open' : ''}">`;
           weeks.forEach((week, wi) => {
             const weekKey = `week_${yi}_${si}_${ui}_${wi}`;
             const weekOpen = expanded[weekKey] || false;
@@ -2203,10 +1905,7 @@
             weekDiv.style.borderColor = 'var(--border-subtle)';
             weekDiv.innerHTML = `
               <div class="level-header" onclick="toggleExpand('${weekKey}')" style="padding:8px 14px;">
-                <div>
-                  <div class="name">📌 Week ${week.number}</div>
-                  <div class="meta">${doneSubW}/${totalSubW} subtopics · ${pctW}%</div>
-                </div>
+                <div><div class="name">📌 Week ${week.number}</div><div class="meta">${doneSubW}/${totalSubW} subtopics · ${pctW}%</div></div>
                 <div class="actions">
                   <button type="button" class="btn btn-add" onclick="event.stopPropagation();addTopic(${yi}, ${si}, ${ui}, ${wi})"><i class="fa fa-plus"></i> Topic</button>
                   <button type="button" class="btn btn-add" onclick="event.stopPropagation();addAssignment(${yi}, ${si}, ${ui}, ${wi})"><i class="fa fa-plus"></i> Assignment</button>
@@ -2216,8 +1915,7 @@
                   <button type="button" class="btn btn-bulk" onclick="event.stopPropagation();bulkToggleWeek(${yi},${si},${ui},${wi},false)">↩️ None</button>
                 </div>
               </div>
-              <div class="level-body ${weekOpen ? 'open' : ''}">
-            `;
+              <div class="level-body ${weekOpen ? 'open' : ''}">`;
             topics.forEach((topic, ti) => {
               if (searchLower && !topic.name.toLowerCase().includes(searchLower)) return;
               recalcTopicCompletion(topic);
@@ -2230,11 +1928,7 @@
               tDiv.className = `topic-item ${compactMode ? 'compact' : ''}`;
               tDiv.innerHTML = `
                 <div class="topic-header" onclick="toggleExpand('${topicKey}')">
-                  <div class="check ${checked ? 'checked' : ''}" 
-                       data-yi="${yi}" data-si="${si}" data-ui="${ui}" data-wi="${wi}" data-ti="${ti}"
-                       onclick="event.stopPropagation();toggleTopicComplete(this, ${yi}, ${si}, ${ui}, ${wi}, ${ti})">
-                    <i class="fa fa-check"></i>
-                  </div>
+                  <div class="check ${checked ? 'checked' : ''}" onclick="event.stopPropagation();toggleTopicComplete(this, ${yi}, ${si}, ${ui}, ${wi}, ${ti})"><i class="fa fa-check"></i></div>
                   <div class="name">${escapeHtml(topic.name)}</div>
                   <div class="meta">${subDone}/${subTopics.length}</div>
                   <div class="actions">
@@ -2247,67 +1941,45 @@
                 <div class="subtopic-list ${topicExpanded ? 'open' : ''}">
                   ${subTopics.map((sub, si2) => {
                     const subChecked = (topic.subCompleted && topic.subCompleted[si2]) || false;
-                    return `
-                      <div class="subtopic-item">
-                        <div class="sub-check ${subChecked ? 'checked' : ''}" 
-                             data-yi="${yi}" data-si="${si}" data-ui="${ui}" data-wi="${wi}" data-ti="${ti}" data-si2="${si2}"
-                             onclick="toggleSubtopic(this, ${yi}, ${si}, ${ui}, ${wi}, ${ti}, ${si2})">
-                          <i class="fa fa-check"></i>
-                        </div>
-                        <div class="sub-label ${subChecked ? 'done' : ''}">${escapeHtml(sub)}</div>
-                        <div class="sub-actions">
-                          <button type="button" class="btn" onclick="deleteSubtopic(${yi}, ${si}, ${ui}, ${wi}, ${ti}, ${si2})"><i class="fa fa-times"></i></button>
-                        </div>
-                      </div>`;
+                    return `<div class="subtopic-item">
+                      <div class="sub-check ${subChecked ? 'checked' : ''}" onclick="toggleSubtopic(this, ${yi}, ${si}, ${ui}, ${wi}, ${ti}, ${si2})"><i class="fa fa-check"></i></div>
+                      <div class="sub-label ${subChecked ? 'done' : ''}">${escapeHtml(sub)}</div>
+                      <div class="sub-actions"><button type="button" class="btn" onclick="deleteSubtopic(${yi}, ${si}, ${ui}, ${wi}, ${ti}, ${si2})"><i class="fa fa-times"></i></button></div>
+                    </div>`;
                   }).join('')}
-                  <div class="subtopic-add-row">
-                    <button type="button" class="btn" onclick="addSubtopic(${yi}, ${si}, ${ui}, ${wi}, ${ti})"><i class="fa fa-plus"></i> Add subtopic</button>
-                  </div>
-                </div>
-              `;
+                  <div class="subtopic-add-row"><button type="button" class="btn" onclick="addSubtopic(${yi}, ${si}, ${ui}, ${wi}, ${ti})"><i class="fa fa-plus"></i> Add subtopic</button></div>
+                </div>`;
               weekDiv.querySelector('.level-body').appendChild(tDiv);
             });
             const assignments = week.assignments || [];
             if (assignments.length) {
               const assSection = document.createElement('div');
               assSection.className = 'assignments-section';
-              let assHtml = `
-                <div class="section-title"><i class="fa fa-tasks"></i> Assignments
-                  <button type="button" class="btn btn-add-ass" onclick="addAssignment(${yi}, ${si}, ${ui}, ${wi})"><i class="fa fa-plus"></i> Add</button>
-                </div>
-              `;
+              let assHtml = `<div class="section-title"><i class="fa fa-tasks"></i> Assignments<button type="button" class="btn btn-add-ass" onclick="addAssignment(${yi}, ${si}, ${ui}, ${wi})"><i class="fa fa-plus"></i> Add</button></div>`;
               assignments.forEach((a, ai) => {
                 const state = getAssignmentState(a);
-                const stateMap = {
-                  'not-started': 'Not Started','in-progress': 'In Progress','due-soon': 'Due Soon',
-                  'overdue': 'Overdue','submitted': '✅ Submitted','graded': '🎓 Graded'
-                };
+                const stateMap = { 'not-started': 'Not Started','in-progress': 'In Progress','due-soon': 'Due Soon','overdue': 'Overdue','submitted': '✅ Submitted','graded': '🎓 Graded' };
                 const diff = daysUntil(a.due);
                 let daysStr;
-                if (state === 'submitted') {
-                  daysStr = a.submittedDate ? `<span class="submitted-tag">Submitted ${a.submittedDate}</span>` : `<span class="submitted-tag">Submitted</span>`;
-                } else if (state === 'graded') {
-                  daysStr = a.gradedDate ? `<span class="graded-tag">Graded ${a.gradedDate}</span>` : `<span class="graded-tag">Graded</span>`;
-                } else {
-                  daysStr = diff !== null ? (diff < 0 ? `${Math.abs(diff)} days overdue` : (diff === 0 ? 'Due today' : `${diff} days left`)) : 'No due date';
-                }
+                if (state === 'submitted') daysStr = a.submittedDate ? `<span class="submitted-tag">Submitted ${a.submittedDate}</span>` : `<span class="submitted-tag">Submitted</span>`;
+                else if (state === 'graded') daysStr = a.gradedDate ? `<span class="graded-tag">Graded ${a.gradedDate}</span>` : `<span class="graded-tag">Graded</span>`;
+                else daysStr = diff !== null ? (diff < 0 ? `${Math.abs(diff)} days overdue` : (diff === 0 ? 'Due today' : `${diff} days left`)) : 'No due date';
                 const risk = computeRisk(a);
-                assHtml += `
-                  <div class="assignment-card">
-                    <div class="info">
-                      <div class="title">${escapeHtml(a.name)}</div>
-                      <div class="unit">${unit.code} · Week ${week.number}</div>
-                      <div class="meta">Due: ${a.due || '—'} · Weight: ${a.weight || 0}% · ${daysStr}</div>
-                      <div class="progress-track"><div class="fill" style="width:${risk.score}%"></div></div>
-                      <div class="risk-bar"><div class="fill ${risk.level}" style="width:${risk.score}%"></div></div>
-                    </div>
-                    <div><span class="status-badge ${state}">${stateMap[state] || state}</span></div>
-                    <div class="actions">
-                      ${state !== 'submitted' && state !== 'graded' ? `<button type="button" class="btn btn-submit" onclick="openSubmitModal(${yi}, ${si}, ${ui}, ${wi}, ${ai})">✓ Submit</button>` : ''}
-                      <button type="button" class="btn btn-edit-ass" onclick="editAssignment(${yi}, ${si}, ${ui}, ${wi}, ${ai})"><i class="fa fa-pencil"></i></button>
-                      <button type="button" class="btn btn-del-ass" onclick="deleteAssignment(${yi}, ${si}, ${ui}, ${wi}, ${ai})"><i class="fa fa-trash"></i></button>
-                    </div>
-                  </div>`;
+                assHtml += `<div class="assignment-card">
+                  <div class="info">
+                    <div class="title">${escapeHtml(a.name)}</div>
+                    <div class="unit">${unit.code} · Week ${week.number}</div>
+                    <div class="meta">Due: ${a.due || '—'} · Weight: ${a.weight || 0}% · ${daysStr}</div>
+                    <div class="progress-track"><div class="fill" style="width:${risk.score}%"></div></div>
+                    <div class="risk-bar"><div class="fill ${risk.level}" style="width:${risk.score}%"></div></div>
+                  </div>
+                  <div><span class="status-badge ${state}">${stateMap[state] || state}</span></div>
+                  <div class="actions">
+                    ${state !== 'submitted' && state !== 'graded' ? `<button type="button" class="btn btn-submit" onclick="openSubmitModal(${yi}, ${si}, ${ui}, ${wi}, ${ai})">✓ Submit</button>` : ''}
+                    <button type="button" class="btn btn-edit-ass" onclick="editAssignment(${yi}, ${si}, ${ui}, ${wi}, ${ai})"><i class="fa fa-pencil"></i></button>
+                    <button type="button" class="btn btn-del-ass" onclick="deleteAssignment(${yi}, ${si}, ${ui}, ${wi}, ${ai})"><i class="fa fa-trash"></i></button>
+                  </div>
+                </div>`;
               });
               assSection.innerHTML = assHtml;
               weekDiv.querySelector('.level-body').appendChild(assSection);
@@ -2351,13 +2023,243 @@
     safeRender(renderTree);
   }
 
-  // ─────────────────────────────────────────────────────────────
-  //  GLOBAL EVENT HANDLERS — all defined as window.X so inline onclick works
-  // ─────────────────────────────────────────────────────────────
-  window.toggleExpand = function(key) {
-    expanded[key] = !expanded[key];
+  // ─────────────────────────────────────────────
+  //  COMMAND PALETTE
+  // ─────────────────────────────────────────────
+  let cmdCommands = [];
+  let cmdFiltered = [];
+  let cmdFocusedIdx = 0;
+
+  function buildCommands() {
+    const commands = [];
+
+    // Actions
+    const actions = [
+      { id: 'add-year', label: 'Add Year', icon: '📅', hint: 'Create a new academic year', run: () => window.addYear() },
+      { id: 'toggle-compact', label: 'Toggle Compact Mode', icon: '📐', hint: 'Show/hide subtopics in tree', run: () => window.toggleCompact() },
+      { id: 'expand-all', label: 'Expand All', icon: '⬇️', hint: 'Open every level in the tree', run: () => window.expandAll() },
+      { id: 'collapse-all', label: 'Collapse All', icon: '⬆️', hint: 'Close every level in the tree', run: () => window.collapseAll() },
+      { id: 'sync', label: 'Sync from GitHub', icon: '☁️', hint: 'Reload data from remote', run: () => document.getElementById('syncBtn')?.click() },
+      { id: 'export-excel', label: 'Export Excel Report', icon: '📊', hint: 'Academic report (Overview + Assignments)', run: () => window.exportToExcel() },
+      { id: 'export-grade', label: 'Export Grade Report', icon: '🎓', hint: 'Per-module weighted grades', run: () => window.exportGradeReport() },
+      { id: 'export-json', label: 'Export JSON', icon: '💾', hint: 'Download full study data', run: () => document.getElementById('exportJsonBtn')?.click() },
+      { id: 'import-json', label: 'Import JSON', icon: '📥', hint: 'Load data from file', run: () => document.getElementById('importJsonBtn')?.click() },
+      { id: 'history', label: 'Version History', icon: '📜', hint: 'Browse & restore past saves', run: () => window.showVersionHistory() },
+      { id: 'reset', label: 'Reset Study Plan', icon: '🔄', hint: 'Restore default data', run: () => document.getElementById('resetBtn')?.click() },
+      { id: 'scope-auto', label: 'Scope → Auto (current year & semester)', icon: '🎯', hint: 'Follow today\'s date', run: () => setScope({ mode: 'auto', yearName: null, semesterName: null }) },
+      { id: 'scope-all', label: 'Scope → All Years', icon: '📚', hint: 'Show everything', run: () => setScope({ mode: 'all', yearName: null, semesterName: null }) }
+    ];
+    actions.forEach(a => commands.push({ type: 'action', id: a.id, label: a.label, icon: a.icon, sub: a.hint, run: a.run }));
+
+    // Scope for each year + sem
+    studyData.years.forEach(year => {
+      commands.push({ type: 'scope', id: `scope-year-${year.name}`, label: `Scope → ${year.name} (all semesters)`, icon: '📅', sub: 'Filter to this year', run: () => setScope({ mode: 'year-only', yearName: year.name, semesterName: null }) });
+      year.semesters.forEach(sem => {
+        commands.push({ type: 'scope', id: `scope-sem-${year.name}-${sem.name}`, label: `Scope → ${year.name} · ${sem.name}`, icon: '📘', sub: `Filter to ${year.name} ${sem.name}`, run: () => setScope({ mode: 'year-sem', yearName: year.name, semesterName: sem.name }) });
+      });
+    });
+
+    // Navigation — units
+    studyData.years.forEach((year, yi) => {
+      year.semesters.forEach((sem, si) => {
+        sem.units.forEach((unit, ui) => {
+          commands.push({
+            type: 'nav', id: `nav-unit-${yi}-${si}-${ui}`,
+            label: `${unit.code} – ${unit.name}`, icon: '📘',
+            sub: `${year.name} · ${sem.name}`,
+            run: () => jumpToUnit(yi, si, ui)
+          });
+          // Add assignment action per unit
+          if (unit.weeks.length) {
+            commands.push({
+              type: 'action', id: `add-ass-${yi}-${si}-${ui}`,
+              label: `Add assignment to ${unit.code}`, icon: '📝',
+              sub: `Opens add dialog in Week 1 of ${unit.code}`,
+              run: () => addAssignment(yi, si, ui, 0)
+            });
+          }
+          // Navigation — topics
+          unit.weeks.forEach((week, wi) => {
+            week.topics.forEach((topic, ti) => {
+              commands.push({
+                type: 'nav', id: `nav-topic-${yi}-${si}-${ui}-${wi}-${ti}`,
+                label: topic.name, icon: '📖',
+                sub: `${unit.code} · W${week.number}`,
+                run: () => jumpToTopic(yi, si, ui, wi, ti)
+              });
+            });
+          });
+        });
+      });
+    });
+
+    return commands;
+  }
+
+  function fuzzyMatch(text, query) {
+    text = String(text || '').toLowerCase();
+    query = String(query || '').toLowerCase();
+    if (!query) return { match: true, score: 0 };
+    let ti = 0, qi = 0, score = 0, lastMatch = -1;
+    while (ti < text.length && qi < query.length) {
+      if (text[ti] === query[qi]) {
+        if (lastMatch >= 0) score += (ti - lastMatch - 1);
+        lastMatch = ti;
+        qi++;
+      }
+      ti++;
+    }
+    if (qi < query.length) return { match: false };
+    return { match: true, score };
+  }
+
+  function jumpToUnit(yi, si, ui) {
+    const year = studyData.years[yi];
+    const sem = year?.semesters[si];
+    if (!year || !sem) return;
+    if (scope.mode === 'all' || scope.yearName !== year.name || scope.semesterName !== sem.name) {
+      setScope({ mode: 'year-sem', yearName: year.name, semesterName: sem.name });
+    }
+    expanded[`year_${yi}`] = true;
+    expanded[`semester_${yi}_${si}`] = true;
+    expanded[`unit_${yi}_${si}_${ui}`] = true;
     render();
-  };
+    setTimeout(() => {
+      const unitCode = studyData.years[yi].semesters[si].units[ui].code;
+      const headers = document.querySelectorAll('.level-header .name');
+      for (const h of headers) {
+        if (h.textContent.includes(unitCode)) {
+          const el = h.closest('.level-section');
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          el.style.transition = 'box-shadow 0.3s';
+          el.style.boxShadow = '0 0 0 3px rgba(47,199,255,0.5)';
+          setTimeout(() => { el.style.boxShadow = ''; }, 2000);
+          break;
+        }
+      }
+    }, 260);
+  }
+
+  function jumpToTopic(yi, si, ui, wi, ti) {
+    const year = studyData.years[yi];
+    const sem = year?.semesters[si];
+    if (!year || !sem) return;
+    if (scope.mode === 'all' || scope.yearName !== year.name || scope.semesterName !== sem.name) {
+      setScope({ mode: 'year-sem', yearName: year.name, semesterName: sem.name });
+    }
+    expanded[`year_${yi}`] = true;
+    expanded[`semester_${yi}_${si}`] = true;
+    expanded[`unit_${yi}_${si}_${ui}`] = true;
+    expanded[`week_${yi}_${si}_${ui}_${wi}`] = true;
+    expanded[`topic_${yi}_${si}_${ui}_${wi}_${ti}`] = true;
+    render();
+    setTimeout(() => {
+      const topicName = studyData.years[yi].semesters[si].units[ui].weeks[wi].topics[ti].name;
+      const els = document.querySelectorAll('.topic-header .name');
+      for (const el of els) {
+        if (el.textContent.trim() === topicName) {
+          const wrap = el.closest('.topic-item');
+          wrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          wrap.style.transition = 'box-shadow 0.3s';
+          wrap.style.boxShadow = '0 0 0 3px rgba(47,199,255,0.55)';
+          setTimeout(() => { wrap.style.boxShadow = ''; }, 2000);
+          break;
+        }
+      }
+    }, 260);
+  }
+
+  function highlightMatch(text, query) {
+    if (!query) return escapeHtml(text);
+    const escaped = escapeHtml(text);
+    const q = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    try { return escaped.replace(new RegExp(`(${q})`, 'ig'), '<mark>$1</mark>'); }
+    catch (e) { return escaped; }
+  }
+
+  function renderCmdResults(query) {
+    const results = document.getElementById('cmdResults');
+    query = (query || '').trim();
+
+    let matched;
+    if (!query) {
+      // Show only actions by default (nav is too many)
+      matched = cmdCommands.filter(c => c.type === 'action' || c.type === 'scope').slice(0, 14);
+    } else {
+      const scored = cmdCommands.map(c => {
+        const hay = (c.label + ' ' + (c.sub || '')).toLowerCase();
+        const m = fuzzyMatch(hay, query);
+        if (!m.match) return null;
+        // Bonus if query appears directly in label
+        const labelBoost = c.label.toLowerCase().includes(query.toLowerCase()) ? -50 : 0;
+        return { cmd: c, score: m.score + labelBoost };
+      }).filter(Boolean);
+      scored.sort((a, b) => a.score - b.score);
+      matched = scored.slice(0, 30).map(s => s.cmd);
+    }
+
+    cmdFiltered = matched;
+    if (cmdFocusedIdx >= matched.length) cmdFocusedIdx = Math.max(0, matched.length - 1);
+
+    if (!matched.length) {
+      results.innerHTML = `<div class="cmd-empty">No matches for "<strong>${escapeHtml(query)}</strong>"</div>`;
+      return;
+    }
+
+    let html = '';
+    matched.forEach((cmd, i) => {
+      const active = i === cmdFocusedIdx ? ' active' : '';
+      const tagClass = cmd.type === 'action' ? 'action' : (cmd.type === 'scope' ? 'scope' : 'nav');
+      const tagLabel = cmd.type === 'action' ? 'Run' : (cmd.type === 'scope' ? 'Scope' : 'Go');
+      const label = query ? highlightMatch(cmd.label, query) : escapeHtml(cmd.label);
+      html += `<div class="cmd-item${active}" data-idx="${i}">
+        <span class="ci-icon">${cmd.icon || '•'}</span>
+        <div class="ci-body">
+          <div class="ci-label">${label}</div>
+          ${cmd.sub ? `<div class="ci-sub">${escapeHtml(cmd.sub)}</div>` : ''}
+        </div>
+        <span class="ci-tag ${tagClass}">${tagLabel}</span>
+      </div>`;
+    });
+    results.innerHTML = html;
+
+    results.querySelectorAll('.cmd-item').forEach(el => {
+      el.addEventListener('mouseenter', () => {
+        cmdFocusedIdx = parseInt(el.dataset.idx);
+        results.querySelectorAll('.cmd-item').forEach((it, j) => it.classList.toggle('active', j === cmdFocusedIdx));
+      });
+      el.addEventListener('click', () => runCommand(cmdFiltered[parseInt(el.dataset.idx)]));
+    });
+
+    const activeEl = results.querySelector('.cmd-item.active');
+    if (activeEl) activeEl.scrollIntoView({ block: 'nearest' });
+  }
+
+  function runCommand(cmd) {
+    if (!cmd || !cmd.run) return;
+    closeCmdPalette();
+    setTimeout(() => { try { cmd.run(); } catch(e) { console.error(e); } }, 60);
+  }
+
+  function openCmdPalette() {
+    const modal = document.getElementById('cmdPalette');
+    const input = document.getElementById('cmdInput');
+    cmdCommands = buildCommands();
+    input.value = '';
+    cmdFocusedIdx = 0;
+    renderCmdResults('');
+    modal.classList.add('open');
+    setTimeout(() => input.focus(), 40);
+  }
+  function closeCmdPalette() {
+    const modal = document.getElementById('cmdPalette');
+    if (modal) modal.classList.remove('open');
+  }
+
+  // ─────────────────────────────────────────────
+  //  GLOBAL HANDLERS
+  // ─────────────────────────────────────────────
+  window.toggleExpand = function(key) { expanded[key] = !expanded[key]; render(); };
 
   window.toggleTopicComplete = function(el, yi, si, ui, wi, ti) {
     const topic = getTopic(yi, si, ui, wi, ti);
@@ -2417,10 +2319,7 @@
   window.collapseAll = function() {
     document.querySelectorAll('.level-body').forEach(el => el.classList.remove('open'));
     document.querySelectorAll('.level-header .fa-chevron-down, .level-header .fa-chevron-up').forEach(el => {
-      if (el.classList.contains('fa-chevron-up')) {
-        el.classList.remove('fa-chevron-up');
-        el.classList.add('fa-chevron-down');
-      }
+      if (el.classList.contains('fa-chevron-up')) { el.classList.remove('fa-chevron-up'); el.classList.add('fa-chevron-down'); }
     });
   };
 
@@ -2433,23 +2332,14 @@
     const a = week.assignments[ai];
     if (!a) return;
     const state = getAssignmentState(a);
-    if (state === 'submitted' || state === 'graded') {
-      showToast('This assignment is already submitted or graded.', 'info');
-      return;
-    }
+    if (state === 'submitted' || state === 'graded') { showToast('This assignment is already submitted or graded.', 'info'); return; }
     const body = document.getElementById('submitModalBody');
     const today = formatLocalYMD(new Date());
     body.innerHTML = `
       <p><strong>${escapeHtml(a.name)}</strong> · ${unit.code} · Week ${week.number}</p>
       <p>Due: ${a.due || '—'} · Weight: ${a.weight || 0}%</p>
-      <div class="form-group">
-        <label>Submission date</label>
-        <input type="date" id="submitDate" class="form-control" value="${today}">
-      </div>
-      <div class="form-check">
-        <input type="checkbox" class="form-check-input" id="submitConfirm" checked>
-        <label class="form-check-label" for="submitConfirm" style="color:var(--text-primary);">I confirm I am submitting this assignment</label>
-      </div>
+      <div class="form-group"><label>Submission date</label><input type="date" id="submitDate" class="form-control" value="${today}"></div>
+      <div class="form-check"><input type="checkbox" class="form-check-input" id="submitConfirm" checked><label class="form-check-label" for="submitConfirm" style="color:var(--text-primary);">I confirm I am submitting this assignment</label></div>
       <p class="text-muted" style="font-size:0.8rem; margin-top:8px; color:var(--text-secondary);">Marking as submitted will remove it from your active deadlines.</p>
     `;
     document.getElementById('submitModalTitle').textContent = '📤 Submit Assignment';
@@ -2588,12 +2478,7 @@
     openModal('Add Assignment', `
       <div class="form-group"><label>Assignment Name *</label><input type="text" id="assName" placeholder="e.g. Quiz 1" /></div>
       <div class="form-group"><label>Due Date</label><input type="date" id="assDue" /></div>
-      <div class="form-group"><label>Status</label>
-        <select id="assStatus">
-          <option value="not-started">Not Started</option>
-          <option value="in-progress">In Progress</option>
-        </select>
-      </div>
+      <div class="form-group"><label>Status</label><select id="assStatus"><option value="not-started">Not Started</option><option value="in-progress">In Progress</option></select></div>
       <div class="form-group"><label>Marks</label><input type="text" id="assMarks" placeholder="e.g. 85" /></div>
       <div class="form-group"><label>Weighting (%)</label><input type="number" id="assWeight" placeholder="5" min="0" max="100" /></div>
       <div class="form-group"><label>Notes</label><textarea id="assNotes" rows="2" class="form-control"></textarea></div>
@@ -2606,6 +2491,7 @@
       const notes = document.getElementById('assNotes').value.trim();
       if (!name) { showToast('Please enter an assignment name.', 'error'); return false; }
       const week = studyData.years[yi].semesters[si].units[ui].weeks[wi];
+      if (!week) { showToast('Week not found.', 'error'); return false; }
       if (!week.assignments) week.assignments = [];
       week.assignments.push({ id: 'ass_' + Date.now() + Math.random().toString(36).substr(2,4), name, due: due || null, status, marks: marks || '', weight, submittedDate: null, gradedDate: null, notes: notes || '', priority: 'normal' });
       return true;
@@ -2654,31 +2540,17 @@
   function categorizeAssessment(ass) {
     const name = (ass.name || '').toLowerCase().trim();
     const weight = parseFloat(ass.weight) || 0;
-
-    if (/\bfinal\b|\bfinal exam\b|\bfinal test\b/.test(name)) {
-      return { key: 'final', label: 'Final Exam', icon: '🎯', color: '#e17055', expectedWeight: 40 };
-    }
-    if (/\bproject\b|practical/.test(name)) {
-      return { key: 'project', label: 'Project', icon: '🔧', color: '#a29bfe', expectedWeight: 25 };
-    }
-    if (/\bassignment 2\b|\btest 2\b|\bmidterm\b|\btest 1\b|\bassignment 1\b|\bclass test\b/.test(name)) {
-      return { key: 'assignment', label: 'Assignment (Test)', icon: '📝', color: '#2fc7ff', expectedWeight: 25 };
-    }
-    if (/\bweekly\b|\bquiz\b|\bportfolio\b/.test(name)) {
-      return { key: 'weekly', label: 'Weekly Work', icon: '📚', color: '#00b894', expectedWeight: 1 };
-    }
-    if (/\bassignment\b/.test(name)) {
-      return { key: 'assignment', label: 'Assignment', icon: '📝', color: '#2fc7ff', expectedWeight: 25 };
-    }
+    if (/\bfinal\b|\bfinal exam\b|\bfinal test\b/.test(name)) return { key: 'final', label: 'Final Exam', icon: '🎯', color: '#e17055', expectedWeight: 40 };
+    if (/\bproject\b|practical/.test(name)) return { key: 'project', label: 'Project', icon: '🔧', color: '#a29bfe', expectedWeight: 25 };
+    if (/\bassignment 2\b|\btest 2\b|\bmidterm\b|\btest 1\b|\bassignment 1\b|\bclass test\b/.test(name)) return { key: 'assignment', label: 'Assignment (Test)', icon: '📝', color: '#2fc7ff', expectedWeight: 25 };
+    if (/\bweekly\b|\bquiz\b|\bportfolio\b/.test(name)) return { key: 'weekly', label: 'Weekly Work', icon: '📚', color: '#00b894', expectedWeight: 1 };
+    if (/\bassignment\b/.test(name)) return { key: 'assignment', label: 'Assignment', icon: '📝', color: '#2fc7ff', expectedWeight: 25 };
     return { key: 'other', label: 'Other', icon: '📌', color: '#fdcb6e', expectedWeight: weight };
   }
 
   function calculateUnitGrade(unit) {
     const allAssignments = [];
-    (unit.weeks || []).forEach(week => {
-      (week.assignments || []).forEach(ass => allAssignments.push(ass));
-    });
-
+    (unit.weeks || []).forEach(week => { (week.assignments || []).forEach(ass => allAssignments.push(ass)); });
     const groups = {
       weekly:     { key: 'weekly',     label: 'Weekly Work',      icon: '📚', color: '#00b894', items: [], expectedWeight: 10, capAt: 10 },
       assignment: { key: 'assignment', label: 'Assignment (Test)', icon: '📝', color: '#2fc7ff', items: [], expectedWeight: 25 },
@@ -2686,67 +2558,37 @@
       final:      { key: 'final',      label: 'Final Exam',       icon: '🎯', color: '#e17055', items: [], expectedWeight: 40 },
       other:      { key: 'other',      label: 'Other',            icon: '📌', color: '#fdcb6e', items: [], expectedWeight: 0 }
     };
+    allAssignments.forEach(ass => { const cat = categorizeAssessment(ass); groups[cat.key].items.push({ ...ass, category: cat }); });
 
-    allAssignments.forEach(ass => {
-      const cat = categorizeAssessment(ass);
-      groups[cat.key].items.push({ ...ass, category: cat });
-    });
-
-    let totalWeight = 0;
-    let totalEarnedWeighted = 0;
-    let missingWeight = 0;
-
+    let totalWeight = 0, totalEarnedWeighted = 0, missingWeight = 0;
     Object.values(groups).forEach(g => {
       if (!g.items.length) return;
-
-      let groupWeightSum = 0;
-      let groupWeightedSum = 0;
-      let groupMissingWeight = 0;
-
+      let groupWeightSum = 0, groupWeightedSum = 0, groupMissingWeight = 0;
       g.items.forEach(a => {
         const w = parseFloat(a.weight) || 0;
         groupWeightSum += w;
         const marks = parseFloat(a.marks);
-        if (!isNaN(marks) && marks >= 0) {
-          groupWeightedSum += marks * (w / 100);
-        } else {
-          groupMissingWeight += w;
-        }
+        if (!isNaN(marks) && marks >= 0) groupWeightedSum += marks * (w / 100);
+        else groupMissingWeight += w;
       });
-
-      let effectiveWeight = groupWeightSum;
-      let cappedMissingWeight = groupMissingWeight;
+      let effectiveWeight = groupWeightSum, cappedMissingWeight = groupMissingWeight;
       if (g.capAt && groupWeightSum > g.capAt) {
         const scale = g.capAt / groupWeightSum;
         effectiveWeight = g.capAt;
         cappedMissingWeight = groupMissingWeight * scale;
         groupWeightedSum = groupWeightedSum * scale;
       }
-
       g.totalWeight = effectiveWeight;
       g.earnedWeighted = groupWeightedSum;
       g.missingWeight = cappedMissingWeight;
-
       totalWeight += effectiveWeight;
       totalEarnedWeighted += groupWeightedSum;
       missingWeight += cappedMissingWeight;
     });
-
     if (allAssignments.length === 0 || totalWeight === 0) return null;
-
     const achievedWeight = totalWeight - missingWeight;
     const currentGrade = achievedWeight > 0 ? (totalEarnedWeighted / achievedWeight) * 100 : null;
-
-    return {
-      grade: currentGrade,
-      totalWeight,
-      totalEarnedWeighted,
-      missingWeight,
-      achievedWeight,
-      allAssignments,
-      groups,
-      weightCheck: { expected: 100, actual: totalWeight, warning: Math.abs(totalWeight - 100) > 0.5 }
-    };
+    return { grade: currentGrade, totalWeight, totalEarnedWeighted, missingWeight, achievedWeight, allAssignments, groups, weightCheck: { expected: 100, actual: totalWeight, warning: Math.abs(totalWeight - 100) > 0.5 } };
   }
 
   function saGradeLabel(pct) {
@@ -2762,163 +2604,82 @@
     const modal = document.getElementById('gradeModal');
     const unit = studyData.years[yi]?.semesters[si]?.units[ui];
     if (!unit) return;
-
     const result = calculateUnitGrade(unit);
     const body = document.getElementById('gradeModalBody');
     let html = '';
-
     let gradeDisplay = 'N/A', gradeColor = 'red', gradeValue = 0;
     if (result && result.grade !== null) {
       gradeValue = Math.round(result.grade);
       gradeDisplay = gradeValue + '%';
       gradeColor = gradeValue >= 70 ? 'green' : (gradeValue >= 50 ? 'orange' : 'red');
-    } else if (result) {
-      gradeDisplay = '—';
-    } else {
-      gradeDisplay = 'No assignments';
-    }
+    } else if (result) gradeDisplay = '—';
+    else gradeDisplay = 'No assignments';
 
-    html += `
-      <div class="grade-summary">
-        <div class="card"><div class="value ${gradeColor}">${gradeDisplay}</div><div class="label">Current Grade</div></div>
-        <div class="card"><div class="value">${result ? (result.missingWeight > 0 ? '⏳' : '✅') : '—'}</div><div class="label">${result ? (result.missingWeight > 0 ? result.missingWeight.toFixed(0)+'% pending' : 'All marked') : '—'}</div></div>
-        <div class="card"><div class="value">${result ? result.allAssignments.length : 0}</div><div class="label">Assessments</div></div>
-      </div>
-    `;
+    html += `<div class="grade-summary">
+      <div class="card"><div class="value ${gradeColor}">${gradeDisplay}</div><div class="label">Current Grade</div></div>
+      <div class="card"><div class="value">${result ? (result.missingWeight > 0 ? '⏳' : '✅') : '—'}</div><div class="label">${result ? (result.missingWeight > 0 ? result.missingWeight.toFixed(0)+'% pending' : 'All marked') : '—'}</div></div>
+      <div class="card"><div class="value">${result ? result.allAssignments.length : 0}</div><div class="label">Assessments</div></div>
+    </div>`;
 
     if (result) {
       const g = result.groups;
       const order = ['weekly', 'assignment', 'project', 'final', 'other'];
-      let breakdownRows = '';
-      let totalWeight = 0, totalEarned = 0, totalMissing = 0;
-
+      let breakdownRows = '', totalWeight = 0, totalEarned = 0, totalMissing = 0;
       order.forEach(key => {
         const cat = g[key];
         if (!cat.items.length) return;
-        totalWeight += cat.totalWeight;
-        totalEarned += cat.earnedWeighted;
-        totalMissing += cat.missingWeight;
-
-        const markedItems = cat.items.filter(a => {
-          const m = parseFloat(a.marks);
-          return !isNaN(m) && m >= 0;
-        }).length;
-        const pct = cat.totalWeight > 0
-          ? Math.min(100, (cat.earnedWeighted / cat.totalWeight) * 100)
-          : 0;
-        const statusText = cat.missingWeight > 0
-          ? `${cat.missingWeight.toFixed(1)}% pending`
-          : `${cat.earnedWeighted.toFixed(2)} / ${cat.totalWeight}`;
-
-        breakdownRows += `
-          <div class="cb-row">
-            <div class="cat-name" style="color:${cat.color}">${cat.icon} ${cat.label} <span style="color:var(--text-secondary);font-weight:400;font-size:0.72rem;">(${markedItems}/${cat.items.length} marked)</span></div>
-            <div class="cat-weight">${cat.totalWeight}%</div>
-            <div class="cat-marks">${cat.earnedWeighted.toFixed(2)}</div>
-            <div class="cat-progress"><div class="cb-fill" style="width:${pct}%;background:${cat.color}"></div></div>
-            <div class="cat-status" style="color:${cat.missingWeight > 0 ? 'var(--orange)' : 'var(--green)'}">${statusText}</div>
-          </div>
-        `;
+        totalWeight += cat.totalWeight; totalEarned += cat.earnedWeighted; totalMissing += cat.missingWeight;
+        const markedItems = cat.items.filter(a => { const m = parseFloat(a.marks); return !isNaN(m) && m >= 0; }).length;
+        const pct = cat.totalWeight > 0 ? Math.min(100, (cat.earnedWeighted / cat.totalWeight) * 100) : 0;
+        const statusText = cat.missingWeight > 0 ? `${cat.missingWeight.toFixed(1)}% pending` : `${cat.earnedWeighted.toFixed(2)} / ${cat.totalWeight}`;
+        breakdownRows += `<div class="cb-row">
+          <div class="cat-name" style="color:${cat.color}">${cat.icon} ${cat.label} <span style="color:var(--text-secondary);font-weight:400;font-size:0.72rem;">(${markedItems}/${cat.items.length} marked)</span></div>
+          <div class="cat-weight">${cat.totalWeight}%</div>
+          <div class="cat-marks">${cat.earnedWeighted.toFixed(2)}</div>
+          <div class="cat-progress"><div class="cb-fill" style="width:${pct}%;background:${cat.color}"></div></div>
+          <div class="cat-status" style="color:${cat.missingWeight > 0 ? 'var(--orange)' : 'var(--green)'}">${statusText}</div>
+        </div>`;
       });
-
       if (breakdownRows) {
-        html += `
-          <div class="cat-breakdown">
-            <div class="cb-header">
-              <div>Category</div>
-              <div style="text-align:center;">Weight</div>
-              <div style="text-align:center;">Earned</div>
-              <div>Progress</div>
-              <div style="text-align:right;">Status</div>
-            </div>
-            ${breakdownRows}
-            <div class="cb-total">
-              <div class="cat-name">Total</div>
-              <div class="cat-weight">${totalWeight}%</div>
-              <div class="cat-marks">${totalEarned.toFixed(2)}</div>
-              <div></div>
-              <div class="cat-status">${totalMissing > 0 ? totalMissing.toFixed(1) + '% pending' : '✅ Complete'}</div>
-            </div>
-            ${result.weightCheck.warning ? `<div class="cb-warning">⚠️ Weights add up to <strong>${result.weightCheck.actual.toFixed(1)}%</strong> instead of 100%. Please verify assignment weights.</div>` : ''}
-          </div>
-        `;
+        html += `<div class="cat-breakdown">
+          <div class="cb-header"><div>Category</div><div style="text-align:center;">Weight</div><div style="text-align:center;">Earned</div><div>Progress</div><div style="text-align:right;">Status</div></div>
+          ${breakdownRows}
+          <div class="cb-total"><div class="cat-name">Total</div><div class="cat-weight">${totalWeight}%</div><div class="cat-marks">${totalEarned.toFixed(2)}</div><div></div><div class="cat-status">${totalMissing > 0 ? totalMissing.toFixed(1) + '% pending' : '✅ Complete'}</div></div>
+          ${result.weightCheck.warning ? `<div class="cb-warning">⚠️ Weights add up to <strong>${result.weightCheck.actual.toFixed(1)}%</strong> instead of 100%. Please verify assignment weights.</div>` : ''}
+        </div>`;
       }
     }
 
     if (result && result.missingWeight > 0) {
-      const achieved = result.achievedWeight;
-      const currentPct = result.grade || 0;
-      const missingW = result.missingWeight;
-      const totalW = result.totalWeight;
-
+      const achieved = result.achievedWeight, currentPct = result.grade || 0, missingW = result.missingWeight, totalW = result.totalWeight;
       const minPossible = (currentPct * achieved / 100) / totalW * 100;
       const expected = currentPct;
       const maxPossible = ((currentPct * achieved / 100) + missingW) / totalW * 100;
-
-      const minG = saGradeLabel(minPossible);
-      const expG = saGradeLabel(expected);
-      const maxG = saGradeLabel(maxPossible);
-
-      html += `
-        <div class="scenario-strip">
-          <div class="scenario-tile min">
-            <div class="tile-label">If You Fail Remaining</div>
-            <div class="tile-value">${minPossible.toFixed(0)}%</div>
-            <div class="tile-grade" style="color:${minG.color}">${minG.label}</div>
-          </div>
-          <div class="scenario-tile exp">
-            <div class="tile-label">If You Keep Pace</div>
-            <div class="tile-value">${expected.toFixed(0)}%</div>
-            <div class="tile-grade" style="color:${expG.color}">${expG.label}</div>
-          </div>
-          <div class="scenario-tile max">
-            <div class="tile-label">If You Ace Remaining</div>
-            <div class="tile-value">${maxPossible.toFixed(0)}%</div>
-            <div class="tile-grade" style="color:${maxG.color}">${maxG.label}</div>
-          </div>
-        </div>
-      `;
-
+      const minG = saGradeLabel(minPossible), expG = saGradeLabel(expected), maxG = saGradeLabel(maxPossible);
+      html += `<div class="scenario-strip">
+        <div class="scenario-tile min"><div class="tile-label">If You Fail Remaining</div><div class="tile-value">${minPossible.toFixed(0)}%</div><div class="tile-grade" style="color:${minG.color}">${minG.label}</div></div>
+        <div class="scenario-tile exp"><div class="tile-label">If You Keep Pace</div><div class="tile-value">${expected.toFixed(0)}%</div><div class="tile-grade" style="color:${expG.color}">${expG.label}</div></div>
+        <div class="scenario-tile max"><div class="tile-label">If You Ace Remaining</div><div class="tile-value">${maxPossible.toFixed(0)}%</div><div class="tile-grade" style="color:${maxG.color}">${maxG.label}</div></div>
+      </div>`;
       const defaultTarget = Math.min(100, Math.max(50, Math.round(currentPct) + 5));
       const neededForTarget = (defaultTarget * totalW / 100 - (currentPct * achieved / 100)) / (missingW / 100);
-      html += `
-        <div class="target-block">
-          <div class="target-row">
-            <span style="font-weight:600;color:var(--text-primary);">🎯 Target grade:</span>
-            <input type="number" id="targetGradeInput" value="${defaultTarget}" min="0" max="100" step="0.5"
-              oninput="updateGradeIntelTarget(${yi}, ${si}, ${ui}, this.value)">
-            <span style="color:var(--text-primary);">%</span>
-            <span style="flex:1;text-align:right;color:var(--text-secondary);font-size:0.8rem;">Required on remaining:</span>
-            <span class="needed-number" id="neededNumberDisplay">${neededForTarget.toFixed(1)}%</span>
-          </div>
-          <div class="diff-row">
-            <span class="diff-label">Difficulty</span>
-            <div class="diff-bar"><div class="diff-fill" id="diffFill"></div></div>
-            <span class="diff-text" id="diffText">—</span>
-          </div>
+      html += `<div class="target-block">
+        <div class="target-row">
+          <span style="font-weight:600;color:var(--text-primary);">🎯 Target grade:</span>
+          <input type="number" id="targetGradeInput" value="${defaultTarget}" min="0" max="100" step="0.5" oninput="updateGradeIntelTarget(${yi}, ${si}, ${ui}, this.value)">
+          <span style="color:var(--text-primary);">%</span>
+          <span style="flex:1;text-align:right;color:var(--text-secondary);font-size:0.8rem;">Required on remaining:</span>
+          <span class="needed-number" id="neededNumberDisplay">${neededForTarget.toFixed(1)}%</span>
         </div>
-      `;
+        <div class="diff-row"><span class="diff-label">Difficulty</span><div class="diff-bar"><div class="diff-fill" id="diffFill"></div></div><span class="diff-text" id="diffText">—</span></div>
+      </div>`;
     } else if (result && result.missingWeight === 0 && result.grade !== null) {
       const g = saGradeLabel(result.grade);
-      html += `
-        <div class="scenario-tile exp" style="margin:14px 0;">
-          <div class="tile-label">Final Grade (all marks in)</div>
-          <div class="tile-value">${result.grade.toFixed(1)}%</div>
-          <div class="tile-grade" style="color:${g.color}">${g.label}</div>
-        </div>
-      `;
+      html += `<div class="scenario-tile exp" style="margin:14px 0;"><div class="tile-label">Final Grade (all marks in)</div><div class="tile-value">${result.grade.toFixed(1)}%</div><div class="tile-grade" style="color:${g.color}">${g.label}</div></div>`;
     }
 
     if (result && result.allAssignments.length > 0) {
-      html += `
-        <div class="grade-assign-list">
-          <div class="gal-header">
-            <div>Assessment</div>
-            <div style="text-align:center;">Weight</div>
-            <div style="text-align:center;">Marks</div>
-            <div style="text-align:center;">Status</div>
-          </div>
-      `;
+      html += `<div class="grade-assign-list"><div class="gal-header"><div>Assessment</div><div style="text-align:center;">Weight</div><div style="text-align:center;">Marks</div><div style="text-align:center;">Status</div></div>`;
       const sortedAssignments = [...result.allAssignments].sort((a, b) => {
         if (!a.due && !b.due) return 0;
         if (!a.due) return 1;
@@ -2933,30 +2694,22 @@
         else if (ass.status === 'submitted') { statusClass = 'submitted'; statusLabel = 'Submitted'; }
         else { statusClass = 'pending'; statusLabel = 'Pending'; }
         const originalIdx = result.allAssignments.indexOf(ass);
-        html += `
-          <div class="gal-row">
-            <div class="gal-name" title="${escapeHtml(ass.name)}"><span style="color:${cat.color};margin-right:6px;">${cat.icon}</span>${escapeHtml(ass.name)}</div>
-            <div class="gal-weight">${ass.weight || 0}%</div>
-            <div class="gal-marks">
-              <input type="number" value="${marksVal}" min="0" max="100" step="0.5"
-                data-yi="${yi}" data-si="${si}" data-ui="${ui}" data-idx="${originalIdx}"
-                onchange="updateGradeMark(this)" placeholder="—">
-            </div>
-            <div class="gal-status ${statusClass}">${statusLabel}</div>
-          </div>
-        `;
+        html += `<div class="gal-row">
+          <div class="gal-name" title="${escapeHtml(ass.name)}"><span style="color:${cat.color};margin-right:6px;">${cat.icon}</span>${escapeHtml(ass.name)}</div>
+          <div class="gal-weight">${ass.weight || 0}%</div>
+          <div class="gal-marks"><input type="number" value="${marksVal}" min="0" max="100" step="0.5" data-yi="${yi}" data-si="${si}" data-ui="${ui}" data-idx="${originalIdx}" onchange="updateGradeMark(this)" placeholder="—"></div>
+          <div class="gal-status ${statusClass}">${statusLabel}</div>
+        </div>`;
       });
       html += `</div>`;
     }
 
     body.innerHTML = html;
     document.getElementById('gradeModalTitle').textContent = `📊 Grade Intelligence – ${unit.code} ${unit.name}`;
-
     if (result && result.missingWeight > 0) {
       const input = document.getElementById('targetGradeInput');
       if (input) updateGradeIntelTarget(yi, si, ui, input.value);
     }
-
     modal.classList.add('open');
   };
 
@@ -2965,35 +2718,19 @@
     if (!unit) return;
     const result = calculateUnitGrade(unit);
     if (!result) return;
-
     const targetNum = parseFloat(targetVal);
     const neededEl = document.getElementById('neededNumberDisplay');
     const fillEl = document.getElementById('diffFill');
     const textEl = document.getElementById('diffText');
     if (!neededEl || !fillEl || !textEl) return;
-
     if (isNaN(targetNum) || targetNum < 0 || targetNum > 100) {
-      neededEl.textContent = '—';
-      neededEl.className = 'needed-number';
-      fillEl.style.width = '0%';
-      textEl.textContent = 'Invalid';
-      return;
+      neededEl.textContent = '—'; neededEl.className = 'needed-number'; fillEl.style.width = '0%'; textEl.textContent = 'Invalid'; return;
     }
-
     if (result.missingWeight === 0) {
-      neededEl.textContent = '—';
-      neededEl.className = 'needed-number';
-      fillEl.style.width = '0%';
-      textEl.textContent = 'All done';
-      return;
+      neededEl.textContent = '—'; neededEl.className = 'needed-number'; fillEl.style.width = '0%'; textEl.textContent = 'All done'; return;
     }
-
-    const weightedSum = result.totalEarnedWeighted;
-    const totalWeight = result.totalWeight;
-    const missingW = result.missingWeight;
-
+    const weightedSum = result.totalEarnedWeighted, totalWeight = result.totalWeight, missingW = result.missingWeight;
     const needed = (targetNum * totalWeight / 100 - weightedSum) / (missingW / 100);
-
     let level = 'MEDIUM', pct = 50, color = '#fdcb6e';
     if (needed <= 0) { level = 'LOCKED IN'; pct = 5; color = '#4ae4b8'; }
     else if (needed <= 50) { level = 'LOW'; pct = 25; color = '#4ae4b8'; }
@@ -3001,38 +2738,19 @@
     else if (needed <= 85) { level = 'HIGH'; pct = 75; color = '#fdcb6e'; }
     else if (needed <= 100) { level = 'VERY HIGH'; pct = 92; color = '#ff6b6b'; }
     else { level = 'IMPOSSIBLE'; pct = 100; color = '#ff6b6b'; }
-
-    if (needed > 100) {
-      neededEl.className = 'needed-number impossible';
-      neededEl.textContent = '>100%';
-      textEl.textContent = 'IMPOSSIBLE';
-      textEl.style.color = '#ff6b6b';
-    } else if (needed < 0) {
-      neededEl.className = 'needed-number easy';
-      neededEl.textContent = '0%';
-      textEl.textContent = 'LOCKED IN';
-      textEl.style.color = '#4ae4b8';
-    } else {
-      neededEl.className = 'needed-number';
-      neededEl.textContent = needed.toFixed(1) + '%';
-      textEl.textContent = level;
-      textEl.style.color = color;
-    }
+    if (needed > 100) { neededEl.className = 'needed-number impossible'; neededEl.textContent = '>100%'; textEl.textContent = 'IMPOSSIBLE'; textEl.style.color = '#ff6b6b'; }
+    else if (needed < 0) { neededEl.className = 'needed-number easy'; neededEl.textContent = '0%'; textEl.textContent = 'LOCKED IN'; textEl.style.color = '#4ae4b8'; }
+    else { neededEl.className = 'needed-number'; neededEl.textContent = needed.toFixed(1) + '%'; textEl.textContent = level; textEl.style.color = color; }
     fillEl.style.width = pct + '%';
     fillEl.style.background = color;
   };
 
   window.updateGradeMark = function(input) {
-    const yi = parseInt(input.dataset.yi);
-    const si = parseInt(input.dataset.si);
-    const ui = parseInt(input.dataset.ui);
-    const idx = parseInt(input.dataset.idx);
+    const yi = parseInt(input.dataset.yi), si = parseInt(input.dataset.si), ui = parseInt(input.dataset.ui), idx = parseInt(input.dataset.idx);
     const unit = studyData.years[yi]?.semesters[si]?.units[ui];
     if (!unit) return;
     const flatAssignments = [];
-    (unit.weeks || []).forEach(week => {
-      (week.assignments || []).forEach(ass => flatAssignments.push(ass));
-    });
+    (unit.weeks || []).forEach(week => { (week.assignments || []).forEach(ass => flatAssignments.push(ass)); });
     if (idx < flatAssignments.length) {
       flatAssignments[idx].marks = input.value;
       markDirty();
@@ -3054,7 +2772,6 @@
       const workbook = new ExcelJS.Workbook();
       workbook.creator = user.username;
       workbook.created = new Date();
-
       function styleHeader(row, height = 28, bgColor = 'FF0B2B3B') {
         row.height = height;
         row.eachCell(cell => {
@@ -3064,7 +2781,6 @@
           cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
         });
       }
-
       const overviewSheet = workbook.addWorksheet('Overview', { pageSetup: { orientation: 'landscape', fitToPage: true } });
       let oRow = 1;
       overviewSheet.mergeCells(`A${oRow}:F${oRow}`);
@@ -3077,15 +2793,9 @@
       const allAss = getAllAssignments();
       const health = getAssignmentHealth();
       let totalTopics = 0, doneTopics = 0;
-      studyData.years.forEach(y => y.semesters.forEach(s => s.units.forEach(u => u.weeks.forEach(w => w.topics.forEach(t => {
-        totalTopics += t.subtopics.length;
-        doneTopics += t.subCompleted.filter(Boolean).length;
-      })))));
+      studyData.years.forEach(y => y.semesters.forEach(s => s.units.forEach(u => u.weeks.forEach(w => w.topics.forEach(t => { totalTopics += t.subtopics.length; doneTopics += t.subCompleted.filter(Boolean).length; })))));
       const progress = totalTopics > 0 ? Math.round((doneTopics/totalTopics)*100) : 0;
-      const kpis = [
-        ['Overall Progress', progress + '%'],['Assignments', allAss.length],['Submitted', health.submitted + health.graded],
-        ['Remaining', allAss.length - health.submitted - health.graded],['Overdue', health.overdue],['Due Soon', health['due-soon']]
-      ];
+      const kpis = [['Overall Progress', progress + '%'],['Assignments', allAss.length],['Submitted', health.submitted + health.graded],['Remaining', allAss.length - health.submitted - health.graded],['Overdue', health.overdue],['Due Soon', health['due-soon']]];
       kpis.forEach((kpi, idx) => {
         const col = idx * 2 + 1;
         overviewSheet.getCell(oRow, col).value = kpi[0];
@@ -3095,7 +2805,6 @@
         valCell.font = { bold: true, size: 14, color: { argb: 'FF2FC7FF' } };
         valCell.alignment = { horizontal: 'right' };
       });
-
       const assignSheet = workbook.addWorksheet('Assignments', { pageSetup: { orientation: 'landscape', fitToPage: true } });
       const headerRow = assignSheet.addRow(['Priority', 'Assignment', 'Unit', 'Due Date', 'Status', 'Days/Info', 'Submitted Date', 'Marks', 'Weight']);
       styleHeader(headerRow);
@@ -3111,17 +2820,12 @@
         const row = assignSheet.addRow([a.priority || 'normal', a.name, a.unitCode, a.due || '—', stateLabel, daysStr, a.submittedDate || '—', a.marks || '—', a.weight || 0]);
         row.eachCell(cell => cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } });
       });
-
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       saveAs(blob, `Academic_Report_${formatLocalYMD(new Date())}.xlsx`);
       showToast('✅ Academic report exported!', 'success');
-    } catch (err) {
-      console.error(err);
-      showToast('Export failed: ' + err.message, 'error');
-    } finally {
-      window.hideLoading();
-    }
+    } catch (err) { console.error(err); showToast('Export failed: ' + err.message, 'error'); }
+    finally { window.hideLoading(); }
   };
 
   window.exportGradeReport = async function (unitCodeFilter = null) {
@@ -3132,7 +2836,6 @@
       const workbook = new ExcelJS.Workbook();
       workbook.creator = user.username;
       workbook.created = new Date();
-
       const saGrade = (pct) => {
         if (pct >= 75) return { grade: 'Distinction', symbol: 'A', color: 'FF28A745' };
         if (pct >= 70) return { grade: 'Merit',       symbol: 'B', color: 'FF17A2B8' };
@@ -3140,14 +2843,9 @@
         if (pct >= 50) return { grade: 'Pass',        symbol: 'D', color: 'FFFFC107' };
         return              { grade: 'Fail',        symbol: 'F', color: 'FFDC3545' };
       };
-
       const units = [];
-      studyData.years.forEach(y => y.semesters.forEach(s => s.units.forEach(u => {
-        if (unitCodeFilter && u.code !== unitCodeFilter) return;
-        units.push({ unit: u, year: y.name, semester: s.name });
-      })));
+      studyData.years.forEach(y => y.semesters.forEach(s => s.units.forEach(u => { if (unitCodeFilter && u.code !== unitCodeFilter) return; units.push({ unit: u, year: y.name, semester: s.name }); })));
       if (!units.length) { showToast('No units match filter.', 'error'); return; }
-
       const summary = workbook.addWorksheet('Grade Summary', { pageSetup: { orientation: 'portrait', fitToPage: true } });
       summary.columns = [{ width: 5 }, { width: 14 }, { width: 36 }, { width: 14 }, { width: 14 }, { width: 14 }, { width: 8 }, { width: 12 }];
       summary.mergeCells('A1:H1');
@@ -3157,7 +2855,6 @@
       t.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
       t.alignment = { horizontal: 'center', vertical: 'middle' };
       summary.getRow(1).height = 46;
-
       const hdrRowIdx = 4;
       summary.mergeCells(`A${hdrRowIdx}:H${hdrRowIdx}`);
       const mh = summary.getCell(`A${hdrRowIdx}`);
@@ -3165,7 +2862,6 @@
       mh.font = { bold: true, size: 12, color: { argb: 'FFFFFFFF' } };
       mh.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2C3E50' } };
       mh.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
-
       const sHeaders = ['#', 'Module Code', 'Module Name', 'Assessments', 'Weighted %', 'Grade', 'Sym', 'Progress'];
       const sHeadRow = summary.getRow(hdrRowIdx + 1);
       sHeaders.forEach((h, i) => {
@@ -3176,7 +2872,6 @@
         c.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
         c.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
       });
-
       units.forEach((item, idx) => {
         const u = item.unit;
         const calc = calculateUnitGrade(u);
@@ -3186,7 +2881,6 @@
         const graded = allAss.filter(a => a.status === 'graded').length;
         const submitted = allAss.filter(a => a.status === 'submitted').length;
         const progress = allAss.length ? Math.round(((graded + submitted) / allAss.length) * 100) : 0;
-
         const r = hdrRowIdx + 2 + idx;
         const row = summary.getRow(r);
         row.getCell(1).value = idx + 1;
@@ -3206,32 +2900,21 @@
         row.getCell(6).font = { bold: true, color: { argb: g.color } };
         row.getCell(7).font = { bold: true, size: 12, color: { argb: g.color } };
       });
-
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       const stamp = formatLocalYMD(new Date());
       const fname = unitCodeFilter ? `Grade_Report_${unitCodeFilter}_${stamp}.xlsx` : `Grade_Report_All_Modules_${stamp}.xlsx`;
       saveAs(blob, fname);
       showToast('✅ Grade report exported!', 'success');
-    } catch (err) {
-      console.error(err);
-      showToast('Export failed: ' + err.message, 'error');
-    } finally {
-      window.hideLoading();
-    }
+    } catch (err) { console.error(err); showToast('Export failed: ' + err.message, 'error'); }
+    finally { window.hideLoading(); }
   };
 
   // ─── Import ───
   function validateImportData(data) {
     const errors = [];
-    if (!data || typeof data !== 'object') {
-      errors.push('Root must be an object.');
-      return { valid: false, errors, summary: null };
-    }
-    if (!Array.isArray(data.years)) {
-      errors.push('Missing "years" array.');
-      return { valid: false, errors, summary: null };
-    }
+    if (!data || typeof data !== 'object') { errors.push('Root must be an object.'); return { valid: false, errors, summary: null }; }
+    if (!Array.isArray(data.years)) { errors.push('Missing "years" array.'); return { valid: false, errors, summary: null }; }
     let totalUnits = 0, totalWeeks = 0, totalTopics = 0, totalAssignments = 0, totalWeight = 0;
     data.years.forEach((year, yi) => {
       if (!year.name) errors.push(`Year #${yi+1}: missing "name".`);
@@ -3247,29 +2930,14 @@
             unit.weeks.forEach((week, wi) => {
               totalWeeks++;
               if (typeof week.number !== 'number') errors.push(`Unit "${unit.code}" week #${wi+1}: "number" must be a number.`);
-              if (Array.isArray(week.topics)) {
-                week.topics.forEach((topic, ti) => {
-                  totalTopics++;
-                  if (!topic.name) errors.push(`Unit "${unit.code}" week ${week.number} topic #${ti+1}: missing "name".`);
-                });
-              }
-              if (Array.isArray(week.assignments)) {
-                week.assignments.forEach((a, ai) => {
-                  totalAssignments++;
-                  totalWeight += parseFloat(a.weight) || 0;
-                  if (!a.name) errors.push(`Unit "${unit.code}" week ${week.number} assignment #${ai+1}: missing "name".`);
-                });
-              }
+              if (Array.isArray(week.topics)) week.topics.forEach((topic, ti) => { totalTopics++; if (!topic.name) errors.push(`Unit "${unit.code}" week ${week.number} topic #${ti+1}: missing "name".`); });
+              if (Array.isArray(week.assignments)) week.assignments.forEach((a, ai) => { totalAssignments++; totalWeight += parseFloat(a.weight) || 0; if (!a.name) errors.push(`Unit "${unit.code}" week ${week.number} assignment #${ai+1}: missing "name".`); });
             });
           }
         });
       });
     });
-    return {
-      valid: errors.length === 0,
-      errors,
-      summary: { totalYears: data.years.length, totalUnits, totalWeeks, totalTopics, totalAssignments, totalWeight }
-    };
+    return { valid: errors.length === 0, errors, summary: { totalYears: data.years.length, totalUnits, totalWeeks, totalTopics, totalAssignments, totalWeight } };
   }
 
   function normalizeImportedData(data) {
@@ -3284,9 +2952,7 @@
             if (!week.topics) week.topics = [];
             week.topics.forEach(topic => {
               if (!topic.subtopics) topic.subtopics = [];
-              if (!topic.subCompleted || topic.subCompleted.length !== topic.subtopics.length) {
-                topic.subCompleted = topic.subtopics.map(() => false);
-              }
+              if (!topic.subCompleted || topic.subCompleted.length !== topic.subtopics.length) topic.subCompleted = topic.subtopics.map(() => false);
               topic.completed = topic.subCompleted.every(Boolean);
             });
             if (!week.assignments) week.assignments = [];
@@ -3314,26 +2980,10 @@
         semesters: [{
           name: 'Semester 1',
           units: [{
-            code: 'BSC101',
-            name: 'Example Module',
-            color: '#2fc7ff',
+            code: 'BSC101', name: 'Example Module', color: '#2fc7ff',
             weeks: [
-              {
-                number: 1,
-                topics: [
-                  { name: 'Introduction', subtopics: ['What is this?', 'Why it matters', 'Key concepts'], completed: false, subCompleted: [false, false, false] }
-                ],
-                assignments: []
-              },
-              {
-                number: 2,
-                topics: [
-                  { name: 'Foundations', subtopics: ['Theory', 'Practice', 'Examples'], completed: false, subCompleted: [false, false, false] }
-                ],
-                assignments: [
-                  { id: 'ass_weekly_2', name: 'Weekly Quiz Week 2', due: '2026-03-15', status: 'not-started', marks: '', weight: 1, submittedDate: null, gradedDate: null, notes: '', priority: 'normal' }
-                ]
-              }
+              { number: 1, topics: [{ name: 'Introduction', subtopics: ['What is this?', 'Why it matters', 'Key concepts'], completed: false, subCompleted: [false, false, false] }], assignments: [] },
+              { number: 2, topics: [{ name: 'Foundations', subtopics: ['Theory', 'Practice', 'Examples'], completed: false, subCompleted: [false, false, false] }], assignments: [{ id: 'ass_weekly_2', name: 'Weekly Quiz Week 2', due: '2026-03-15', status: 'not-started', marks: '', weight: 1, submittedDate: null, gradedDate: null, notes: '', priority: 'normal' }] }
             ]
           }]
         }]
@@ -3354,16 +3004,12 @@
 
   function openImportModal() {
     const modal = document.getElementById('importModal');
-    const preview = document.getElementById('importPreview');
-    const fileInput = document.getElementById('importFileInput');
-    const modeSelect = document.getElementById('importMode');
+    document.getElementById('importFileInput').value = '';
+    document.getElementById('importPreview').innerHTML = '';
     const confirmBtn = document.getElementById('importConfirm');
-
-    fileInput.value = '';
-    preview.innerHTML = '';
     confirmBtn.disabled = true;
-    modeSelect.value = 'replace';
     confirmBtn._pendingData = null;
+    document.getElementById('importMode').value = 'replace';
     modal.classList.add('open');
   }
 
@@ -3371,48 +3017,34 @@
     const preview = document.getElementById('importPreview');
     const confirmBtn = document.getElementById('importConfirm');
     if (!file) { preview.innerHTML = ''; confirmBtn.disabled = true; return; }
-
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
         const data = JSON.parse(e.target.result);
         const validation = validateImportData(data);
         if (!validation.valid) {
-          preview.innerHTML = `
-            <div style="background:rgba(225,112,85,0.1);border:1px solid rgba(225,112,85,0.3);border-radius:12px;padding:12px 16px;">
-              <div style="color:#ff9b85;font-weight:700;margin-bottom:6px;">❌ Validation failed</div>
-              <ul style="margin:0;padding-left:18px;color:var(--text-secondary);font-size:0.8rem;">
-                ${validation.errors.slice(0, 8).map(er => `<li>${escapeHtml(er)}</li>`).join('')}
-                ${validation.errors.length > 8 ? `<li>…and ${validation.errors.length - 8} more</li>` : ''}
-              </ul>
-            </div>
-          `;
+          preview.innerHTML = `<div style="background:rgba(225,112,85,0.1);border:1px solid rgba(225,112,85,0.3);border-radius:12px;padding:12px 16px;">
+            <div style="color:#ff9b85;font-weight:700;margin-bottom:6px;">❌ Validation failed</div>
+            <ul style="margin:0;padding-left:18px;color:var(--text-secondary);font-size:0.8rem;">${validation.errors.slice(0, 8).map(er => `<li>${escapeHtml(er)}</li>`).join('')}${validation.errors.length > 8 ? `<li>…and ${validation.errors.length - 8} more</li>` : ''}</ul>
+          </div>`;
           confirmBtn.disabled = true;
           confirmBtn._pendingData = null;
           return;
         }
-
         const s = validation.summary;
-        preview.innerHTML = `
-          <div class="json-preview">
-            <div class="preview-heading">📦 File Preview</div>
-            <div class="preview-line"><strong>${s.totalYears}</strong> year(s)</div>
-            <div class="preview-line"><strong>${s.totalUnits}</strong> unit(s)</div>
-            <div class="preview-line"><strong>${s.totalWeeks}</strong> week(s)</div>
-            <div class="preview-line"><strong>${s.totalTopics}</strong> topic(s)</div>
-            <div class="preview-line"><strong>${s.totalAssignments}</strong> assignment(s) · total weight <strong>${s.totalWeight.toFixed(1)}%</strong></div>
-            ${Math.abs(s.totalWeight - 100) > 0.5 ? `<div class="preview-line" style="color:var(--orange);">⚠️ Weight total is ${s.totalWeight.toFixed(1)}% (expected 100%)</div>` : ''}
-          </div>
-        `;
+        preview.innerHTML = `<div class="json-preview">
+          <div class="preview-heading">📦 File Preview</div>
+          <div class="preview-line"><strong>${s.totalYears}</strong> year(s)</div>
+          <div class="preview-line"><strong>${s.totalUnits}</strong> unit(s)</div>
+          <div class="preview-line"><strong>${s.totalWeeks}</strong> week(s)</div>
+          <div class="preview-line"><strong>${s.totalTopics}</strong> topic(s)</div>
+          <div class="preview-line"><strong>${s.totalAssignments}</strong> assignment(s) · total weight <strong>${s.totalWeight.toFixed(1)}%</strong></div>
+          ${Math.abs(s.totalWeight - 100) > 0.5 ? `<div class="preview-line" style="color:var(--orange);">⚠️ Weight total is ${s.totalWeight.toFixed(1)}% (expected 100%)</div>` : ''}
+        </div>`;
         confirmBtn.disabled = false;
         confirmBtn._pendingData = data;
       } catch (err) {
-        preview.innerHTML = `
-          <div style="background:rgba(225,112,85,0.1);border:1px solid rgba(225,112,85,0.3);border-radius:12px;padding:12px 16px;">
-            <div style="color:#ff9b85;font-weight:700;margin-bottom:6px;">❌ Invalid JSON</div>
-            <div style="color:var(--text-secondary);font-size:0.8rem;">${escapeHtml(err.message)}</div>
-          </div>
-        `;
+        preview.innerHTML = `<div style="background:rgba(225,112,85,0.1);border:1px solid rgba(225,112,85,0.3);border-radius:12px;padding:12px 16px;"><div style="color:#ff9b85;font-weight:700;margin-bottom:6px;">❌ Invalid JSON</div><div style="color:var(--text-secondary);font-size:0.8rem;">${escapeHtml(err.message)}</div></div>`;
         confirmBtn.disabled = true;
         confirmBtn._pendingData = null;
       }
@@ -3459,17 +3091,55 @@
     if (mode === 'replace') showToast('✅ Data replaced with imported JSON', 'success');
   }
 
-  // ─────────────────────────────────────────────────────────────
+  // ─────────────────────────────────────────────
+  //  MODAL HELPERS
+  // ─────────────────────────────────────────────
+  function openModal(title, bodyHTML, onSave) {
+    const modal = document.getElementById('genericModal');
+    document.getElementById('modalTitle').textContent = title;
+    document.getElementById('modalBody').innerHTML = bodyHTML;
+    modal.classList.add('open');
+    modal._onSave = onSave;
+  }
+
+  window.addYear = function() {
+    openModal('Add Year', `<div class="form-group"><label>Year Name (e.g. 2026)</label><input type="text" id="yearName" placeholder="2026" /></div>`, () => {
+      const name = document.getElementById('yearName').value.trim();
+      if (!name) { showToast('Please enter a year name.', 'error'); return false; }
+      studyData.years.push({ name, semesters: [] });
+      return true;
+    });
+  };
+  window.editYear = function(yi) {
+    const year = studyData.years[yi];
+    openModal('Edit Year', `<div class="form-group"><label>Year Name</label><input type="text" id="yearName" value="${escapeHtml(year.name)}" /></div>`, () => {
+      const name = document.getElementById('yearName').value.trim();
+      if (!name) { showToast('Please enter a year name.', 'error'); return false; }
+      year.name = name;
+      return true;
+    });
+  };
+  window.deleteYear = function(yi) {
+    if (!confirm('Delete this year and all its semesters, units, weeks, topics, and assignments?')) return;
+    studyData.years.splice(yi, 1);
+    render(); markDirty();
+  };
+
+  window.toggleCompact = function() {
+    compactMode = !compactMode;
+    const sw = document.getElementById('compactSwitch');
+    if (sw) sw.classList.toggle('active', compactMode);
+    render();
+  };
+
+  // ─────────────────────────────────────────────
   //  INIT
-  // ─────────────────────────────────────────────────────────────
+  // ─────────────────────────────────────────────
   async function init() {
     console.log('📦 Study Manager initializing...');
-
-    // Load saved scope preference before anything else
     scope = loadScopeFromStorage();
 
     const contentArea = document.getElementById('contentArea');
-
     contentArea.innerHTML = `
       <div class="study-header">
         <div>
@@ -3477,6 +3147,9 @@
           <div class="subtitle">Years → Semesters → Units → Weeks → Topics · <span id="userDisplay">🔒 ${user.username}</span></div>
         </div>
         <div class="actions">
+          <button type="button" class="btn btn-primary-glow" id="cmdPaletteBtn" title="Open command palette (Ctrl+K)">
+            <i class="fa fa-bolt"></i> Commands <span style="opacity:0.7;font-family:monospace;font-size:0.72rem;margin-left:4px;">Ctrl+K</span>
+          </button>
           <div class="scope-selector" id="scopeSelector">
             <button type="button" class="scope-btn" id="scopeBtn">
               <i class="fa fa-calendar-o"></i>
@@ -3510,21 +3183,9 @@
       <div id="scopeBanner" class="scope-banner"></div>
 
       <div class="kpi-grid-3">
-        <div class="kpi-card">
-          <div class="number learning" id="kpiLearning">0%</div>
-          <div class="label">📚 Learning Progress</div>
-          <div class="kpi-sub" id="kpiLearningSub">—</div>
-        </div>
-        <div class="kpi-card">
-          <div class="number coursework" id="kpiCoursework">0%</div>
-          <div class="label">📝 Coursework Progress</div>
-          <div class="kpi-sub" id="kpiCourseworkSub">—</div>
-        </div>
-        <div class="kpi-card">
-          <div class="number academic" id="kpiAcademic">0%</div>
-          <div class="label">🎯 Mastery (graded)</div>
-          <div class="kpi-sub" id="kpiAcademicSub">—</div>
-        </div>
+        <div class="kpi-card"><div class="number learning" id="kpiLearning">0%</div><div class="label">📚 Learning Progress</div><div class="kpi-sub" id="kpiLearningSub">—</div></div>
+        <div class="kpi-card"><div class="number coursework" id="kpiCoursework">0%</div><div class="label">📝 Coursework Progress</div><div class="kpi-sub" id="kpiCourseworkSub">—</div></div>
+        <div class="kpi-card"><div class="number academic" id="kpiAcademic">0%</div><div class="label">🎯 Mastery (graded)</div><div class="kpi-sub" id="kpiAcademicSub">—</div></div>
       </div>
 
       <div id="deadlinesContainer"></div>
@@ -3567,6 +3228,38 @@
       if (sel && !sel.contains(e.target)) closeScopePanel();
     });
 
+    // Command palette wiring
+    document.getElementById('cmdPaletteBtn').addEventListener('click', openCmdPalette);
+    document.getElementById('cmdPalette').addEventListener('click', (e) => {
+      if (e.target.id === 'cmdPalette') closeCmdPalette();
+    });
+    const cmdInput = document.getElementById('cmdInput');
+    cmdInput.addEventListener('input', function() {
+      cmdFocusedIdx = 0;
+      renderCmdResults(this.value);
+    });
+    cmdInput.addEventListener('keydown', function(e) {
+      const items = document.querySelectorAll('#cmdResults .cmd-item');
+      if (!items.length) return;
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        cmdFocusedIdx = Math.min(items.length - 1, cmdFocusedIdx + 1);
+        items.forEach((it, i) => it.classList.toggle('active', i === cmdFocusedIdx));
+        items[cmdFocusedIdx].scrollIntoView({ block: 'nearest' });
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        cmdFocusedIdx = Math.max(0, cmdFocusedIdx - 1);
+        items.forEach((it, i) => it.classList.toggle('active', i === cmdFocusedIdx));
+        items[cmdFocusedIdx].scrollIntoView({ block: 'nearest' });
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        runCommand(cmdFiltered[cmdFocusedIdx]);
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        closeCmdPalette();
+      }
+    });
+
     // Search setup
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
@@ -3580,23 +3273,14 @@
       const dropdown = document.getElementById('searchResultsDropdown');
       let focusedIdx = -1;
       let currentResults = [];
-
-      const closeDropdown = () => {
-        dropdown.classList.remove('open');
-        focusedIdx = -1;
-        currentResults = [];
-      };
-
-      const highlightMatch = (text, term) => {
+      const closeDropdown = () => { dropdown.classList.remove('open'); focusedIdx = -1; currentResults = []; };
+      const highlightMatchLocal = (text, term) => {
         const safe = escapeHtml(text);
         const t = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        try { return safe.replace(new RegExp(`(${t})`, 'ig'), '<mark>$1</mark>'); }
-        catch (e) { return safe; }
+        try { return safe.replace(new RegExp(`(${t})`, 'ig'), '<mark>$1</mark>'); } catch (e) { return safe; }
       };
-
       const jumpToResult = (r) => {
         if (!r) return;
-        // Force scope to the result's year/sem if it's not already in scope
         const targetYear = studyData.years[r.yi]?.name;
         const targetSem = studyData.years[r.yi]?.semesters[r.si]?.name;
         if (targetYear && (scope.mode !== 'all' && (scope.yearName !== targetYear || scope.semesterName !== targetSem))) {
@@ -3622,12 +3306,10 @@
           }
         }, 250);
       };
-
       const runGlobalSearch = (term) => {
         const t = term.toLowerCase().trim();
         if (!t || t.length < 2) { closeDropdown(); return; }
         const results = [];
-        // Search ALL data, not just scope — global lookup
         studyData.years.forEach((year, yi) => {
           year.semesters.forEach((sem, si) => {
             sem.units.forEach((unit, ui) => {
@@ -3636,28 +3318,17 @@
               }
               unit.weeks.forEach((week, wi) => {
                 week.topics.forEach((topic, ti) => {
-                  if ((topic.name || '').toLowerCase().includes(t)) {
-                    results.push({ type: 'topic', name: topic.name, path: `${unit.code} · W${week.number}`, yi, si, ui, wi, ti, ai: null });
-                  }
-                  (topic.subtopics || []).forEach((sub) => {
-                    if ((sub || '').toLowerCase().includes(t)) {
-                      results.push({ type: 'topic', name: sub, path: `${unit.code} · W${week.number} · ${topic.name}`, yi, si, ui, wi, ti, ai: null });
-                    }
-                  });
+                  if ((topic.name || '').toLowerCase().includes(t)) results.push({ type: 'topic', name: topic.name, path: `${unit.code} · W${week.number}`, yi, si, ui, wi, ti, ai: null });
+                  (topic.subtopics || []).forEach((sub) => { if ((sub || '').toLowerCase().includes(t)) results.push({ type: 'topic', name: sub, path: `${unit.code} · W${week.number} · ${topic.name}`, yi, si, ui, wi, ti, ai: null }); });
                 });
                 (week.assignments || []).forEach((a, ai) => {
-                  if ((a.name || '').toLowerCase().includes(t)) {
-                    results.push({ type: 'assignment', name: a.name, path: `${unit.code} · W${week.number}`, yi, si, ui, wi, ti: null, ai });
-                  }
-                  if ((a.notes || '').toLowerCase().includes(t)) {
-                    results.push({ type: 'note', name: a.notes.substring(0, 80), path: `${unit.code} · ${a.name}`, yi, si, ui, wi, ti: null, ai });
-                  }
+                  if ((a.name || '').toLowerCase().includes(t)) results.push({ type: 'assignment', name: a.name, path: `${unit.code} · W${week.number}`, yi, si, ui, wi, ti: null, ai });
+                  if ((a.notes || '').toLowerCase().includes(t)) results.push({ type: 'note', name: a.notes.substring(0, 80), path: `${unit.code} · ${a.name}`, yi, si, ui, wi, ti: null, ai });
                 });
               });
             });
           });
         });
-
         currentResults = results.slice(0, 30);
         if (!currentResults.length) {
           dropdown.innerHTML = `<div class="search-empty">No results for "<strong>${escapeHtml(term)}</strong>"</div>`;
@@ -3672,65 +3343,37 @@
             html += `<div class="search-group-label">${groupLabels[g]}</div>`;
             groups[g].forEach(item => {
               const idx = flatIdx++;
-              html += `<div class="search-result-item" data-idx="${idx}">
-                <span class="sr-path">${escapeHtml(item.path)}</span>
-                <span class="sr-name">${highlightMatch(item.name, term)}</span>
-                <span class="sr-type ${item.type}">${item.type}</span>
-              </div>`;
+              html += `<div class="search-result-item" data-idx="${idx}"><span class="sr-path">${escapeHtml(item.path)}</span><span class="sr-name">${highlightMatchLocal(item.name, term)}</span><span class="sr-type ${item.type}">${item.type}</span></div>`;
             });
           });
           dropdown.innerHTML = html;
           dropdown.querySelectorAll('.search-result-item').forEach(el => {
-            el.addEventListener('click', () => {
-              const idx = parseInt(el.dataset.idx);
-              jumpToResult(currentResults[idx]);
-              closeDropdown();
-              searchInput.blur();
-            });
+            el.addEventListener('click', () => { jumpToResult(currentResults[parseInt(el.dataset.idx)]); closeDropdown(); searchInput.blur(); });
           });
         }
         dropdown.classList.add('open');
         focusedIdx = -1;
       };
-
       let searchDebounce;
       searchInput.addEventListener('input', function() {
         clearTimeout(searchDebounce);
-        searchDebounce = setTimeout(() => {
-          searchTerm = this.value;
-          render();
-          runGlobalSearch(this.value);
-        }, 200);
+        searchDebounce = setTimeout(() => { searchTerm = this.value; render(); runGlobalSearch(this.value); }, 200);
       });
-
       searchInput.addEventListener('keydown', function(e) {
         if (!dropdown.classList.contains('open')) return;
         const items = dropdown.querySelectorAll('.search-result-item');
         if (!items.length) return;
         if (e.key === 'ArrowDown') {
-          e.preventDefault();
-          focusedIdx = Math.min(items.length - 1, focusedIdx + 1);
-          items.forEach((it, i) => it.classList.toggle('focused', i === focusedIdx));
-          items[focusedIdx].scrollIntoView({ block: 'nearest' });
+          e.preventDefault(); focusedIdx = Math.min(items.length - 1, focusedIdx + 1);
+          items.forEach((it, i) => it.classList.toggle('focused', i === focusedIdx)); items[focusedIdx].scrollIntoView({ block: 'nearest' });
         } else if (e.key === 'ArrowUp') {
-          e.preventDefault();
-          focusedIdx = Math.max(0, focusedIdx - 1);
-          items.forEach((it, i) => it.classList.toggle('focused', i === focusedIdx));
-          items[focusedIdx].scrollIntoView({ block: 'nearest' });
+          e.preventDefault(); focusedIdx = Math.max(0, focusedIdx - 1);
+          items.forEach((it, i) => it.classList.toggle('focused', i === focusedIdx)); items[focusedIdx].scrollIntoView({ block: 'nearest' });
         } else if (e.key === 'Enter' && focusedIdx >= 0) {
-          e.preventDefault();
-          jumpToResult(currentResults[focusedIdx]);
-          closeDropdown();
-          this.blur();
-        } else if (e.key === 'Escape') {
-          closeDropdown();
-          this.blur();
-        }
+          e.preventDefault(); jumpToResult(currentResults[focusedIdx]); closeDropdown(); this.blur();
+        } else if (e.key === 'Escape') { closeDropdown(); this.blur(); }
       });
-
-      document.addEventListener('click', (e) => {
-        if (!searchBar.contains(e.target)) closeDropdown();
-      });
+      document.addEventListener('click', (e) => { if (!searchBar.contains(e.target)) closeDropdown(); });
     }
 
     document.getElementById('syncBtn').addEventListener('click', async function() {
@@ -3741,29 +3384,17 @@
           studyData = result.data;
           currentFileSha = result.sha;
           lastSyncedSha = result.sha;
-          expandScopedPath();
-          render();
-          saveToCache(studyData);
-          updateScopeUI();
+          expandScopedPath(); render(); saveToCache(studyData); updateScopeUI();
           showToast('✅ Synced from GitHub', 'success');
           updateSaveStatusUI('saved');
-        } else {
-          showToast('ℹ️ No study data on GitHub. Keeping local data.', 'info');
-        }
-      } catch (err) {
-        console.error('Sync error:', err);
-        showToast('❌ Sync failed: ' + err.message, 'error');
-      }
+        } else showToast('ℹ️ No study data on GitHub. Keeping local data.', 'info');
+      } catch (err) { console.error('Sync error:', err); showToast('❌ Sync failed: ' + err.message, 'error'); }
     });
 
     document.getElementById('resetBtn').addEventListener('click', function() {
       if (!confirm('⚠️ Reset ALL data? This will restore the default study plan. Any custom data will be lost.')) return;
       studyData = getDefaultData();
-      expanded = {};
-      expandScopedPath();
-      render();
-      markDirty();
-      updateScopeUI();
+      expanded = {}; expandScopedPath(); render(); markDirty(); updateScopeUI();
       showToast('🔄 Reset to default', 'info');
     });
 
@@ -3771,52 +3402,34 @@
     document.getElementById('addYearBtn').addEventListener('click', window.addYear);
     document.getElementById('exportBtn').addEventListener('click', window.exportToExcel);
     document.getElementById('gradeReportBtn').addEventListener('click', () => window.exportGradeReport());
-
     document.getElementById('exportJsonBtn').addEventListener('click', function() {
       const blob = new Blob([JSON.stringify(studyData, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url;
-      a.download = `study_plan_${formatLocalYMD(new Date())}.json`;
-      a.click();
+      a.href = url; a.download = `study_plan_${formatLocalYMD(new Date())}.json`; a.click();
       URL.revokeObjectURL(url);
       showToast('📥 Study plan exported', 'success');
     });
 
-    // Import modal wiring
     document.getElementById('importJsonBtn').addEventListener('click', openImportModal);
-    document.getElementById('importCancel').addEventListener('click', () => {
-      document.getElementById('importModal').classList.remove('open');
-    });
-    document.getElementById('downloadSampleBtn').addEventListener('click', (e) => {
-      e.preventDefault();
-      downloadSampleJson();
-    });
-    document.getElementById('importFileInput').addEventListener('change', function() {
-      handleImportFile(this.files[0]);
-    });
+    document.getElementById('importCancel').addEventListener('click', () => document.getElementById('importModal').classList.remove('open'));
+    document.getElementById('downloadSampleBtn').addEventListener('click', (e) => { e.preventDefault(); downloadSampleJson(); });
+    document.getElementById('importFileInput').addEventListener('change', function() { handleImportFile(this.files[0]); });
     document.getElementById('importConfirm').addEventListener('click', performImport);
 
-    // Modal button wiring
-    document.getElementById('submitModalCancel').addEventListener('click', function() {
-      document.getElementById('submitModal').classList.remove('open');
-      submitModalContext = null;
-    });
+    document.getElementById('submitModalCancel').addEventListener('click', function() { document.getElementById('submitModal').classList.remove('open'); submitModalContext = null; });
     document.getElementById('submitModalConfirm').addEventListener('click', async function() {
       if (!submitModalContext) return;
       const { yi, si, ui, wi, ai } = submitModalContext;
       const unit = studyData.years[yi]?.semesters[si]?.units[ui];
       if (!unit) return;
-      const week = unit.weeks[wi];
-      if (!week) return;
-      const a = week.assignments[ai];
-      if (!a) return;
+      const week = unit.weeks[wi]; if (!week) return;
+      const a = week.assignments[ai]; if (!a) return;
       const confirmCheck = document.getElementById('submitConfirm');
       if (!confirmCheck || !confirmCheck.checked) { showToast('Please confirm submission.', 'error'); return; }
       const submitDate = document.getElementById('submitDate').value;
       if (!submitDate) { showToast('Please select a submission date.', 'error'); return; }
-      a.status = 'submitted';
-      a.submittedDate = submitDate;
+      a.status = 'submitted'; a.submittedDate = submitDate;
       markDirty();
       document.getElementById('submitModal').classList.remove('open');
       submitModalContext = null;
@@ -3824,40 +3437,35 @@
       render();
     });
 
-    document.getElementById('modalCancel').addEventListener('click', function() {
-      document.getElementById('genericModal').classList.remove('open');
-    });
+    document.getElementById('modalCancel').addEventListener('click', function() { document.getElementById('genericModal').classList.remove('open'); });
     document.getElementById('modalSave').addEventListener('click', function() {
       const modal = document.getElementById('genericModal');
       const onSave = modal._onSave;
       if (typeof onSave === 'function') {
         const result = onSave();
-        if (result !== false) {
-          modal.classList.remove('open');
-          render();
-          markDirty();
-          showToast('✅ Saved', 'success');
-        }
+        if (result !== false) { modal.classList.remove('open'); render(); markDirty(); showToast('✅ Saved', 'success'); }
       }
     });
 
-    document.getElementById('gradeModalClose').addEventListener('click', function() {
-      document.getElementById('gradeModal').classList.remove('open');
-      gradeModalOpen = false;
-    });
-    document.getElementById('versionHistoryClose').addEventListener('click', () => {
-      document.getElementById('versionHistoryModal').classList.remove('open');
-    });
+    document.getElementById('gradeModalClose').addEventListener('click', function() { document.getElementById('gradeModal').classList.remove('open'); gradeModalOpen = false; });
+    document.getElementById('versionHistoryClose').addEventListener('click', () => document.getElementById('versionHistoryModal').classList.remove('open'));
 
     document.addEventListener('keydown', (e) => {
+      // Ctrl+K or Ctrl+P for command palette
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K' || e.key === 'p' || e.key === 'P')) {
+        e.preventDefault();
+        if (document.getElementById('cmdPalette').classList.contains('open')) closeCmdPalette();
+        else openCmdPalette();
+        return;
+      }
+      if (e.key === 'Escape' && document.getElementById('cmdPalette').classList.contains('open')) {
+        closeCmdPalette();
+        return;
+      }
       if (e.ctrlKey && e.key === 'e') { e.preventDefault(); expandAll(); }
       if (e.ctrlKey && e.key === 'w') { e.preventDefault(); collapseAll(); }
       if (e.ctrlKey && e.key === 's') { e.preventDefault(); markDirty(); showToast('🔄 Saving…', 'info'); }
-      if (e.ctrlKey && e.key === 'f') {
-        e.preventDefault();
-        const si = document.getElementById('searchInput');
-        if (si) { si.focus(); si.select(); }
-      }
+      if (e.ctrlKey && e.key === 'f') { e.preventDefault(); const si = document.getElementById('searchInput'); if (si) { si.focus(); si.select(); } }
     });
 
     await loadData();
@@ -3868,60 +3476,14 @@
     console.log('✅ Study Manager ready');
   }
 
-  // Global modal helper
-  function openModal(title, bodyHTML, onSave) {
-    const modal = document.getElementById('genericModal');
-    document.getElementById('modalTitle').textContent = title;
-    document.getElementById('modalBody').innerHTML = bodyHTML;
-    modal.classList.add('open');
-    modal._onSave = onSave;
-  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
 
-  window.addYear = function() {
-    openModal('Add Year', `<div class="form-group"><label>Year Name (e.g. 2026)</label><input type="text" id="yearName" placeholder="2026" /></div>`, () => {
-      const name = document.getElementById('yearName').value.trim();
-      if (!name) { showToast('Please enter a year name.', 'error'); return false; }
-      studyData.years.push({ name, semesters: [] });
-      return true;
-    });
-  };
-  window.editYear = function(yi) {
-    const year = studyData.years[yi];
-    openModal('Edit Year', `<div class="form-group"><label>Year Name</label><input type="text" id="yearName" value="${escapeHtml(year.name)}" /></div>`, () => {
-      const name = document.getElementById('yearName').value.trim();
-      if (!name) { showToast('Please enter a year name.', 'error'); return false; }
-      year.name = name;
-      return true;
-    });
-  };
-  window.deleteYear = function(yi) {
-    if (!confirm('Delete this year and all its semesters, units, weeks, topics, and assignments?')) return;
-    studyData.years.splice(yi, 1);
-    render(); markDirty();
-  };
-
-  window.toggleCompact = function() {
-    compactMode = !compactMode;
-    const sw = document.getElementById('compactSwitch');
-    if (sw) sw.classList.toggle('active', compactMode);
-    render();
-  };
-
-  // Kick off init
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
-
-  // Expose internals for debugging
   window.studyManager = {
     get studyData() { return studyData; },
     get scope() { return scope; },
-    render,
-    markDirty,
-    setScope,
-    clearScope,
+    render, markDirty, setScope,
+    clearScope: () => window.clearScope(),
     resolveScope
   };
 })();
