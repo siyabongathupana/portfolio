@@ -16,8 +16,6 @@
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
   <style>
     :root { --bg-primary: #0a0e17; --bg-card: #111927; --border-subtle: rgba(47,199,255,0.08); --text-primary: #e0e8ee; --text-secondary: #8a9fb0; --accent: #2fc7ff; --green: #00b894; --orange: #fdcb6e; --red: #e17055; --purple: #a29bfe; }
     * { box-sizing: border-box; }
@@ -44,8 +42,6 @@
     .btn-excel:hover { background: #218838; transform: scale(1.03); color: white; }
     .btn-grade { background: rgba(162,155,254,0.2); color: #c9c3ff; }
     .btn-grade:hover { background: rgba(162,155,254,0.32); color: #dcd7ff; }
-    .btn-pdf { background: #dc3545; color: white; }
-    .btn-pdf:hover { background: #b52a37; transform: scale(1.03); color: white; }
     .stats-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 16px; margin-bottom: 30px; }
     .stat-item { background: var(--bg-card); border-radius: 16px; padding: 16px 20px; border: 1px solid var(--border-subtle); text-align: center; transition: 0.2s; position: relative; }
     .stat-item:hover { border-color: rgba(47,199,255,0.2); transform: translateY(-2px); }
@@ -104,52 +100,71 @@
     .assignments-section .section-title i { color: var(--accent); }
     .btn-add-ass { background: rgba(255,255,255,0.06); color: var(--text-primary); border: 1px dashed var(--border-subtle); border-radius: 40px; padding: 4px 14px; min-height: 32px; font-size: 0.7rem; transition: 0.2s; }
     .btn-add-ass:hover { border-color: var(--accent); color: var(--accent); background: rgba(47,199,255,0.08); }
-    .grade-modal .modal-box { max-width: 680px; }
+
+    /* ─── Improved Grade Modal ─── */
+    .grade-modal .modal-box { max-width: 760px; }
     .grade-modal .grade-summary { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin: 16px 0 20px; }
     .grade-modal .grade-summary .card { background: rgba(255,255,255,0.05); border-radius: 12px; padding: 12px 16px; text-align: center; border: 1px solid var(--border-subtle); }
     .grade-modal .grade-summary .card .value { font-size: 2rem; font-weight: 800; color: #fff; }
     .grade-modal .grade-summary .card .label { font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em; }
     .grade-modal .grade-summary .card .value.green { color: var(--green); } .grade-modal .grade-summary .card .value.orange { color: var(--orange); } .grade-modal .grade-summary .card .value.red { color: var(--red); } .grade-modal .grade-summary .card .value.purple { color: var(--purple); }
-    .grade-modal .assignment-row { display: flex; align-items: center; gap: 12px; padding: 6px 10px; background: rgba(255,255,255,0.03); border-radius: 8px; margin-bottom: 4px; border: 1px solid transparent; transition: 0.2s; }
-    .grade-modal .assignment-row:hover { border-color: var(--border-subtle); background: rgba(255,255,255,0.05); }
-    .grade-modal .assignment-row .name { flex: 1; font-weight: 500; font-size: 0.85rem; color: var(--text-primary); }
-    .grade-modal .assignment-row .weight { font-size: 0.75rem; color: var(--text-secondary); min-width: 50px; }
-    .grade-modal .assignment-row .marks-input { width: 70px; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border-subtle); background: rgba(255,255,255,0.06); color: #fff; font-size: 0.85rem; text-align: right; outline: none; transition: 0.2s; }
-    .grade-modal .assignment-row .marks-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(47,199,255,0.15); }
-    .grade-modal .assignment-row .status-badge { font-size: 0.6rem; padding: 2px 8px; border-radius: 40px; text-transform: uppercase; font-weight: 600; }
-    .grade-modal .assignment-row .status-badge.pending { background: rgba(225,112,85,0.18); color: #ff9b85; } .grade-modal .assignment-row .status-badge.submitted { background: rgba(0,184,148,0.18); color: #4ae4b8; }
 
-    /* Grade Intelligence */
-    .grade-modal .scenario-strip { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin: 14px 0 18px; }
-    .grade-modal .scenario-tile { background: rgba(255,255,255,0.04); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 12px 14px; text-align: center; transition: 0.2s; }
-    .grade-modal .scenario-tile:hover { border-color: rgba(47,199,255,0.3); background: rgba(47,199,255,0.06); }
-    .grade-modal .scenario-tile .tile-label { font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
-    .grade-modal .scenario-tile .tile-value { font-size: 1.7rem; font-weight: 800; line-height: 1; margin-bottom: 4px; }
-    .grade-modal .scenario-tile .tile-grade { font-size: 0.7rem; font-weight: 600; }
-    .grade-modal .scenario-tile.min .tile-value { color: #ff6b6b; }
-    .grade-modal .scenario-tile.exp .tile-value { color: var(--accent); }
-    .grade-modal .scenario-tile.max .tile-value { color: #4ae4b8; }
-    .grade-modal .scenario-table { margin: 12px 0 18px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); border-radius: 12px; overflow: hidden; }
-    .grade-modal .scenario-table .st-header { background: rgba(11,43,59,0.8); padding: 8px 14px; font-size: 0.72rem; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.05em; }
-    .grade-modal .scenario-table .st-row { display: grid; grid-template-columns: 60px 1fr 130px; align-items: center; padding: 7px 14px; gap: 12px; border-top: 1px solid rgba(255,255,255,0.04); font-size: 0.82rem; }
-    .grade-modal .scenario-table .st-row:first-of-type { border-top: none; }
-    .grade-modal .scenario-table .st-marks { font-weight: 700; color: var(--text-primary); font-family: 'SF Mono', Menlo, Consolas, monospace; font-size: 0.85rem; }
-    .grade-modal .scenario-table .st-bar-wrap { height: 6px; background: rgba(255,255,255,0.08); border-radius: 4px; overflow: hidden; position: relative; }
-    .grade-modal .scenario-table .st-bar { height: 100%; border-radius: 4px; transition: width 0.4s ease; }
-    .grade-modal .scenario-table .st-result { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
-    .grade-modal .scenario-table .st-result .small-grade { font-size: 0.7rem; font-weight: 500; opacity: 0.85; margin-left: 6px; }
-    .grade-modal .target-block { margin-top: 14px; padding: 14px 16px; background: rgba(47,199,255,0.06); border-radius: 12px; border: 1px solid rgba(47,199,255,0.15); }
-    .grade-modal .target-block .target-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
-    .grade-modal .target-block input[type="number"] { width: 90px; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-subtle); background: rgba(255,255,255,0.06); color: #fff; font-size: 0.9rem; text-align: right; outline: none; transition: 0.2s; }
-    .grade-modal .target-block input[type="number"]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(47,199,255,0.15); }
-    .grade-modal .target-block .needed-number { font-size: 1.6rem; font-weight: 800; color: var(--accent); font-variant-numeric: tabular-nums; }
-    .grade-modal .target-block .needed-number.impossible { color: #ff6b6b; }
-    .grade-modal .target-block .needed-number.easy { color: #4ae4b8; }
-    .grade-modal .diff-row { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
-    .grade-modal .diff-row .diff-label { font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em; min-width: 60px; }
-    .grade-modal .diff-row .diff-bar { flex: 1; height: 8px; background: rgba(255,255,255,0.08); border-radius: 4px; overflow: hidden; }
-    .grade-modal .diff-row .diff-fill { height: 100%; border-radius: 4px; transition: width 0.4s ease, background 0.3s ease; }
-    .grade-modal .diff-row .diff-text { font-size: 0.75rem; font-weight: 700; min-width: 70px; text-align: right; letter-spacing: 0.04em; }
+    /* Category breakdown */
+    .cat-breakdown { margin: 14px 0 18px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); border-radius: 12px; overflow: hidden; }
+    .cat-breakdown .cb-header { display: grid; grid-template-columns: 1.4fr 70px 90px 80px 80px; gap: 8px; padding: 8px 14px; font-size: 0.65rem; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.05em; background: rgba(11,43,59,0.6); }
+    .cat-breakdown .cb-row { display: grid; grid-template-columns: 1.4fr 70px 90px 80px 80px; gap: 8px; padding: 8px 14px; font-size: 0.8rem; align-items: center; border-top: 1px solid rgba(255,255,255,0.04); }
+    .cat-breakdown .cb-row:first-of-type { border-top: none; }
+    .cat-breakdown .cb-row .cat-name { font-weight: 600; display: flex; align-items: center; gap: 6px; }
+    .cat-breakdown .cb-row .cat-weight { font-size: 0.75rem; color: var(--text-secondary); text-align: center; font-variant-numeric: tabular-nums; }
+    .cat-breakdown .cb-row .cat-marks { font-size: 0.75rem; color: var(--text-secondary); text-align: center; font-variant-numeric: tabular-nums; }
+    .cat-breakdown .cb-row .cat-progress { height: 6px; background: rgba(255,255,255,0.06); border-radius: 4px; overflow: hidden; }
+    .cat-breakdown .cb-row .cat-progress .cb-fill { height: 100%; border-radius: 4px; transition: width 0.4s ease; }
+    .cat-breakdown .cb-row .cat-status { text-align: right; font-size: 0.72rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .cat-breakdown .cb-total { display: grid; grid-template-columns: 1.4fr 70px 90px 80px 80px; gap: 8px; padding: 10px 14px; background: rgba(47,199,255,0.08); border-top: 1px solid rgba(47,199,255,0.2); font-weight: 700; }
+    .cat-breakdown .cb-total .cat-name { color: var(--accent); }
+    .cat-breakdown .cb-total .cat-weight, .cat-breakdown .cb-total .cat-marks { color: var(--text-primary); text-align: center; font-variant-numeric: tabular-nums; }
+    .cat-breakdown .cb-total .cat-status { text-align: right; }
+
+    .cat-breakdown .cb-warning { padding: 8px 14px; background: rgba(253,203,110,0.1); color: var(--orange); font-size: 0.72rem; border-top: 1px solid rgba(253,203,110,0.2); }
+
+    /* What-if scenarios */
+    .scenario-strip { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin: 14px 0 18px; }
+    .scenario-tile { background: rgba(255,255,255,0.04); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 12px 14px; text-align: center; transition: 0.2s; }
+    .scenario-tile:hover { border-color: rgba(47,199,255,0.3); background: rgba(47,199,255,0.06); }
+    .scenario-tile .tile-label { font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+    .scenario-tile .tile-value { font-size: 1.7rem; font-weight: 800; line-height: 1; margin-bottom: 4px; }
+    .scenario-tile .tile-grade { font-size: 0.7rem; font-weight: 600; }
+    .scenario-tile.min .tile-value { color: #ff6b6b; }
+    .scenario-tile.exp .tile-value { color: var(--accent); }
+    .scenario-tile.max .tile-value { color: #4ae4b8; }
+
+    /* Target block */
+    .target-block { margin-top: 14px; padding: 14px 16px; background: rgba(47,199,255,0.06); border-radius: 12px; border: 1px solid rgba(47,199,255,0.15); }
+    .target-block .target-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+    .target-block input[type="number"] { width: 90px; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-subtle); background: rgba(255,255,255,0.06); color: #fff; font-size: 0.9rem; text-align: right; outline: none; transition: 0.2s; }
+    .target-block input[type="number"]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(47,199,255,0.15); }
+    .target-block .needed-number { font-size: 1.6rem; font-weight: 800; color: var(--accent); font-variant-numeric: tabular-nums; }
+    .target-block .needed-number.impossible { color: #ff6b6b; }
+    .target-block .needed-number.easy { color: #4ae4b8; }
+    .diff-row { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+    .diff-row .diff-label { font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em; min-width: 60px; }
+    .diff-row .diff-bar { flex: 1; height: 8px; background: rgba(255,255,255,0.08); border-radius: 4px; overflow: hidden; }
+    .diff-row .diff-fill { height: 100%; border-radius: 4px; transition: width 0.4s ease, background 0.3s ease; }
+    .diff-row .diff-text { font-size: 0.75rem; font-weight: 700; min-width: 70px; text-align: right; letter-spacing: 0.04em; }
+
+    /* Grade assignments list */
+    .grade-assign-list { margin-top: 14px; max-height: 280px; overflow-y: auto; border-radius: 12px; border: 1px solid var(--border-subtle); }
+    .grade-assign-list .gal-header { display: grid; grid-template-columns: 1fr 60px 90px 90px; gap: 8px; padding: 8px 12px; font-size: 0.65rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em; background: rgba(255,255,255,0.03); position: sticky; top: 0; z-index: 1; }
+    .grade-assign-list .gal-row { display: grid; grid-template-columns: 1fr 60px 90px 90px; gap: 8px; align-items: center; padding: 6px 12px; border-top: 1px solid rgba(255,255,255,0.03); }
+    .grade-assign-list .gal-row:hover { background: rgba(255,255,255,0.03); }
+    .grade-assign-list .gal-row .gal-name { font-size: 0.82rem; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .grade-assign-list .gal-row .gal-weight { font-size: 0.75rem; color: var(--text-secondary); text-align: center; font-variant-numeric: tabular-nums; }
+    .grade-assign-list .gal-row .gal-marks input { width: 100%; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border-subtle); background: rgba(255,255,255,0.06); color: #fff; font-size: 0.82rem; text-align: right; outline: none; transition: 0.2s; font-variant-numeric: tabular-nums; }
+    .grade-assign-list .gal-row .gal-marks input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(47,199,255,0.15); }
+    .grade-assign-list .gal-row .gal-status { text-align: center; font-size: 0.65rem; padding: 3px 8px; border-radius: 40px; font-weight: 600; text-transform: uppercase; }
+    .grade-assign-list .gal-row .gal-status.pending { background: rgba(225,112,85,0.18); color: #ff9b85; }
+    .grade-assign-list .gal-row .gal-status.submitted { background: rgba(0,184,148,0.18); color: #4ae4b8; }
+    .grade-assign-list .gal-row .gal-status.graded { background: rgba(162,155,254,0.18); color: #c9c3ff; }
 
     /* Modals */
     .modal-custom { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); backdrop-filter: blur(8px); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
@@ -183,7 +198,7 @@
     .sync-conflict-modal .conflict-side .side-stats strong { color: var(--text-primary); }
     .sync-conflict-modal .conflict-vs { font-size: 1.4rem; font-weight: 800; color: var(--text-secondary); }
     .sync-conflict-modal .conflict-actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 16px; }
-    .sync-conflict-modal .conflict-actions .btn { border-radius: 12px; padding: 12px 14px; font-weight: 600; font-size: 0.85rem; border: none; transition: 0.2s; min-height: 60px; line-height: 1.35; }
+    .sync-conflict-modal .conflict-actions .btn { border-radius: 12px; padding: 12px 14px; font-weight: 600; font-size: 0.85rem; border: none; transition: 0.2s; min-height: 60px; line-height: 1.35; cursor: pointer; }
     .sync-conflict-modal .conflict-actions .btn small { display: block; font-size: 0.68rem; opacity: 0.85; font-weight: 400; margin-top: 3px; }
     .sync-conflict-modal .conflict-actions .btn-keep-local { background: rgba(47,199,255,0.2); color: var(--accent); }
     .sync-conflict-modal .conflict-actions .btn-keep-local:hover { background: rgba(47,199,255,0.35); }
@@ -240,10 +255,9 @@
       .modal-custom .modal-box { padding: 20px; }
       .subtopic-list { padding: 0 10px 10px 30px; }
       .grade-modal .grade-summary { grid-template-columns: 1fr; }
-      .grade-modal .assignment-row { flex-wrap: wrap; }
-      .grade-modal .assignment-row .marks-input { width: 100%; }
       .grade-modal .scenario-strip { grid-template-columns: 1fr; }
-      .grade-modal .scenario-table .st-row { grid-template-columns: 50px 1fr 100px; }
+      .cat-breakdown .cb-header, .cat-breakdown .cb-row, .cat-breakdown .cb-total { grid-template-columns: 1.2fr 50px 70px 60px 60px; font-size: 0.7rem; padding: 6px 10px; }
+      .grade-assign-list .gal-header, .grade-assign-list .gal-row { grid-template-columns: 1fr 50px 70px 70px; font-size: 0.7rem; }
       .sync-conflict-modal .conflict-actions { grid-template-columns: 1fr; }
       .sync-conflict-modal .conflict-visual { flex-direction: column; }
     }
@@ -360,7 +374,7 @@
     /* Workload chart */
     .workload-chart { background: var(--bg-card); border-radius: 16px; padding: 16px 20px; border: 1px solid var(--border-subtle); margin-bottom: 30px; }
     .workload-chart h4 { font-size: 1rem; font-weight: 600; color: var(--text-primary); margin-bottom: 12px; }
-    .workload-chart .chart-container { height: 120px; }
+    .workload-chart .chart-container { height: 140px; position: relative; }
 
     /* Study streak */
     .study-streak { background: var(--bg-card); border-radius: 16px; padding: 16px 20px; border: 1px solid var(--border-subtle); margin: 20px 0 30px; display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
@@ -664,6 +678,12 @@
     }
     .empty-assignments i { display: block; font-size: 2.5rem; margin-bottom: 12px; opacity: 0.35; }
 
+    /* JSON import preview */
+    .json-preview { background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 12px 16px; margin-top: 10px; font-size: 0.82rem; max-height: 240px; overflow-y: auto; }
+    .json-preview .preview-line { padding: 3px 0; color: var(--text-secondary); }
+    .json-preview .preview-line strong { color: var(--text-primary); }
+    .json-preview .preview-heading { font-weight: 700; color: var(--accent); margin-top: 8px; margin-bottom: 4px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; }
+
     @media (max-width: 900px) {
       .assign-row {
         grid-template-columns: 24px 1fr auto;
@@ -764,12 +784,12 @@
       </div>
     </div>
     <div class="conflict-actions">
-      <button class="btn btn-keep-local" id="btnKeepLocal">Keep Local<small>Overwrite GitHub</small></button>
-      <button class="btn btn-keep-remote" id="btnKeepRemote">Keep GitHub<small>Discard my changes</small></button>
-      <button class="btn btn-merge" id="btnMerge">Auto-Merge<small>Newest field per item</small></button>
+      <button type="button" class="btn btn-keep-local" id="btnKeepLocal">Keep Local<small>Overwrite GitHub instantly</small></button>
+      <button type="button" class="btn btn-keep-remote" id="btnKeepRemote">Keep GitHub<small>Discard my changes</small></button>
+      <button type="button" class="btn btn-merge" id="btnMerge">Auto-Merge<small>Newest field per item</small></button>
     </div>
     <div style="text-align:center;margin-top:14px;">
-      <button class="btn btn-secondary" id="cancelConflictBtn" style="border-radius:40px;">Cancel (keep editing)</button>
+      <button type="button" class="btn btn-secondary" id="cancelConflictBtn" style="border-radius:40px;">Cancel (keep editing)</button>
     </div>
   </div>
 </div>
@@ -783,6 +803,33 @@
     </div>
     <div class="modal-actions">
       <button class="btn btn-secondary" id="versionHistoryClose">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-custom" id="importModal">
+  <div class="modal-box" style="max-width:640px;">
+    <h3>📥 Import Study Data</h3>
+    <p style="color:var(--text-secondary);font-size:0.82rem;margin-bottom:12px;">
+      Upload a JSON file containing your study plan. You can also
+      <a href="#" id="downloadSampleBtn" style="color:var(--accent);font-weight:600;">download a sample template</a>
+      to see the expected format.
+    </p>
+    <div class="form-group">
+      <label>Choose mode</label>
+      <select id="importMode">
+        <option value="replace">Replace all current data</option>
+        <option value="merge">Merge with existing data (by unit code)</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Select JSON file</label>
+      <input type="file" id="importFileInput" accept=".json,application/json">
+    </div>
+    <div id="importPreview"></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" id="importCancel">Cancel</button>
+      <button class="btn btn-primary" id="importConfirm" disabled>Import</button>
     </div>
   </div>
 </div>
@@ -834,9 +881,21 @@
   }
   console.log('✅ Authorized user:', user.username);
 
+  // ─────────────────────────────────────────────────────────────
+  //  DEFAULT DATA — Structure reflects the standard module layout:
+  //  Weekly quizzes/portfolios = 10% (1% each),
+  //  Assignment 2 (test) = 25%, Project = 25%, Final Exam = 40%
+  // ─────────────────────────────────────────────────────────────
   function getDefaultData() {
     function topic(name, subtopics) {
       return { name, subtopics: subtopics || [], completed: false, subCompleted: [] };
+    }
+    function makeWeekly(name, due, weight) {
+      return {
+        id: 'ass_' + name.replace(/\s+/g, '_') + '_' + due,
+        name, due, status: 'not-started', marks: '', weight,
+        submittedDate: null, gradedDate: null, notes: '', priority: 'normal'
+      };
     }
 
     const bia109 = {
@@ -856,9 +915,6 @@
         { number: 12, topics: [topic('Unit Review', [])], assignments: [] }
       ]
     };
-    bia109.weeks[4].assignments.push({ id: 'ass_1', name: 'Test 1 (Topics 1-5)', due: '2026-08-20', status: 'not-started', marks: '', weight: 25, submittedDate: null, gradedDate: null, notes: '', priority: 'normal' });
-    bia109.weeks[7].assignments.push({ id: 'ass_2', name: 'Project', due: '2026-09-10', status: 'not-started', marks: '', weight: 25, submittedDate: null, gradedDate: null, notes: '', priority: 'normal' });
-    bia109.weeks[11].assignments.push({ id: 'ass_3', name: 'Final Exam (All topics)', due: '2026-09-30', status: 'not-started', marks: '', weight: 50, submittedDate: null, gradedDate: null, notes: '', priority: 'normal' });
 
     const bsc107 = {
       code: 'BSC107', name: 'Engineering Programming', color: '#55efc4',
@@ -877,12 +933,6 @@
         { number: 12, topics: [topic('Introduction to Python', ['Introduction to Python','Using the Python Interpreter','Control Flow Tools in Python','Data Structures','Modules','Input and Output','Classes','Using Python Standard Library','Unit Review'])], assignments: [] }
       ]
     };
-    bsc107.weeks[4].assignments.push({ id: 'ass_4', name: 'Test 1 (Topics 1-5)', due: '2026-08-20', status: 'not-started', marks: '', weight: 25, submittedDate: null, gradedDate: null, notes: '', priority: 'normal' });
-    bsc107.weeks[8].assignments.push({ id: 'ass_5', name: 'Project (Topics 1-8)', due: '2026-09-10', status: 'not-started', marks: '', weight: 25, submittedDate: null, gradedDate: null, notes: '', priority: 'normal' });
-    bsc107.weeks[11].assignments.push({ id: 'ass_6', name: 'Final Exam (All topics)', due: '2026-09-30', status: 'not-started', marks: '', weight: 40, submittedDate: null, gradedDate: null, notes: '', priority: 'normal' });
-    for (let i = 2; i <= 11; i++) {
-      bsc107.weeks[i-1].assignments.push({ id: 'ass_7_' + i, name: `Weekly Quiz Topic ${i}`, due: `2026-08-${String(10+i).padStart(2,'0')}`, status: 'not-started', marks: '', weight: 1, submittedDate: null, gradedDate: null, notes: '', priority: 'normal' });
-    }
 
     const bsc104 = {
       code: 'BSC104', name: 'Engineering Drawing and CAD', color: '#a29bfe',
@@ -901,13 +951,6 @@
         { number: 12, topics: [topic('Product Development and Design', ['Planning and design as problem-solving processes','Methodology for solving open-ended problems','Engineering planning','The design process','Problem formulation phase','Feasibility study and concept design','Preliminary planning and design','Detailed planning and design','Implementation','The Solution-first strategy'])], assignments: [] }
       ]
     };
-    bsc104.weeks[0].assignments.push({ id: 'ass_8', name: 'Weekly Portfolio (Topic 1)', due: '2026-08-07', status: 'not-started', marks: '', weight: 1, submittedDate: null, gradedDate: null, notes: '', priority: 'normal' });
-    bsc104.weeks[4].assignments.push({ id: 'ass_9', name: 'Test (Topics 1-5)', due: '2026-08-20', status: 'not-started', marks: '', weight: 25, submittedDate: null, gradedDate: null, notes: '', priority: 'normal' });
-    bsc104.weeks[8].assignments.push({ id: 'ass_10', name: 'Practical Project (Topics 1-9)', due: '2026-09-10', status: 'not-started', marks: '', weight: 25, submittedDate: null, gradedDate: null, notes: '', priority: 'normal' });
-    bsc104.weeks[11].assignments.push({ id: 'ass_11', name: 'Final Exam (All topics)', due: '2026-09-30', status: 'not-started', marks: '', weight: 40, submittedDate: null, gradedDate: null, notes: '', priority: 'normal' });
-    for (let i = 2; i <= 12; i++) {
-      bsc104.weeks[i-1].assignments.push({ id: 'ass_12_' + i, name: `Weekly Portfolio Topic ${i}`, due: `2026-08-${String(10+i).padStart(2,'0')}`, status: 'not-started', marks: '', weight: 1, submittedDate: null, gradedDate: null, notes: '', priority: 'normal' });
-    }
 
     const bsc106 = {
       code: 'BSC106', name: 'Engineering Mathematics 2', color: '#2fc7ff',
@@ -926,11 +969,37 @@
         { number: 12, topics: [topic('Unit Review', [])], assignments: [] }
       ]
     };
-    bsc106.weeks[4].assignments.push({ id: 'ass_13', name: 'Test (Topics 1-5)', due: '2026-08-20', status: 'not-started', marks: '', weight: 25, submittedDate: null, gradedDate: null, notes: '', priority: 'normal' });
-    bsc106.weeks[11].assignments.push({ id: 'ass_14', name: 'Final Exam (All topics)', due: '2026-09-30', status: 'not-started', marks: '', weight: 40, submittedDate: null, gradedDate: null, notes: '', priority: 'normal' });
-    for (let i = 2; i <= 11; i++) {
-      bsc106.weeks[i-1].assignments.push({ id: 'ass_15_' + i, name: `Weekly Quiz Topic ${i}`, due: `2026-08-${String(10+i).padStart(2,'0')}`, status: 'not-started', marks: '', weight: 1, submittedDate: null, gradedDate: null, notes: '', priority: 'normal' });
-    }
+
+    // ── Assignment structure: Weekly (10%) + Assignment 2 (25%) + Project (25%) + Final (40%)
+    // Weekly quizzes across weeks 2-11 (10 items × 1% = 10%)
+    const addWeeklyItems = (unit, weeksArray, extraLabel) => {
+      weeksArray.forEach((w, idx) => {
+        unit.weeks[w - 1].assignments.push(makeWeekly(`${extraLabel} Week ${w}`, `2026-08-${String(10 + w).padStart(2,'0')}`, 1));
+      });
+    };
+    // Add weekly quiz items to each unit (10 weekly items × 1% = 10%)
+    addWeeklyItems(bsc107, [2,3,4,5,6,7,8,9,10,11], 'Weekly Quiz');
+    addWeeklyItems(bsc104, [2,3,4,5,6,7,8,9,10,11], 'Weekly Portfolio');
+    addWeeklyItems(bsc106, [2,3,4,5,6,7,8,9,10,11], 'Weekly Quiz');
+    addWeeklyItems(bia109, [2,3,4,5,6,7,8,9,10,11], 'Weekly Quiz');
+
+    // Assignment 2 (Test) = 25%
+    bia109.weeks[4].assignments.push({ id: 'ass_bia_test2', name: 'Assignment 2 (Test)', due: '2026-08-20', status: 'not-started', marks: '', weight: 25, submittedDate: null, gradedDate: null, notes: '', priority: 'normal' });
+    bsc107.weeks[4].assignments.push({ id: 'ass_bsc107_test2', name: 'Assignment 2 (Test)', due: '2026-08-20', status: 'not-started', marks: '', weight: 25, submittedDate: null, gradedDate: null, notes: '', priority: 'normal' });
+    bsc104.weeks[4].assignments.push({ id: 'ass_bsc104_test2', name: 'Assignment 2 (Test)', due: '2026-08-20', status: 'not-started', marks: '', weight: 25, submittedDate: null, gradedDate: null, notes: '', priority: 'normal' });
+    bsc106.weeks[4].assignments.push({ id: 'ass_bsc106_test2', name: 'Assignment 2 (Test)', due: '2026-08-20', status: 'not-started', marks: '', weight: 25, submittedDate: null, gradedDate: null, notes: '', priority: 'normal' });
+
+    // Project = 25%
+    bia109.weeks[8].assignments.push({ id: 'ass_bia_project', name: 'Assignment 3 (Project)', due: '2026-09-10', status: 'not-started', marks: '', weight: 25, submittedDate: null, gradedDate: null, notes: '', priority: 'normal' });
+    bsc107.weeks[8].assignments.push({ id: 'ass_bsc107_project', name: 'Assignment 3 (Project)', due: '2026-09-10', status: 'not-started', marks: '', weight: 25, submittedDate: null, gradedDate: null, notes: '', priority: 'normal' });
+    bsc104.weeks[8].assignments.push({ id: 'ass_bsc104_project', name: 'Assignment 3 (Project)', due: '2026-09-10', status: 'not-started', marks: '', weight: 25, submittedDate: null, gradedDate: null, notes: '', priority: 'normal' });
+    bsc106.weeks[8].assignments.push({ id: 'ass_bsc106_project', name: 'Assignment 3 (Project)', due: '2026-09-10', status: 'not-started', marks: '', weight: 25, submittedDate: null, gradedDate: null, notes: '', priority: 'normal' });
+
+    // Final = 40%
+    bia109.weeks[11].assignments.push({ id: 'ass_bia_final', name: 'Final Exam', due: '2026-09-30', status: 'not-started', marks: '', weight: 40, submittedDate: null, gradedDate: null, notes: '', priority: 'normal' });
+    bsc107.weeks[11].assignments.push({ id: 'ass_bsc107_final', name: 'Final Exam', due: '2026-09-30', status: 'not-started', marks: '', weight: 40, submittedDate: null, gradedDate: null, notes: '', priority: 'normal' });
+    bsc104.weeks[11].assignments.push({ id: 'ass_bsc104_final', name: 'Final Exam', due: '2026-09-30', status: 'not-started', marks: '', weight: 40, submittedDate: null, gradedDate: null, notes: '', priority: 'normal' });
+    bsc106.weeks[11].assignments.push({ id: 'ass_bsc106_final', name: 'Final Exam', due: '2026-09-30', status: 'not-started', marks: '', weight: 40, submittedDate: null, gradedDate: null, notes: '', priority: 'normal' });
 
     return {
       years: [{
@@ -948,10 +1017,8 @@
   let compactMode = false;
   let assignmentsStatusFilter = 'active';
   let searchTerm = '';
-  let searchTimeout = null;
   let gradeModalOpen = false;
   let submitModalContext = null;
-  let userFullName = "";
 
   let saveVersion = 0;
   let savedVersion = 0;
@@ -987,7 +1054,7 @@
 
   const CACHE_KEY = 'studies_data_cache';
   function saveToCache(data) {
-    try { localStorage.setItem(CACHE_KEY, JSON.stringify({ data, timestamp: Date.now(), version: '2.0' })); } catch(e) {}
+    try { localStorage.setItem(CACHE_KEY, JSON.stringify({ data, timestamp: Date.now(), version: '3.0' })); } catch(e) {}
   }
   function loadFromCache() {
     try {
@@ -1095,8 +1162,8 @@
 
         if (hasRemoteChanged) {
           const resolution = await showSyncConflictDialog(dataToSave, remoteContent, remoteSha);
+
           if (resolution === 'cancel') {
-            updateSaveStatusUI('error');
             isSaving = false;
             return;
           }
@@ -1117,6 +1184,7 @@
             dataToSave.years = merged.years;
             showToast('🔀 Merged local + GitHub', 'info');
           }
+          // 'local' falls through and overwrites below
         }
 
         try {
@@ -1128,7 +1196,7 @@
         } catch (err) {
           if (err.status === 409) {
             const latest = await refreshSHAFromGitHub();
-            if (latest) { currentFileSha = latest.sha; continue; }
+            if (latest) { currentFileSha = latest.sha; lastSyncedSha = latest.sha; continue; }
             else throw new Error('Could not refresh SHA');
           } else throw err;
         }
@@ -1173,6 +1241,7 @@
     return { total, done };
   }
 
+  // ─── Improved conflict dialog — immediate resolution, no lag ───
   function showSyncConflictDialog(localData, remoteData, remoteSha) {
     return new Promise((resolve) => {
       const modal = document.getElementById('syncConflictModal');
@@ -1185,11 +1254,14 @@
       localStats.innerHTML = `<strong>${localAss.total}</strong> assignments<br><strong>${localAss.done}</strong> completed<br><em style="opacity:0.7;">${new Date().toLocaleString()}</em>`;
       remoteStats.innerHTML = remoteData ? `<strong>${remoteAss.total}</strong> assignments<br><strong>${remoteAss.done}</strong> completed<br><em style="opacity:0.7;">${remoteSha ? remoteSha.substring(0, 8) : 'unknown'}</em>` : '<em>No remote data</em>';
 
+      let resolved = false;
       const cleanup = (choice) => {
-        document.getElementById('btnKeepLocal').removeEventListener('click', onLocal);
-        document.getElementById('btnKeepRemote').removeEventListener('click', onRemote);
-        document.getElementById('btnMerge').removeEventListener('click', onMerge);
-        document.getElementById('cancelConflictBtn').removeEventListener('click', onCancel);
+        if (resolved) return;
+        resolved = true;
+        btnLocal.removeEventListener('click', onLocal);
+        btnRemote.removeEventListener('click', onRemote);
+        btnMerge.removeEventListener('click', onMerge);
+        cancelBtn.removeEventListener('click', onCancel);
         modal.classList.remove('open');
         resolve(choice);
       };
@@ -1198,11 +1270,19 @@
       const onMerge = () => cleanup('merge');
       const onCancel = () => cleanup('cancel');
 
-      document.getElementById('btnKeepLocal').addEventListener('click', onLocal);
-      document.getElementById('btnKeepRemote').addEventListener('click', onRemote);
-      document.getElementById('btnMerge').addEventListener('click', onMerge);
-      document.getElementById('cancelConflictBtn').addEventListener('click', onCancel);
+      const btnLocal = document.getElementById('btnKeepLocal');
+      const btnRemote = document.getElementById('btnKeepRemote');
+      const btnMerge = document.getElementById('btnMerge');
+      const cancelBtn = document.getElementById('cancelConflictBtn');
+
+      btnLocal.addEventListener('click', onLocal);
+      btnRemote.addEventListener('click', onRemote);
+      btnMerge.addEventListener('click', onMerge);
+      cancelBtn.addEventListener('click', onCancel);
+
       modal.classList.add('open');
+      // Auto-focus the "Keep Local" button for quick keyboard resolution
+      setTimeout(() => { try { btnLocal.focus(); } catch(e) {} }, 50);
     });
   }
 
@@ -1339,10 +1419,17 @@
     topic.completed = topic.subCompleted.every(Boolean);
   }
 
+  // ─── Date helpers — LOCAL TIME, no UTC offset issues ───
   function dateOnly(value) {
     if (!value) return null;
     const parts = value.split('-').map(Number);
     return new Date(parts[0], parts[1]-1, parts[2]);
+  }
+  function formatLocalYMD(dateObj) {
+    const y = dateObj.getFullYear();
+    const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const d = String(dateObj.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
   }
   function daysUntil(dueDateStr) {
     if (!dueDateStr) return null;
@@ -1409,31 +1496,16 @@
     getAllAssignments().forEach(a => {
       if (a.submittedDate) {
         const d = dateOnly(a.submittedDate);
-        if (d) completedDates.add(d.toISOString().split('T')[0]);
+        if (d) completedDates.add(formatLocalYMD(d));
       }
     });
     let current = new Date(today);
     while (true) {
-      const key = current.toISOString().split('T')[0];
+      const key = formatLocalYMD(current);
       if (completedDates.has(key)) { streak++; current.setDate(current.getDate() - 1); } else break;
     }
     if (streak > best) { best = streak; localStorage.setItem('bestStreak', String(best)); }
     return { current: streak, best };
-  }
-
-  function computeWeightedProgress() {
-    const all = getAllAssignments();
-    let totalWeight = 0, earnedWeight = 0;
-    all.forEach(a => {
-      const w = parseFloat(a.weight) || 0;
-      totalWeight += w;
-      if (a.status === 'graded' || a.status === 'submitted') {
-        const marks = parseFloat(a.marks);
-        if (!isNaN(marks) && marks >= 0) earnedWeight += w * (marks / 100);
-      }
-    });
-    if (totalWeight === 0) return 0;
-    return Math.round((earnedWeight / totalWeight) * 100);
   }
 
   function getAssignmentHealth() {
@@ -1486,8 +1558,8 @@
       return state !== 'submitted' && state !== 'graded';
     });
     const sorted = active.sort((a,b) => {
-      const da = a.due ? new Date(a.due) : Infinity;
-      const db = b.due ? new Date(b.due) : Infinity;
+      const da = a.due ? dateOnly(a.due).getTime() : Infinity;
+      const db = b.due ? dateOnly(b.due).getTime() : Infinity;
       return da - db;
     });
     const upcoming = sorted.slice(0, 5);
@@ -1497,9 +1569,9 @@
       upcoming.forEach(a => {
         const diff = daysUntil(a.due);
         let cls = '', label = '';
-        if (diff < 0) { cls = 'overdue'; label = ' (Overdue)'; }
-        else if (diff <= 3) { cls = 'due-soon'; label = ' (Soon)'; }
-        html += `<div class="deadline-item"><span>${escapeHtml(a.name)} <span class="text-muted-light">(${a.unitCode} W${a.weekNum})</span></span><span class="${cls}">${a.due}${label}</span></div>`;
+        if (diff !== null && diff < 0) { cls = 'overdue'; label = ' (Overdue)'; }
+        else if (diff !== null && diff <= 3) { cls = 'due-soon'; label = ' (Soon)'; }
+        html += `<div class="deadline-item"><span>${escapeHtml(a.name)} <span class="text-muted-light">(${a.unitCode} W${a.weekNum})</span></span><span class="${cls}">${a.due || '—'}${label}</span></div>`;
       });
     }
     html += `</div>`;
@@ -1625,8 +1697,8 @@
       return state === 'overdue' || state === 'due-soon';
     });
     active.sort((a,b) => {
-      const da = daysUntil(a.due) || 999;
-      const db = daysUntil(b.due) || 999;
+      const da = daysUntil(a.due) ?? 999;
+      const db = daysUntil(b.due) ?? 999;
       return da - db;
     });
     let html = `<div class="priority-queue"><h4>🔥 Priority Queue</h4>`;
@@ -1654,42 +1726,64 @@
     container.innerHTML = html;
   }
 
+  // ─── FIXED: Workload chart now uses LOCAL dates consistently ───
   function renderWorkload() {
     const container = document.getElementById('workloadChart');
     if (!container) return;
+
     const all = getAllAssignments();
     const today = new Date();
     today.setHours(0,0,0,0);
+
     const next7 = [];
+    const next7Keys = [];
     for (let i = 0; i < 7; i++) {
       const d = new Date(today);
       d.setDate(today.getDate() + i);
       next7.push(d);
+      next7Keys.push(formatLocalYMD(d));
     }
-    const counts = next7.map(d => {
-      const key = d.toISOString().split('T')[0];
-      return all.filter(a => a.due === key && getAssignmentState(a) !== 'submitted' && getAssignmentState(a) !== 'graded').length;
-    });
+
+    const counts = next7Keys.map(key => all.filter(a => {
+      const state = getAssignmentState(a);
+      return a.due === key && state !== 'submitted' && state !== 'graded';
+    }).length);
+
     const labels = next7.map(d => d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }));
+
     let html = `<div class="workload-chart"><h4>📅 Workload – Next 7 Days</h4><div class="chart-container"><canvas id="workloadCanvas"></canvas></div></div>`;
     container.innerHTML = html;
+
     setTimeout(() => {
       const canvas = document.getElementById('workloadCanvas');
       if (!canvas) return;
       if (window.workloadChart) window.workloadChart.destroy();
       window.workloadChart = new Chart(canvas, {
         type: 'bar',
-        data: { labels: labels, datasets: [{ label: 'Assignments due', data: counts, backgroundColor: 'rgba(47,199,255,0.6)', borderColor: '#2fc7ff', borderWidth: 1 }] },
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Assignments due',
+            data: counts,
+            backgroundColor: counts.map(c => c > 0 ? 'rgba(47,199,255,0.65)' : 'rgba(47,199,255,0.15)'),
+            borderColor: '#2fc7ff',
+            borderWidth: 1,
+            borderRadius: 6
+          }]
+        },
         options: {
           responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
+          plugins: {
+            legend: { display: false },
+            tooltip: { callbacks: { label: (ctx) => `${ctx.parsed.y} assignment${ctx.parsed.y === 1 ? '' : 's'}` } }
+          },
           scales: {
-            y: { beginAtZero: true, stepSize: 1, ticks: { color: '#8a9fb0', font: { size: 9 } } },
-            x: { ticks: { color: '#8a9fb0', font: { size: 9 } } }
+            y: { beginAtZero: true, ticks: { color: '#8a9fb0', font: { size: 9 }, precision: 0 }, grid: { color: 'rgba(255,255,255,0.05)' } },
+            x: { ticks: { color: '#8a9fb0', font: { size: 9 } }, grid: { display: false } }
           }
         }
       });
-    }, 100);
+    }, 80);
   }
 
   function renderStreak() {
@@ -1796,8 +1890,8 @@
           const doneA = sA === 'submitted' || sA === 'graded';
           const doneB = sB === 'submitted' || sB === 'graded';
           if (doneA !== doneB) return doneA ? 1 : -1;
-          const dA = a.due ? new Date(a.due).getTime() : Infinity;
-          const dB = b.due ? new Date(b.due).getTime() : Infinity;
+          const dA = a.due ? dateOnly(a.due).getTime() : Infinity;
+          const dB = b.due ? dateOnly(b.due).getTime() : Infinity;
           return dA - dB;
         });
 
@@ -2158,7 +2252,7 @@
       topicItem.querySelectorAll('.sub-check').forEach(sub => sub.classList.toggle('checked', topic.completed));
       topicItem.querySelectorAll('.sub-label').forEach(label => label.classList.toggle('done', topic.completed));
     }
-    renderStats(); renderAnalytics(); renderDeadlines(); markDirty();
+    renderStats(); renderAnalytics(); renderDeadlines(); renderKPI(); markDirty();
   };
 
   window.toggleSubtopic = function(el, yi, si, ui, wi, ti, si2) {
@@ -2179,7 +2273,7 @@
         if (subLabel) subLabel.classList.toggle('done', topic.subCompleted[idx]);
       });
     }
-    renderStats(); renderAnalytics(); renderDeadlines(); markDirty();
+    renderStats(); renderAnalytics(); renderDeadlines(); renderKPI(); markDirty();
   };
 
   window.bulkToggleWeek = function(yi, si, ui, wi, complete) {
@@ -2208,7 +2302,7 @@
       return;
     }
     const body = document.getElementById('submitModalBody');
-    const today = new Date().toISOString().split('T')[0];
+    const today = formatLocalYMD(new Date());
     body.innerHTML = `
       <p><strong>${escapeHtml(a.name)}</strong> · ${unit.code} · Week ${week.number}</p>
       <p>Due: ${a.due || '—'} · Weight: ${a.weight || 0}%</p>
@@ -2457,7 +2551,7 @@
           <option value="in-progress">In Progress</option>
         </select>
       </div>
-      <div class="form-group"><label>Marks</label><input type="text" id="assMarks" placeholder="e.g. 85%" /></div>
+      <div class="form-group"><label>Marks</label><input type="text" id="assMarks" placeholder="e.g. 85" /></div>
       <div class="form-group"><label>Weighting (%)</label><input type="number" id="assWeight" placeholder="5" min="0" max="100" /></div>
       <div class="form-group"><label>Notes</label><textarea id="assNotes" rows="2" class="form-control"></textarea></div>
     `, () => {
@@ -2501,8 +2595,8 @@
       if (!name) { showToast('Please enter an assignment name.', 'error'); return false; }
       ass.name = name; ass.due = due || null; ass.status = status;
       ass.marks = marks || ''; ass.weight = weight; ass.notes = notes || '';
-      if (status === 'submitted' && !ass.submittedDate) ass.submittedDate = new Date().toISOString().split('T')[0];
-      if (status === 'graded' && !ass.gradedDate) ass.gradedDate = new Date().toISOString().split('T')[0];
+      if (status === 'submitted' && !ass.submittedDate) ass.submittedDate = formatLocalYMD(new Date());
+      if (status === 'graded' && !ass.gradedDate) ass.gradedDate = formatLocalYMD(new Date());
       return true;
     });
   };
@@ -2513,26 +2607,126 @@
     render(); markDirty();
   };
 
+  // ─────────────────────────────────────────────────────────────
+  //  IMPROVED GRADE CALCULATOR
+  //  Categorizes assessments into: Weekly (10%), Assignment 2 (25%),
+  //  Project (25%), Final Exam (40%). Weekly items are capped at 10% total.
+  // ─────────────────────────────────────────────────────────────
+  function categorizeAssessment(ass) {
+    const name = (ass.name || '').toLowerCase().trim();
+    const weight = parseFloat(ass.weight) || 0;
+
+    // Final exam
+    if (/\bfinal\b|\bfinal exam\b|\bfinal test\b/.test(name)) {
+      return { key: 'final', label: 'Final Exam', icon: '🎯', color: '#e17055', expectedWeight: 40 };
+    }
+    // Project (also catches "practical project")
+    if (/\bproject\b|practical/.test(name)) {
+      return { key: 'project', label: 'Project', icon: '🔧', color: '#a29bfe', expectedWeight: 25 };
+    }
+    // Assignment 2 / Test 2 / Midterm
+    if (/\bassignment 2\b|\btest 2\b|\bmidterm\b|\btest 1\b|\bassignment 1\b|\bclass test\b/.test(name)) {
+      return { key: 'assignment', label: 'Assignment (Test)', icon: '📝', color: '#2fc7ff', expectedWeight: 25 };
+    }
+    // Weekly quizzes / portfolios
+    if (/\bweekly\b|\bquiz\b|\bportfolio\b/.test(name)) {
+      return { key: 'weekly', label: 'Weekly Work', icon: '📚', color: '#00b894', expectedWeight: 1 };
+    }
+    // Any other assignment
+    if (/\bassignment\b/.test(name)) {
+      return { key: 'assignment', label: 'Assignment', icon: '📝', color: '#2fc7ff', expectedWeight: 25 };
+    }
+    // Anything else
+    return { key: 'other', label: 'Other', icon: '📌', color: '#fdcb6e', expectedWeight: weight };
+  }
+
   function calculateUnitGrade(unit) {
     const allAssignments = [];
     (unit.weeks || []).forEach(week => {
       (week.assignments || []).forEach(ass => allAssignments.push(ass));
     });
-    let totalWeight = 0, weightedSum = 0, missingMarks = 0;
+
+    // Group by category
+    const groups = {
+      weekly:     { key: 'weekly',     label: 'Weekly Work',      icon: '📚', color: '#00b894', items: [], expectedWeight: 10, capAt: 10 },
+      assignment: { key: 'assignment', label: 'Assignment (Test)', icon: '📝', color: '#2fc7ff', items: [], expectedWeight: 25 },
+      project:    { key: 'project',    label: 'Project',          icon: '🔧', color: '#a29bfe', items: [], expectedWeight: 25 },
+      final:      { key: 'final',      label: 'Final Exam',       icon: '🎯', color: '#e17055', items: [], expectedWeight: 40 },
+      other:      { key: 'other',      label: 'Other',            icon: '📌', color: '#fdcb6e', items: [], expectedWeight: 0 }
+    };
+
     allAssignments.forEach(ass => {
-      const weight = parseFloat(ass.weight) || 0;
-      totalWeight += weight;
-      const marks = parseFloat(ass.marks);
-      if (!isNaN(marks) && marks >= 0 && marks <= 100) {
-        weightedSum += marks * (weight / 100);
-      } else {
-        missingMarks += weight;
-      }
+      const cat = categorizeAssessment(ass);
+      groups[cat.key].items.push({ ...ass, category: cat });
     });
+
+    // Calculate per-category
+    let totalWeight = 0;
+    let totalEarnedWeighted = 0; // sum of marks * (effectiveWeight / 100)
+    let missingWeight = 0;
+
+    Object.values(groups).forEach(g => {
+      if (!g.items.length) return;
+
+      let groupWeightSum = 0;
+      let groupWeightedSum = 0; // sum of marks * weight / 100 using ORIGINAL weights
+      let groupMissingWeight = 0;
+
+      g.items.forEach(a => {
+        const w = parseFloat(a.weight) || 0;
+        groupWeightSum += w;
+        const marks = parseFloat(a.marks);
+        if (!isNaN(marks) && marks >= 0) {
+          groupWeightedSum += marks * (w / 100);
+        } else {
+          groupMissingWeight += w;
+        }
+      });
+
+      // Apply cap for weekly (10% max)
+      let effectiveWeight = groupWeightSum;
+      let cappedWeightSum = groupWeightSum;
+      let cappedMissingWeight = groupMissingWeight;
+      if (g.capAt && groupWeightSum > g.capAt) {
+        // Scale down proportionally so total weight = capAt
+        const scale = g.capAt / groupWeightSum;
+        effectiveWeight = g.capAt;
+        cappedWeightSum = groupWeightSum * scale; // this is capAt
+        cappedMissingWeight = groupMissingWeight * scale;
+        // Scale the weighted sum by the same factor (since each item's weight shrinks)
+        groupWeightedSum = groupWeightedSum * scale;
+      }
+
+      g.totalWeight = effectiveWeight;
+      g.earnedWeighted = groupWeightedSum;
+      g.missingWeight = cappedMissingWeight;
+
+      totalWeight += effectiveWeight;
+      totalEarnedWeighted += groupWeightedSum;
+      missingWeight += cappedMissingWeight;
+    });
+
     if (allAssignments.length === 0 || totalWeight === 0) return null;
-    const achievedWeight = totalWeight - missingMarks;
-    const currentGrade = achievedWeight > 0 ? (weightedSum / achievedWeight) * 100 : null;
-    return { grade: currentGrade, totalWeight, weightedSum, missingMarks, allAssignments, achievedWeight };
+
+    const achievedWeight = totalWeight - missingWeight;
+    const currentGrade = achievedWeight > 0 ? (totalEarnedWeighted / achievedWeight) * 100 : null;
+    const finalGrade = totalWeight > 0 ? (totalEarnedWeighted / totalWeight) * 100 : 0;
+
+    return {
+      grade: currentGrade,
+      finalIfAllGraded: finalGrade,
+      totalWeight,
+      totalEarnedWeighted,
+      missingWeight,
+      achievedWeight,
+      allAssignments,
+      groups,
+      weightCheck: {
+        expected: 100,
+        actual: totalWeight,
+        warning: Math.abs(totalWeight - 100) > 0.5
+      }
+    };
   }
 
   function saGradeLabel(pct) {
@@ -2553,15 +2747,14 @@
     const body = document.getElementById('gradeModalBody');
     let html = '';
 
+    // ── Summary cards ──
     let gradeDisplay = 'N/A', gradeColor = 'red', gradeValue = 0;
-    if (result) {
-      if (result.grade !== null) {
-        gradeValue = Math.round(result.grade);
-        gradeDisplay = gradeValue + '%';
-        gradeColor = gradeValue >= 70 ? 'green' : (gradeValue >= 50 ? 'orange' : 'red');
-      } else {
-        gradeDisplay = '—';
-      }
+    if (result && result.grade !== null) {
+      gradeValue = Math.round(result.grade);
+      gradeDisplay = gradeValue + '%';
+      gradeColor = gradeValue >= 70 ? 'green' : (gradeValue >= 50 ? 'orange' : 'red');
+    } else if (result) {
+      gradeDisplay = '—';
     } else {
       gradeDisplay = 'No assignments';
     }
@@ -2569,19 +2762,81 @@
     html += `
       <div class="grade-summary">
         <div class="card"><div class="value ${gradeColor}">${gradeDisplay}</div><div class="label">Current Grade</div></div>
-        <div class="card"><div class="value">${result ? (result.missingMarks > 0 ? '⏳' : '✅') : '—'}</div><div class="label">${result ? (result.missingMarks > 0 ? result.missingMarks.toFixed(0)+'% pending' : 'All marked') : '—'}</div></div>
-        <div class="card"><div class="value">${result ? result.allAssignments.length : 0}</div><div class="label">Assignments</div></div>
+        <div class="card"><div class="value">${result ? (result.missingWeight > 0 ? '⏳' : '✅') : '—'}</div><div class="label">${result ? (result.missingWeight > 0 ? result.missingWeight.toFixed(0)+'% pending' : 'All marked') : '—'}</div></div>
+        <div class="card"><div class="value">${result ? result.allAssignments.length : 0}</div><div class="label">Assessments</div></div>
       </div>
     `;
 
-    if (result && result.totalWeight > 0 && result.missingMarks > 0) {
+    // ── Category breakdown ──
+    if (result) {
+      const g = result.groups;
+      const order = ['weekly', 'assignment', 'project', 'final', 'other'];
+      let breakdownRows = '';
+      let totalWeight = 0, totalEarned = 0, totalMissing = 0;
+
+      order.forEach(key => {
+        const cat = g[key];
+        if (!cat.items.length) return;
+        totalWeight += cat.totalWeight;
+        totalEarned += cat.earnedWeighted;
+        totalMissing += cat.missingWeight;
+
+        const markedItems = cat.items.filter(a => {
+          const m = parseFloat(a.marks);
+          return !isNaN(m) && m >= 0;
+        }).length;
+        const pct = cat.totalWeight > 0
+          ? Math.min(100, (cat.earnedWeighted / cat.totalWeight) * 100)
+          : 0;
+        const statusText = cat.missingWeight > 0
+          ? `${cat.missingWeight.toFixed(1)}% pending`
+          : `${cat.earnedWeighted.toFixed(2)} / ${cat.totalWeight}`;
+
+        breakdownRows += `
+          <div class="cb-row">
+            <div class="cat-name" style="color:${cat.color}">${cat.icon} ${cat.label} <span style="color:var(--text-secondary);font-weight:400;font-size:0.72rem;">(${markedItems}/${cat.items.length} marked)</span></div>
+            <div class="cat-weight">${cat.totalWeight}%</div>
+            <div class="cat-marks">${cat.earnedWeighted.toFixed(2)}</div>
+            <div class="cat-progress"><div class="cb-fill" style="width:${pct}%;background:${cat.color}"></div></div>
+            <div class="cat-status" style="color:${cat.missingWeight > 0 ? 'var(--orange)' : 'var(--green)'}">${statusText}</div>
+          </div>
+        `;
+      });
+
+      if (breakdownRows) {
+        html += `
+          <div class="cat-breakdown">
+            <div class="cb-header">
+              <div>Category</div>
+              <div style="text-align:center;">Weight</div>
+              <div style="text-align:center;">Earned</div>
+              <div>Progress</div>
+              <div style="text-align:right;">Status</div>
+            </div>
+            ${breakdownRows}
+            <div class="cb-total">
+              <div class="cat-name">Total</div>
+              <div class="cat-weight">${totalWeight}%</div>
+              <div class="cat-marks">${totalEarned.toFixed(2)}</div>
+              <div></div>
+              <div class="cat-status">${totalMissing > 0 ? totalMissing.toFixed(1) + '% pending' : '✅ Complete'}</div>
+            </div>
+            ${result.weightCheck.warning ? `<div class="cb-warning">⚠️ Weights add up to <strong>${result.weightCheck.actual.toFixed(1)}%</strong> instead of 100%. Please verify assignment weights.</div>` : ''}
+          </div>
+        `;
+      }
+    }
+
+    // ── What-if scenarios ──
+    if (result && result.missingWeight > 0) {
       const achieved = result.achievedWeight;
       const currentPct = result.grade || 0;
-      const missingW = result.missingMarks;
+      const missingW = result.missingWeight;
+      const totalW = result.totalWeight;
 
-      const minPossible = (currentPct * achieved / 100) / result.totalWeight * 100;
-      const maxPossible = ((currentPct * achieved / 100) + missingW) / result.totalWeight * 100;
+      const minPossible = (currentPct * achieved / 100) / totalW * 100;
       const expected = currentPct;
+      const maxPossible = ((currentPct * achieved / 100) + missingW) / totalW * 100;
 
       const minG = saGradeLabel(minPossible);
       const expG = saGradeLabel(expected);
@@ -2607,25 +2862,9 @@
         </div>
       `;
 
-      const scenarios = [60, 70, 80, 90, 100];
-      const remainingLabel = `Remaining: ${missingW.toFixed(0)}%`;
-      html += `<div class="scenario-table"><div class="st-header">📊 What-if: ${remainingLabel} on unmarked work</div>`;
-      scenarios.forEach(mark => {
-        const finalPct = ((currentPct * achieved / 100) + (missingW * mark / 100)) / result.totalWeight * 100;
-        const g = saGradeLabel(finalPct);
-        const barWidth = Math.min(100, finalPct);
-        html += `
-          <div class="st-row">
-            <div class="st-marks">${mark}%</div>
-            <div class="st-bar-wrap"><div class="st-bar" style="width:${barWidth}%;background:${g.color}"></div></div>
-            <div class="st-result" style="color:${g.color}">${finalPct.toFixed(1)}%<span class="small-grade">${g.label}</span></div>
-          </div>
-        `;
-      });
-      html += `</div>`;
-
+      // Target calculator
       const defaultTarget = Math.min(100, Math.max(50, Math.round(currentPct) + 5));
-      const neededForTarget = (defaultTarget * result.totalWeight / 100 - (currentPct * achieved / 100)) / (missingW / 100);
+      const neededForTarget = (defaultTarget * totalW / 100 - (currentPct * achieved / 100)) / (missingW / 100);
       html += `
         <div class="target-block">
           <div class="target-row">
@@ -2643,7 +2882,7 @@
           </div>
         </div>
       `;
-    } else if (result && result.missingMarks === 0) {
+    } else if (result && result.missingWeight === 0 && result.grade !== null) {
       const g = saGradeLabel(result.grade);
       html += `
         <div class="scenario-tile exp" style="margin:14px 0;">
@@ -2654,21 +2893,45 @@
       `;
     }
 
+    // ── Per-assignment list ──
     if (result && result.allAssignments.length > 0) {
-      html += `<div style="margin-top:12px;max-height:240px;overflow-y:auto;">`;
-      result.allAssignments.forEach((ass, idx) => {
+      html += `
+        <div class="grade-assign-list">
+          <div class="gal-header">
+            <div>Assessment</div>
+            <div style="text-align:center;">Weight</div>
+            <div style="text-align:center;">Marks</div>
+            <div style="text-align:center;">Status</div>
+          </div>
+      `;
+      const sortedAssignments = [...result.allAssignments].sort((a, b) => {
+        if (!a.due && !b.due) return 0;
+        if (!a.due) return 1;
+        if (!b.due) return -1;
+        return dateOnly(a.due) - dateOnly(b.due);
+      });
+      sortedAssignments.forEach((ass, idx) => {
+        const cat = categorizeAssessment(ass);
         const marksVal = ass.marks || '';
         const isPending = ass.status !== 'submitted' && ass.status !== 'graded';
-        const statusClass = isPending ? 'pending' : 'submitted';
-        const statusLabel = isPending ? 'Pending' : 'Submitted';
+        let statusClass, statusLabel;
+        if (ass.status === 'graded') { statusClass = 'graded'; statusLabel = 'Graded'; }
+        else if (ass.status === 'submitted') { statusClass = 'submitted'; statusLabel = 'Submitted'; }
+        else { statusClass = 'pending'; statusLabel = 'Pending'; }
+
+        // Use original index in flat list for onchange handler
+        const originalIdx = result.allAssignments.indexOf(ass);
+
         html += `
-          <div class="assignment-row" data-idx="${idx}">
-            <div class="name">${escapeHtml(ass.name)}</div>
-            <div class="weight">${ass.weight || 0}%</div>
-            <input type="number" class="marks-input" value="${marksVal}" min="0" max="100" step="0.5"
-              data-yi="${yi}" data-si="${si}" data-ui="${ui}" data-idx="${idx}"
-              onchange="updateGradeMark(this)" placeholder="Marks">
-            <span class="status-badge ${statusClass}">${statusLabel}</span>
+          <div class="gal-row">
+            <div class="gal-name" title="${escapeHtml(ass.name)}"><span style="color:${cat.color};margin-right:6px;">${cat.icon}</span>${escapeHtml(ass.name)}</div>
+            <div class="gal-weight">${ass.weight || 0}%</div>
+            <div class="gal-marks">
+              <input type="number" value="${marksVal}" min="0" max="100" step="0.5"
+                data-yi="${yi}" data-si="${si}" data-ui="${ui}" data-idx="${originalIdx}"
+                onchange="updateGradeMark(this)" placeholder="—">
+            </div>
+            <div class="gal-status ${statusClass}">${statusLabel}</div>
           </div>
         `;
       });
@@ -2678,22 +2941,9 @@
     body.innerHTML = html;
     document.getElementById('gradeModalTitle').textContent = `📊 Grade Intelligence – ${unit.code} ${unit.name}`;
 
-    if (result && result.missingMarks > 0) {
+    if (result && result.missingWeight > 0) {
       const input = document.getElementById('targetGradeInput');
       if (input) updateGradeIntelTarget(yi, si, ui, input.value);
-    }
-
-    if (body && !body.querySelector('.export-unit-grade-btn')) {
-      const btnBar = document.createElement('div');
-      btnBar.className = 'd-flex justify-content-end mb-2';
-      btnBar.style.gap = '8px';
-      btnBar.style.flexWrap = 'wrap';
-      btnBar.innerHTML = `
-        <button class="btn btn-sm btn-excel export-unit-grade-btn"><i class="fa fa-file-excel-o"></i> Excel for Sponsor</button>
-        <button class="btn btn-sm btn-pdf export-unit-grade-pdf-btn"><i class="fa fa-file-pdf-o"></i> PDF for Sponsor</button>`;
-      body.prepend(btnBar);
-      btnBar.querySelector('.export-unit-grade-btn').addEventListener('click', () => window.exportGradeReport(unit.code));
-      btnBar.querySelector('.export-unit-grade-pdf-btn').addEventListener('click', () => window.exportGradeReportPDF(unit.code));
     }
 
     modal.classList.add('open');
@@ -2719,7 +2969,7 @@
       return;
     }
 
-    if (result.missingMarks === 0) {
+    if (result.missingWeight === 0) {
       neededEl.textContent = '—';
       neededEl.className = 'needed-number';
       fillEl.style.width = '0%';
@@ -2727,9 +2977,9 @@
       return;
     }
 
-    const weightedSum = result.weightedSum;
+    const weightedSum = result.totalEarnedWeighted;
     const totalWeight = result.totalWeight;
-    const missingW = result.missingMarks;
+    const missingW = result.missingWeight;
 
     const needed = (targetNum * totalWeight / 100 - weightedSum) / (missingW / 100);
 
@@ -2776,21 +3026,22 @@
       flatAssignments[idx].marks = input.value;
       markDirty();
       if (gradeModalOpen) {
+        const targetVal = document.getElementById('targetGradeInput')?.value;
         openGradeModal(yi, si, ui);
-        const newInput = document.querySelector(`.marks-input[data-yi="${yi}"][data-si="${si}"][data-ui="${ui}"][data-idx="${idx}"]`);
-        if (newInput) newInput.focus();
+        // Restore focus
+        const newInput = document.querySelector(`.gal-marks input[data-yi="${yi}"][data-si="${si}"][data-ui="${ui}"][data-idx="${idx}"]`);
+        if (newInput) { newInput.focus(); newInput.select(); }
       }
       showToast('✅ Marks updated', 'success');
     }
   };
-
-  window.updateWhatIf = function() { /* superseded by updateGradeIntelTarget */ };
 
   document.getElementById('gradeModalClose').addEventListener('click', function() {
     document.getElementById('gradeModal').classList.remove('open');
     gradeModalOpen = false;
   });
 
+  // ─── Excel exports (PDF removed) ───
   window.exportToExcel = async function() {
     if (!studyData.years.length) { showToast('No data to export.', 'error'); return; }
     window.showLoading('Generating academic report...');
@@ -2840,28 +3091,6 @@
         valCell.font = { bold: true, size: 14, color: { argb: 'FF2FC7FF' } };
         valCell.alignment = { horizontal: 'right' };
       });
-      oRow += 2;
-      overviewSheet.getCell(`A${oRow}`).value = '📊 Unit Progress';
-      overviewSheet.getCell(`A${oRow}`).font = { bold: true, size: 14 };
-      oRow++;
-      studyData.years.forEach(y => y.semesters.forEach(s => s.units.forEach(u => {
-        let totalSub = 0, doneSub = 0;
-        u.weeks.forEach(w => w.topics.forEach(t => { totalSub += t.subtopics.length; doneSub += t.subCompleted.filter(Boolean).length; }));
-        const pct = totalSub > 0 ? Math.round((doneSub/totalSub)*100) : 0;
-        overviewSheet.getCell(`A${oRow}`).value = u.code;
-        overviewSheet.getCell(`B${oRow}`).value = pct + '%';
-        oRow++;
-      })));
-      oRow++;
-      overviewSheet.getCell(`A${oRow}`).value = '📋 Assignment Health';
-      overviewSheet.getCell(`A${oRow}`).font = { bold: true, size: 14 };
-      oRow++;
-      const statusLabels = { 'not-started': 'Not Started','in-progress': 'In Progress','due-soon': 'Due Soon','overdue': 'Overdue','submitted': 'Submitted','graded': 'Graded' };
-      Object.keys(health).forEach(state => {
-        overviewSheet.getCell(`A${oRow}`).value = statusLabels[state] || state;
-        overviewSheet.getCell(`B${oRow}`).value = health[state];
-        oRow++;
-      });
 
       const assignSheet = workbook.addWorksheet('Assignments', { pageSetup: { orientation: 'landscape', fitToPage: true } });
       const headerRow = assignSheet.addRow(['Priority', 'Assignment', 'Unit', 'Due Date', 'Status', 'Days/Info', 'Submitted Date', 'Marks', 'Weight']);
@@ -2874,25 +3103,14 @@
         if (state === 'submitted') daysStr = a.submittedDate ? `Submitted ${a.submittedDate}` : 'Submitted';
         else if (state === 'graded') daysStr = a.gradedDate ? `Graded ${a.gradedDate}` : 'Graded';
         else daysStr = diff !== null ? (diff < 0 ? `${diff} overdue` : (diff === 0 ? 'Due today' : `${diff} left`)) : '—';
-        const row = assignSheet.addRow([a.priority || 'normal', a.name, a.unitCode, a.due || '—', statusLabels[state] || state, daysStr, a.submittedDate || '—', a.marks || '—', a.weight || 0]);
+        const stateLabel = { 'not-started': 'Not Started','in-progress': 'In Progress','due-soon': 'Due Soon','overdue': 'Overdue','submitted': 'Submitted','graded': 'Graded' }[state] || state;
+        const row = assignSheet.addRow([a.priority || 'normal', a.name, a.unitCode, a.due || '—', stateLabel, daysStr, a.submittedDate || '—', a.marks || '—', a.weight || 0]);
         row.eachCell(cell => cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } });
       });
 
-      const planSheet = workbook.addWorksheet('Study Plan', { pageSetup: { orientation: 'landscape', fitToPage: true } });
-      const planRow = planSheet.addRow(['Unit', 'Week', 'Topic', 'Subtopics', 'Progress']);
-      styleHeader(planRow);
-      planSheet.columns = [{ width: 15 }, { width: 10 }, { width: 40 }, { width: 60 }, { width: 12 }];
-      studyData.years.forEach(y => y.semesters.forEach(s => s.units.forEach(u => u.weeks.forEach(w => w.topics.forEach(t => {
-        const subCount = t.subtopics.length;
-        const doneCount = (t.subCompleted || []).filter(Boolean).length;
-        const pct = subCount > 0 ? Math.round((doneCount/subCount)*100) : (t.completed ? 100 : 0);
-        const row = planSheet.addRow([u.code, 'W' + w.number, t.name, (t.subtopics || []).join('; '), pct + '%']);
-        row.eachCell(cell => cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } });
-      })))));
-
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-      saveAs(blob, `Academic_Report_${new Date().toISOString().slice(0,10)}.xlsx`);
+      saveAs(blob, `Academic_Report_${formatLocalYMD(new Date())}.xlsx`);
       showToast('✅ Academic report exported!', 'success');
     } catch (err) {
       console.error(err);
@@ -2923,16 +3141,6 @@
         if (pct >= 50) return { grade: 'Pass',        symbol: 'D', color: 'FFFFC107' };
         return              { grade: 'Fail',        symbol: 'F', color: 'FFDC3545' };
       };
-      const typeOf = (name) => {
-        const n = (name || '').toLowerCase();
-        if (n.includes('quiz'))     return 'Quiz';
-        if (n.includes('test'))     return 'Test';
-        if (n.includes('exam'))     return 'Exam';
-        if (n.includes('portfolio'))return 'Portfolio';
-        if (n.includes('project'))  return 'Project';
-        if (n.includes('assignment'))return 'Assignment';
-        return 'Assessment';
-      };
 
       const units = [];
       studyData.years.forEach(y => y.semesters.forEach(s => s.units.forEach(u => {
@@ -2941,9 +3149,9 @@
       })));
       if (!units.length) { showToast('No units match filter.', 'error'); return; }
 
-      const studentName = userFullName || user.username;
+      const studentName = 'Siyabonga Thupana';
 
-      const summary = workbook.addWorksheet('Grade Summary', { pageSetup: { orientation: 'portrait', fitToPage: true, fitToWidth: 1 } });
+      const summary = workbook.addWorksheet('Grade Summary', { pageSetup: { orientation: 'portrait', fitToPage: true } });
       summary.columns = [{ width: 5 }, { width: 14 }, { width: 36 }, { width: 14 }, { width: 14 }, { width: 14 }, { width: 8 }, { width: 12 }];
       summary.mergeCells('A1:H1');
       const t = summary.getCell('A1');
@@ -2952,47 +3160,14 @@
       t.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
       t.alignment = { horizontal: 'center', vertical: 'middle' };
       summary.getRow(1).height = 46;
-      summary.mergeCells('A2:H2');
-      const st = summary.getCell('A2');
-      st.value = 'Prepared for Sponsor Review';
-      st.font = { size: 12, italic: true, color: { argb: 'FF2FC7FF' } };
-      st.alignment = { horizontal: 'center', vertical: 'middle' };
-      summary.getRow(2).height = 22;
 
-      summary.mergeCells('A4:H4');
-      const ih = summary.getCell('A4');
-      ih.value = 'STUDENT INFORMATION';
-      ih.font = { bold: true, size: 12, color: { argb: 'FFFFFFFF' } };
-      ih.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2C3E50' } };
-      ih.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
-      summary.getRow(4).height = 22;
-
-      const info = [
-        ['Student Name:', studentName],
-        ['Institution:', 'Engineering Programme'],
-        ['Report Date:', new Date().toLocaleDateString('en-ZA', { year: 'numeric', month: 'long', day: 'numeric' })],
-        ['Academic Year:', studyData.years.map(y => y.name).join(', ')]
-      ];
-      info.forEach((row, i) => {
-        const r = 5 + i;
-        summary.mergeCells(r, 1, r, 2);
-        summary.getCell(r, 1).value = row[0];
-        summary.getCell(r, 1).font = { bold: true, color: { argb: 'FF0B2B3B' } };
-        summary.getCell(r, 1).alignment = { horizontal: 'right', vertical: 'middle' };
-        summary.mergeCells(r, 3, r, 8);
-        summary.getCell(r, 3).value = row[1];
-        summary.getCell(r, 3).alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
-        summary.getRow(r).height = 20;
-      });
-
-      const hdrRowIdx = 10;
+      const hdrRowIdx = 4;
       summary.mergeCells(`A${hdrRowIdx}:H${hdrRowIdx}`);
       const mh = summary.getCell(`A${hdrRowIdx}`);
       mh.value = 'MODULE PERFORMANCE SUMMARY';
       mh.font = { bold: true, size: 12, color: { argb: 'FFFFFFFF' } };
       mh.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2C3E50' } };
       mh.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
-      summary.getRow(hdrRowIdx).height = 22;
 
       const sHeaders = ['#', 'Module Code', 'Module Name', 'Assessments', 'Weighted %', 'Grade', 'Sym', 'Progress'];
       const sHeadRow = summary.getRow(hdrRowIdx + 1);
@@ -3004,29 +3179,16 @@
         c.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
         c.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
       });
-      summary.getRow(hdrRowIdx + 1).height = 30;
 
-      const moduleSummaries = [];
       units.forEach((item, idx) => {
         const u = item.unit;
-        const allAss = [];
-        u.weeks.forEach(w => (w.assignments || []).forEach(a => allAss.push(a)));
-        let totalWeight = 0, weightedScore = 0, graded = 0, submitted = 0, pending = 0;
-        allAss.forEach(a => {
-          const w = parseFloat(a.weight) || 0;
-          const m = parseMarks(a.marks);
-          if (a.status === 'graded') graded++;
-          else if (a.status === 'submitted') submitted++;
-          else pending++;
-          if (m !== null && (a.status === 'graded' || a.status === 'submitted')) {
-            totalWeight += w;
-            weightedScore += m * (w / 100);
-          }
-        });
-        const avg = totalWeight > 0 ? (weightedScore / totalWeight) * 100 : null;
+        const calc = calculateUnitGrade(u);
+        const avg = calc && calc.grade !== null ? calc.grade : null;
         const g = avg !== null ? saGrade(avg) : { grade: 'N/A', symbol: '—', color: 'FF999999' };
+        const allAss = calc ? calc.allAssignments : [];
+        const graded = allAss.filter(a => a.status === 'graded').length;
+        const submitted = allAss.filter(a => a.status === 'submitted').length;
         const progress = allAss.length ? Math.round(((graded + submitted) / allAss.length) * 100) : 0;
-        moduleSummaries.push({ ...item, avg, saGrade: g, progress, totalAss: allAss.length, graded, submitted, pending, allAss });
 
         const r = hdrRowIdx + 2 + idx;
         const row = summary.getRow(r);
@@ -3041,118 +3203,16 @@
         for (let c = 1; c <= 8; c++) {
           const cell = row.getCell(c);
           cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
-          cell.alignment = { vertical: 'middle', horizontal: (c === 3) ? 'left' : 'center', wrapText: c === 3, indent: c === 3 ? 1 : 0 };
-          if (idx % 2 === 0) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } };
+          cell.alignment = { vertical: 'middle', horizontal: (c === 3) ? 'left' : 'center', wrapText: c === 3 };
         }
         row.getCell(5).font = { bold: true, color: { argb: g.color } };
         row.getCell(6).font = { bold: true, color: { argb: g.color } };
         row.getCell(7).font = { bold: true, size: 12, color: { argb: g.color } };
-        row.height = 24;
-      });
-
-      const validAvgs = moduleSummaries.filter(m => m.avg !== null).map(m => m.avg);
-      const overall = validAvgs.length ? validAvgs.reduce((a, b) => a + b, 0) / validAvgs.length : null;
-      const overallRow = hdrRowIdx + 2 + moduleSummaries.length + 1;
-      summary.mergeCells(overallRow, 1, overallRow, 8);
-      const oc = summary.getCell(overallRow, 1);
-      oc.value = overall !== null ? `OVERALL AVERAGE:  ${overall.toFixed(1)}%   ·   ${saGrade(overall).grade}` : 'OVERALL AVERAGE:  N/A';
-      oc.font = { bold: true, size: 14, color: { argb: 'FFFFFFFF' } };
-      oc.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
-      oc.alignment = { horizontal: 'center', vertical: 'middle' };
-      summary.getRow(overallRow).height = 30;
-
-      moduleSummaries.forEach((m) => {
-        const u = m.unit;
-        const sheetName = (u.code + '_' + u.name).substring(0, 30).replace(/[*?:/\\\[\]]/g, '_');
-        const ws = workbook.addWorksheet(sheetName, { pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1 } });
-        ws.columns = [{ width: 5 }, { width: 34 }, { width: 12 }, { width: 8 }, { width: 12 }, { width: 14 }, { width: 10 }, { width: 12 }, { width: 10 }, { width: 14 }, { width: 12 }, { width: 8 }, { width: 26 }];
-        ws.mergeCells('A1:M1');
-        const ut = ws.getCell('A1');
-        ut.value = `${u.code}  —  ${u.name}`;
-        ut.font = { size: 18, bold: true, color: { argb: 'FFFFFFFF' } };
-        ut.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
-        ut.alignment = { horizontal: 'center', vertical: 'middle' };
-        ws.getRow(1).height = 36;
-        ws.mergeCells('A2:M2');
-        const um = ws.getCell('A2');
-        um.value = `${m.year} · ${m.semester} · ${studentName} · Generated ${new Date().toLocaleDateString('en-ZA')}`;
-        um.font = { size: 10, italic: true, color: { argb: 'FF0B2B3B' } };
-        um.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE6F4FA' } };
-        um.alignment = { horizontal: 'center', vertical: 'middle' };
-        ws.getRow(2).height = 20;
-
-        const headers = ['#', 'Assessment', 'Type', 'Week', 'Due Date', 'Status', 'Weight %', 'Marks', 'Percent', 'Contribution', 'Grade', 'Sym', 'Notes'];
-        const hr = ws.getRow(6);
-        headers.forEach((h, i) => {
-          const c = hr.getCell(i + 1);
-          c.value = h;
-          c.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10 };
-          c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
-          c.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
-          c.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
-        });
-        hr.height = 32;
-
-        const sorted = [...m.allAss].map(a => {
-          let wk = '—';
-          u.weeks.forEach(w => { if ((w.assignments || []).includes(a)) wk = 'W' + w.number; });
-          return { ...a, wk };
-        }).sort((a, b) => {
-          if (!a.due && !b.due) return 0;
-          if (!a.due) return 1;
-          if (!b.due) return -1;
-          return new Date(a.due) - new Date(b.due);
-        });
-
-        sorted.forEach((a, i) => {
-          const mk = parseMarks(a.marks);
-          const wt = parseFloat(a.weight) || 0;
-          const contrib = mk !== null ? (mk * wt / 100) : null;
-          const g = mk !== null ? saGrade(mk) : null;
-          let sLabel = 'Not Started', sColor = 'FFF0F0F0';
-          if (a.status === 'graded') { sLabel = 'Graded'; sColor = 'FFD4EDDA'; }
-          else if (a.status === 'submitted') { sLabel = 'Submitted'; sColor = 'FFD1ECF1'; }
-          else if (a.status === 'in-progress') { sLabel = 'In Progress'; sColor = 'FFCCE5FF'; }
-          if ((a.status === 'not-started' || a.status === 'in-progress') && a.due) {
-            const diff = daysUntil(a.due);
-            if (diff !== null && diff < 0) { sLabel = 'Overdue'; sColor = 'FFF8D7DA'; }
-          }
-          const r = 7 + i;
-          const row = ws.getRow(r);
-          row.getCell(1).value = i + 1;
-          row.getCell(2).value = a.name;
-          row.getCell(3).value = typeOf(a.name);
-          row.getCell(4).value = a.wk;
-          row.getCell(5).value = a.due || '—';
-          row.getCell(6).value = sLabel;
-          row.getCell(7).value = wt;
-          row.getCell(8).value = a.marks || '—';
-          row.getCell(9).value = mk !== null ? mk.toFixed(1) + '%' : '—';
-          row.getCell(10).value = contrib !== null ? contrib.toFixed(2) : '—';
-          row.getCell(11).value = g ? g.grade : '—';
-          row.getCell(12).value = g ? g.symbol : '—';
-          row.getCell(13).value = a.notes || '';
-          for (let c = 1; c <= 13; c++) {
-            const cell = row.getCell(c);
-            cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
-            cell.alignment = { vertical: 'middle', horizontal: (c === 2 || c === 13) ? 'left' : 'center', wrapText: c === 2 || c === 13, indent: (c === 2 || c === 13) ? 1 : 0 };
-            if (i % 2 === 0 && c !== 6) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } };
-          }
-          row.getCell(6).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: sColor } };
-          row.getCell(6).font = { size: 9, bold: true };
-          if (g) {
-            row.getCell(9).font = { bold: true, color: { argb: g.color } };
-            row.getCell(11).font = { bold: true, color: { argb: g.color } };
-            row.getCell(12).font = { bold: true, size: 11, color: { argb: g.color } };
-          }
-          row.height = 22;
-        });
-        ws.views = [{ state: 'frozen', ySplit: 6 }];
       });
 
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-      const stamp = new Date().toISOString().slice(0, 10);
+      const stamp = formatLocalYMD(new Date());
       const fname = unitCodeFilter ? `Grade_Report_${unitCodeFilter}_${stamp}.xlsx` : `Grade_Report_All_Modules_${stamp}.xlsx`;
       saveAs(blob, fname);
       showToast('✅ Grade report exported!', 'success');
@@ -3164,384 +3224,270 @@
     }
   };
 
-  window.exportGradeReportPDF = async function (unitCodeFilter = null) {
-    if (!studyData.years.length) { showToast('No data to export.', 'error'); return; }
-    window.showLoading('Generating PDF grade report...');
-    try {
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-      const pageWidth = doc.internal.pageSize.getWidth();
-      const pageHeight = doc.internal.pageSize.getHeight();
-      const darkNavy = [11, 43, 59], accent = [47, 199, 255], slate = [44, 62, 80];
-      const softGray = [248, 250, 252], textGray = [80, 80, 80];
-
-      const gradeRGB = (pct) => {
-        if (pct >= 75) return [40, 167, 69];
-        if (pct >= 70) return [23, 162, 184];
-        if (pct >= 60) return [47, 199, 255];
-        if (pct >= 50) return [255, 193, 7];
-        return [220, 53, 69];
-      };
-      const parseMarks = (m) => {
-        if (m === null || m === undefined || m === '') return null;
-        const n = parseFloat(String(m).replace('%', '').trim());
-        return isNaN(n) ? null : Math.min(100, Math.max(0, n));
-      };
-      const saGrade = (pct) => {
-        if (pct >= 75) return { grade: 'Distinction', symbol: 'A' };
-        if (pct >= 70) return { grade: 'Merit',       symbol: 'B' };
-        if (pct >= 60) return { grade: 'Credit',      symbol: 'C' };
-        if (pct >= 50) return { grade: 'Pass',        symbol: 'D' };
-        return              { grade: 'Fail',        symbol: 'F' };
-      };
-      const typeOf = (name) => {
-        const n = (name || '').toLowerCase();
-        if (n.includes('quiz'))     return 'Quiz';
-        if (n.includes('test'))     return 'Test';
-        if (n.includes('exam'))     return 'Exam';
-        if (n.includes('portfolio'))return 'Portfolio';
-        if (n.includes('project'))  return 'Project';
-        if (n.includes('assignment'))return 'Assignment';
-        return 'Assessment';
-      };
-
-      const units = [];
-      studyData.years.forEach(y => y.semesters.forEach(s => s.units.forEach(u => {
-        if (unitCodeFilter && u.code !== unitCodeFilter) return;
-        units.push({ unit: u, year: y.name, semester: s.name });
-      })));
-      if (!units.length) { showToast('No units match filter.', 'error'); return; }
-
-      const studentName = userFullName || user.username;
-
-      const modules = units.map(item => {
-        const u = item.unit;
-        const allAss = [];
-        u.weeks.forEach(w => (w.assignments || []).forEach(a => allAss.push(a)));
-        let totalWeight = 0, weightedScore = 0, graded = 0, submitted = 0, pending = 0;
-        allAss.forEach(a => {
-          const w = parseFloat(a.weight) || 0;
-          const m = parseMarks(a.marks);
-          if (a.status === 'graded') graded++;
-          else if (a.status === 'submitted') submitted++;
-          else pending++;
-          if (m !== null && (a.status === 'graded' || a.status === 'submitted')) {
-            totalWeight += w;
-            weightedScore += m * (w / 100);
-          }
-        });
-        const avg = totalWeight > 0 ? (weightedScore / totalWeight) * 100 : null;
-        const progress = allAss.length ? Math.round(((graded + submitted) / allAss.length) * 100) : 0;
-        return { ...item, avg, progress, totalAss: allAss.length, graded, submitted, pending, allAss };
-      });
-
-      const validAvgs = modules.filter(m => m.avg !== null).map(m => m.avg);
-      const overall = validAvgs.length ? validAvgs.reduce((a, b) => a + b, 0) / validAvgs.length : null;
-
-      doc.setFillColor(...darkNavy);
-      doc.rect(0, 0, pageWidth, 42, 'F');
-      doc.setFillColor(...accent);
-      doc.rect(0, 42, pageWidth, 4, 'F');
-      doc.setTextColor(255, 255, 255);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(28);
-      doc.text('ACADEMIC GRADE REPORT', pageWidth / 2, 20, { align: 'center' });
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(12);
-      doc.text('Prepared for Sponsor Review', pageWidth / 2, 30, { align: 'center' });
-      doc.setFontSize(9);
-      doc.setTextColor(200, 220, 235);
-      doc.text('Engineering Programme', pageWidth / 2, 37, { align: 'center' });
-
-      let y = 60;
-      doc.setDrawColor(220, 228, 235);
-      doc.setFillColor(...softGray);
-      doc.roundedRect(20, y, pageWidth - 40, 46, 3, 3, 'FD');
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(11);
-      doc.setTextColor(...darkNavy);
-      doc.text('STUDENT INFORMATION', 26, y + 8);
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(10);
-      doc.setTextColor(...textGray);
-      const infoLines = [
-        ['Student Name:', studentName],
-        ['Institution:', 'Engineering Programme'],
-        ['Report Date:', new Date().toLocaleDateString('en-ZA', { year: 'numeric', month: 'long', day: 'numeric' })],
-        ['Academic Year:', studyData.years.map(y => y.name).join(', ')]
-      ];
-      infoLines.forEach((line, i) => {
-        doc.setFont('helvetica', 'bold');
-        doc.text(line[0], 26, y + 18 + i * 6);
-        doc.setFont('helvetica', 'normal');
-        doc.text(String(line[1]), 65, y + 18 + i * 6);
-      });
-
-      y += 62;
-      const overallGrade = overall !== null ? saGrade(overall) : { grade: 'N/A', symbol: '—' };
-      const ovColor = overall !== null ? gradeRGB(overall) : [153, 153, 153];
-      doc.setFillColor(...ovColor);
-      doc.roundedRect(20, y, pageWidth - 40, 34, 3, 3, 'F');
-      doc.setTextColor(255, 255, 255);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(11);
-      doc.text('OVERALL AVERAGE', 26, y + 11);
-      doc.setFontSize(26);
-      doc.text(overall !== null ? overall.toFixed(1) + '%' : '—', 26, y + 27);
-      doc.setFontSize(14);
-      doc.setFont('helvetica', 'normal');
-      doc.text(`${overallGrade.grade}  ·  ${overallGrade.symbol}`, pageWidth - 26, y + 22, { align: 'right' });
-
-      y += 48;
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(11);
-      doc.setTextColor(...darkNavy);
-      doc.text('SOUTH AFRICAN GRADING SCALE', 20, y);
-      y += 6;
-      const legendRows = [
-        ['A', '75 – 100%', 'Distinction', [40, 167, 69]],
-        ['B', '70 – 74%',  'Merit',       [23, 162, 184]],
-        ['C', '60 – 69%',  'Credit',      [47, 199, 255]],
-        ['D', '50 – 59%',  'Pass',        [255, 193, 7]],
-        ['F', '0 – 49%',   'Fail',        [220, 53, 69]]
-      ];
-      legendRows.forEach((row, i) => {
-        const ly = y + i * 11;
-        doc.setFillColor(...row[3]);
-        doc.roundedRect(22, ly, 8, 10, 2, 2, 'F');
-        doc.setTextColor(255, 255, 255);
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(9);
-        doc.text(row[0], 26, ly + 7, { align: 'center' });
-        doc.setTextColor(...textGray);
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(9);
-        doc.text(row[1], 36, ly + 7);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(...row[3]);
-        doc.text(row[2], 70, ly + 7);
-      });
-
-      doc.setFont('helvetica', 'italic');
-      doc.setFontSize(8);
-      doc.setTextColor(150, 150, 150);
-      doc.text('Generated by Your Portfolio · Study Manager', pageWidth / 2, pageHeight - 15, { align: 'center' });
-
-      doc.addPage();
-      let sy = 20;
-      doc.setFillColor(...darkNavy);
-      doc.rect(0, sy - 6, pageWidth, 14, 'F');
-      doc.setFillColor(...accent);
-      doc.rect(0, sy + 8, pageWidth, 2, 'F');
-      doc.setTextColor(255, 255, 255);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(15);
-      doc.text('MODULE SUMMARY', 20, sy + 4);
-      sy += 20;
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9);
-      doc.setTextColor(...textGray);
-      doc.text(`Student: ${studentName}`, 20, sy);
-      doc.text(`Report Date: ${new Date().toLocaleDateString('en-ZA')}`, pageWidth - 20, sy, { align: 'right' });
-      sy += 4;
-
-      const summaryBody = modules.map((m, i) => {
-        const g = m.avg !== null ? saGrade(m.avg) : { grade: 'N/A', symbol: '—' };
-        return [String(i + 1), m.unit.code, m.unit.name, `${m.graded}/${m.totalAss}`, m.avg !== null ? m.avg.toFixed(1) + '%' : '—', g.grade, g.symbol, m.progress + '%'];
-      });
-
-      doc.autoTable({
-        startY: sy + 4,
-        head: [['#', 'Code', 'Module Name', 'Assessments', 'Weighted', 'Grade', 'Sym', 'Progress']],
-        body: summaryBody,
-        theme: 'grid',
-        styles: { font: 'helvetica', fontSize: 9, cellPadding: 2.5, textColor: [40, 40, 40], lineColor: [220, 228, 235] },
-        headStyles: { fillColor: darkNavy, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 9, halign: 'center' },
-        columnStyles: {
-          0: { halign: 'center', cellWidth: 10 }, 1: { halign: 'center', cellWidth: 20 },
-          2: { cellWidth: 62 }, 3: { halign: 'center', cellWidth: 24 },
-          4: { halign: 'center', cellWidth: 22, fontStyle: 'bold' },
-          5: { halign: 'center', cellWidth: 26, fontStyle: 'bold' },
-          6: { halign: 'center', cellWidth: 12, fontStyle: 'bold' },
-          7: { halign: 'center', cellWidth: 22 }
-        },
-        alternateRowStyles: { fillColor: softGray },
-        didParseCell: (data) => {
-          if (data.section === 'body') {
-            if (data.column.index === 4 && data.cell.raw !== '—') {
-              const pct = parseFloat(data.cell.raw);
-              if (!isNaN(pct)) data.cell.styles.textColor = gradeRGB(pct);
-            }
-            if (data.column.index === 5 || data.column.index === 6) {
-              const avg = modules[data.row.index]?.avg;
-              if (avg !== null && avg !== undefined) data.cell.styles.textColor = gradeRGB(avg);
-            }
-          }
-        }
-      });
-
-      let afterY = doc.lastAutoTable.finalY + 8;
-      const og = overall !== null ? saGrade(overall) : { grade: 'N/A', symbol: '—' };
-      const ogc = overall !== null ? gradeRGB(overall) : [153, 153, 153];
-      doc.setFillColor(...ogc);
-      doc.roundedRect(20, afterY, pageWidth - 40, 14, 2, 2, 'F');
-      doc.setTextColor(255, 255, 255);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(12);
-      doc.text('OVERALL AVERAGE', 26, afterY + 9);
-      doc.text(overall !== null ? overall.toFixed(1) + '%  ·  ' + og.grade : 'N/A', pageWidth - 26, afterY + 9, { align: 'right' });
-
-      modules.forEach((m) => {
-        doc.addPage();
-        const u = m.unit;
-        const g = m.avg !== null ? saGrade(m.avg) : { grade: 'N/A', symbol: '—' };
-        const gc = m.avg !== null ? gradeRGB(m.avg) : [153, 153, 153];
-
-        let my = 20;
-        doc.setFillColor(...darkNavy);
-        doc.rect(0, my - 6, pageWidth, 18, 'F');
-        doc.setFillColor(...accent);
-        doc.rect(0, my + 12, pageWidth, 2, 'F');
-        doc.setTextColor(255, 255, 255);
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(16);
-        doc.text(`${u.code} — ${u.name}`, 20, my + 6);
-
-        my += 22;
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(9);
-        doc.setTextColor(...textGray);
-        doc.text(`${m.year} · ${m.semester} · ${studentName}`, 20, my);
-        doc.text(`Generated: ${new Date().toLocaleDateString('en-ZA')}`, pageWidth - 20, my, { align: 'right' });
-
-        my += 4;
-        const kpiH = 16, kpiGap = 4;
-        const kpiW = (pageWidth - 40 - kpiGap * 3) / 4;
-        const kpiData = [
-          { label: 'Weighted Average', value: m.avg !== null ? m.avg.toFixed(1) + '%' : 'N/A', color: gc },
-          { label: 'Grade', value: `${g.grade} (${g.symbol})`, color: gc },
-          { label: 'Graded', value: `${m.graded} of ${m.totalAss}`, color: darkNavy },
-          { label: 'Progress', value: m.progress + '%', color: slate }
-        ];
-        kpiData.forEach((k, i) => {
-          const kx = 20 + i * (kpiW + kpiGap);
-          doc.setFillColor(...k.color);
-          doc.roundedRect(kx, my, kpiW, kpiH, 2, 2, 'F');
-          doc.setTextColor(255, 255, 255);
-          doc.setFont('helvetica', 'normal');
-          doc.setFontSize(7);
-          doc.text(k.label, kx + 3, my + 5);
-          doc.setFont('helvetica', 'bold');
-          doc.setFontSize(10);
-          doc.text(String(k.value), kx + 3, my + 12);
-        });
-        my += kpiH + 6;
-
-        const sorted = [...m.allAss].map(a => {
-          let wk = '—';
-          u.weeks.forEach(w => { if ((w.assignments || []).includes(a)) wk = 'W' + w.number; });
-          return { ...a, wk };
-        }).sort((a, b) => {
-          if (!a.due && !b.due) return 0;
-          if (!a.due) return 1;
-          if (!b.due) return -1;
-          return new Date(a.due) - new Date(b.due);
-        });
-
-        const body = sorted.map((a, i) => {
-          const mk = parseMarks(a.marks);
-          const wt = parseFloat(a.weight) || 0;
-          const contrib = mk !== null ? (mk * wt / 100).toFixed(2) : '—';
-          let sLabel = 'Not Started';
-          if (a.status === 'graded') sLabel = 'Graded';
-          else if (a.status === 'submitted') sLabel = 'Submitted';
-          else if (a.status === 'in-progress') sLabel = 'In Progress';
-          if ((a.status === 'not-started' || a.status === 'in-progress') && a.due) {
-            const diff = daysUntil(a.due);
-            if (diff !== null && diff < 0) sLabel = 'Overdue';
-          }
-          return [
-            String(i + 1), a.name, typeOf(a.name), a.wk, a.due || '—', sLabel,
-            wt + '%', a.marks || '—',
-            mk !== null ? mk.toFixed(1) + '%' : '—',
-            contrib,
-            mk !== null ? saGrade(mk).grade : '—',
-            mk !== null ? saGrade(mk).symbol : '—'
-          ];
-        });
-
-        doc.autoTable({
-          startY: my,
-          head: [['#', 'Assessment', 'Type', 'Week', 'Due', 'Status', 'Weight', 'Marks', 'Percent', 'Contrib', 'Grade', 'Sym']],
-          body,
-          theme: 'grid',
-          styles: { font: 'helvetica', fontSize: 8, cellPadding: 2, textColor: [40, 40, 40], lineColor: [220, 228, 235] },
-          headStyles: { fillColor: darkNavy, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8, halign: 'center' },
-          columnStyles: {
-            0: { halign: 'center', cellWidth: 8 }, 1: { cellWidth: 44 },
-            2: { halign: 'center', cellWidth: 16 }, 3: { halign: 'center', cellWidth: 12 },
-            4: { halign: 'center', cellWidth: 18 }, 5: { halign: 'center', cellWidth: 18 },
-            6: { halign: 'center', cellWidth: 12 }, 7: { halign: 'center', cellWidth: 14 },
-            8: { halign: 'center', cellWidth: 14, fontStyle: 'bold' },
-            9: { halign: 'center', cellWidth: 14 },
-            10: { halign: 'center', cellWidth: 18, fontStyle: 'bold' },
-            11: { halign: 'center', cellWidth: 10, fontStyle: 'bold' }
-          },
-          alternateRowStyles: { fillColor: softGray },
-          didParseCell: (data) => {
-            if (data.section === 'body') {
-              const rowData = body[data.row.index];
-              if (data.column.index === 5) {
-                const s = rowData[5];
-                let bg = [240, 240, 240];
-                if (s === 'Graded') bg = [212, 237, 218];
-                else if (s === 'Submitted') bg = [209, 236, 241];
-                else if (s === 'In Progress') bg = [204, 229, 255];
-                else if (s === 'Overdue') bg = [248, 215, 218];
-                data.cell.styles.fillColor = bg;
-                data.cell.styles.fontStyle = 'bold';
-                data.cell.styles.fontSize = 7;
-              }
-              if (data.column.index === 8 && rowData[8] !== '—') {
-                const pct = parseFloat(rowData[8]);
-                if (!isNaN(pct)) data.cell.styles.textColor = gradeRGB(pct);
-              }
-              if ((data.column.index === 10 || data.column.index === 11) && rowData[8] !== '—') {
-                const pct = parseFloat(rowData[8]);
-                if (!isNaN(pct)) data.cell.styles.textColor = gradeRGB(pct);
-              }
-            }
-          }
-        });
-      });
-
-      const pageCount = doc.internal.getNumberOfPages();
-      for (let i = 2; i <= pageCount; i++) {
-        doc.setPage(i);
-        doc.setDrawColor(220, 228, 235);
-        doc.setLineWidth(0.3);
-        doc.line(15, pageHeight - 12, pageWidth - 15, pageHeight - 12);
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(8);
-        doc.setTextColor(150, 150, 150);
-        const titleLine = unitCodeFilter ? `Grade Report – ${unitCodeFilter}` : 'Grade Report – All Modules';
-        doc.text(titleLine, 20, pageHeight - 7);
-        doc.text(`Page ${i} of ${pageCount}`, pageWidth / 2, pageHeight - 7, { align: 'center' });
-        doc.text(studentName, pageWidth - 20, pageHeight - 7, { align: 'right' });
-      }
-
-      const stamp = new Date().toISOString().slice(0, 10);
-      const fname = unitCodeFilter ? `Grade_Report_${unitCodeFilter}_${stamp}.pdf` : `Grade_Report_All_Modules_${stamp}.pdf`;
-      doc.save(fname);
-      showToast('✅ PDF grade report exported!', 'success');
-    } catch (err) {
-      console.error(err);
-      showToast('PDF export failed: ' + err.message, 'error');
-    } finally {
-      window.hideLoading();
+  // ─────────────────────────────────────────────────────────────
+  //  JSON IMPORT — with validation, preview, and sample download
+  // ─────────────────────────────────────────────────────────────
+  function validateImportData(data) {
+    const errors = [];
+    if (!data || typeof data !== 'object') {
+      errors.push('Root must be an object.');
+      return { valid: false, errors, summary: null };
     }
-  };
+    if (!Array.isArray(data.years)) {
+      errors.push('Missing "years" array.');
+      return { valid: false, errors, summary: null };
+    }
+    let totalUnits = 0, totalWeeks = 0, totalTopics = 0, totalAssignments = 0, totalWeight = 0;
+    data.years.forEach((year, yi) => {
+      if (!year.name) errors.push(`Year #${yi+1}: missing "name".`);
+      if (!Array.isArray(year.semesters)) errors.push(`Year "${year.name}": missing "semesters" array.`);
+      else year.semesters.forEach((sem, si) => {
+        if (!Array.isArray(sem.units)) errors.push(`Semester "${sem.name}": missing "units" array.`);
+        else sem.units.forEach((unit, ui) => {
+          if (!unit.code) errors.push(`Unit #${ui+1} in "${sem.name}": missing "code".`);
+          if (!unit.name) errors.push(`Unit "${unit.code}": missing "name".`);
+          if (!Array.isArray(unit.weeks)) errors.push(`Unit "${unit.code}": missing "weeks" array.`);
+          else {
+            totalUnits++;
+            unit.weeks.forEach((week, wi) => {
+              totalWeeks++;
+              if (typeof week.number !== 'number') errors.push(`Unit "${unit.code}" week #${wi+1}: "number" must be a number.`);
+              if (Array.isArray(week.topics)) {
+                week.topics.forEach((topic, ti) => {
+                  totalTopics++;
+                  if (!topic.name) errors.push(`Unit "${unit.code}" week ${week.number} topic #${ti+1}: missing "name".`);
+                });
+              }
+              if (Array.isArray(week.assignments)) {
+                week.assignments.forEach((a, ai) => {
+                  totalAssignments++;
+                  totalWeight += parseFloat(a.weight) || 0;
+                  if (!a.name) errors.push(`Unit "${unit.code}" week ${week.number} assignment #${ai+1}: missing "name".`);
+                });
+              }
+            });
+          }
+        });
+      });
+    });
+    return {
+      valid: errors.length === 0,
+      errors,
+      summary: { totalYears: data.years.length, totalUnits, totalWeeks, totalTopics, totalAssignments, totalWeight }
+    };
+  }
 
+  function normalizeImportedData(data) {
+    // Fill in any missing fields with sensible defaults
+    data.years.forEach(year => {
+      if (!year.semesters) year.semesters = [];
+      year.semesters.forEach(sem => {
+        if (!sem.units) sem.units = [];
+        sem.units.forEach(unit => {
+          if (!unit.color) unit.color = '#2fc7ff';
+          if (!unit.weeks) unit.weeks = [];
+          unit.weeks.forEach(week => {
+            if (!week.topics) week.topics = [];
+            week.topics.forEach(topic => {
+              if (!topic.subtopics) topic.subtopics = [];
+              if (!topic.subCompleted || topic.subCompleted.length !== topic.subtopics.length) {
+                topic.subCompleted = topic.subtopics.map(() => false);
+              }
+              topic.completed = topic.subCompleted.every(Boolean);
+            });
+            if (!week.assignments) week.assignments = [];
+            week.assignments.forEach(a => {
+              if (!a.id) a.id = 'ass_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+              if (!a.status) a.status = 'not-started';
+              if (a.marks === undefined) a.marks = '';
+              if (a.weight === undefined) a.weight = 0;
+              if (!a.priority) a.priority = 'normal';
+              if (a.submittedDate === undefined) a.submittedDate = null;
+              if (a.gradedDate === undefined) a.gradedDate = null;
+              if (a.notes === undefined) a.notes = '';
+            });
+          });
+        });
+      });
+    });
+    return data;
+  }
+
+  function getSampleData() {
+    return {
+      years: [{
+        name: '2026',
+        semesters: [{
+          name: 'Semester 1',
+          units: [{
+            code: 'BSC101',
+            name: 'Example Module',
+            color: '#2fc7ff',
+            weeks: [
+              {
+                number: 1,
+                topics: [
+                  {
+                    name: 'Introduction',
+                    subtopics: ['What is this?', 'Why it matters', 'Key concepts'],
+                    completed: false,
+                    subCompleted: [false, false, false]
+                  }
+                ],
+                assignments: []
+              },
+              {
+                number: 2,
+                topics: [
+                  {
+                    name: 'Foundations',
+                    subtopics: ['Theory', 'Practice', 'Examples'],
+                    completed: false,
+                    subCompleted: [false, false, false]
+                  }
+                ],
+                assignments: [
+                  {
+                    id: 'ass_weekly_2',
+                    name: 'Weekly Quiz Week 2',
+                    due: '2026-03-15',
+                    status: 'not-started',
+                    marks: '',
+                    weight: 1,
+                    submittedDate: null,
+                    gradedDate: null,
+                    notes: '',
+                    priority: 'normal'
+                  }
+                ]
+              }
+            ]
+          }]
+        }]
+      }]
+    };
+  }
+
+  function downloadSampleJson() {
+    const blob = new Blob([JSON.stringify(getSampleData(), null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'studies_sample_template.json';
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('📥 Sample template downloaded', 'success');
+  }
+
+  function openImportModal() {
+    const modal = document.getElementById('importModal');
+    const preview = document.getElementById('importPreview');
+    const fileInput = document.getElementById('importFileInput');
+    const modeSelect = document.getElementById('importMode');
+    const confirmBtn = document.getElementById('importConfirm');
+
+    fileInput.value = '';
+    preview.innerHTML = '';
+    confirmBtn.disabled = true;
+    modeSelect.value = 'replace';
+
+    modal.classList.add('open');
+  }
+
+  function handleImportFile(file) {
+    const preview = document.getElementById('importPreview');
+    const confirmBtn = document.getElementById('importConfirm');
+    if (!file) { preview.innerHTML = ''; confirmBtn.disabled = true; return; }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target.result);
+        const validation = validateImportData(data);
+        if (!validation.valid) {
+          preview.innerHTML = `
+            <div style="background:rgba(225,112,85,0.1);border:1px solid rgba(225,112,85,0.3);border-radius:12px;padding:12px 16px;">
+              <div style="color:#ff9b85;font-weight:700;margin-bottom:6px;">❌ Validation failed</div>
+              <ul style="margin:0;padding-left:18px;color:var(--text-secondary);font-size:0.8rem;">
+                ${validation.errors.slice(0, 8).map(er => `<li>${escapeHtml(er)}</li>`).join('')}
+                ${validation.errors.length > 8 ? `<li>…and ${validation.errors.length - 8} more</li>` : ''}
+              </ul>
+            </div>
+          `;
+          confirmBtn.disabled = true;
+          return;
+        }
+
+        const s = validation.summary;
+        preview.innerHTML = `
+          <div class="json-preview">
+            <div class="preview-heading">📦 File Preview</div>
+            <div class="preview-line"><strong>${s.totalYears}</strong> year(s)</div>
+            <div class="preview-line"><strong>${s.totalUnits}</strong> unit(s)</div>
+            <div class="preview-line"><strong>${s.totalWeeks}</strong> week(s)</div>
+            <div class="preview-line"><strong>${s.totalTopics}</strong> topic(s)</div>
+            <div class="preview-line"><strong>${s.totalAssignments}</strong> assignment(s) · total weight <strong>${s.totalWeight.toFixed(1)}%</strong></div>
+            ${Math.abs(s.totalWeight - 100) > 0.5 ? `<div class="preview-line" style="color:var(--orange);">⚠️ Weight total is ${s.totalWeight.toFixed(1)}% (expected 100%)</div>` : ''}
+          </div>
+        `;
+        confirmBtn.disabled = false;
+        confirmBtn._pendingData = data;
+      } catch (err) {
+        preview.innerHTML = `
+          <div style="background:rgba(225,112,85,0.1);border:1px solid rgba(225,112,85,0.3);border-radius:12px;padding:12px 16px;">
+            <div style="color:#ff9b85;font-weight:700;margin-bottom:6px;">❌ Invalid JSON</div>
+            <div style="color:var(--text-secondary);font-size:0.8rem;">${escapeHtml(err.message)}</div>
+          </div>
+        `;
+        confirmBtn.disabled = true;
+        confirmBtn._pendingData = null;
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  function performImport() {
+    const confirmBtn = document.getElementById('importConfirm');
+    const data = confirmBtn._pendingData;
+    if (!data) { showToast('No file loaded.', 'error'); return; }
+    const mode = document.getElementById('importMode').value;
+    const normalized = normalizeImportedData(JSON.parse(JSON.stringify(data)));
+
+    if (mode === 'replace') {
+      if (!confirm('This will REPLACE all current study data. Continue?')) return;
+      studyData = normalized;
+    } else {
+      // Merge: add units whose code doesn't already exist
+      const existingCodes = new Set();
+      studyData.years.forEach(y => y.semesters.forEach(s => s.units.forEach(u => existingCodes.add(u.code))));
+      let added = 0;
+      normalized.years.forEach(nYear => {
+        nYear.semesters.forEach(nSem => {
+          nSem.units.forEach(nUnit => {
+            if (existingCodes.has(nUnit.code)) return;
+            let year = studyData.years.find(y => y.name === nYear.name);
+            if (!year) { year = { name: nYear.name, semesters: [] }; studyData.years.push(year); }
+            let sem = year.semesters.find(s => s.name === nSem.name);
+            if (!sem) { sem = { name: nSem.name, units: [] }; year.semesters.push(sem); }
+            sem.units.push(nUnit);
+            existingCodes.add(nUnit.code);
+            added++;
+          });
+        });
+      });
+      showToast(`✅ Merged ${added} new unit(s)`, 'success');
+    }
+
+    expanded = {};
+    render();
+    markDirty();
+    document.getElementById('importModal').classList.remove('open');
+    if (mode === 'replace') showToast('✅ Data replaced with imported JSON', 'success');
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  //  INIT
+  // ─────────────────────────────────────────────────────────────
   async function init() {
     console.log('📦 Study Manager initializing...');
     const contentArea = document.getElementById('contentArea');
@@ -3563,7 +3509,6 @@
           <button class="btn btn-sync" id="syncBtn" title="Ctrl+S to save"><i class="fa fa-cloud-download"></i> Sync</button>
           <button class="btn btn-excel" id="exportBtn"><i class="fa fa-file-excel-o"></i> Excel</button>
           <button class="btn btn-grade" id="gradeReportBtn" title="Excel grade report"><i class="fa fa-graduation-cap"></i> Grade Excel</button>
-          <button class="btn btn-pdf" id="gradeReportPdfBtn" title="PDF grade report"><i class="fa fa-file-pdf-o"></i> Grade PDF</button>
           <button class="btn btn-outline-secondary" id="exportJsonBtn" style="border:1px solid var(--border-subtle);color:var(--text-primary);"><i class="fa fa-download"></i> JSON</button>
           <button class="btn btn-outline-secondary" id="importJsonBtn" style="border:1px solid var(--border-subtle);color:var(--text-primary);"><i class="fa fa-upload"></i> Import</button>
           <button class="btn btn-success-glow" id="addYearBtn"><i class="fa fa-plus"></i> Add Year</button>
@@ -3622,6 +3567,7 @@
       </div>
     `;
 
+    // Search setup
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
       const searchBar = searchInput.closest('.search-bar');
@@ -3814,50 +3760,31 @@
     document.getElementById('addYearBtn').addEventListener('click', window.addYear);
     document.getElementById('exportBtn').addEventListener('click', window.exportToExcel);
     document.getElementById('gradeReportBtn').addEventListener('click', () => window.exportGradeReport());
-    document.getElementById('gradeReportPdfBtn').addEventListener('click', () => window.exportGradeReportPDF());
 
     document.getElementById('exportJsonBtn').addEventListener('click', function() {
       const blob = new Blob([JSON.stringify(studyData, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `study_plan_${new Date().toISOString().slice(0,10)}.json`;
+      a.download = `study_plan_${formatLocalYMD(new Date())}.json`;
       a.click();
       URL.revokeObjectURL(url);
       showToast('📥 Study plan exported', 'success');
     });
 
-    document.getElementById('importJsonBtn').addEventListener('click', function() {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = '.json';
-      input.onchange = (e) => {
-        if (e.target.files.length) {
-          const file = e.target.files[0];
-          const reader = new FileReader();
-          reader.onload = (ev) => {
-            try {
-              const data = JSON.parse(ev.target.result);
-              if (!data.years || !Array.isArray(data.years)) {
-                showToast('❌ Invalid file: missing "years" array', 'error');
-                return;
-              }
-              if (!confirm('This will replace ALL current data. Continue?')) return;
-              studyData = data;
-              expanded = {};
-              render();
-              markDirty();
-              showToast('✅ Study plan imported successfully', 'success');
-            } catch (err) {
-              showToast('❌ Failed to parse JSON: ' + err.message, 'error');
-            }
-          };
-          reader.readAsText(file);
-          e.target.value = '';
-        }
-      };
-      input.click();
+    // Import modal wiring
+    document.getElementById('importJsonBtn').addEventListener('click', openImportModal);
+    document.getElementById('importCancel').addEventListener('click', () => {
+      document.getElementById('importModal').classList.remove('open');
     });
+    document.getElementById('downloadSampleBtn').addEventListener('click', (e) => {
+      e.preventDefault();
+      downloadSampleJson();
+    });
+    document.getElementById('importFileInput').addEventListener('change', function() {
+      handleImportFile(this.files[0]);
+    });
+    document.getElementById('importConfirm').addEventListener('click', performImport);
 
     document.addEventListener('keydown', (e) => {
       if (e.ctrlKey && e.key === 'e') { e.preventDefault(); expandAll(); }
@@ -3869,13 +3796,6 @@
         if (si) { si.focus(); si.select(); }
       }
     });
-
-    try {
-      const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-      const encUser = encodeURIComponent(user.username);
-      const meta = await GitHubAPI.getFileContent(owner, repo, `${dataPath}/users/${encUser}/user_meta.json`, branch, user.pat);
-      if (meta && meta.content) userFullName = JSON.parse(meta.content).fullName || "";
-    } catch (e) { /* ignore */ }
 
     await loadData();
     updateSaveStatusUI('saved');
@@ -3899,41 +3819,6 @@
     init();
   }
 
-  window.toggleExpand = toggleExpand;
-  window.toggleTopicComplete = toggleTopicComplete;
-  window.toggleSubtopic = toggleSubtopic;
-  window.bulkToggleWeek = bulkToggleWeek;
-  window.expandAll = expandAll;
-  window.collapseAll = collapseAll;
-  window.openSubmitModal = openSubmitModal;
-  window.addSemester = addSemester;
-  window.editSemester = editSemester;
-  window.deleteSemester = deleteSemester;
-  window.addUnit = addUnit;
-  window.editUnit = editUnit;
-  window.deleteUnit = deleteUnit;
-  window.addWeek = addWeek;
-  window.editWeek = editWeek;
-  window.deleteWeek = deleteWeek;
-  window.addTopic = addTopic;
-  window.editTopic = editTopic;
-  window.deleteTopic = deleteTopic;
-  window.addSubtopic = addSubtopic;
-  window.deleteSubtopic = deleteSubtopic;
-  window.addAssignment = addAssignment;
-  window.editAssignment = editAssignment;
-  window.deleteAssignment = deleteAssignment;
-  window.addYear = addYear;
-  window.editYear = editYear;
-  window.deleteYear = deleteYear;
-  window.openGradeModal = openGradeModal;
-  window.updateGradeMark = updateGradeMark;
-  window.updateWhatIf = updateWhatIf;
-  window.updateGradeIntelTarget = updateGradeIntelTarget;
-  window.exportToExcel = exportToExcel;
-  window.exportGradeReport = exportGradeReport;
-  window.exportGradeReportPDF = exportGradeReportPDF;
-  window.showVersionHistory = showVersionHistory;
   window.studyManager = { studyData, render, markDirty };
 })();
 </script>
