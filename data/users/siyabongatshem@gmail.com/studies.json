@@ -1045,17 +1045,17 @@
                         "Multidimensional Arrays",
                         "Graphics Programs with Arrays"
                       ],
-                      "completed": false,
+                      "completed": true,
                       "subCompleted": [
                         true,
                         true,
-                        false,
-                        false,
-                        false,
-                        false,
-                        false,
-                        false,
-                        false
+                        true,
+                        true,
+                        true,
+                        true,
+                        true,
+                        true,
+                        true
                       ]
                     }
                   ],
@@ -1104,11 +1104,10 @@
                     {
                       "name": "Quiz 7",
                       "due": "2026-10-04",
-                      "status": "submitted",
+                      "status": "not-started",
                       "marks": "",
                       "weight": 1,
-                      "notes": "",
-                      "submittedDate": "2026-10-01"
+                      "notes": ""
                     }
                   ]
                 },
