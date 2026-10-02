@@ -42,6 +42,128 @@
     .btn-excel:hover { background: #218838; transform: scale(1.03); color: white; }
     .btn-grade { background: rgba(162,155,254,0.2); color: #c9c3ff; }
     .btn-grade:hover { background: rgba(162,155,254,0.32); color: #dcd7ff; }
+
+    /* ─── Scope selector ─── */
+    .scope-selector { position: relative; }
+    .scope-btn {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid var(--border-subtle);
+      border-radius: 40px;
+      padding: 8px 18px;
+      color: var(--text-primary);
+      font-size: 0.8rem;
+      font-weight: 600;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .scope-btn:hover { background: rgba(47,199,255,0.15); color: var(--accent); }
+    .scope-btn i.fa-calendar-o { color: var(--accent); }
+    .scope-btn i.fa-caret-down { font-size: 0.7rem; opacity: 0.6; }
+    .scope-btn.custom { border-color: rgba(47,199,255,0.45); background: rgba(47,199,255,0.1); }
+    .scope-btn.custom i.fa-calendar-o { color: var(--accent); }
+    .scope-panel {
+      position: absolute;
+      top: calc(100% + 6px);
+      right: 0;
+      min-width: 340px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.55);
+      z-index: 250;
+      padding: 8px;
+      display: none;
+      max-height: 460px;
+      overflow-y: auto;
+    }
+    .scope-panel.open { display: block; }
+    .scope-panel .sp-label {
+      font-size: 0.65rem;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-weight: 700;
+      padding: 8px 12px 4px;
+    }
+    .scope-panel .sp-item, .scope-panel .sp-sem {
+      padding: 9px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: 0.15s;
+      color: var(--text-primary);
+    }
+    .scope-panel .sp-item:hover, .scope-panel .sp-sem:hover { background: rgba(255,255,255,0.05); }
+    .scope-panel .sp-item.active, .scope-panel .sp-sem.active {
+      background: rgba(47,199,255,0.15);
+      color: var(--accent);
+      font-weight: 600;
+    }
+    .scope-panel .sp-check {
+      width: 16px; height: 16px; border-radius: 4px;
+      border: 2px solid rgba(255,255,255,0.2);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      font-size: 0.6rem;
+      color: transparent;
+    }
+    .scope-panel .sp-item.active .sp-check, .scope-panel .sp-sem.active .sp-check {
+      background: var(--accent); border-color: var(--accent); color: #fff;
+    }
+    .scope-panel .sp-sub {
+      font-size: 0.7rem;
+      color: var(--text-secondary);
+      margin-left: auto;
+      font-weight: 400;
+    }
+    .scope-panel .sp-divider { height: 1px; background: var(--border-subtle); margin: 6px 8px; }
+    .scope-panel .sp-year {
+      padding: 8px 12px 4px;
+      font-size: 0.7rem;
+      color: var(--accent);
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .scope-panel .sp-sem { padding-left: 24px; }
+    .scope-panel .sp-empty { padding: 20px; text-align: center; color: var(--text-secondary); font-size: 0.85rem; }
+
+    /* Scope banner */
+    .scope-banner {
+      background: linear-gradient(90deg, rgba(47,199,255,0.12), transparent 70%);
+      border-left: 3px solid var(--accent);
+      padding: 10px 16px;
+      border-radius: 10px;
+      font-size: 0.82rem;
+      margin-bottom: 22px;
+      display: none;
+      align-items: center;
+      gap: 10px;
+      color: var(--text-secondary);
+    }
+    .scope-banner.show { display: flex; }
+    .scope-banner strong { color: var(--accent); }
+    .scope-banner .scope-reset {
+      margin-left: auto;
+      background: transparent;
+      border: 1px solid var(--border-subtle);
+      border-radius: 40px;
+      padding: 5px 14px;
+      font-size: 0.72rem;
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: 0.15s;
+      font-weight: 600;
+    }
+    .scope-banner .scope-reset:hover { border-color: var(--accent); color: var(--accent); }
+
     .stats-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 16px; margin-bottom: 30px; }
     .stat-item { background: var(--bg-card); border-radius: 16px; padding: 16px 20px; border: 1px solid var(--border-subtle); text-align: center; transition: 0.2s; position: relative; }
     .stat-item:hover { border-color: rgba(47,199,255,0.2); transform: translateY(-2px); }
@@ -101,15 +223,13 @@
     .btn-add-ass { background: rgba(255,255,255,0.06); color: var(--text-primary); border: 1px dashed var(--border-subtle); border-radius: 40px; padding: 4px 14px; min-height: 32px; font-size: 0.7rem; transition: 0.2s; }
     .btn-add-ass:hover { border-color: var(--accent); color: var(--accent); background: rgba(47,199,255,0.08); }
 
-    /* ─── Improved Grade Modal ─── */
+    /* Grade modal */
     .grade-modal .modal-box { max-width: 760px; }
     .grade-modal .grade-summary { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin: 16px 0 20px; }
     .grade-modal .grade-summary .card { background: rgba(255,255,255,0.05); border-radius: 12px; padding: 12px 16px; text-align: center; border: 1px solid var(--border-subtle); }
     .grade-modal .grade-summary .card .value { font-size: 2rem; font-weight: 800; color: #fff; }
     .grade-modal .grade-summary .card .label { font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em; }
     .grade-modal .grade-summary .card .value.green { color: var(--green); } .grade-modal .grade-summary .card .value.orange { color: var(--orange); } .grade-modal .grade-summary .card .value.red { color: var(--red); } .grade-modal .grade-summary .card .value.purple { color: var(--purple); }
-
-    /* Category breakdown */
     .cat-breakdown { margin: 14px 0 18px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); border-radius: 12px; overflow: hidden; }
     .cat-breakdown .cb-header { display: grid; grid-template-columns: 1.4fr 70px 90px 80px 80px; gap: 8px; padding: 8px 14px; font-size: 0.65rem; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.05em; background: rgba(11,43,59,0.6); }
     .cat-breakdown .cb-row { display: grid; grid-template-columns: 1.4fr 70px 90px 80px 80px; gap: 8px; padding: 8px 14px; font-size: 0.8rem; align-items: center; border-top: 1px solid rgba(255,255,255,0.04); }
@@ -124,10 +244,7 @@
     .cat-breakdown .cb-total .cat-name { color: var(--accent); }
     .cat-breakdown .cb-total .cat-weight, .cat-breakdown .cb-total .cat-marks { color: var(--text-primary); text-align: center; font-variant-numeric: tabular-nums; }
     .cat-breakdown .cb-total .cat-status { text-align: right; }
-
     .cat-breakdown .cb-warning { padding: 8px 14px; background: rgba(253,203,110,0.1); color: var(--orange); font-size: 0.72rem; border-top: 1px solid rgba(253,203,110,0.2); }
-
-    /* What-if scenarios */
     .scenario-strip { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin: 14px 0 18px; }
     .scenario-tile { background: rgba(255,255,255,0.04); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 12px 14px; text-align: center; transition: 0.2s; }
     .scenario-tile:hover { border-color: rgba(47,199,255,0.3); background: rgba(47,199,255,0.06); }
@@ -137,8 +254,6 @@
     .scenario-tile.min .tile-value { color: #ff6b6b; }
     .scenario-tile.exp .tile-value { color: var(--accent); }
     .scenario-tile.max .tile-value { color: #4ae4b8; }
-
-    /* Target block */
     .target-block { margin-top: 14px; padding: 14px 16px; background: rgba(47,199,255,0.06); border-radius: 12px; border: 1px solid rgba(47,199,255,0.15); }
     .target-block .target-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
     .target-block input[type="number"] { width: 90px; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-subtle); background: rgba(255,255,255,0.06); color: #fff; font-size: 0.9rem; text-align: right; outline: none; transition: 0.2s; }
@@ -151,8 +266,6 @@
     .diff-row .diff-bar { flex: 1; height: 8px; background: rgba(255,255,255,0.08); border-radius: 4px; overflow: hidden; }
     .diff-row .diff-fill { height: 100%; border-radius: 4px; transition: width 0.4s ease, background 0.3s ease; }
     .diff-row .diff-text { font-size: 0.75rem; font-weight: 700; min-width: 70px; text-align: right; letter-spacing: 0.04em; }
-
-    /* Grade assignments list */
     .grade-assign-list { margin-top: 14px; max-height: 280px; overflow-y: auto; border-radius: 12px; border: 1px solid var(--border-subtle); }
     .grade-assign-list .gal-header { display: grid; grid-template-columns: 1fr 60px 90px 90px; gap: 8px; padding: 8px 12px; font-size: 0.65rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em; background: rgba(255,255,255,0.03); position: sticky; top: 0; z-index: 1; }
     .grade-assign-list .gal-row { display: grid; grid-template-columns: 1fr 60px 90px 90px; gap: 8px; align-items: center; padding: 6px 12px; border-top: 1px solid rgba(255,255,255,0.03); }
@@ -166,7 +279,6 @@
     .grade-assign-list .gal-row .gal-status.submitted { background: rgba(0,184,148,0.18); color: #4ae4b8; }
     .grade-assign-list .gal-row .gal-status.graded { background: rgba(162,155,254,0.18); color: #c9c3ff; }
 
-    /* Modals */
     .modal-custom { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); backdrop-filter: blur(8px); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
     .modal-custom.open { display: flex; }
     .modal-custom .modal-box { background: var(--bg-card); border-radius: 24px; padding: 28px 32px; max-width: 560px; width: 100%; border: 1px solid var(--border-subtle); box-shadow: 0 20px 60px rgba(0,0,0,0.6); animation: modalIn 0.3s ease; max-height: 90vh; overflow-y: auto; }
@@ -185,7 +297,6 @@
     .modal-custom .modal-box .modal-actions .btn-primary { background: linear-gradient(135deg, var(--accent), #0984e3); color: #0a0e17; }
     .modal-custom .modal-box .modal-actions .btn-primary:hover { transform: scale(1.02); box-shadow: 0 0 20px rgba(47,199,255,0.2); }
 
-    /* Sync conflict modal */
     .sync-conflict-modal .modal-box { max-width: 720px; }
     .sync-conflict-modal .conflict-visual { display: flex; align-items: center; justify-content: center; gap: 18px; margin: 20px 0; flex-wrap: wrap; }
     .sync-conflict-modal .conflict-side { flex: 1; min-width: 200px; background: rgba(255,255,255,0.04); border: 2px solid var(--border-subtle); border-radius: 14px; padding: 16px; text-align: center; }
@@ -207,7 +318,6 @@
     .sync-conflict-modal .conflict-actions .btn-merge { background: rgba(0,184,148,0.2); color: #4ae4b8; }
     .sync-conflict-modal .conflict-actions .btn-merge:hover { background: rgba(0,184,148,0.35); }
 
-    /* Version history */
     .version-list { max-height: 400px; overflow-y: auto; margin-top: 12px; }
     .version-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); border-radius: 10px; margin-bottom: 6px; transition: 0.2s; }
     .version-item:hover { background: rgba(255,255,255,0.05); border-color: rgba(47,199,255,0.2); }
@@ -219,7 +329,6 @@
     .version-item .v-actions .btn { border-radius: 40px; font-size: 0.65rem; padding: 4px 12px; min-height: 30px; border: none; background: rgba(47,199,255,0.15); color: var(--accent); }
     .version-item .v-actions .btn:hover { background: rgba(47,199,255,0.28); }
 
-    /* Global search dropdown */
     .search-results-dropdown { position: absolute; top: calc(100% + 6px); left: 0; right: 0; background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 14px; box-shadow: 0 20px 50px rgba(0,0,0,0.6); max-height: 420px; overflow-y: auto; z-index: 200; display: none; }
     .search-results-dropdown.open { display: block; }
     .search-group-label { padding: 8px 14px 6px; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-secondary); background: rgba(255,255,255,0.03); border-bottom: 1px solid rgba(255,255,255,0.04); }
@@ -237,17 +346,17 @@
     .search-empty { padding: 24px; text-align: center; color: var(--text-secondary); font-size: 0.85rem; }
     .search-bar { position: relative; }
 
-    /* Toasts */
     .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 1050; display: flex; flex-direction: column; gap: 8px; }
     .toast-item { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 14px; padding: 12px 20px; color: var(--text-primary); font-size: 0.85rem; box-shadow: 0 8px 30px rgba(0,0,0,0.4); animation: toastIn 0.3s ease; min-width: 240px; backdrop-filter: blur(8px); }
     .toast-item.success { border-left: 3px solid var(--green); } .toast-item.error { border-left: 3px solid var(--red); } .toast-item.info { border-left: 3px solid var(--accent); }
     @keyframes toastIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
 
-    /* Responsive */
     @media (max-width: 768px) {
       .study-container { padding: 0 12px 80px; }
       .study-header h1 { font-size: 1.5rem; }
       .study-header .actions .btn { font-size: 0.7rem; padding: 6px 14px; min-height: 38px; }
+      .scope-btn { font-size: 0.72rem; padding: 6px 14px; min-height: 38px; }
+      .scope-panel { min-width: 260px; }
       .stats-bar { grid-template-columns: repeat(3, 1fr); gap: 10px; }
       .stat-item .number { font-size: 1.2rem; }
       .level-header { flex-direction: column; align-items: stretch; }
@@ -277,7 +386,6 @@
     .loading-spinner .spinner { width: 48px; height: 48px; border: 3px solid var(--border-subtle); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 16px; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* Deadlines widget */
     .deadlines-widget { background: var(--bg-card); border-radius: 16px; padding: 16px 20px; border: 1px solid var(--border-subtle); margin-bottom: 20px; }
     .deadlines-widget h4 { font-size: 1rem; font-weight: 600; color: var(--text-primary); margin-bottom: 8px; }
     .deadlines-widget .deadline-item { display: flex; justify-content: space-between; padding: 4px 0; font-size: 0.85rem; border-bottom: 1px solid var(--border-subtle); color: var(--text-primary); }
@@ -285,7 +393,6 @@
     .deadlines-widget .deadline-item .due-soon { color: var(--orange); font-weight: 600; }
     .deadlines-widget .deadline-item .overdue { color: #ff9b85; font-weight: 600; }
 
-    /* Analytics dashboard */
     .analytics-dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin: 30px 0 20px; }
     .analytics-card { background: var(--bg-card); border-radius: 16px; padding: 18px 20px; border: 1px solid var(--border-subtle); }
     .analytics-card h4 { font-size: 1rem; font-weight: 600; color: var(--text-primary); margin-bottom: 12px; }
@@ -299,7 +406,6 @@
     .shortcut-hint { font-size: 0.7rem; color: var(--text-secondary); opacity: 0.75; margin-left: 8px; }
     @media (max-width: 480px) { .shortcut-hint { display: none; } }
 
-    /* Save status */
     .save-status { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; color: var(--text-secondary); }
     .save-status .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
     .save-status .dot.saved { background: var(--green); }
@@ -308,7 +414,6 @@
     .save-status .dot.offline { background: var(--orange); }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
 
-    /* Search bar */
     .search-bar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
     .search-bar input { background: rgba(255,255,255,0.08); border: 1px solid var(--border-subtle); border-radius: 40px; padding: 8px 18px; color: var(--text-primary); font-size: 0.9rem; outline: none; transition: 0.2s; min-width: 220px; }
     .search-bar input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(47,199,255,0.15); background: rgba(255,255,255,0.1); }
@@ -321,7 +426,6 @@
     .topic-item.compact .subtopic-list { display: none !important; }
     .topic-item.compact .topic-header .meta { display: none; }
 
-    /* Assignment cards (in tree) */
     .assignment-card { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 14px; padding: 14px 18px; margin-bottom: 10px; transition: 0.2s; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
     .assignment-card:hover { border-color: rgba(47,199,255,0.3); }
     .assignment-card .info { flex: 1; min-width: 200px; }
@@ -348,7 +452,6 @@
     .assignment-card .actions .btn-del-ass { background: rgba(225,112,85,0.15); color: #ff9b85; }
     .assignment-card .actions .btn-del-ass:hover { background: rgba(225,112,85,0.25); }
 
-    /* KPI grid */
     .kpi-grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-bottom: 30px; }
     .kpi-card { background: var(--bg-card); border-radius: 16px; padding: 16px 20px; border: 1px solid var(--border-subtle); text-align: center; }
     .kpi-card .number { font-size: 2rem; font-weight: 800; color: #fff; }
@@ -358,7 +461,6 @@
     .kpi-card .number.coursework { color: #4ae4b8; }
     .kpi-card .number.academic { color: #c9c3ff; }
 
-    /* Priority queue */
     .priority-queue { background: var(--bg-card); border-radius: 16px; padding: 16px 20px; border: 1px solid var(--border-subtle); margin-bottom: 30px; }
     .priority-queue h4 { font-size: 1rem; font-weight: 600; color: var(--text-primary); margin-bottom: 12px; }
     .priority-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border-subtle); }
@@ -371,331 +473,106 @@
     .priority-item .prio-info .unit { font-size: 0.75rem; color: var(--text-secondary); }
     .priority-item .prio-info .days { font-size: 0.75rem; color: var(--text-secondary); }
 
-    /* Workload chart */
     .workload-chart { background: var(--bg-card); border-radius: 16px; padding: 16px 20px; border: 1px solid var(--border-subtle); margin-bottom: 30px; }
     .workload-chart h4 { font-size: 1rem; font-weight: 600; color: var(--text-primary); margin-bottom: 12px; }
     .workload-chart .chart-container { height: 140px; position: relative; }
 
-    /* Study streak */
     .study-streak { background: var(--bg-card); border-radius: 16px; padding: 16px 20px; border: 1px solid var(--border-subtle); margin: 20px 0 30px; display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
     .study-streak .streak-number { font-size: 2.2rem; font-weight: 800; color: var(--orange); }
     .study-streak .streak-label { color: var(--text-secondary); font-size: 0.8rem; }
     .study-streak .best { font-size: 0.8rem; color: var(--text-secondary); }
     .study-streak .best span { color: #4ae4b8; font-weight: 600; }
 
-    /* Risk bars */
     .risk-bar { height: 4px; background: rgba(255,255,255,0.08); border-radius: 4px; overflow: hidden; margin-top: 4px; width: 100%; }
     .risk-bar .fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
     .risk-bar .fill.high { background: var(--red); }
     .risk-bar .fill.medium { background: var(--orange); }
     .risk-bar .fill.low { background: var(--green); }
 
-    /* ───────── Neat All-Assignments View ───────── */
-    .all-assignments-tab {
-      margin-top: 30px;
-      background: var(--bg-card);
-      border-radius: 16px;
-      padding: 20px;
-      border: 1px solid var(--border-subtle);
-    }
-    .all-assignments-tab .tab-heading {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 14px;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-    .all-assignments-tab .tab-heading h4 {
-      font-weight: 700;
-      font-size: 1.05rem;
-      color: var(--text-primary);
-      margin: 0;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
+    .all-assignments-tab { margin-top: 30px; background: var(--bg-card); border-radius: 16px; padding: 20px; border: 1px solid var(--border-subtle); }
+    .all-assignments-tab .tab-heading { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px; }
+    .all-assignments-tab .tab-heading h4 { font-weight: 700; font-size: 1.05rem; color: var(--text-primary); margin: 0; display: flex; align-items: center; gap: 8px; }
     .all-assignments-tab .tab-heading h4 i { color: var(--accent); }
-    .all-assignments-tab .tab-heading .tab-total {
-      font-size: 0.75rem;
-      color: var(--text-secondary);
-      background: rgba(255,255,255,0.05);
-      border: 1px solid var(--border-subtle);
-      border-radius: 40px;
-      padding: 4px 12px;
-    }
-
-    .all-assignments-tab .quick-pills {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-bottom: 14px;
-    }
-    .all-assignments-tab .quick-pills .pill {
-      padding: 6px 14px;
-      border-radius: 40px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      background: rgba(255,255,255,0.05);
-      border: 1px solid var(--border-subtle);
-      color: var(--text-primary);
-      cursor: pointer;
-      transition: 0.15s;
-      user-select: none;
-    }
-    .all-assignments-tab .quick-pills .pill:hover {
-      background: rgba(255,255,255,0.09);
-    }
-    .all-assignments-tab .quick-pills .pill.active {
-      background: rgba(47,199,255,0.2);
-      border-color: rgba(47,199,255,0.5);
-      color: var(--accent);
-    }
-    .all-assignments-tab .quick-pills .pill.active.overdue {
-      background: rgba(225,112,85,0.22);
-      border-color: rgba(225,112,85,0.55);
-      color: #ff9b85;
-    }
-    .all-assignments-tab .quick-pills .pill.active.due-soon {
-      background: rgba(253,203,110,0.22);
-      border-color: rgba(253,203,110,0.55);
-      color: var(--orange);
-    }
-    .all-assignments-tab .quick-pills .pill.active.submitted {
-      background: rgba(0,184,148,0.22);
-      border-color: rgba(0,184,148,0.55);
-      color: #4ae4b8;
-    }
-    .all-assignments-tab .quick-pills .pill.active.graded {
-      background: rgba(162,155,254,0.22);
-      border-color: rgba(162,155,254,0.55);
-      color: #c9c3ff;
-    }
-
-    .all-assignments-tab .filter-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      align-items: center;
-      margin-bottom: 16px;
-    }
-    .all-assignments-tab .filter-row select,
-    .all-assignments-tab .filter-row input {
-      background: rgba(255,255,255,0.06);
-      border: 1px solid var(--border-subtle);
-      border-radius: 40px;
-      padding: 7px 16px;
-      color: var(--text-primary);
-      font-size: 0.82rem;
-      outline: none;
-      transition: 0.2s;
-    }
+    .all-assignments-tab .tab-heading .tab-total { font-size: 0.75rem; color: var(--text-secondary); background: rgba(255,255,255,0.05); border: 1px solid var(--border-subtle); border-radius: 40px; padding: 4px 12px; }
+    .all-assignments-tab .quick-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+    .all-assignments-tab .quick-pills .pill { padding: 6px 14px; border-radius: 40px; font-size: 0.75rem; font-weight: 600; background: rgba(255,255,255,0.05); border: 1px solid var(--border-subtle); color: var(--text-primary); cursor: pointer; transition: 0.15s; user-select: none; }
+    .all-assignments-tab .quick-pills .pill:hover { background: rgba(255,255,255,0.09); }
+    .all-assignments-tab .quick-pills .pill.active { background: rgba(47,199,255,0.2); border-color: rgba(47,199,255,0.5); color: var(--accent); }
+    .all-assignments-tab .quick-pills .pill.active.overdue { background: rgba(225,112,85,0.22); border-color: rgba(225,112,85,0.55); color: #ff9b85; }
+    .all-assignments-tab .quick-pills .pill.active.due-soon { background: rgba(253,203,110,0.22); border-color: rgba(253,203,110,0.55); color: var(--orange); }
+    .all-assignments-tab .quick-pills .pill.active.submitted { background: rgba(0,184,148,0.22); border-color: rgba(0,184,148,0.55); color: #4ae4b8; }
+    .all-assignments-tab .quick-pills .pill.active.graded { background: rgba(162,155,254,0.22); border-color: rgba(162,155,254,0.55); color: #c9c3ff; }
+    .all-assignments-tab .filter-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 16px; }
+    .all-assignments-tab .filter-row select, .all-assignments-tab .filter-row input { background: rgba(255,255,255,0.06); border: 1px solid var(--border-subtle); border-radius: 40px; padding: 7px 16px; color: var(--text-primary); font-size: 0.82rem; outline: none; transition: 0.2s; }
     .all-assignments-tab .filter-row select option { background: #1a2233; }
-    .all-assignments-tab .filter-row select:focus,
-    .all-assignments-tab .filter-row input:focus {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px rgba(47,199,255,0.12);
-    }
+    .all-assignments-tab .filter-row select:focus, .all-assignments-tab .filter-row input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(47,199,255,0.12); }
     .all-assignments-tab .filter-row input { flex: 1; min-width: 200px; }
     .all-assignments-tab .filter-row input::placeholder { color: var(--text-secondary); }
-
-    .all-assignments-tab .quick-stats {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-bottom: 14px;
-    }
-    .all-assignments-tab .qstat {
-      font-size: 0.72rem;
-      font-weight: 600;
-      padding: 4px 12px;
-      border-radius: 40px;
-      background: rgba(255,255,255,0.05);
-      color: var(--text-secondary);
-      border: 1px solid var(--border-subtle);
-    }
+    .all-assignments-tab .quick-stats { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+    .all-assignments-tab .qstat { font-size: 0.72rem; font-weight: 600; padding: 4px 12px; border-radius: 40px; background: rgba(255,255,255,0.05); color: var(--text-secondary); border: 1px solid var(--border-subtle); }
     .all-assignments-tab .qstat.overdue { background: rgba(225,112,85,0.15); color: #ff9b85; border-color: rgba(225,112,85,0.25); }
     .all-assignments-tab .qstat.due-soon { background: rgba(253,203,110,0.15); color: var(--orange); border-color: rgba(253,203,110,0.25); }
     .all-assignments-tab .qstat.in-progress { background: rgba(47,199,255,0.15); color: var(--accent); border-color: rgba(47,199,255,0.25); }
     .all-assignments-tab .qstat.submitted { background: rgba(0,184,148,0.15); color: #4ae4b8; border-color: rgba(0,184,148,0.25); }
     .all-assignments-tab .qstat.graded { background: rgba(162,155,254,0.15); color: #c9c3ff; border-color: rgba(162,155,254,0.25); }
 
-    .assign-group {
-      margin-bottom: 10px;
-      border: 1px solid var(--border-subtle);
-      border-radius: 12px;
-      overflow: hidden;
-      background: rgba(255,255,255,0.02);
-      transition: 0.2s;
-    }
+    .assign-group { margin-bottom: 10px; border: 1px solid var(--border-subtle); border-radius: 12px; overflow: hidden; background: rgba(255,255,255,0.02); transition: 0.2s; }
     .assign-group.open { background: rgba(255,255,255,0.035); }
     .assign-group.urgent { border-color: rgba(225,112,85,0.25); }
-
-    .assign-group-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 12px 16px;
-      cursor: pointer;
-      transition: 0.15s;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
+    .assign-group-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; cursor: pointer; transition: 0.15s; gap: 12px; flex-wrap: wrap; }
     .assign-group-header:hover { background: rgba(255,255,255,0.03); }
-    .assign-group-header .group-title {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 0.9rem;
-      color: var(--text-primary);
-      min-width: 0;
-    }
-    .assign-group-header .group-title i.chev {
-      color: var(--text-secondary);
-      font-size: 0.7rem;
-      width: 12px;
-      transition: 0.15s;
-    }
-    .assign-group-header .group-title strong {
-      font-weight: 700;
-      color: var(--accent);
-      letter-spacing: 0.02em;
-    }
-    .assign-group-header .group-count {
-      font-size: 0.75rem;
-      color: var(--text-secondary);
-      white-space: nowrap;
-    }
-    .assign-group-header .group-chips {
-      display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
-    }
-    .assign-group-header .group-chips .chip {
-      font-size: 0.68rem;
-      font-weight: 600;
-      padding: 3px 10px;
-      border-radius: 40px;
-    }
+    .assign-group-header .group-title { display: flex; align-items: center; gap: 10px; font-size: 0.9rem; color: var(--text-primary); min-width: 0; }
+    .assign-group-header .group-title i.chev { color: var(--text-secondary); font-size: 0.7rem; width: 12px; transition: 0.15s; }
+    .assign-group-header .group-title strong { font-weight: 700; color: var(--accent); letter-spacing: 0.02em; }
+    .assign-group-header .group-count { font-size: 0.75rem; color: var(--text-secondary); white-space: nowrap; }
+    .assign-group-header .group-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+    .assign-group-header .group-chips .chip { font-size: 0.68rem; font-weight: 600; padding: 3px 10px; border-radius: 40px; }
     .assign-group-header .group-chips .chip.overdue { background: rgba(225,112,85,0.22); color: #ff9b85; }
     .assign-group-header .group-chips .chip.due-soon { background: rgba(253,203,110,0.22); color: var(--orange); }
     .assign-group-header .group-chips .chip.pending { background: rgba(255,255,255,0.08); color: var(--text-secondary); }
     .assign-group-header .group-chips .chip.submitted { background: rgba(0,184,148,0.2); color: #4ae4b8; }
     .assign-group-header .group-chips .chip.graded { background: rgba(162,155,254,0.2); color: #c9c3ff; }
-
     .assign-group-body { display: none; padding: 4px 8px 8px; }
     .assign-group.open .assign-group-body { display: block; }
-
-    .assign-row {
-      display: grid;
-      grid-template-columns: 24px 1fr 95px 70px 100px auto;
-      align-items: center;
-      gap: 12px;
-      padding: 9px 12px;
-      border-radius: 10px;
-      margin-bottom: 4px;
-      transition: 0.15s;
-      border: 1px solid transparent;
-    }
-    .assign-row:hover {
-      background: rgba(255,255,255,0.03);
-      border-color: var(--border-subtle);
-    }
+    .assign-row { display: grid; grid-template-columns: 24px 1fr 95px 70px 100px auto; align-items: center; gap: 12px; padding: 9px 12px; border-radius: 10px; margin-bottom: 4px; transition: 0.15s; border: 1px solid transparent; }
+    .assign-row:hover { background: rgba(255,255,255,0.03); border-color: var(--border-subtle); }
     .assign-row .ar-status { text-align: center; font-size: 0.9rem; }
     .assign-row .ar-main { min-width: 0; }
-    .assign-row .ar-name {
-      font-weight: 500;
-      font-size: 0.85rem;
-      color: var(--text-primary);
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-    .assign-row .ar-meta {
-      font-size: 0.7rem;
-      color: var(--text-secondary);
-      margin-top: 1px;
-    }
-    .assign-row .ar-time {
-      font-size: 0.72rem;
-      color: var(--text-secondary);
-      text-align: center;
-    }
+    .assign-row .ar-name { font-weight: 500; font-size: 0.85rem; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .assign-row .ar-meta { font-size: 0.7rem; color: var(--text-secondary); margin-top: 1px; }
+    .assign-row .ar-time { font-size: 0.72rem; color: var(--text-secondary); text-align: center; }
     .assign-row.overdue .ar-time { color: #ff9b85; font-weight: 600; }
     .assign-row.due-soon .ar-time { color: var(--orange); font-weight: 600; }
-    .assign-row .ar-marks {
-      font-size: 0.82rem;
-      text-align: center;
-      color: var(--text-primary);
-    }
-    .assign-row .ar-badge {
-      font-size: 0.62rem;
-      font-weight: 700;
-      padding: 3px 10px;
-      border-radius: 40px;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      text-align: center;
-      white-space: nowrap;
-    }
+    .assign-row .ar-marks { font-size: 0.82rem; text-align: center; color: var(--text-primary); }
+    .assign-row .ar-badge { font-size: 0.62rem; font-weight: 700; padding: 3px 10px; border-radius: 40px; text-transform: uppercase; letter-spacing: 0.04em; text-align: center; white-space: nowrap; }
     .assign-row .ar-badge.not-started { background: rgba(255,255,255,0.08); color: var(--text-secondary); }
     .assign-row .ar-badge.in-progress { background: rgba(47,199,255,0.2); color: var(--accent); }
     .assign-row .ar-badge.due-soon { background: rgba(253,203,110,0.22); color: var(--orange); }
     .assign-row .ar-badge.overdue { background: rgba(225,112,85,0.22); color: #ff9b85; }
     .assign-row .ar-badge.submitted { background: rgba(0,184,148,0.2); color: #4ae4b8; }
     .assign-row .ar-badge.graded { background: rgba(162,155,254,0.2); color: #c9c3ff; }
-
-    .assign-row .ar-actions {
-      display: flex;
-      gap: 4px;
-    }
-    .assign-row .ar-actions .btn-xs {
-      width: 30px;
-      height: 30px;
-      border-radius: 8px;
-      border: none;
-      font-size: 0.72rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: 0.15s;
-      background: rgba(255,255,255,0.06);
-      color: var(--text-primary);
-      padding: 0;
-      cursor: pointer;
-    }
+    .assign-row .ar-actions { display: flex; gap: 4px; }
+    .assign-row .ar-actions .btn-xs { width: 30px; height: 30px; border-radius: 8px; border: none; font-size: 0.72rem; display: flex; align-items: center; justify-content: center; transition: 0.15s; background: rgba(255,255,255,0.06); color: var(--text-primary); padding: 0; cursor: pointer; }
     .assign-row .ar-actions .btn-xs:hover { transform: translateY(-1px); }
     .assign-row .ar-actions .btn-submit { background: rgba(0,184,148,0.18); color: #4ae4b8; }
     .assign-row .ar-actions .btn-submit:hover { background: rgba(0,184,148,0.35); }
     .assign-row .ar-actions .btn-edit-ass:hover { background: rgba(47,199,255,0.25); color: var(--accent); }
     .assign-row .ar-actions .btn-del-ass:hover { background: rgba(225,112,85,0.25); color: #ff9b85; }
 
-    .empty-assignments {
-      text-align: center;
-      padding: 40px 20px;
-      color: var(--text-secondary);
-      font-size: 0.9rem;
-    }
+    .empty-assignments { text-align: center; padding: 40px 20px; color: var(--text-secondary); font-size: 0.9rem; }
     .empty-assignments i { display: block; font-size: 2.5rem; margin-bottom: 12px; opacity: 0.35; }
 
-    /* JSON import preview */
     .json-preview { background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 12px 16px; margin-top: 10px; font-size: 0.82rem; max-height: 240px; overflow-y: auto; }
     .json-preview .preview-line { padding: 3px 0; color: var(--text-secondary); }
     .json-preview .preview-line strong { color: var(--text-primary); }
     .json-preview .preview-heading { font-weight: 700; color: var(--accent); margin-top: 8px; margin-bottom: 4px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; }
 
     @media (max-width: 900px) {
-      .assign-row {
-        grid-template-columns: 24px 1fr auto;
-        grid-template-rows: auto auto;
-        gap: 6px 12px;
-      }
+      .assign-row { grid-template-columns: 24px 1fr auto; grid-template-rows: auto auto; gap: 6px 12px; }
       .assign-row .ar-status { grid-row: 1 / 3; align-self: flex-start; padding-top: 2px; }
       .assign-row .ar-main { grid-column: 2; }
       .assign-row .ar-actions { grid-column: 3; grid-row: 1 / 3; align-self: center; }
-      .assign-row .ar-time,
-      .assign-row .ar-marks,
-      .assign-row .ar-badge { display: none; }
+      .assign-row .ar-time, .assign-row .ar-marks, .assign-row .ar-badge { display: none; }
     }
     @media (max-width: 600px) {
       .all-assignments-tab { padding: 14px; }
@@ -882,9 +759,7 @@
   console.log('✅ Authorized user:', user.username);
 
   // ─────────────────────────────────────────────────────────────
-  //  DEFAULT DATA — Structure reflects the standard module layout:
-  //  Weekly quizzes/portfolios = 10% (1% each),
-  //  Assignment 2 (test) = 25%, Project = 25%, Final Exam = 40%
+  //  DEFAULT DATA
   // ─────────────────────────────────────────────────────────────
   function getDefaultData() {
     function topic(name, subtopics) {
@@ -970,36 +845,24 @@
       ]
     };
 
-    // ── Assignment structure: Weekly (10%) + Assignment 2 (25%) + Project (25%) + Final (40%)
-    // Weekly quizzes across weeks 2-11 (10 items × 1% = 10%)
+    // Weekly items (weeks 2-11, 1% each)
     const addWeeklyItems = (unit, weeksArray, extraLabel) => {
-      weeksArray.forEach((w, idx) => {
+      weeksArray.forEach((w) => {
         unit.weeks[w - 1].assignments.push(makeWeekly(`${extraLabel} Week ${w}`, `2026-08-${String(10 + w).padStart(2,'0')}`, 1));
       });
     };
-    // Add weekly quiz items to each unit (10 weekly items × 1% = 10%)
     addWeeklyItems(bsc107, [2,3,4,5,6,7,8,9,10,11], 'Weekly Quiz');
     addWeeklyItems(bsc104, [2,3,4,5,6,7,8,9,10,11], 'Weekly Portfolio');
     addWeeklyItems(bsc106, [2,3,4,5,6,7,8,9,10,11], 'Weekly Quiz');
     addWeeklyItems(bia109, [2,3,4,5,6,7,8,9,10,11], 'Weekly Quiz');
 
     // Assignment 2 (Test) = 25%
-    bia109.weeks[4].assignments.push({ id: 'ass_bia_test2', name: 'Assignment 2 (Test)', due: '2026-08-20', status: 'not-started', marks: '', weight: 25, submittedDate: null, gradedDate: null, notes: '', priority: 'normal' });
-    bsc107.weeks[4].assignments.push({ id: 'ass_bsc107_test2', name: 'Assignment 2 (Test)', due: '2026-08-20', status: 'not-started', marks: '', weight: 25, submittedDate: null, gradedDate: null, notes: '', priority: 'normal' });
-    bsc104.weeks[4].assignments.push({ id: 'ass_bsc104_test2', name: 'Assignment 2 (Test)', due: '2026-08-20', status: 'not-started', marks: '', weight: 25, submittedDate: null, gradedDate: null, notes: '', priority: 'normal' });
-    bsc106.weeks[4].assignments.push({ id: 'ass_bsc106_test2', name: 'Assignment 2 (Test)', due: '2026-08-20', status: 'not-started', marks: '', weight: 25, submittedDate: null, gradedDate: null, notes: '', priority: 'normal' });
-
-    // Project = 25%
-    bia109.weeks[8].assignments.push({ id: 'ass_bia_project', name: 'Assignment 3 (Project)', due: '2026-09-10', status: 'not-started', marks: '', weight: 25, submittedDate: null, gradedDate: null, notes: '', priority: 'normal' });
-    bsc107.weeks[8].assignments.push({ id: 'ass_bsc107_project', name: 'Assignment 3 (Project)', due: '2026-09-10', status: 'not-started', marks: '', weight: 25, submittedDate: null, gradedDate: null, notes: '', priority: 'normal' });
-    bsc104.weeks[8].assignments.push({ id: 'ass_bsc104_project', name: 'Assignment 3 (Project)', due: '2026-09-10', status: 'not-started', marks: '', weight: 25, submittedDate: null, gradedDate: null, notes: '', priority: 'normal' });
-    bsc106.weeks[8].assignments.push({ id: 'ass_bsc106_project', name: 'Assignment 3 (Project)', due: '2026-09-10', status: 'not-started', marks: '', weight: 25, submittedDate: null, gradedDate: null, notes: '', priority: 'normal' });
-
-    // Final = 40%
-    bia109.weeks[11].assignments.push({ id: 'ass_bia_final', name: 'Final Exam', due: '2026-09-30', status: 'not-started', marks: '', weight: 40, submittedDate: null, gradedDate: null, notes: '', priority: 'normal' });
-    bsc107.weeks[11].assignments.push({ id: 'ass_bsc107_final', name: 'Final Exam', due: '2026-09-30', status: 'not-started', marks: '', weight: 40, submittedDate: null, gradedDate: null, notes: '', priority: 'normal' });
-    bsc104.weeks[11].assignments.push({ id: 'ass_bsc104_final', name: 'Final Exam', due: '2026-09-30', status: 'not-started', marks: '', weight: 40, submittedDate: null, gradedDate: null, notes: '', priority: 'normal' });
-    bsc106.weeks[11].assignments.push({ id: 'ass_bsc106_final', name: 'Final Exam', due: '2026-09-30', status: 'not-started', marks: '', weight: 40, submittedDate: null, gradedDate: null, notes: '', priority: 'normal' });
+    [bia109, bsc107, bsc104, bsc106].forEach(u => {
+      const prefix = u.code.toLowerCase();
+      u.weeks[4].assignments.push({ id: `ass_${prefix}_test2`, name: 'Assignment 2 (Test)', due: '2026-08-20', status: 'not-started', marks: '', weight: 25, submittedDate: null, gradedDate: null, notes: '', priority: 'normal' });
+      u.weeks[8].assignments.push({ id: `ass_${prefix}_project`, name: 'Assignment 3 (Project)', due: '2026-09-10', status: 'not-started', marks: '', weight: 25, submittedDate: null, gradedDate: null, notes: '', priority: 'normal' });
+      u.weeks[11].assignments.push({ id: `ass_${prefix}_final`, name: 'Final Exam', due: '2026-09-30', status: 'not-started', marks: '', weight: 40, submittedDate: null, gradedDate: null, notes: '', priority: 'normal' });
+    });
 
     return {
       years: [{
@@ -1032,6 +895,205 @@
   const MAX_SAVE_DELAY = 5000;
   let isOffline = false;
 
+  // ─────────────────────────────────────────────────────────────
+  //  SCOPE MANAGEMENT
+  // ─────────────────────────────────────────────────────────────
+  const SCOPE_KEY = 'studies_scope_v1';
+  let scope = { mode: 'auto', yearName: null, semesterName: null };
+
+  function loadScopeFromStorage() {
+    try {
+      const raw = localStorage.getItem(SCOPE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object' && parsed.mode) {
+          return { mode: parsed.mode, yearName: parsed.yearName || null, semesterName: parsed.semesterName || null };
+        }
+      }
+    } catch(e) {}
+    return { mode: 'auto', yearName: null, semesterName: null };
+  }
+  function saveScopeToStorage() {
+    try { localStorage.setItem(SCOPE_KEY, JSON.stringify(scope)); } catch(e) {}
+  }
+
+  function detectAutoScope() {
+    if (!studyData.years || !studyData.years.length) return null;
+    const now = new Date();
+    const currentYear = String(now.getFullYear());
+    const month = now.getMonth(); // 0=Jan
+    // SA academic calendar: Jan–Jun → Semester 1, Jul–Dec → Semester 2
+    const semNum = (month >= 0 && month <= 5) ? 1 : 2;
+    const semName = 'Semester ' + semNum;
+
+    let year = studyData.years.find(y => y.name === currentYear);
+    if (!year) year = studyData.years[studyData.years.length - 1];
+    if (!year) return null;
+
+    let sem = year.semesters.find(s => s.name === semName);
+    if (!sem && year.semesters.length) sem = year.semesters[0];
+
+    return { yearName: year.name, semesterName: sem ? sem.name : null };
+  }
+
+  function resolveScope() {
+    if (scope.mode === 'auto') {
+      const auto = detectAutoScope();
+      return auto || { yearName: null, semesterName: null };
+    }
+    if (scope.mode === 'all') return { yearName: null, semesterName: null, all: true };
+    return { yearName: scope.yearName, semesterName: scope.semesterName };
+  }
+
+  // Returns true if the given (year, semester) should be visible under current scope
+  function yearInScope(yearName, resolved) {
+    if (scope.mode === 'all') return true;
+    if (!resolved.yearName) return true; // no filter if we couldn't resolve
+    return yearName === resolved.yearName;
+  }
+  function semesterInScope(semesterName, resolved) {
+    if (scope.mode === 'all') return true;
+    if (!resolved.semesterName) return true;
+    return semesterName === resolved.semesterName;
+  }
+
+  function expandScopedPath() {
+    const resolved = resolveScope();
+    if (scope.mode === 'all' || !resolved.yearName) return;
+    studyData.years.forEach((year, yi) => {
+      if (year.name !== resolved.yearName) return;
+      expanded[`year_${yi}`] = true;
+      year.semesters.forEach((sem, si) => {
+        if (resolved.semesterName && sem.name !== resolved.semesterName) return;
+        expanded[`semester_${yi}_${si}`] = true;
+      });
+    });
+  }
+
+  function setScope(newScope) {
+    scope = { ...scope, ...newScope };
+    saveScopeToStorage();
+    expandScopedPath();
+    render();
+    updateScopeUI();
+    closeScopePanel();
+  }
+
+  window.clearScope = function() {
+    setScope({ mode: 'auto', yearName: null, semesterName: null });
+  };
+
+  function updateScopeUI() {
+    const label = document.getElementById('scopeLabel');
+    const btn = document.getElementById('scopeBtn');
+    const banner = document.getElementById('scopeBanner');
+    if (!label || !btn) return;
+
+    if (scope.mode === 'auto') {
+      const resolved = resolveScope();
+      const autoText = resolved.yearName ? `${resolved.yearName} · ${resolved.semesterName || 'All semesters'}` : 'No data';
+      label.textContent = `Auto · ${autoText}`;
+      btn.classList.remove('custom');
+    } else if (scope.mode === 'all') {
+      label.textContent = 'All years';
+      btn.classList.add('custom');
+    } else if (scope.mode === 'year-only') {
+      label.textContent = `${scope.yearName} · All sems`;
+      btn.classList.add('custom');
+    } else if (scope.mode === 'year-sem') {
+      label.textContent = `${scope.yearName} · ${scope.semesterName}`;
+      btn.classList.add('custom');
+    }
+
+    if (banner) {
+      if (scope.mode === 'auto') {
+        banner.classList.remove('show');
+        banner.innerHTML = '';
+      } else {
+        let text = '';
+        if (scope.mode === 'all') text = 'Showing <strong>all years and semesters</strong>';
+        else if (scope.mode === 'year-only') text = `Filtered to <strong>${escapeHtml(scope.yearName)}</strong> (all semesters)`;
+        else text = `Filtered to <strong>${escapeHtml(scope.yearName)} · ${escapeHtml(scope.semesterName)}</strong>`;
+        banner.innerHTML = `
+          <i class="fa fa-filter" style="color:var(--accent);"></i>
+          <span>${text}</span>
+          <button type="button" class="scope-reset" onclick="clearScope()"><i class="fa fa-times"></i> Back to current</button>
+        `;
+        banner.classList.add('show');
+      }
+    }
+  }
+
+  function buildScopePanel() {
+    const panel = document.getElementById('scopePanel');
+    if (!panel) return;
+
+    if (!studyData.years || !studyData.years.length) {
+      panel.innerHTML = '<div class="sp-empty">No data yet</div>';
+      return;
+    }
+
+    let html = '';
+    const auto = detectAutoScope();
+    const autoText = auto ? `${auto.yearName} · ${auto.semesterName || ''}` : 'No data';
+
+    html += `<div class="sp-label">Smart scope</div>`;
+    html += `<div class="sp-item ${scope.mode === 'auto' ? 'active' : ''}" data-action="auto">
+      <span class="sp-check"><i class="fa fa-check"></i></span>
+      <span>🔄 Auto (current)</span>
+      <span class="sp-sub">${escapeHtml(autoText)}</span>
+    </div>`;
+    html += `<div class="sp-item ${scope.mode === 'all' ? 'active' : ''}" data-action="all">
+      <span class="sp-check"><i class="fa fa-check"></i></span>
+      <span>📚 All years &amp; semesters</span>
+    </div>`;
+
+    html += `<div class="sp-divider"></div>`;
+    html += `<div class="sp-label">Pick specific</div>`;
+
+    studyData.years.forEach(year => {
+      html += `<div class="sp-year">${escapeHtml(year.name)}</div>`;
+      const isYearOnly = scope.mode === 'year-only' && scope.yearName === year.name;
+      html += `<div class="sp-item sp-sem ${isYearOnly ? 'active' : ''}" data-action="year-only" data-year="${escapeHtml(year.name)}">
+        <span class="sp-check"><i class="fa fa-check"></i></span>
+        <span>📅 All semesters</span>
+      </div>`;
+      year.semesters.forEach(sem => {
+        const isActive = scope.mode === 'year-sem' && scope.yearName === year.name && scope.semesterName === sem.name;
+        html += `<div class="sp-item sp-sem ${isActive ? 'active' : ''}" data-action="year-sem" data-year="${escapeHtml(year.name)}" data-sem="${escapeHtml(sem.name)}">
+          <span class="sp-check"><i class="fa fa-check"></i></span>
+          <span>📘 ${escapeHtml(sem.name)}</span>
+        </div>`;
+      });
+    });
+
+    panel.innerHTML = html;
+
+    panel.querySelectorAll('.sp-item').forEach(el => {
+      el.addEventListener('click', () => {
+        const action = el.dataset.action;
+        if (action === 'auto') setScope({ mode: 'auto', yearName: null, semesterName: null });
+        else if (action === 'all') setScope({ mode: 'all', yearName: null, semesterName: null });
+        else if (action === 'year-only') setScope({ mode: 'year-only', yearName: el.dataset.year, semesterName: null });
+        else if (action === 'year-sem') setScope({ mode: 'year-sem', yearName: el.dataset.year, semesterName: el.dataset.sem });
+      });
+    });
+  }
+
+  function openScopePanel() {
+    const panel = document.getElementById('scopePanel');
+    if (!panel) return;
+    buildScopePanel();
+    panel.classList.add('open');
+  }
+  function closeScopePanel() {
+    const panel = document.getElementById('scopePanel');
+    if (panel) panel.classList.remove('open');
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  //  SAVE / SYNC plumbing
+  // ─────────────────────────────────────────────────────────────
   window.addEventListener('online', () => {
     isOffline = false;
     updateSaveStatusUI('saved');
@@ -1163,10 +1225,7 @@
         if (hasRemoteChanged) {
           const resolution = await showSyncConflictDialog(dataToSave, remoteContent, remoteSha);
 
-          if (resolution === 'cancel') {
-            isSaving = false;
-            return;
-          }
+          if (resolution === 'cancel') { isSaving = false; return; }
           if (resolution === 'remote') {
             studyData = remoteContent;
             saveToCache(studyData);
@@ -1184,7 +1243,6 @@
             dataToSave.years = merged.years;
             showToast('🔀 Merged local + GitHub', 'info');
           }
-          // 'local' falls through and overwrites below
         }
 
         try {
@@ -1241,7 +1299,6 @@
     return { total, done };
   }
 
-  // ─── Improved conflict dialog — immediate resolution, no lag ───
   function showSyncConflictDialog(localData, remoteData, remoteSha) {
     return new Promise((resolve) => {
       const modal = document.getElementById('syncConflictModal');
@@ -1281,7 +1338,6 @@
       cancelBtn.addEventListener('click', onCancel);
 
       modal.classList.add('open');
-      // Auto-focus the "Keep Local" button for quick keyboard resolution
       setTimeout(() => { try { btnLocal.focus(); } catch(e) {} }, 50);
     });
   }
@@ -1339,7 +1395,7 @@
             <div class="v-msg">${escapeHtml(c.commit.message.split('\n')[0])}</div>
             <div class="v-date">${new Date(c.commit.author.date).toLocaleString()}</div>
           </div>
-          <div class="v-actions"><button class="btn" data-sha="${c.sha}">Restore</button></div>
+          <div class="v-actions"><button type="button" class="btn" data-sha="${c.sha}">Restore</button></div>
         </div>
       `).join('');
 
@@ -1359,6 +1415,7 @@
             studyData = content;
             currentFileSha = null;
             lastSyncedSha = null;
+            expandScopedPath();
             render();
             markDirty();
             modal.classList.remove('open');
@@ -1419,7 +1476,6 @@
     topic.completed = topic.subCompleted.every(Boolean);
   }
 
-  // ─── Date helpers — LOCAL TIME, no UTC offset issues ───
   function dateOnly(value) {
     if (!value) return null;
     const parts = value.split('-').map(Number);
@@ -1471,10 +1527,14 @@
     return { score, level, label: level === 'high' ? 'High risk' : (level === 'medium' ? 'Medium' : 'Low') };
   }
 
+  // ─── SCOPED collectors — preserve original indices ───
   function getAllAssignments() {
     const all = [];
+    const resolved = resolveScope();
     studyData.years.forEach((year, yi) => {
+      if (!yearInScope(year.name, resolved)) return;
       year.semesters.forEach((sem, si) => {
+        if (!semesterInScope(sem.name, resolved)) return;
         sem.units.forEach((unit, ui) => {
           unit.weeks.forEach((week, wi) => {
             week.assignments.forEach((a, ai) => {
@@ -1485,6 +1545,21 @@
       });
     });
     return all;
+  }
+
+  function getUnits() {
+    const units = [];
+    const resolved = resolveScope();
+    studyData.years.forEach((year) => {
+      if (!yearInScope(year.name, resolved)) return;
+      year.semesters.forEach((sem) => {
+        if (!semesterInScope(sem.name, resolved)) return;
+        sem.units.forEach(u => {
+          if (!units.find(unit => unit.code === u.code)) units.push({ code: u.code, name: u.name });
+        });
+      });
+    });
+    return units;
   }
 
   function computeStreak() {
@@ -1514,34 +1589,34 @@
     return counts;
   }
 
-  function getUnits() {
-    const units = [];
-    studyData.years.forEach(y => y.semesters.forEach(s => s.units.forEach(u => {
-      if (!units.find(unit => unit.code === u.code)) units.push({ code: u.code, name: u.name });
-    })));
-    return units;
-  }
-
   function safeRender(fn) {
     try { fn(); } catch (e) { console.error('Render error:', e); showToast('Render error: ' + e.message, 'error'); }
   }
 
   function renderStats() {
-    let totalUnits = 0, totalWeeks = 0, totalTopics = 0, doneTopics = 0, totalAssign = 0, pendingAssign = 0;
-    studyData.years.forEach(y => y.semesters.forEach(s => s.units.forEach(u => {
-      totalUnits++;
-      u.weeks.forEach(w => {
-        totalWeeks++;
-        w.topics.forEach(t => { totalTopics++; if (t.completed) doneTopics++; });
-        w.assignments.forEach(a => {
-          totalAssign++;
-          const state = getAssignmentState(a);
-          if (state !== 'submitted' && state !== 'graded') pendingAssign++;
+    let totalYears = 0, totalUnits = 0, totalWeeks = 0, totalTopics = 0, doneTopics = 0, totalAssign = 0, pendingAssign = 0;
+    const resolved = resolveScope();
+    studyData.years.forEach((year) => {
+      if (!yearInScope(year.name, resolved)) return;
+      totalYears++;
+      year.semesters.forEach((sem) => {
+        if (!semesterInScope(sem.name, resolved)) return;
+        sem.units.forEach((u) => {
+          totalUnits++;
+          u.weeks.forEach(w => {
+            totalWeeks++;
+            w.topics.forEach(t => { totalTopics++; if (t.completed) doneTopics++; });
+            w.assignments.forEach(a => {
+              totalAssign++;
+              const state = getAssignmentState(a);
+              if (state !== 'submitted' && state !== 'graded') pendingAssign++;
+            });
+          });
         });
       });
-    })));
+    });
     const el = (id) => document.getElementById(id);
-    if (el('statYears')) el('statYears').textContent = studyData.years.length;
+    if (el('statYears')) el('statYears').textContent = totalYears;
     if (el('statUnits')) el('statUnits').textContent = totalUnits;
     if (el('statWeeks')) el('statWeeks').textContent = totalWeeks;
     if (el('statTopicsDone')) el('statTopicsDone').textContent = doneTopics + '/' + totalTopics;
@@ -1564,7 +1639,7 @@
     });
     const upcoming = sorted.slice(0, 5);
     let html = `<div class="deadlines-widget"><h4>⏰ Upcoming Deadlines</h4>`;
-    if (!upcoming.length) html += `<p class="text-muted-light">No upcoming deadlines. 🎉</p>`;
+    if (!upcoming.length) html += `<p class="text-muted-light">No upcoming deadlines in this scope. 🎉</p>`;
     else {
       upcoming.forEach(a => {
         const diff = daysUntil(a.due);
@@ -1582,30 +1657,45 @@
     const container = document.getElementById('analyticsContainer');
     if (!container) return;
     const unitData = [];
-    studyData.years.forEach(y => y.semesters.forEach(s => s.units.forEach(u => {
-      let totalSub = 0, doneSub = 0;
-      u.weeks.forEach(w => w.topics.forEach(t => {
-        totalSub += t.subtopics.length;
-        doneSub += t.subCompleted.filter(Boolean).length;
-      }));
-      const pct = totalSub > 0 ? Math.round((doneSub/totalSub)*100) : 0;
-      unitData.push({ code: u.code, pct });
-    })));
+    const resolved = resolveScope();
+    studyData.years.forEach((year) => {
+      if (!yearInScope(year.name, resolved)) return;
+      year.semesters.forEach((sem) => {
+        if (!semesterInScope(sem.name, resolved)) return;
+        sem.units.forEach(u => {
+          let totalSub = 0, doneSub = 0;
+          u.weeks.forEach(w => w.topics.forEach(t => {
+            totalSub += t.subtopics.length;
+            doneSub += t.subCompleted.filter(Boolean).length;
+          }));
+          const pct = totalSub > 0 ? Math.round((doneSub/totalSub)*100) : 0;
+          if (!unitData.find(x => x.code === u.code)) unitData.push({ code: u.code, pct });
+        });
+      });
+    });
     let html = `<div class="analytics-dashboard"><div class="analytics-card"><h4>📊 Unit Progress</h4>`;
+    if (!unitData.length) html += `<p class="text-muted-light" style="font-size:0.85rem;">No units in this scope.</p>`;
     unitData.forEach(u => {
       html += `<div class="stat-row"><span class="label">${escapeHtml(u.code)}</span><span class="value">${u.pct}%</span></div>
                <div class="mini-progress"><div class="fill" style="width:${u.pct}%"></div></div>`;
     });
     html += `</div>`;
+
     let totalTopics = 0, doneTopics = 0, totalAssign = 0, pendingAssign = 0;
-    studyData.years.forEach(y => y.semesters.forEach(s => s.units.forEach(u => u.weeks.forEach(w => {
-      w.topics.forEach(t => { totalTopics++; if (t.completed) doneTopics++; });
-      w.assignments.forEach(a => {
-        totalAssign++;
-        const state = getAssignmentState(a);
-        if (state !== 'submitted' && state !== 'graded') pendingAssign++;
+    studyData.years.forEach((year) => {
+      if (!yearInScope(year.name, resolved)) return;
+      year.semesters.forEach((sem) => {
+        if (!semesterInScope(sem.name, resolved)) return;
+        sem.units.forEach(u => u.weeks.forEach(w => {
+          w.topics.forEach(t => { totalTopics++; if (t.completed) doneTopics++; });
+          w.assignments.forEach(a => {
+            totalAssign++;
+            const state = getAssignmentState(a);
+            if (state !== 'submitted' && state !== 'graded') pendingAssign++;
+          });
+        }));
       });
-    }))));
+    });
     const overall = totalTopics > 0 ? Math.round((doneTopics/totalTopics)*100) : 0;
     html += `<div class="analytics-card"><h4>📈 Overall Progress</h4>
       <div class="stat-row"><span class="label">Topics completed</span><span class="value">${doneTopics}/${totalTopics}</span></div>
@@ -1620,17 +1710,23 @@
       const canvas = document.getElementById('weeklyAnalyticsChart');
       if (!canvas) return;
       const weekly = {};
-      studyData.years.forEach(y => y.semesters.forEach(s => s.units.forEach(u => u.weeks.forEach(w => {
-        const key = y.name + ' W' + w.number;
-        let total = 0, done = 0;
-        w.topics.forEach(t => {
-          total += t.subtopics.length;
-          done += t.subCompleted.filter(Boolean).length;
+      studyData.years.forEach((year) => {
+        if (!yearInScope(year.name, resolved)) return;
+        year.semesters.forEach((sem) => {
+          if (!semesterInScope(sem.name, resolved)) return;
+          sem.units.forEach(u => u.weeks.forEach(w => {
+            const key = year.name + ' W' + w.number;
+            let total = 0, done = 0;
+            w.topics.forEach(t => {
+              total += t.subtopics.length;
+              done += t.subCompleted.filter(Boolean).length;
+            });
+            if (!weekly[key]) weekly[key] = { total: 0, done: 0 };
+            weekly[key].total += total;
+            weekly[key].done += done;
+          }));
         });
-        if (!weekly[key]) weekly[key] = { total: 0, done: 0 };
-        weekly[key].total += total;
-        weekly[key].done += done;
-      }))));
+      });
       const labels = Object.keys(weekly).sort();
       const doneData = labels.map(k => weekly[k].done);
       const totalData = labels.map(k => weekly[k].total);
@@ -1658,10 +1754,17 @@
 
   function renderKPI() {
     let totalTopics = 0, doneTopics = 0;
-    studyData.years.forEach(y => y.semesters.forEach(s => s.units.forEach(u => u.weeks.forEach(w => w.topics.forEach(t => {
-      totalTopics += t.subtopics.length;
-      doneTopics += t.subCompleted.filter(Boolean).length;
-    })))));
+    const resolved = resolveScope();
+    studyData.years.forEach((year) => {
+      if (!yearInScope(year.name, resolved)) return;
+      year.semesters.forEach((sem) => {
+        if (!semesterInScope(sem.name, resolved)) return;
+        sem.units.forEach(u => u.weeks.forEach(w => w.topics.forEach(t => {
+          totalTopics += t.subtopics.length;
+          doneTopics += t.subCompleted.filter(Boolean).length;
+        })));
+      });
+    });
 
     const allAssign = getAllAssignments();
     const totalAssign = allAssign.length;
@@ -1703,7 +1806,7 @@
     });
     let html = `<div class="priority-queue"><h4>🔥 Priority Queue</h4>`;
     if (!active.length) {
-      html += `<p class="text-muted-light">No urgent assignments. Great job!</p>`;
+      html += `<p class="text-muted-light">No urgent assignments in this scope. Great job!</p>`;
     } else {
       active.forEach(a => {
         const state = getAssignmentState(a);
@@ -1718,7 +1821,7 @@
               <span class="unit">${a.unitCode}</span>
               <span class="days">${label}</span>
             </div>
-            <div><button class="btn btn-sm btn-submit" onclick="openSubmitModal(${a.yi}, ${a.si}, ${a.ui}, ${a.wi}, ${a.ai})">✓ Submit</button></div>
+            <div><button type="button" class="btn btn-sm btn-submit" onclick="openSubmitModal(${a.yi}, ${a.si}, ${a.ui}, ${a.wi}, ${a.ai})">✓ Submit</button></div>
           </div>`;
       });
     }
@@ -1726,7 +1829,6 @@
     container.innerHTML = html;
   }
 
-  // ─── FIXED: Workload chart now uses LOCAL dates consistently ───
   function renderWorkload() {
     const container = document.getElementById('workloadChart');
     if (!container) return;
@@ -1799,9 +1901,7 @@
     `;
   }
 
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  //  NEAT ALL ASSIGNMENTS VIEW (grouped by unit)
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // ━━━━━━━ ALL ASSIGNMENTS TAB ━━━━━━━
   function renderAllAssignmentsTab() {
     const container = document.getElementById('allAssignmentsTab');
     if (!container) return;
@@ -1846,7 +1946,7 @@
     let html = `<div class="all-assignments-tab">
       <div class="tab-heading">
         <h4><i class="fa fa-tasks"></i> All Assignments</h4>
-        <span class="tab-total">${filtered.length} shown${filtered.length !== all.length ? ` · ${all.length} total` : ''}</span>
+        <span class="tab-total">${filtered.length} shown${filtered.length !== all.length ? ` · ${all.length} in scope` : ''}</span>
       </div>
 
       <div class="quick-pills">
@@ -1980,9 +2080,9 @@
         <div class="ar-marks">${marksStr}</div>
         <div class="ar-badge ${state}">${s.label}</div>
         <div class="ar-actions">
-          ${state !== 'submitted' && state !== 'graded' ? `<button class="btn-xs btn-submit" onclick="openSubmitModal(${a.yi}, ${a.si}, ${a.ui}, ${a.wi}, ${a.ai})" title="Submit"><i class="fa fa-check"></i></button>` : ''}
-          <button class="btn-xs btn-edit-ass" onclick="editAssignment(${a.yi}, ${a.si}, ${a.ui}, ${a.wi}, ${a.ai})" title="Edit"><i class="fa fa-pencil"></i></button>
-          <button class="btn-xs btn-del-ass" onclick="deleteAssignment(${a.yi}, ${a.si}, ${a.ui}, ${a.wi}, ${a.ai})" title="Delete"><i class="fa fa-trash"></i></button>
+          ${state !== 'submitted' && state !== 'graded' ? `<button type="button" class="btn-xs btn-submit" onclick="openSubmitModal(${a.yi}, ${a.si}, ${a.ui}, ${a.wi}, ${a.ai})" title="Submit"><i class="fa fa-check"></i></button>` : ''}
+          <button type="button" class="btn-xs btn-edit-ass" onclick="editAssignment(${a.yi}, ${a.si}, ${a.ui}, ${a.wi}, ${a.ai})" title="Edit"><i class="fa fa-pencil"></i></button>
+          <button type="button" class="btn-xs btn-del-ass" onclick="deleteAssignment(${a.yi}, ${a.si}, ${a.ui}, ${a.wi}, ${a.ai})" title="Delete"><i class="fa fa-trash"></i></button>
         </div>
       </div>
     `;
@@ -2000,9 +2100,7 @@
     }
   };
 
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  //  TREE RENDER
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // ━━━━━━━ TREE RENDER ━━━━━━━
   function renderTree() {
     const container = document.getElementById('treeContainer');
     if (!container) return;
@@ -2012,9 +2110,14 @@
       return;
     }
 
+    const resolved = resolveScope();
     const searchLower = searchTerm.toLowerCase().trim();
+    let anyYearRendered = false;
 
     studyData.years.forEach((year, yi) => {
+      if (!yearInScope(year.name, resolved)) return;
+      anyYearRendered = true;
+
       const yearKey = `year_${yi}`;
       const isOpen = expanded[yearKey] || false;
       const sec = document.createElement('div');
@@ -2026,15 +2129,16 @@
             <div class="meta">${year.semesters.length} semesters</div>
           </div>
           <div class="actions">
-            <button class="btn btn-add" onclick="event.stopPropagation();addSemester(${yi})"><i class="fa fa-plus"></i> Semester</button>
-            <button class="btn btn-edit" onclick="event.stopPropagation();editYear(${yi})"><i class="fa fa-pencil"></i></button>
-            <button class="btn btn-del" onclick="event.stopPropagation();deleteYear(${yi})"><i class="fa fa-trash"></i></button>
+            <button type="button" class="btn btn-add" onclick="event.stopPropagation();addSemester(${yi})"><i class="fa fa-plus"></i> Semester</button>
+            <button type="button" class="btn btn-edit" onclick="event.stopPropagation();editYear(${yi})"><i class="fa fa-pencil"></i></button>
+            <button type="button" class="btn btn-del" onclick="event.stopPropagation();deleteYear(${yi})"><i class="fa fa-trash"></i></button>
             <i class="fa fa-chevron-${isOpen ? 'up' : 'down'}" style="color:var(--text-secondary);"></i>
           </div>
         </div>
         <div class="level-body ${isOpen ? 'open' : ''}">
       `;
       year.semesters.forEach((semester, si) => {
+        if (!semesterInScope(semester.name, resolved)) return;
         const semKey = `semester_${yi}_${si}`;
         const semOpen = expanded[semKey] || false;
         const semDiv = document.createElement('div');
@@ -2047,9 +2151,9 @@
               <div class="meta">${semester.units.length} units</div>
             </div>
             <div class="actions">
-              <button class="btn btn-add" onclick="event.stopPropagation();addUnit(${yi}, ${si})"><i class="fa fa-plus"></i> Unit</button>
-              <button class="btn btn-edit" onclick="event.stopPropagation();editSemester(${yi}, ${si})"><i class="fa fa-pencil"></i></button>
-              <button class="btn btn-del" onclick="event.stopPropagation();deleteSemester(${yi}, ${si})"><i class="fa fa-trash"></i></button>
+              <button type="button" class="btn btn-add" onclick="event.stopPropagation();addUnit(${yi}, ${si})"><i class="fa fa-plus"></i> Unit</button>
+              <button type="button" class="btn btn-edit" onclick="event.stopPropagation();editSemester(${yi}, ${si})"><i class="fa fa-pencil"></i></button>
+              <button type="button" class="btn btn-del" onclick="event.stopPropagation();deleteSemester(${yi}, ${si})"><i class="fa fa-trash"></i></button>
               <i class="fa fa-chevron-${semOpen ? 'up' : 'down'}" style="color:var(--text-secondary);"></i>
             </div>
           </div>
@@ -2074,10 +2178,10 @@
                 <div class="meta">${doneWeeks}/${weeks.length} weeks · ${pct}%</div>
               </div>
               <div class="actions">
-                <button class="btn btn-add" onclick="event.stopPropagation();addWeek(${yi}, ${si}, ${ui})"><i class="fa fa-plus"></i> Week</button>
-                <button class="btn btn-grade" onclick="event.stopPropagation();openGradeModal(${yi}, ${si}, ${ui})"><i class="fa fa-calculator"></i> Grade</button>
-                <button class="btn btn-edit" onclick="event.stopPropagation();editUnit(${yi}, ${si}, ${ui})"><i class="fa fa-pencil"></i></button>
-                <button class="btn btn-del" onclick="event.stopPropagation();deleteUnit(${yi}, ${si}, ${ui})"><i class="fa fa-trash"></i></button>
+                <button type="button" class="btn btn-add" onclick="event.stopPropagation();addWeek(${yi}, ${si}, ${ui})"><i class="fa fa-plus"></i> Week</button>
+                <button type="button" class="btn btn-grade" onclick="event.stopPropagation();openGradeModal(${yi}, ${si}, ${ui})"><i class="fa fa-calculator"></i> Grade</button>
+                <button type="button" class="btn btn-edit" onclick="event.stopPropagation();editUnit(${yi}, ${si}, ${ui})"><i class="fa fa-pencil"></i></button>
+                <button type="button" class="btn btn-del" onclick="event.stopPropagation();deleteUnit(${yi}, ${si}, ${ui})"><i class="fa fa-trash"></i></button>
                 <i class="fa fa-chevron-${unitOpen ? 'up' : 'down'}" style="color:var(--text-secondary);"></i>
               </div>
             </div>
@@ -2104,12 +2208,12 @@
                   <div class="meta">${doneSubW}/${totalSubW} subtopics · ${pctW}%</div>
                 </div>
                 <div class="actions">
-                  <button class="btn btn-add" onclick="event.stopPropagation();addTopic(${yi}, ${si}, ${ui}, ${wi})"><i class="fa fa-plus"></i> Topic</button>
-                  <button class="btn btn-add" onclick="event.stopPropagation();addAssignment(${yi}, ${si}, ${ui}, ${wi})"><i class="fa fa-plus"></i> Assignment</button>
-                  <button class="btn btn-edit" onclick="event.stopPropagation();editWeek(${yi}, ${si}, ${ui}, ${wi})"><i class="fa fa-pencil"></i></button>
-                  <button class="btn btn-del" onclick="event.stopPropagation();deleteWeek(${yi}, ${si}, ${ui}, ${wi})"><i class="fa fa-trash"></i></button>
-                  <button class="btn btn-bulk" onclick="event.stopPropagation();bulkToggleWeek(${yi},${si},${ui},${wi},true)">✅ All</button>
-                  <button class="btn btn-bulk" onclick="event.stopPropagation();bulkToggleWeek(${yi},${si},${ui},${wi},false)">↩️ None</button>
+                  <button type="button" class="btn btn-add" onclick="event.stopPropagation();addTopic(${yi}, ${si}, ${ui}, ${wi})"><i class="fa fa-plus"></i> Topic</button>
+                  <button type="button" class="btn btn-add" onclick="event.stopPropagation();addAssignment(${yi}, ${si}, ${ui}, ${wi})"><i class="fa fa-plus"></i> Assignment</button>
+                  <button type="button" class="btn btn-edit" onclick="event.stopPropagation();editWeek(${yi}, ${si}, ${ui}, ${wi})"><i class="fa fa-pencil"></i></button>
+                  <button type="button" class="btn btn-del" onclick="event.stopPropagation();deleteWeek(${yi}, ${si}, ${ui}, ${wi})"><i class="fa fa-trash"></i></button>
+                  <button type="button" class="btn btn-bulk" onclick="event.stopPropagation();bulkToggleWeek(${yi},${si},${ui},${wi},true)">✅ All</button>
+                  <button type="button" class="btn btn-bulk" onclick="event.stopPropagation();bulkToggleWeek(${yi},${si},${ui},${wi},false)">↩️ None</button>
                 </div>
               </div>
               <div class="level-body ${weekOpen ? 'open' : ''}">
@@ -2134,9 +2238,9 @@
                   <div class="name">${escapeHtml(topic.name)}</div>
                   <div class="meta">${subDone}/${subTopics.length}</div>
                   <div class="actions">
-                    <button class="btn" onclick="event.stopPropagation();addSubtopic(${yi}, ${si}, ${ui}, ${wi}, ${ti})"><i class="fa fa-plus"></i></button>
-                    <button class="btn" onclick="event.stopPropagation();editTopic(${yi}, ${si}, ${ui}, ${wi}, ${ti})"><i class="fa fa-pencil"></i></button>
-                    <button class="btn btn-del" onclick="event.stopPropagation();deleteTopic(${yi}, ${si}, ${ui}, ${wi}, ${ti})"><i class="fa fa-trash"></i></button>
+                    <button type="button" class="btn" onclick="event.stopPropagation();addSubtopic(${yi}, ${si}, ${ui}, ${wi}, ${ti})"><i class="fa fa-plus"></i></button>
+                    <button type="button" class="btn" onclick="event.stopPropagation();editTopic(${yi}, ${si}, ${ui}, ${wi}, ${ti})"><i class="fa fa-pencil"></i></button>
+                    <button type="button" class="btn btn-del" onclick="event.stopPropagation();deleteTopic(${yi}, ${si}, ${ui}, ${wi}, ${ti})"><i class="fa fa-trash"></i></button>
                   </div>
                   <span class="expand-icon"><i class="fa fa-chevron-${topicExpanded ? 'up' : 'down'}"></i></span>
                 </div>
@@ -2152,12 +2256,12 @@
                         </div>
                         <div class="sub-label ${subChecked ? 'done' : ''}">${escapeHtml(sub)}</div>
                         <div class="sub-actions">
-                          <button class="btn" onclick="deleteSubtopic(${yi}, ${si}, ${ui}, ${wi}, ${ti}, ${si2})"><i class="fa fa-times"></i></button>
+                          <button type="button" class="btn" onclick="deleteSubtopic(${yi}, ${si}, ${ui}, ${wi}, ${ti}, ${si2})"><i class="fa fa-times"></i></button>
                         </div>
                       </div>`;
                   }).join('')}
                   <div class="subtopic-add-row">
-                    <button class="btn" onclick="addSubtopic(${yi}, ${si}, ${ui}, ${wi}, ${ti})"><i class="fa fa-plus"></i> Add subtopic</button>
+                    <button type="button" class="btn" onclick="addSubtopic(${yi}, ${si}, ${ui}, ${wi}, ${ti})"><i class="fa fa-plus"></i> Add subtopic</button>
                   </div>
                 </div>
               `;
@@ -2169,7 +2273,7 @@
               assSection.className = 'assignments-section';
               let assHtml = `
                 <div class="section-title"><i class="fa fa-tasks"></i> Assignments
-                  <button class="btn btn-add-ass" onclick="addAssignment(${yi}, ${si}, ${ui}, ${wi})"><i class="fa fa-plus"></i> Add</button>
+                  <button type="button" class="btn btn-add-ass" onclick="addAssignment(${yi}, ${si}, ${ui}, ${wi})"><i class="fa fa-plus"></i> Add</button>
                 </div>
               `;
               assignments.forEach((a, ai) => {
@@ -2199,9 +2303,9 @@
                     </div>
                     <div><span class="status-badge ${state}">${stateMap[state] || state}</span></div>
                     <div class="actions">
-                      ${state !== 'submitted' && state !== 'graded' ? `<button class="btn btn-submit" onclick="openSubmitModal(${yi}, ${si}, ${ui}, ${wi}, ${ai})">✓ Submit</button>` : ''}
-                      <button class="btn btn-edit-ass" onclick="editAssignment(${yi}, ${si}, ${ui}, ${wi}, ${ai})"><i class="fa fa-pencil"></i></button>
-                      <button class="btn btn-del-ass" onclick="deleteAssignment(${yi}, ${si}, ${ui}, ${wi}, ${ai})"><i class="fa fa-trash"></i></button>
+                      ${state !== 'submitted' && state !== 'graded' ? `<button type="button" class="btn btn-submit" onclick="openSubmitModal(${yi}, ${si}, ${ui}, ${wi}, ${ai})">✓ Submit</button>` : ''}
+                      <button type="button" class="btn btn-edit-ass" onclick="editAssignment(${yi}, ${si}, ${ui}, ${wi}, ${ai})"><i class="fa fa-pencil"></i></button>
+                      <button type="button" class="btn btn-del-ass" onclick="deleteAssignment(${yi}, ${si}, ${ui}, ${wi}, ${ai})"><i class="fa fa-trash"></i></button>
                     </div>
                   </div>`;
               });
@@ -2224,6 +2328,15 @@
       sec.innerHTML += `</div>`;
       container.appendChild(sec);
     });
+
+    if (!anyYearRendered) {
+      container.innerHTML = `<div class="text-center text-muted-light py-5">
+        <i class="fa fa-filter" style="font-size:2.5rem;display:block;margin-bottom:12px;opacity:0.3;"></i>
+        <h5>No data matches the current scope</h5>
+        <p style="font-size:0.85rem;">Try switching to another year or semester.</p>
+        <button type="button" class="btn btn-outline-secondary" style="border:1px solid var(--border-subtle);color:var(--text-primary);" onclick="clearScope()">Show current semester</button>
+      </div>`;
+    }
   }
 
   function render() {
@@ -2238,7 +2351,13 @@
     safeRender(renderTree);
   }
 
-  window.toggleExpand = function(key) { expanded[key] = !expanded[key]; render(); };
+  // ─────────────────────────────────────────────────────────────
+  //  GLOBAL EVENT HANDLERS — all defined as window.X so inline onclick works
+  // ─────────────────────────────────────────────────────────────
+  window.toggleExpand = function(key) {
+    expanded[key] = !expanded[key];
+    render();
+  };
 
   window.toggleTopicComplete = function(el, yi, si, ui, wi, ti) {
     const topic = getTopic(yi, si, ui, wi, ti);
@@ -2288,6 +2407,23 @@
     showToast(complete ? '✅ All topics marked complete' : '↩️ All topics uncompleted', 'info');
   };
 
+  window.expandAll = function() {
+    document.querySelectorAll('.level-body').forEach(el => el.classList.add('open'));
+    document.querySelectorAll('.level-header .fa-chevron-down, .level-header .fa-chevron-up').forEach(el => {
+      el.classList.toggle('fa-chevron-down');
+      el.classList.toggle('fa-chevron-up');
+    });
+  };
+  window.collapseAll = function() {
+    document.querySelectorAll('.level-body').forEach(el => el.classList.remove('open'));
+    document.querySelectorAll('.level-header .fa-chevron-down, .level-header .fa-chevron-up').forEach(el => {
+      if (el.classList.contains('fa-chevron-up')) {
+        el.classList.remove('fa-chevron-up');
+        el.classList.add('fa-chevron-down');
+      }
+    });
+  };
+
   window.openSubmitModal = function(yi, si, ui, wi, ai) {
     submitModalContext = { yi, si, ui, wi, ai };
     const unit = studyData.years[yi]?.semesters[si]?.units[ui];
@@ -2318,99 +2454,6 @@
     `;
     document.getElementById('submitModalTitle').textContent = '📤 Submit Assignment';
     document.getElementById('submitModal').classList.add('open');
-  };
-
-  document.getElementById('submitModalCancel').addEventListener('click', function() {
-    document.getElementById('submitModal').classList.remove('open');
-    submitModalContext = null;
-  });
-
-  document.getElementById('submitModalConfirm').addEventListener('click', async function() {
-    if (!submitModalContext) return;
-    const { yi, si, ui, wi, ai } = submitModalContext;
-    const unit = studyData.years[yi]?.semesters[si]?.units[ui];
-    if (!unit) return;
-    const week = unit.weeks[wi];
-    if (!week) return;
-    const a = week.assignments[ai];
-    if (!a) return;
-    const confirmCheck = document.getElementById('submitConfirm');
-    if (!confirmCheck || !confirmCheck.checked) { showToast('Please confirm submission.', 'error'); return; }
-    const submitDate = document.getElementById('submitDate').value;
-    if (!submitDate) { showToast('Please select a submission date.', 'error'); return; }
-    a.status = 'submitted';
-    a.submittedDate = submitDate;
-    markDirty();
-    document.getElementById('submitModal').classList.remove('open');
-    submitModalContext = null;
-    showToast(`✅ "${a.name}" submitted on ${submitDate}`, 'success');
-    render();
-  });
-
-  window.expandAll = function() {
-    document.querySelectorAll('.level-body').forEach(el => el.classList.add('open'));
-    document.querySelectorAll('.level-header .fa-chevron-down, .level-header .fa-chevron-up').forEach(el => {
-      el.classList.toggle('fa-chevron-down');
-      el.classList.toggle('fa-chevron-up');
-    });
-  };
-  window.collapseAll = function() {
-    document.querySelectorAll('.level-body').forEach(el => el.classList.remove('open'));
-    document.querySelectorAll('.level-header .fa-chevron-down, .level-header .fa-chevron-up').forEach(el => {
-      if (el.classList.contains('fa-chevron-up')) {
-        el.classList.remove('fa-chevron-up');
-        el.classList.add('fa-chevron-down');
-      }
-    });
-  };
-
-  function openModal(title, bodyHTML, onSave) {
-    const modal = document.getElementById('genericModal');
-    document.getElementById('modalTitle').textContent = title;
-    document.getElementById('modalBody').innerHTML = bodyHTML;
-    modal.classList.add('open');
-    modal._onSave = onSave;
-  }
-
-  document.getElementById('modalCancel').addEventListener('click', function() {
-    document.getElementById('genericModal').classList.remove('open');
-  });
-
-  document.getElementById('modalSave').addEventListener('click', function() {
-    const modal = document.getElementById('genericModal');
-    const onSave = modal._onSave;
-    if (typeof onSave === 'function') {
-      const result = onSave();
-      if (result !== false) {
-        modal.classList.remove('open');
-        render();
-        markDirty();
-        showToast('✅ Saved', 'success');
-      }
-    }
-  });
-
-  window.addYear = function() {
-    openModal('Add Year', `<div class="form-group"><label>Year Name (e.g. 2026)</label><input type="text" id="yearName" placeholder="2026" /></div>`, () => {
-      const name = document.getElementById('yearName').value.trim();
-      if (!name) { showToast('Please enter a year name.', 'error'); return false; }
-      studyData.years.push({ name, semesters: [] });
-      return true;
-    });
-  };
-  window.editYear = function(yi) {
-    const year = studyData.years[yi];
-    openModal('Edit Year', `<div class="form-group"><label>Year Name</label><input type="text" id="yearName" value="${escapeHtml(year.name)}" /></div>`, () => {
-      const name = document.getElementById('yearName').value.trim();
-      if (!name) { showToast('Please enter a year name.', 'error'); return false; }
-      year.name = name;
-      return true;
-    });
-  };
-  window.deleteYear = function(yi) {
-    if (!confirm('Delete this year and all its semesters, units, weeks, topics, and assignments?')) return;
-    studyData.years.splice(yi, 1);
-    render(); markDirty();
   };
 
   window.addSemester = function(yi) {
@@ -2607,36 +2650,26 @@
     render(); markDirty();
   };
 
-  // ─────────────────────────────────────────────────────────────
-  //  IMPROVED GRADE CALCULATOR
-  //  Categorizes assessments into: Weekly (10%), Assignment 2 (25%),
-  //  Project (25%), Final Exam (40%). Weekly items are capped at 10% total.
-  // ─────────────────────────────────────────────────────────────
+  // ─── Grade calculator ───
   function categorizeAssessment(ass) {
     const name = (ass.name || '').toLowerCase().trim();
     const weight = parseFloat(ass.weight) || 0;
 
-    // Final exam
     if (/\bfinal\b|\bfinal exam\b|\bfinal test\b/.test(name)) {
       return { key: 'final', label: 'Final Exam', icon: '🎯', color: '#e17055', expectedWeight: 40 };
     }
-    // Project (also catches "practical project")
     if (/\bproject\b|practical/.test(name)) {
       return { key: 'project', label: 'Project', icon: '🔧', color: '#a29bfe', expectedWeight: 25 };
     }
-    // Assignment 2 / Test 2 / Midterm
     if (/\bassignment 2\b|\btest 2\b|\bmidterm\b|\btest 1\b|\bassignment 1\b|\bclass test\b/.test(name)) {
       return { key: 'assignment', label: 'Assignment (Test)', icon: '📝', color: '#2fc7ff', expectedWeight: 25 };
     }
-    // Weekly quizzes / portfolios
     if (/\bweekly\b|\bquiz\b|\bportfolio\b/.test(name)) {
       return { key: 'weekly', label: 'Weekly Work', icon: '📚', color: '#00b894', expectedWeight: 1 };
     }
-    // Any other assignment
     if (/\bassignment\b/.test(name)) {
       return { key: 'assignment', label: 'Assignment', icon: '📝', color: '#2fc7ff', expectedWeight: 25 };
     }
-    // Anything else
     return { key: 'other', label: 'Other', icon: '📌', color: '#fdcb6e', expectedWeight: weight };
   }
 
@@ -2646,7 +2679,6 @@
       (week.assignments || []).forEach(ass => allAssignments.push(ass));
     });
 
-    // Group by category
     const groups = {
       weekly:     { key: 'weekly',     label: 'Weekly Work',      icon: '📚', color: '#00b894', items: [], expectedWeight: 10, capAt: 10 },
       assignment: { key: 'assignment', label: 'Assignment (Test)', icon: '📝', color: '#2fc7ff', items: [], expectedWeight: 25 },
@@ -2660,16 +2692,15 @@
       groups[cat.key].items.push({ ...ass, category: cat });
     });
 
-    // Calculate per-category
     let totalWeight = 0;
-    let totalEarnedWeighted = 0; // sum of marks * (effectiveWeight / 100)
+    let totalEarnedWeighted = 0;
     let missingWeight = 0;
 
     Object.values(groups).forEach(g => {
       if (!g.items.length) return;
 
       let groupWeightSum = 0;
-      let groupWeightedSum = 0; // sum of marks * weight / 100 using ORIGINAL weights
+      let groupWeightedSum = 0;
       let groupMissingWeight = 0;
 
       g.items.forEach(a => {
@@ -2683,17 +2714,12 @@
         }
       });
 
-      // Apply cap for weekly (10% max)
       let effectiveWeight = groupWeightSum;
-      let cappedWeightSum = groupWeightSum;
       let cappedMissingWeight = groupMissingWeight;
       if (g.capAt && groupWeightSum > g.capAt) {
-        // Scale down proportionally so total weight = capAt
         const scale = g.capAt / groupWeightSum;
         effectiveWeight = g.capAt;
-        cappedWeightSum = groupWeightSum * scale; // this is capAt
         cappedMissingWeight = groupMissingWeight * scale;
-        // Scale the weighted sum by the same factor (since each item's weight shrinks)
         groupWeightedSum = groupWeightedSum * scale;
       }
 
@@ -2710,22 +2736,16 @@
 
     const achievedWeight = totalWeight - missingWeight;
     const currentGrade = achievedWeight > 0 ? (totalEarnedWeighted / achievedWeight) * 100 : null;
-    const finalGrade = totalWeight > 0 ? (totalEarnedWeighted / totalWeight) * 100 : 0;
 
     return {
       grade: currentGrade,
-      finalIfAllGraded: finalGrade,
       totalWeight,
       totalEarnedWeighted,
       missingWeight,
       achievedWeight,
       allAssignments,
       groups,
-      weightCheck: {
-        expected: 100,
-        actual: totalWeight,
-        warning: Math.abs(totalWeight - 100) > 0.5
-      }
+      weightCheck: { expected: 100, actual: totalWeight, warning: Math.abs(totalWeight - 100) > 0.5 }
     };
   }
 
@@ -2747,7 +2767,6 @@
     const body = document.getElementById('gradeModalBody');
     let html = '';
 
-    // ── Summary cards ──
     let gradeDisplay = 'N/A', gradeColor = 'red', gradeValue = 0;
     if (result && result.grade !== null) {
       gradeValue = Math.round(result.grade);
@@ -2767,7 +2786,6 @@
       </div>
     `;
 
-    // ── Category breakdown ──
     if (result) {
       const g = result.groups;
       const order = ['weekly', 'assignment', 'project', 'final', 'other'];
@@ -2827,7 +2845,6 @@
       }
     }
 
-    // ── What-if scenarios ──
     if (result && result.missingWeight > 0) {
       const achieved = result.achievedWeight;
       const currentPct = result.grade || 0;
@@ -2862,7 +2879,6 @@
         </div>
       `;
 
-      // Target calculator
       const defaultTarget = Math.min(100, Math.max(50, Math.round(currentPct) + 5));
       const neededForTarget = (defaultTarget * totalW / 100 - (currentPct * achieved / 100)) / (missingW / 100);
       html += `
@@ -2893,7 +2909,6 @@
       `;
     }
 
-    // ── Per-assignment list ──
     if (result && result.allAssignments.length > 0) {
       html += `
         <div class="grade-assign-list">
@@ -2910,18 +2925,14 @@
         if (!b.due) return -1;
         return dateOnly(a.due) - dateOnly(b.due);
       });
-      sortedAssignments.forEach((ass, idx) => {
+      sortedAssignments.forEach((ass) => {
         const cat = categorizeAssessment(ass);
         const marksVal = ass.marks || '';
-        const isPending = ass.status !== 'submitted' && ass.status !== 'graded';
         let statusClass, statusLabel;
         if (ass.status === 'graded') { statusClass = 'graded'; statusLabel = 'Graded'; }
         else if (ass.status === 'submitted') { statusClass = 'submitted'; statusLabel = 'Submitted'; }
         else { statusClass = 'pending'; statusLabel = 'Pending'; }
-
-        // Use original index in flat list for onchange handler
         const originalIdx = result.allAssignments.indexOf(ass);
-
         html += `
           <div class="gal-row">
             <div class="gal-name" title="${escapeHtml(ass.name)}"><span style="color:${cat.color};margin-right:6px;">${cat.icon}</span>${escapeHtml(ass.name)}</div>
@@ -3026,9 +3037,7 @@
       flatAssignments[idx].marks = input.value;
       markDirty();
       if (gradeModalOpen) {
-        const targetVal = document.getElementById('targetGradeInput')?.value;
         openGradeModal(yi, si, ui);
-        // Restore focus
         const newInput = document.querySelector(`.gal-marks input[data-yi="${yi}"][data-si="${si}"][data-ui="${ui}"][data-idx="${idx}"]`);
         if (newInput) { newInput.focus(); newInput.select(); }
       }
@@ -3036,12 +3045,7 @@
     }
   };
 
-  document.getElementById('gradeModalClose').addEventListener('click', function() {
-    document.getElementById('gradeModal').classList.remove('open');
-    gradeModalOpen = false;
-  });
-
-  // ─── Excel exports (PDF removed) ───
+  // ─── Excel exports ───
   window.exportToExcel = async function() {
     if (!studyData.years.length) { showToast('No data to export.', 'error'); return; }
     window.showLoading('Generating academic report...');
@@ -3129,11 +3133,6 @@
       workbook.creator = user.username;
       workbook.created = new Date();
 
-      const parseMarks = (m) => {
-        if (m === null || m === undefined || m === '') return null;
-        const n = parseFloat(String(m).replace('%', '').trim());
-        return isNaN(n) ? null : Math.min(100, Math.max(0, n));
-      };
       const saGrade = (pct) => {
         if (pct >= 75) return { grade: 'Distinction', symbol: 'A', color: 'FF28A745' };
         if (pct >= 70) return { grade: 'Merit',       symbol: 'B', color: 'FF17A2B8' };
@@ -3148,8 +3147,6 @@
         units.push({ unit: u, year: y.name, semester: s.name });
       })));
       if (!units.length) { showToast('No units match filter.', 'error'); return; }
-
-      const studentName = 'Siyabonga Thupana';
 
       const summary = workbook.addWorksheet('Grade Summary', { pageSetup: { orientation: 'portrait', fitToPage: true } });
       summary.columns = [{ width: 5 }, { width: 14 }, { width: 36 }, { width: 14 }, { width: 14 }, { width: 14 }, { width: 8 }, { width: 12 }];
@@ -3224,9 +3221,7 @@
     }
   };
 
-  // ─────────────────────────────────────────────────────────────
-  //  JSON IMPORT — with validation, preview, and sample download
-  // ─────────────────────────────────────────────────────────────
+  // ─── Import ───
   function validateImportData(data) {
     const errors = [];
     if (!data || typeof data !== 'object') {
@@ -3241,7 +3236,7 @@
     data.years.forEach((year, yi) => {
       if (!year.name) errors.push(`Year #${yi+1}: missing "name".`);
       if (!Array.isArray(year.semesters)) errors.push(`Year "${year.name}": missing "semesters" array.`);
-      else year.semesters.forEach((sem, si) => {
+      else year.semesters.forEach((sem) => {
         if (!Array.isArray(sem.units)) errors.push(`Semester "${sem.name}": missing "units" array.`);
         else sem.units.forEach((unit, ui) => {
           if (!unit.code) errors.push(`Unit #${ui+1} in "${sem.name}": missing "code".`);
@@ -3278,7 +3273,6 @@
   }
 
   function normalizeImportedData(data) {
-    // Fill in any missing fields with sensible defaults
     data.years.forEach(year => {
       if (!year.semesters) year.semesters = [];
       year.semesters.forEach(sem => {
@@ -3327,38 +3321,17 @@
               {
                 number: 1,
                 topics: [
-                  {
-                    name: 'Introduction',
-                    subtopics: ['What is this?', 'Why it matters', 'Key concepts'],
-                    completed: false,
-                    subCompleted: [false, false, false]
-                  }
+                  { name: 'Introduction', subtopics: ['What is this?', 'Why it matters', 'Key concepts'], completed: false, subCompleted: [false, false, false] }
                 ],
                 assignments: []
               },
               {
                 number: 2,
                 topics: [
-                  {
-                    name: 'Foundations',
-                    subtopics: ['Theory', 'Practice', 'Examples'],
-                    completed: false,
-                    subCompleted: [false, false, false]
-                  }
+                  { name: 'Foundations', subtopics: ['Theory', 'Practice', 'Examples'], completed: false, subCompleted: [false, false, false] }
                 ],
                 assignments: [
-                  {
-                    id: 'ass_weekly_2',
-                    name: 'Weekly Quiz Week 2',
-                    due: '2026-03-15',
-                    status: 'not-started',
-                    marks: '',
-                    weight: 1,
-                    submittedDate: null,
-                    gradedDate: null,
-                    notes: '',
-                    priority: 'normal'
-                  }
+                  { id: 'ass_weekly_2', name: 'Weekly Quiz Week 2', due: '2026-03-15', status: 'not-started', marks: '', weight: 1, submittedDate: null, gradedDate: null, notes: '', priority: 'normal' }
                 ]
               }
             ]
@@ -3390,7 +3363,7 @@
     preview.innerHTML = '';
     confirmBtn.disabled = true;
     modeSelect.value = 'replace';
-
+    confirmBtn._pendingData = null;
     modal.classList.add('open');
   }
 
@@ -3415,6 +3388,7 @@
             </div>
           `;
           confirmBtn.disabled = true;
+          confirmBtn._pendingData = null;
           return;
         }
 
@@ -3457,7 +3431,6 @@
       if (!confirm('This will REPLACE all current study data. Continue?')) return;
       studyData = normalized;
     } else {
-      // Merge: add units whose code doesn't already exist
       const existingCodes = new Set();
       studyData.years.forEach(y => y.semesters.forEach(s => s.units.forEach(u => existingCodes.add(u.code))));
       let added = 0;
@@ -3479,6 +3452,7 @@
     }
 
     expanded = {};
+    expandScopedPath();
     render();
     markDirty();
     document.getElementById('importModal').classList.remove('open');
@@ -3490,6 +3464,10 @@
   // ─────────────────────────────────────────────────────────────
   async function init() {
     console.log('📦 Study Manager initializing...');
+
+    // Load saved scope preference before anything else
+    scope = loadScopeFromStorage();
+
     const contentArea = document.getElementById('contentArea');
 
     contentArea.innerHTML = `
@@ -3499,6 +3477,14 @@
           <div class="subtitle">Years → Semesters → Units → Weeks → Topics · <span id="userDisplay">🔒 ${user.username}</span></div>
         </div>
         <div class="actions">
+          <div class="scope-selector" id="scopeSelector">
+            <button type="button" class="scope-btn" id="scopeBtn">
+              <i class="fa fa-calendar-o"></i>
+              <span id="scopeLabel">Auto</span>
+              <i class="fa fa-caret-down"></i>
+            </button>
+            <div class="scope-panel" id="scopePanel"></div>
+          </div>
           <div class="search-bar">
             <input type="text" id="searchInput" placeholder="🔍 Search units, topics, notes..." aria-label="Search">
             <div class="compact-toggle">
@@ -3506,20 +3492,22 @@
               <div id="compactSwitch" class="switch ${compactMode ? 'active' : ''}" onclick="toggleCompact()" role="button" tabindex="0"></div>
             </div>
           </div>
-          <button class="btn btn-sync" id="syncBtn" title="Ctrl+S to save"><i class="fa fa-cloud-download"></i> Sync</button>
-          <button class="btn btn-excel" id="exportBtn"><i class="fa fa-file-excel-o"></i> Excel</button>
-          <button class="btn btn-grade" id="gradeReportBtn" title="Excel grade report"><i class="fa fa-graduation-cap"></i> Grade Excel</button>
-          <button class="btn btn-outline-secondary" id="exportJsonBtn" style="border:1px solid var(--border-subtle);color:var(--text-primary);"><i class="fa fa-download"></i> JSON</button>
-          <button class="btn btn-outline-secondary" id="importJsonBtn" style="border:1px solid var(--border-subtle);color:var(--text-primary);"><i class="fa fa-upload"></i> Import</button>
-          <button class="btn btn-success-glow" id="addYearBtn"><i class="fa fa-plus"></i> Add Year</button>
-          <button class="btn btn-outline-light" id="historyBtn" style="border:1px solid var(--border-subtle);color:var(--text-primary);"><i class="fa fa-history"></i> History</button>
-          <button class="btn btn-outline-light" id="resetBtn" style="border:1px solid var(--border-subtle);color:var(--text-primary);"><i class="fa fa-refresh"></i> Reset</button>
+          <button type="button" class="btn btn-sync" id="syncBtn" title="Ctrl+S to save"><i class="fa fa-cloud-download"></i> Sync</button>
+          <button type="button" class="btn btn-excel" id="exportBtn"><i class="fa fa-file-excel-o"></i> Excel</button>
+          <button type="button" class="btn btn-grade" id="gradeReportBtn" title="Excel grade report"><i class="fa fa-graduation-cap"></i> Grade Excel</button>
+          <button type="button" class="btn btn-outline-secondary" id="exportJsonBtn" style="border:1px solid var(--border-subtle);color:var(--text-primary);"><i class="fa fa-download"></i> JSON</button>
+          <button type="button" class="btn btn-outline-secondary" id="importJsonBtn" style="border:1px solid var(--border-subtle);color:var(--text-primary);"><i class="fa fa-upload"></i> Import</button>
+          <button type="button" class="btn btn-success-glow" id="addYearBtn"><i class="fa fa-plus"></i> Add Year</button>
+          <button type="button" class="btn btn-outline-light" id="historyBtn" style="border:1px solid var(--border-subtle);color:var(--text-primary);"><i class="fa fa-history"></i> History</button>
+          <button type="button" class="btn btn-outline-light" id="resetBtn" style="border:1px solid var(--border-subtle);color:var(--text-primary);"><i class="fa fa-refresh"></i> Reset</button>
           <div class="save-status">
             <span class="dot saved" id="saveStatusDot"></span>
             <span id="saveStatusLabel">Saved</span>
           </div>
         </div>
       </div>
+
+      <div id="scopeBanner" class="scope-banner"></div>
 
       <div class="kpi-grid-3">
         <div class="kpi-card">
@@ -3546,17 +3534,17 @@
       <div id="analyticsContainer"></div>
 
       <div class="stats-bar" id="statsBar">
-        <div class="stat-item"><div class="number blue" id="statYears">0</div><div class="label">Years</div><div class="stat-tooltip">Total academic years</div></div>
-        <div class="stat-item"><div class="number purple" id="statUnits">0</div><div class="label">Units</div><div class="stat-tooltip">Total units/modules</div></div>
-        <div class="stat-item"><div class="number orange" id="statWeeks">0</div><div class="label">Weeks</div><div class="stat-tooltip">Total weeks across all units</div></div>
+        <div class="stat-item"><div class="number blue" id="statYears">0</div><div class="label">Years</div><div class="stat-tooltip">Years in current scope</div></div>
+        <div class="stat-item"><div class="number purple" id="statUnits">0</div><div class="label">Units</div><div class="stat-tooltip">Units in current scope</div></div>
+        <div class="stat-item"><div class="number orange" id="statWeeks">0</div><div class="label">Weeks</div><div class="stat-tooltip">Weeks in current scope</div></div>
         <div class="stat-item"><div class="number green" id="statTopicsDone">0</div><div class="label">Topics Done</div><div class="stat-tooltip">Completed topics / total topics</div></div>
-        <div class="stat-item"><div class="number" id="statAssignments">0</div><div class="label">Assignments</div><div class="stat-tooltip">Total assignments</div></div>
+        <div class="stat-item"><div class="number" id="statAssignments">0</div><div class="label">Assignments</div><div class="stat-tooltip">Assignments in current scope</div></div>
         <div class="stat-item"><div class="number red" id="statPending">0</div><div class="label">Pending</div><div class="stat-tooltip">Assignments not submitted/graded</div></div>
       </div>
 
       <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
-        <button class="btn btn-sm btn-outline-secondary" onclick="expandAll()" style="border:1px solid var(--border-subtle);color:var(--text-primary);"><i class="fa fa-plus-square"></i> Expand All <span class="shortcut-hint">(Ctrl+E)</span></button>
-        <button class="btn btn-sm btn-outline-secondary" onclick="collapseAll()" style="border:1px solid var(--border-subtle);color:var(--text-primary);"><i class="fa fa-minus-square"></i> Collapse All <span class="shortcut-hint">(Ctrl+W)</span></button>
+        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="expandAll()" style="border:1px solid var(--border-subtle);color:var(--text-primary);"><i class="fa fa-plus-square"></i> Expand All <span class="shortcut-hint">(Ctrl+E)</span></button>
+        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="collapseAll()" style="border:1px solid var(--border-subtle);color:var(--text-primary);"><i class="fa fa-minus-square"></i> Collapse All <span class="shortcut-hint">(Ctrl+W)</span></button>
       </div>
 
       <div id="allAssignmentsTab"></div>
@@ -3566,6 +3554,18 @@
         <span id="footerStatus"></span>
       </div>
     `;
+
+    // Scope selector wiring
+    document.getElementById('scopeBtn').addEventListener('click', function(e) {
+      e.stopPropagation();
+      const panel = document.getElementById('scopePanel');
+      if (panel.classList.contains('open')) closeScopePanel();
+      else openScopePanel();
+    });
+    document.addEventListener('click', function(e) {
+      const sel = document.getElementById('scopeSelector');
+      if (sel && !sel.contains(e.target)) closeScopePanel();
+    });
 
     // Search setup
     const searchInput = document.getElementById('searchInput');
@@ -3596,6 +3596,12 @@
 
       const jumpToResult = (r) => {
         if (!r) return;
+        // Force scope to the result's year/sem if it's not already in scope
+        const targetYear = studyData.years[r.yi]?.name;
+        const targetSem = studyData.years[r.yi]?.semesters[r.si]?.name;
+        if (targetYear && (scope.mode !== 'all' && (scope.yearName !== targetYear || scope.semesterName !== targetSem))) {
+          setScope({ mode: 'year-sem', yearName: targetYear, semesterName: targetSem });
+        }
         expanded[`year_${r.yi}`] = true;
         expanded[`semester_${r.yi}_${r.si}`] = true;
         expanded[`unit_${r.yi}_${r.si}_${r.ui}`] = true;
@@ -3621,6 +3627,7 @@
         const t = term.toLowerCase().trim();
         if (!t || t.length < 2) { closeDropdown(); return; }
         const results = [];
+        // Search ALL data, not just scope — global lookup
         studyData.years.forEach((year, yi) => {
           year.semesters.forEach((sem, si) => {
             sem.units.forEach((unit, ui) => {
@@ -3734,8 +3741,10 @@
           studyData = result.data;
           currentFileSha = result.sha;
           lastSyncedSha = result.sha;
+          expandScopedPath();
           render();
           saveToCache(studyData);
+          updateScopeUI();
           showToast('✅ Synced from GitHub', 'success');
           updateSaveStatusUI('saved');
         } else {
@@ -3751,8 +3760,10 @@
       if (!confirm('⚠️ Reset ALL data? This will restore the default study plan. Any custom data will be lost.')) return;
       studyData = getDefaultData();
       expanded = {};
+      expandScopedPath();
       render();
       markDirty();
+      updateScopeUI();
       showToast('🔄 Reset to default', 'info');
     });
 
@@ -3786,6 +3797,58 @@
     });
     document.getElementById('importConfirm').addEventListener('click', performImport);
 
+    // Modal button wiring
+    document.getElementById('submitModalCancel').addEventListener('click', function() {
+      document.getElementById('submitModal').classList.remove('open');
+      submitModalContext = null;
+    });
+    document.getElementById('submitModalConfirm').addEventListener('click', async function() {
+      if (!submitModalContext) return;
+      const { yi, si, ui, wi, ai } = submitModalContext;
+      const unit = studyData.years[yi]?.semesters[si]?.units[ui];
+      if (!unit) return;
+      const week = unit.weeks[wi];
+      if (!week) return;
+      const a = week.assignments[ai];
+      if (!a) return;
+      const confirmCheck = document.getElementById('submitConfirm');
+      if (!confirmCheck || !confirmCheck.checked) { showToast('Please confirm submission.', 'error'); return; }
+      const submitDate = document.getElementById('submitDate').value;
+      if (!submitDate) { showToast('Please select a submission date.', 'error'); return; }
+      a.status = 'submitted';
+      a.submittedDate = submitDate;
+      markDirty();
+      document.getElementById('submitModal').classList.remove('open');
+      submitModalContext = null;
+      showToast(`✅ "${a.name}" submitted on ${submitDate}`, 'success');
+      render();
+    });
+
+    document.getElementById('modalCancel').addEventListener('click', function() {
+      document.getElementById('genericModal').classList.remove('open');
+    });
+    document.getElementById('modalSave').addEventListener('click', function() {
+      const modal = document.getElementById('genericModal');
+      const onSave = modal._onSave;
+      if (typeof onSave === 'function') {
+        const result = onSave();
+        if (result !== false) {
+          modal.classList.remove('open');
+          render();
+          markDirty();
+          showToast('✅ Saved', 'success');
+        }
+      }
+    });
+
+    document.getElementById('gradeModalClose').addEventListener('click', function() {
+      document.getElementById('gradeModal').classList.remove('open');
+      gradeModalOpen = false;
+    });
+    document.getElementById('versionHistoryClose').addEventListener('click', () => {
+      document.getElementById('versionHistoryModal').classList.remove('open');
+    });
+
     document.addEventListener('keydown', (e) => {
       if (e.ctrlKey && e.key === 'e') { e.preventDefault(); expandAll(); }
       if (e.ctrlKey && e.key === 'w') { e.preventDefault(); collapseAll(); }
@@ -3798,9 +3861,44 @@
     });
 
     await loadData();
+    expandScopedPath();
+    render();
+    updateScopeUI();
     updateSaveStatusUI('saved');
     console.log('✅ Study Manager ready');
   }
+
+  // Global modal helper
+  function openModal(title, bodyHTML, onSave) {
+    const modal = document.getElementById('genericModal');
+    document.getElementById('modalTitle').textContent = title;
+    document.getElementById('modalBody').innerHTML = bodyHTML;
+    modal.classList.add('open');
+    modal._onSave = onSave;
+  }
+
+  window.addYear = function() {
+    openModal('Add Year', `<div class="form-group"><label>Year Name (e.g. 2026)</label><input type="text" id="yearName" placeholder="2026" /></div>`, () => {
+      const name = document.getElementById('yearName').value.trim();
+      if (!name) { showToast('Please enter a year name.', 'error'); return false; }
+      studyData.years.push({ name, semesters: [] });
+      return true;
+    });
+  };
+  window.editYear = function(yi) {
+    const year = studyData.years[yi];
+    openModal('Edit Year', `<div class="form-group"><label>Year Name</label><input type="text" id="yearName" value="${escapeHtml(year.name)}" /></div>`, () => {
+      const name = document.getElementById('yearName').value.trim();
+      if (!name) { showToast('Please enter a year name.', 'error'); return false; }
+      year.name = name;
+      return true;
+    });
+  };
+  window.deleteYear = function(yi) {
+    if (!confirm('Delete this year and all its semesters, units, weeks, topics, and assignments?')) return;
+    studyData.years.splice(yi, 1);
+    render(); markDirty();
+  };
 
   window.toggleCompact = function() {
     compactMode = !compactMode;
@@ -3809,17 +3907,23 @@
     render();
   };
 
-  document.getElementById('versionHistoryClose').addEventListener('click', () => {
-    document.getElementById('versionHistoryModal').classList.remove('open');
-  });
-
+  // Kick off init
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
     init();
   }
 
-  window.studyManager = { studyData, render, markDirty };
+  // Expose internals for debugging
+  window.studyManager = {
+    get studyData() { return studyData; },
+    get scope() { return scope; },
+    render,
+    markDirty,
+    setScope,
+    clearScope,
+    resolveScope
+  };
 })();
 </script>
 </body>
