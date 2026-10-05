@@ -13,6 +13,167 @@
   <script src="crypto.js"></script>
   <script src="api.js"></script>
   <script src="shared.js"></script>
+  <script>
+// ═══════════════════════════════════════════════════════════════
+//  GITHUB RELIABILITY PATCH
+//  Fixes "sha does not match" errors on save by:
+//   • Bypassing HTTP cache on every GitHub read
+//   • Retrying on SHA conflict with exponential backoff
+//   • Reading fresh SHA immediately before every PUT
+//  Must run AFTER shared.js.
+// ═══════════════════════════════════════════════════════════════
+(function () {
+  if (!window.portfolioData || !window.REPO_CONFIG) return;
+
+  const origLoad = window.portfolioData.loadProjects.bind(window.portfolioData);
+  const origSave = window.portfolioData.saveProjects.bind(window.portfolioData);
+
+  // ─── Cache-busted load ───
+  window.portfolioData.loadProjects = async function () {
+    const user = window.SessionManager?.getCurrentUser();
+    if (!user || !user.pat) return origLoad();
+
+    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+    const encUser = encodeURIComponent(user.username);
+    const path = `${dataPath}/users/${encUser}/projects.json`;
+    const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}&_t=${Date.now()}_${Math.random()}`;
+
+    try {
+      const resp = await fetch(url, {
+        headers: { Authorization: `token ${user.pat}`, Accept: 'application/vnd.github.v3+json' },
+        cache: 'no-store'
+      });
+      if (resp.status === 404) return {};
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const j = await resp.json();
+      const content = j.content ? atob(j.content.replace(/\n/g, '')) : '{}';
+      const parsed = JSON.parse(content);
+      try { localStorage.setItem('portfolioProjects', JSON.stringify(parsed)); } catch (e) {}
+      return parsed;
+    } catch (err) {
+      console.warn('[patch] loadProjects fell back:', err.message);
+      return origLoad();
+    }
+  };
+
+  // ─── Cache-busted, retry-heavy save ───
+  window.portfolioData.saveProjects = async function (data, forceEmpty = false) {
+    const user = window.SessionManager?.getCurrentUser();
+    if (!user || !user.pat) return origSave(data, forceEmpty);
+
+    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+    const encUser = encodeURIComponent(user.username);
+    const path = `${dataPath}/users/${encUser}/projects.json`;
+    const baseUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
+    const authHdr = { Authorization: `token ${user.pat}`, Accept: 'application/vnd.github.v3+json' };
+
+    // Blocked check
+    try {
+      const blocked = await window.AccountManager.getBlockedUsers();
+      if (blocked.includes(user.username)) {
+        window.SessionManager.logout();
+        window.location.href = 'login.html?blocked=1';
+        throw new Error('Blocked');
+      }
+    } catch (e) {}
+
+    // Timestamp normalization
+    for (const id in data) {
+      if (!data[id].updatedAt) data[id].updatedAt = Date.now();
+      if (data[id].blocked === undefined) data[id].blocked = false;
+    }
+    try { localStorage.setItem('portfolioProjects', JSON.stringify(data)); } catch (e) {}
+
+    const MAX = 6;
+    let lastErr;
+    for (let attempt = 0; attempt < MAX; attempt++) {
+      try {
+        // Read fresh SHA (cache-busted)
+        const getResp = await fetch(`${baseUrl}?ref=${branch}&_t=${Date.now()}_${Math.random()}_${attempt}`, {
+          headers: authHdr, cache: 'no-store'
+        });
+
+        let sha = null;
+        let remoteData = {};
+        if (getResp.ok) {
+          const j = await getResp.json();
+          sha = j.sha;
+          if (j.content) {
+            try { remoteData = JSON.parse(atob(j.content.replace(/\n/g, ''))); }
+            catch { remoteData = {}; }
+          }
+        } else if (getResp.status !== 404) {
+          throw new Error(`Read failed: HTTP ${getResp.status}`);
+        }
+
+        // Merge — newer updatedAt wins
+        const merged = { ...remoteData };
+        for (const [id, proj] of Object.entries(data)) {
+          const ex = merged[id];
+          if (!ex || (proj.updatedAt || 0) >= (ex.updatedAt || 0)) {
+            merged[id] = proj;
+          }
+        }
+        // Delete propagation
+        for (const id of Object.keys(remoteData)) {
+          if (!data.hasOwnProperty(id)) delete merged[id];
+        }
+
+        let finalData = merged;
+        if (forceEmpty && Object.keys(data).length === 0) finalData = {};
+
+        const body = {
+          message: `Update projects – ${Object.keys(finalData).length} total`,
+          content: btoa(unescape(encodeURIComponent(JSON.stringify(finalData, null, 2)))),
+          branch
+        };
+        if (sha) body.sha = sha;
+
+        const putResp = await fetch(baseUrl, {
+          method: 'PUT',
+          headers: { ...authHdr, 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+          cache: 'no-store'
+        });
+
+        if (putResp.ok) {
+          try { window.Logger?.logActivity('project', 'save', `Saved ${Object.keys(finalData).length} projects`); } catch (e) {}
+          return await putResp.json();
+        }
+
+        const errJson = await putResp.json().catch(() => ({}));
+        const msg = errJson.message || `HTTP ${putResp.status}`;
+        const retryable = putResp.status === 409
+          || putResp.status === 422
+          || putResp.status === 500
+          || putResp.status === 502
+          || /does not match/i.test(msg)
+          || /sha/i.test(msg.toLowerCase())
+          || /conflict/i.test(msg);
+
+        if (retryable && attempt < MAX - 1) {
+          lastErr = new Error(msg);
+          const delay = 350 * Math.pow(1.6, attempt) + Math.random() * 300;
+          console.warn(`[patch] SHA conflict — retry ${attempt + 1}/${MAX} in ${Math.round(delay)}ms`);
+          await new Promise(r => setTimeout(r, delay));
+          continue;
+        }
+        throw new Error(msg);
+      } catch (err) {
+        lastErr = err;
+        if (attempt < MAX - 1) {
+          const delay = 350 * Math.pow(1.6, attempt) + Math.random() * 300;
+          await new Promise(r => setTimeout(r, delay));
+          continue;
+        }
+      }
+    }
+    throw new Error(`Save failed after ${MAX} attempts: ${lastErr?.message || 'unknown'}`);
+  };
+
+  console.log('%c[patch] GitHub reliability active', 'color:#2fc7ff;font-weight:700');
+})();
+</script>
 
   <style>
     :root {
