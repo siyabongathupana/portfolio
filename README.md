@@ -26,7 +26,7 @@
 
 | Projects | Certifications | Users | Hours | Billable | Daily Avg |
 |:--------:|:--------------:|:-----:|:-----:|:--------:|:---------:|
-| 0 | 18 | 7 | 763.3 | 513.6 | 8.0h |
+| 1 | 18 | 7 | 763.3 | 513.6 | 8.0h |
 
 ---
 
@@ -42,6 +42,10 @@
 
 ## 🏗️ Featured Projects
 
+
+- ** Tank Farm** - SASOL (2 months)
+  - Status: Ongoing | Progress: 70%
+  - 
 
 
 ---
@@ -73,6 +77,14 @@
 ## 🛠️ Skills
 
 
+`DeltaV SX`
+
+`DeltaV v14`
+
+`Petrochemical`
+
+`SIS`
+
 
 ---
 
@@ -86,6 +98,6 @@
 
 <div align="center">
 
-*Last updated: October 05, 2026 at 08:26:38 UTC*
+*Last updated: October 05, 2026 at 14:06:54 UTC*
 
 </div>
