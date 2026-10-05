@@ -1801,6 +1801,3903 @@
           ]
         }
       ]
+    },
+    {
+      "name": "2027",
+      "semesters": [
+        {
+          "name": "Semester 1",
+          "units": [
+            {
+              "code": "BSC202",
+              "name": "Engineering Mathematics 3",
+              "color": "#2fc7ff",
+              "weeks": [
+                {
+                  "number": 1,
+                  "topics": [
+                    {
+                      "name": "Differential Equations - 1",
+                      "subtopics": [
+                        "Power series Solutions",
+                        "Frobenius Solutions",
+                        "Euler-Lagrange equation",
+                        "Lagrange equation"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": []
+                },
+                {
+                  "number": 2,
+                  "topics": [
+                    {
+                      "name": "Differential Equations - 2 (Numerical approach)",
+                      "subtopics": [
+                        "Initial value problems",
+                        "Boundary value problems",
+                        "Finite-Difference equations"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc202_quiz_w2",
+                      "name": "Weekly Quiz Week 2",
+                      "due": "2027-02-22",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 3,
+                  "topics": [
+                    {
+                      "name": "Laplace Transforms",
+                      "subtopics": [
+                        "Laplace Transform and inverse Laplace Transforms",
+                        "Laplace Transforms of Elementary functions",
+                        "Transforms of derivatives and integrals",
+                        "Initial and final value theorems",
+                        "Laplace transform in a solution of initial value problems",
+                        "Unit step function",
+                        "Dirac's delta function",
+                        "Shifting theorems",
+                        "Convolution",
+                        "Differential equations with polynomial coefficients"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc202_quiz_w3",
+                      "name": "Weekly Quiz Week 3",
+                      "due": "2027-03-01",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 4,
+                  "topics": [
+                    {
+                      "name": "Laplace Transforms (continued)",
+                      "subtopics": [
+                        "Laplace Transform applications to engineering systems",
+                        "Solving ODEs with Laplace transforms"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc202_quiz_w4",
+                      "name": "Weekly Quiz Week 4",
+                      "due": "2027-03-08",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 5,
+                  "topics": [
+                    {
+                      "name": "z-transforms",
+                      "subtopics": [
+                        "Definition",
+                        "Some properties of z-transforms",
+                        "Inverse z-transforms",
+                        "Using z-transforms to solve difference equations"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc202_quiz_w5",
+                      "name": "Weekly Quiz Week 5",
+                      "due": "2027-03-15",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    },
+                    {
+                      "id": "ass_bsc202_test",
+                      "name": "Test (Invigilated)",
+                      "due": "2027-03-17",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 25,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "Topics 1 to 5. Short and/or long answer questions and numerical problems.",
+                      "priority": "high"
+                    }
+                  ]
+                },
+                {
+                  "number": 6,
+                  "topics": [
+                    {
+                      "name": "Optimisation - Part 1",
+                      "subtopics": [
+                        "Unconstrained Optimisation of Single-Variable Functions (maxima, minima, derivative tests)",
+                        "Unconstrained Optimisation of Multivariable Functions (Critical points)"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc202_quiz_w6",
+                      "name": "Weekly Quiz Week 6",
+                      "due": "2027-03-22",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 7,
+                  "topics": [
+                    {
+                      "name": "Optimisation - Part 2",
+                      "subtopics": [
+                        "Constrained Optimisation (Lagrange multipliers)"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc202_quiz_w7",
+                      "name": "Weekly Quiz Week 7",
+                      "due": "2027-03-29",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    },
+                    {
+                      "id": "ass_bsc202_practical",
+                      "name": "Practical (Report)",
+                      "due": "2027-04-02",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 25,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "Topics 6 and 7. Practical engineering optimisation report using analytical and computational methods.",
+                      "priority": "high"
+                    }
+                  ]
+                },
+                {
+                  "number": 8,
+                  "topics": [
+                    {
+                      "name": "Fourier Series, Integrals and Transforms - Part 1",
+                      "subtopics": [
+                        "Fourier series",
+                        "Functions having points of discontinuity",
+                        "Even and Odd functions",
+                        "Convergence of Fourier series",
+                        "Fourier cosine and sine series",
+                        "Integration and differentiation of Fourier series"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc202_quiz_w8",
+                      "name": "Weekly Quiz Week 8",
+                      "due": "2027-04-05",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 9,
+                  "topics": [
+                    {
+                      "name": "Fourier Series, Integrals and Transforms - Part 2",
+                      "subtopics": [
+                        "Phase angle form of Fourier series",
+                        "Complex Fourier series",
+                        "Fourier integral",
+                        "Complex Fourier integral",
+                        "Fourier transform",
+                        "Discrete and Fast Fourier transforms",
+                        "Fourier Transform in signal analysis using engineering tools"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc202_quiz_w9",
+                      "name": "Weekly Quiz Week 9",
+                      "due": "2027-04-12",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 10,
+                  "topics": [
+                    {
+                      "name": "Fourier Series, Integrals and Transforms - Part 3",
+                      "subtopics": [
+                        "Advanced Fourier transform applications",
+                        "Signal processing case studies"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc202_quiz_w10",
+                      "name": "Weekly Quiz Week 10",
+                      "due": "2027-04-19",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 11,
+                  "topics": [
+                    {
+                      "name": "Conformal Mapping",
+                      "subtopics": [
+                        "Definition",
+                        "Bilinear transformation",
+                        "Special bilinear transformations",
+                        "Construction of conformal mappings"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc202_quiz_w11",
+                      "name": "Weekly Quiz Week 11",
+                      "due": "2027-04-26",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 12,
+                  "topics": [
+                    {
+                      "name": "Mathematical Induction & Unit Review",
+                      "subtopics": [
+                        "Mathematical induction proofs",
+                        "Unit review"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc202_final",
+                      "name": "Final Exam (Invigilated)",
+                      "due": "2027-05-10",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 40,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "Topics 1 to 12. Short and/or long answer questions and numerical problems. Must achieve 50%+ in exam.",
+                      "priority": "high"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "code": "BSC206",
+              "name": "Communications And Networks",
+              "color": "#4ae4b8",
+              "weeks": [
+                {
+                  "number": 1,
+                  "topics": [
+                    {
+                      "name": "Introduction",
+                      "subtopics": [
+                        "Computer Networks and the Internet",
+                        "Network Edge: Access Networks, Physical Media",
+                        "Network Core: Packet Switching, Circuit Switching",
+                        "Protocol Layers, Layered Architecture, and the Open System Interconnection (OSI) model"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": []
+                },
+                {
+                  "number": 2,
+                  "topics": [
+                    {
+                      "name": "Physical Layer & Cabling",
+                      "subtopics": [
+                        "Cable characteristics (noise, grounding, shielding)",
+                        "Practical cabling (standards, connectors, grounding, impedance, opto-isolators, termination, and transients)",
+                        "Copper cabling (Near End Cross Talk (NEXT))",
+                        "Coaxial cables (construction, characteristics)",
+                        "Fibre optic (construction, multi-mode, single mode, splicing, connectors, testing, optical time domain reflectometer)"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc206_quiz_w2",
+                      "name": "Weekly Quiz Week 2",
+                      "due": "2027-02-22",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1.5,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 3,
+                  "topics": [
+                    {
+                      "name": "Data link layer",
+                      "subtopics": [
+                        "Data link layer (PDU, addressing scheme, functions and protocols)",
+                        "Switching technologies (address table, Virtual LAN (VLAN), Multiprotocol Label Switching (MPLS), Virtual Private Network (VPN))"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc206_quiz_w3",
+                      "name": "Weekly Quiz Week 3",
+                      "due": "2027-03-01",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1.5,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 4,
+                  "topics": [
+                    {
+                      "name": "Network layer - Part 1",
+                      "subtopics": [
+                        "Network layer (functions, protocol data unit, addressing scheme)",
+                        "IP packets (IPv4 addressing, header, subnet masking, prefix notation, private addresses)",
+                        "IPv6 as successor to IPv4",
+                        "IP addressing, Address Resolution Protocol (ARP), Internet Control Message Protocol (ICMP)"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc206_quiz_w4",
+                      "name": "Weekly Quiz Week 4",
+                      "due": "2027-03-08",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1.5,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 5,
+                  "topics": [
+                    {
+                      "name": "Network layer - Part 2",
+                      "subtopics": [
+                        "Routing (tables, manual and dynamic convergence)",
+                        "Routing protocols (RIP, OSPF, EIGRP)",
+                        "Routing tables, default gateways",
+                        "Network Address Translation (NAT), Port Forwarding, firewalls"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc206_quiz_w5",
+                      "name": "Weekly Quiz Week 5",
+                      "due": "2027-03-15",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1.5,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    },
+                    {
+                      "id": "ass_bsc206_test",
+                      "name": "Test (Invigilated)",
+                      "due": "2027-03-17",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 25,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "Short questions and/or simple problems. Covers topics 1-4.",
+                      "priority": "high"
+                    }
+                  ]
+                },
+                {
+                  "number": 6,
+                  "topics": [
+                    {
+                      "name": "Transport Layer - Part 1",
+                      "subtopics": [
+                        "TCP/IP protocol standard",
+                        "Transport layer (protocol data unit, addressing scheme, functions)",
+                        "User Datagram Protocol (characteristics, operation)"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc206_quiz_w6",
+                      "name": "Weekly Quiz Week 6",
+                      "due": "2027-03-22",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1.5,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 7,
+                  "topics": [
+                    {
+                      "name": "Transport Layer - Part 2",
+                      "subtopics": [
+                        "Transmission Control Protocol (characteristics, operation)"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc206_quiz_w7",
+                      "name": "Weekly Quiz Week 7",
+                      "due": "2027-03-29",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1.5,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 8,
+                  "topics": [
+                    {
+                      "name": "Application Layer - Part 1",
+                      "subtopics": [
+                        "The Web and HTTP",
+                        "Electronic Mail",
+                        "Domain Name System (DNS)"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc206_quiz_w8",
+                      "name": "Weekly Quiz Week 8",
+                      "due": "2027-04-05",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1.5,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 9,
+                  "topics": [
+                    {
+                      "name": "Application Layer - Part 2",
+                      "subtopics": [
+                        "Peer-to-Peer applications",
+                        "Video streaming and content distribution networks"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc206_quiz_w9",
+                      "name": "Weekly Quiz Week 9",
+                      "due": "2027-04-12",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1.5,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    },
+                    {
+                      "id": "ass_bsc206_practical",
+                      "name": "Practical (Report)",
+                      "due": "2027-04-16",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 20,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "Complete practical project using software and submit written report.",
+                      "priority": "high"
+                    }
+                  ]
+                },
+                {
+                  "number": 10,
+                  "topics": [
+                    {
+                      "name": "Radio Telemetry - Part 1",
+                      "subtopics": [
+                        "Principles of operation: line of sight, repeaters, environmental factors fading",
+                        "Infrastructure and architecture: site selection and access, antenna support, loading and torsional stability"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc206_quiz_w10",
+                      "name": "Weekly Quiz Week 10",
+                      "due": "2027-04-19",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1.5,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 11,
+                  "topics": [
+                    {
+                      "name": "Radio Telemetry - Part 2",
+                      "subtopics": [
+                        "Advanced radio telemetry systems",
+                        "Radio telemetry design considerations"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc206_quiz_w11",
+                      "name": "Weekly Quiz Week 11",
+                      "due": "2027-04-26",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1.5,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 12,
+                  "topics": [
+                    {
+                      "name": "Introduction to IEC61850 and Unit Review",
+                      "subtopics": [
+                        "Relationships between power system automation, control, and communication concepts and technologies",
+                        "Communication technologies",
+                        "Security Concerns in Power System Communication Networks and importance of developing and maintaining a secure network against cyber-attacks"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc206_final",
+                      "name": "Examination (Invigilated)",
+                      "due": "2027-05-10",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 40,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "All topics. Mix of short-answer and problem-based questions. Must achieve 50%+ in exam.",
+                      "priority": "high"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "code": "BSC201",
+              "name": "Engineering Management",
+              "color": "#a29bfe",
+              "weeks": [
+                {
+                  "number": 1,
+                  "topics": [
+                    {
+                      "name": "Engineering Project Management",
+                      "subtopics": [
+                        "Project management concepts",
+                        "Project management objectives",
+                        "Project failure (reasons)",
+                        "Project vs operations",
+                        "PMBOK"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": []
+                },
+                {
+                  "number": 2,
+                  "topics": [
+                    {
+                      "name": "Systems & Life Cycle",
+                      "subtopics": [
+                        "The Systems method",
+                        "Project System characteristics",
+                        "Life Cycle",
+                        "Systems Development Life Cycle (conception, definition, execution and operation)",
+                        "Introduction to project management software"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc201_quiz_w2",
+                      "name": "Weekly Quiz Week 2",
+                      "due": "2027-02-22",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1.5,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 3,
+                  "topics": [
+                    {
+                      "name": "Contracts and Supply Chain",
+                      "subtopics": [
+                        "Types of contracts",
+                        "Law of contracts and project delivery contracts (payment under contract, superintendent, variations, subcontractors, termination, arbitration etc.)",
+                        "Procurement Process",
+                        "Request for Quote",
+                        "Request for Proposal (RFP); Proposal",
+                        "Managing contracts",
+                        "Logistics management"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc201_quiz_w3",
+                      "name": "Weekly Quiz Week 3",
+                      "due": "2027-03-01",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1.5,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 4,
+                  "topics": [
+                    {
+                      "name": "Cost estimating and Budgeting",
+                      "subtopics": [
+                        "Cost estimation methods",
+                        "Cost escalation",
+                        "Cost estimating and systems development cycle",
+                        "Elements of budgets and estimates",
+                        "Budget types (risk allocation)"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc201_quiz_w4",
+                      "name": "Weekly Quiz Week 4",
+                      "due": "2027-03-08",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1.5,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 5,
+                  "topics": [
+                    {
+                      "name": "Building a high-performance project team",
+                      "subtopics": [
+                        "Leadership responsibilities",
+                        "Positive team culture",
+                        "Team building and management",
+                        "Conflict management",
+                        "Stakeholder communication",
+                        "Continuous learning"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc201_quiz_w5",
+                      "name": "Weekly Quiz Week 5",
+                      "due": "2027-03-15",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1.5,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 6,
+                  "topics": [
+                    {
+                      "name": "Specification",
+                      "subtopics": [
+                        "Specification - problems, management",
+                        "Scope and work definition",
+                        "Master plan definition",
+                        "Change control process"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc201_quiz_w6",
+                      "name": "Weekly Quiz Week 6",
+                      "due": "2027-03-22",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1.5,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 7,
+                  "topics": [
+                    {
+                      "name": "Work Breakdown Structure",
+                      "subtopics": [
+                        "Work Breakdown Structure",
+                        "Responsibilities",
+                        "Gantt Charts",
+                        "Project Management software"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc201_quiz_w7",
+                      "name": "Weekly Quiz Week 7",
+                      "due": "2027-03-29",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1.5,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 8,
+                  "topics": [
+                    {
+                      "name": "Scheduling",
+                      "subtopics": [
+                        "Planning overview",
+                        "Network diagrams",
+                        "Critical path characteristics"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc201_quiz_w8",
+                      "name": "Weekly Quiz Week 8",
+                      "due": "2027-04-05",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1.5,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    },
+                    {
+                      "id": "ass_bsc201_project1",
+                      "name": "Group and Individual work / Project",
+                      "due": "2027-04-09",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 35,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "Budget, specification, quality. Team leader assigned by lecturer or group.",
+                      "priority": "high"
+                    }
+                  ]
+                },
+                {
+                  "number": 9,
+                  "topics": [
+                    {
+                      "name": "Project Control",
+                      "subtopics": [
+                        "The control process",
+                        "Project control emphasis",
+                        "Performance analysis",
+                        "Variance limits",
+                        "Activity variability",
+                        "Z values and probability",
+                        "Evaluation of PERT"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc201_quiz_w9",
+                      "name": "Weekly Quiz Week 9",
+                      "due": "2027-04-12",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1.5,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 10,
+                  "topics": [
+                    {
+                      "name": "Risk Management",
+                      "subtopics": [
+                        "Risk definition",
+                        "Risk Identification",
+                        "Risk Assessment",
+                        "The effects of uncertainties",
+                        "Risk Response Planning",
+                        "Risk management",
+                        "Case studies"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc201_quiz_w10",
+                      "name": "Weekly Quiz Week 10",
+                      "due": "2027-04-19",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1.5,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    },
+                    {
+                      "id": "ass_bsc201_project2",
+                      "name": "Group and Individual work / Project and Report",
+                      "due": "2027-04-23",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 25,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "WBS, Scheduling, PERT, Risk analysis including assessment of uncertainties.",
+                      "priority": "high"
+                    }
+                  ]
+                },
+                {
+                  "number": 11,
+                  "topics": [
+                    {
+                      "name": "Quality Management and Project Evaluation",
+                      "subtopics": [
+                        "Quality Function Deployment (QFD)",
+                        "Project evaluation",
+                        "Case study",
+                        "Multiphase QFD",
+                        "Project extensions"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc201_quiz_w11",
+                      "name": "Weekly Quiz Week 11",
+                      "due": "2027-04-26",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1.5,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 12,
+                  "topics": [
+                    {
+                      "name": "Ethics in engineering management and workplace",
+                      "subtopics": [
+                        "What is Ethics?",
+                        "Code of Ethics & professional conduct in engineering",
+                        "Projects and ethical decision making",
+                        "Ethical issues",
+                        "Ethical dilemma",
+                        "Global trends",
+                        "Case studies"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc201_project3",
+                      "name": "Project and Report (Individual work component)",
+                      "due": "2027-05-10",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 25,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "WBS, Scheduling, PERT, Risk analysis. Must achieve 50%+ in Assessment 4.",
+                      "priority": "high"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "code": "BIA205",
+              "name": "Introduction to Programmable Logic Controllers",
+              "color": "#fdcb6e",
+              "weeks": [
+                {
+                  "number": 1,
+                  "topics": [
+                    {
+                      "name": "Overview of Industrial Control System (ICS) & Applications",
+                      "subtopics": [
+                        "Evolution of ICS",
+                        "ICS operation and Components",
+                        "ICS in Manufacturing Industries",
+                        "ICS and Interdependencies in Critical Infrastructure"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": []
+                },
+                {
+                  "number": 2,
+                  "topics": [
+                    {
+                      "name": "Control scheme interpretation and design - Part 1",
+                      "subtopics": [
+                        "Need for control schemes",
+                        "Symbols used in control circuits",
+                        "Motor controls – unidirectional",
+                        "Motor control – reversing",
+                        "Interlocks for control/safety"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bia205_quiz_w2",
+                      "name": "Weekly Quiz Week 2",
+                      "due": "2027-02-22",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 3,
+                  "topics": [
+                    {
+                      "name": "Control scheme interpretation and design - Part 2",
+                      "subtopics": [
+                        "Interpreting the operation of a control circuit",
+                        "Design a control circuit in the form of a logic diagram for a given set of requirements and evaluation using Boolean algebra principles",
+                        "Translating a logic diagram into a control circuit"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bia205_quiz_w3",
+                      "name": "Weekly Quiz Week 3",
+                      "due": "2027-03-01",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 4,
+                  "topics": [
+                    {
+                      "name": "Control scheme interpretation and design - Part 3",
+                      "subtopics": [
+                        "Control systems (Open and closed loop), transfer function and block diagrams",
+                        "Feedback controls and feed forward controls",
+                        "Implementation of Proportional, integral and derivative (PID) controller",
+                        "Analog and digital control",
+                        "System stability criteria and loop tuning"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bia205_quiz_w4",
+                      "name": "Weekly Quiz Week 4",
+                      "due": "2027-03-08",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 5,
+                  "topics": [
+                    {
+                      "name": "Digital logic circuits and ICs - Part 1",
+                      "subtopics": [
+                        "Fundamentals of digital electronics",
+                        "Introduction to Logic gates",
+                        "Diode-resistor logic (DRL)",
+                        "Emitter coupled logic (ECL)",
+                        "Resistor-transistor logic (RTL)",
+                        "Diode transistor logic (DTL)"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bia205_quiz_w5",
+                      "name": "Weekly Quiz Week 5",
+                      "due": "2027-03-15",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 6,
+                  "topics": [
+                    {
+                      "name": "Digital logic circuits and ICs - Part 2",
+                      "subtopics": [
+                        "Transistor to transistor logic (TTL)",
+                        "Positive and negative logic",
+                        "Typical circuits for logic functions",
+                        "Logic gates using integrated circuits",
+                        "Other useful functions such as timers, counters, flip-flop (two-state) devices and etc. using ICs",
+                        "Introduction to clocked (dynamic) digital logic circuits"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bia205_quiz_w6",
+                      "name": "Weekly Quiz Week 6",
+                      "due": "2027-03-22",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 7,
+                  "topics": [
+                    {
+                      "name": "Programmable logic controller basics - Part 1",
+                      "subtopics": [
+                        "Historical overview",
+                        "Clocked logic as the basis of programmable logic controllers",
+                        "Fundamentals of PLC hardware",
+                        "Block diagram of a PLC",
+                        "PLC processor module",
+                        "Internal memory and its organization"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bia205_quiz_w7",
+                      "name": "Weekly Quiz Week 7",
+                      "due": "2027-03-29",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 8,
+                  "topics": [
+                    {
+                      "name": "Programmable logic controller basics - Part 2",
+                      "subtopics": [
+                        "Input-output section",
+                        "Power supplies",
+                        "Noise control from I/O connections",
+                        "Recommended precautions in wiring",
+                        "Operation of dynamic logic by step-by-step execution",
+                        "Comparison of hard-wired logics with PLCs",
+                        "Possible concerns in using PLC (focus on safety systems)"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bia205_quiz_w8",
+                      "name": "Weekly Quiz Week 8",
+                      "due": "2027-04-05",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 9,
+                  "topics": [
+                    {
+                      "name": "Programming methods based on IEC standard 61131-3 - Part 1",
+                      "subtopics": [
+                        "PLC programming basics",
+                        "The need for a programming standard",
+                        "Ladder logic programming",
+                        "Structured text method",
+                        "Function block method",
+                        "Instruction list",
+                        "Sequential function chart"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bia205_quiz_w9",
+                      "name": "Weekly Quiz Week 9",
+                      "due": "2027-04-12",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    },
+                    {
+                      "id": "ass_bia205_test",
+                      "name": "Test (Invigilated)",
+                      "due": "2027-04-14",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 25,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "PLCs vs Hardwired control schemes. Short questions and simple problems. Covers topics 4, 5.",
+                      "priority": "high"
+                    }
+                  ]
+                },
+                {
+                  "number": 10,
+                  "topics": [
+                    {
+                      "name": "Programming methods based on IEC standard 61131-3 - Part 2",
+                      "subtopics": [
+                        "Comparison between IEC61131-3 and C programming",
+                        "Good programming habits",
+                        "Code organization and documentation",
+                        "Maintenance of program code and change documentation",
+                        "Simple examples of programming",
+                        "Communication between PLCs"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bia205_quiz_w10",
+                      "name": "Weekly Quiz Week 10",
+                      "due": "2027-04-19",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 11,
+                  "topics": [
+                    {
+                      "name": "Program creation and testing",
+                      "subtopics": [
+                        "Demonstration of program writing using RSLogix 5000 emulator (or any other simulator)",
+                        "Use of chassis monitor",
+                        "Step-by-step development",
+                        "Demonstration of the program using the simulator",
+                        "Testing/troubleshooting"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bia205_quiz_w11",
+                      "name": "Weekly Quiz Week 11",
+                      "due": "2027-04-26",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    },
+                    {
+                      "id": "ass_bia205_practical",
+                      "name": "Practical (Report)",
+                      "due": "2027-04-30",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 25,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "Design a control scheme, program on PLC simulation, test operation. Include PLC program using C and IEC 61131-3 languages.",
+                      "priority": "high"
+                    }
+                  ]
+                },
+                {
+                  "number": 12,
+                  "topics": [
+                    {
+                      "name": "Future/Emerging Trends",
+                      "subtopics": [
+                        "Introduction to distributed programming and IEC 61499",
+                        "Function Blocks (FB) & Programming Organizational Units (POU)",
+                        "Functional Interfaces and FB Networks",
+                        "IEC61499-Engineering Methodologies and Design Patterns",
+                        "Modelling Intelligent Distributed Automation Systems"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bia205_final",
+                      "name": "Exam (Invigilated)",
+                      "due": "2027-05-10",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 40,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "All topics. Must achieve 50%+ in exam.",
+                      "priority": "high"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "code": "BIA208",
+              "name": "Embedded System Design",
+              "color": "#e17055",
+              "weeks": [
+                {
+                  "number": 1,
+                  "topics": [
+                    {
+                      "name": "Introduction to Microprocessors",
+                      "subtopics": [
+                        "Introduction to microprocessors",
+                        "History of microprocessor architectures",
+                        "Embedded systems versus general-purpose computers",
+                        "General-purpose embedded systems and manufacturers"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": []
+                },
+                {
+                  "number": 2,
+                  "topics": [
+                    {
+                      "name": "Embedded System Design with Microcontroller",
+                      "subtopics": [
+                        "Introduction to the concepts of microcontroller-based embedded systems",
+                        "Introduction to the microcontroller CPU",
+                        "The low-cost microcontroller education and development kits"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bia208_quiz_w2",
+                      "name": "Weekly Quiz Week 2",
+                      "due": "2027-02-22",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 3,
+                  "topics": [
+                    {
+                      "name": "Microprocessor Architecture and Assembly Language",
+                      "subtopics": [
+                        "The processor core",
+                        "Organization, registers, memory, and instruction set",
+                        "Interrupts and exceptions",
+                        "CPU response and hardware configuration",
+                        "Multitasking on the CPU"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bia208_quiz_w3",
+                      "name": "Weekly Quiz Week 3",
+                      "due": "2027-03-01",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 4,
+                  "topics": [
+                    {
+                      "name": "C Code as Implemented in Assembly Language",
+                      "subtopics": [
+                        "Overview of tool-chain to translate a program from C source code to executable object code",
+                        "Functions, arguments, return values, activation records, exception handlers",
+                        "Control flow constructs for loops and selection, memory allocation",
+                        "Introduction to the CMSIS hardware abstraction layer and software access to peripherals"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bia208_quiz_w4",
+                      "name": "Weekly Quiz Week 4",
+                      "due": "2027-03-08",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 5,
+                  "topics": [
+                    {
+                      "name": "Embedded System Programming",
+                      "subtopics": [
+                        "Programming practical session with examples",
+                        "Debugging"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bia208_quiz_w5",
+                      "name": "Weekly Quiz Week 5",
+                      "due": "2027-03-15",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 6,
+                  "topics": [
+                    {
+                      "name": "Interrupts",
+                      "subtopics": [
+                        "Designing software for a system with interrupts",
+                        "Interrupt configuration",
+                        "Program design with partitioning work",
+                        "Sharing data safely given pre-emption"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bia208_quiz_w6",
+                      "name": "Weekly Quiz Week 6",
+                      "due": "2027-03-22",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 7,
+                  "topics": [
+                    {
+                      "name": "General Purpose Digital Interfacing",
+                      "subtopics": [
+                        "General purpose I/O peripherals",
+                        "Hands-on experience with reading switches and lighting LEDs using C code"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bia208_quiz_w7",
+                      "name": "Weekly Quiz Week 7",
+                      "due": "2027-03-29",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    },
+                    {
+                      "id": "ass_bia208_shortanswer",
+                      "name": "Short-Answer Questions and Project Work",
+                      "due": "2027-04-02",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 25,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "Embedded processor systems architecture (internal and on-board). Solutions to simple problems.",
+                      "priority": "high"
+                    }
+                  ]
+                },
+                {
+                  "number": 8,
+                  "topics": [
+                    {
+                      "name": "Analog Interfacing",
+                      "subtopics": [
+                        "Quantization and sampling",
+                        "Digital to analog and analog to digital conversions (DAC/ADC)",
+                        "Analog comparator peripherals"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bia208_quiz_w8",
+                      "name": "Weekly Quiz Week 8",
+                      "due": "2027-04-05",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 9,
+                  "topics": [
+                    {
+                      "name": "Timers",
+                      "subtopics": [
+                        "Timer peripherals and periodic interrupt",
+                        "Pulse-width modulated signal for measuring elapsed time or a signal's frequency",
+                        "Watchdog timers, detection and reset of an out-of-control program"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bia208_quiz_w9",
+                      "name": "Weekly Quiz Week 9",
+                      "due": "2027-04-12",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 10,
+                  "topics": [
+                    {
+                      "name": "Serial Communication",
+                      "subtopics": [
+                        "Fundamentals of data serialization, framing, error detection, media access control, and addressing",
+                        "Software queues and buffer data between communication ISRs",
+                        "Three protocols and supporting peripherals: SPI, asynchronous serial (UART), and I2C"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bia208_quiz_w10",
+                      "name": "Weekly Quiz Week 10",
+                      "due": "2027-04-19",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    },
+                    {
+                      "id": "ass_bia208_practical",
+                      "name": "Practical (Report)",
+                      "due": "2027-04-23",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 30,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "Operating systems or IDE to produce a simple embedded application. May include report component.",
+                      "priority": "high"
+                    }
+                  ]
+                },
+                {
+                  "number": 11,
+                  "topics": [
+                    {
+                      "name": "DMA",
+                      "subtopics": [
+                        "DMA peripheral and autonomous data transfer",
+                        "DMA for bulk data copying",
+                        "DAC-based analogue waveform generation with precise timing"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bia208_quiz_w11",
+                      "name": "Weekly Quiz Week 11",
+                      "due": "2027-04-26",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 12,
+                  "topics": [
+                    {
+                      "name": "Project and Revision",
+                      "subtopics": [
+                        "Review of contents covered in previous weeks",
+                        "Student work review and clarification of outstanding issues"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bia208_final",
+                      "name": "Exam (Invigilated)",
+                      "due": "2027-05-10",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 35,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "All topics. Mix of detailed report questions and numerical problems. Must achieve 50%+ in exam.",
+                      "priority": "high"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Semester 2",
+          "units": [
+            {
+              "code": "BSC209",
+              "name": "Analysis and Modelling of Industrial Control Systems",
+              "color": "#00b894",
+              "weeks": [
+                {
+                  "number": 1,
+                  "topics": [
+                    {
+                      "name": "Introduction to Process Dynamics and Mathematical Models - Part 1",
+                      "subtopics": [
+                        "Review of 1st and 2nd order linear differential equations",
+                        "Representation of physical processes by linear differential equations",
+                        "Examples of linearity and non-linearity in physical processes"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": []
+                },
+                {
+                  "number": 2,
+                  "topics": [
+                    {
+                      "name": "Introduction to Process Dynamics and Mathematical Models - Part 2",
+                      "subtopics": [
+                        "Representation of dynamic processes using transfer functions",
+                        "Derivation of Laplace transforms for impulse, step, and ramp functions",
+                        "The transfer function in block diagram models"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc209_quiz_w2",
+                      "name": "Weekly Quiz Week 2",
+                      "due": "2027-07-26",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 3,
+                  "topics": [
+                    {
+                      "name": "Time Response Modelling",
+                      "subtopics": [
+                        "Block diagram notations and examples",
+                        "Representation of process dynamics by 1st and 2nd order transfer functions",
+                        "Transfer functions for time delays in the process response",
+                        "Determination of time responses to pulse, step, and ramp inputs",
+                        "Modelling of feedback control systems",
+                        "Higher order dynamic models and their simplification to approximate 2nd order plus dead time"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc209_quiz_w3",
+                      "name": "Weekly Quiz Week 3",
+                      "due": "2027-08-02",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 4,
+                  "topics": [
+                    {
+                      "name": "Modelling of process characteristics in MATLAB - Part 1",
+                      "subtopics": [
+                        "Steady state process model representations to identify inputs, outputs, and disturbance influences",
+                        "Development of a 1st order model from typical physical process such as a stirred hot water tank",
+                        "Development of a 2nd order model from a spring and weight model, and from a cascaded water tank process"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc209_quiz_w4",
+                      "name": "Weekly Quiz Week 4",
+                      "due": "2027-08-09",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 5,
+                  "topics": [
+                    {
+                      "name": "Modelling of process characteristics in MATLAB - Part 2",
+                      "subtopics": [
+                        "Development of a feed heater model with disturbances",
+                        "Detailed application model of a feedback control loop applied to a 1st order process",
+                        "State-Space Modelling"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc209_quiz_w5",
+                      "name": "Weekly Quiz Week 5",
+                      "due": "2027-08-16",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 6,
+                  "topics": [
+                    {
+                      "name": "PID Control and Frequency Response",
+                      "subtopics": [
+                        "PID Control",
+                        "Frequency response plots and their interpretation",
+                        "Bode diagrams",
+                        "Root locus diagrams"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc209_quiz_w6",
+                      "name": "Weekly Quiz Week 6",
+                      "due": "2027-08-23",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 7,
+                  "topics": [
+                    {
+                      "name": "Stability analysis of single loop feedback controllers (SISO) - Part 1",
+                      "subtopics": [
+                        "Stability criteria for feedback control",
+                        "Nyquist Diagrams",
+                        "Compensation by lead-lag elements to achieve stability"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc209_quiz_w7",
+                      "name": "Weekly Quiz Week 7",
+                      "due": "2027-08-30",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 8,
+                  "topics": [
+                    {
+                      "name": "Stability analysis of single loop feedback controllers (SISO) - Part 2",
+                      "subtopics": [
+                        "Configuration and tuning of feedback controllers using S plane models",
+                        "Feed forward control techniques and benefits for disturbance rejection"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc209_quiz_w8",
+                      "name": "Weekly Quiz Week 8",
+                      "due": "2027-09-06",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    },
+                    {
+                      "id": "ass_bsc209_test",
+                      "name": "Test (Invigilated)",
+                      "due": "2027-09-08",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 25,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "Part A: 1.5 hour exam with theory and numerical problems. Part B: short questions. Covers LOs 1, 2, 3.",
+                      "priority": "high"
+                    }
+                  ]
+                },
+                {
+                  "number": 9,
+                  "topics": [
+                    {
+                      "name": "Modelling, control, design and analysis of SISO systems using Matlab™",
+                      "subtopics": [
+                        "Case studies and exercises with Matlab to model, tune, and analyze 1st and 2nd order systems",
+                        "Verify stability and response of controllers"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc209_quiz_w9",
+                      "name": "Weekly Quiz Week 9",
+                      "due": "2027-09-13",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 10,
+                  "topics": [
+                    {
+                      "name": "Advanced Process Control",
+                      "subtopics": [
+                        "Advanced vs classical control",
+                        "Internal Model Control - IMC",
+                        "Model Predictive Control - MPC",
+                        "Reference models and Control model formulation"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc209_quiz_w10",
+                      "name": "Weekly Quiz Week 10",
+                      "due": "2027-09-20",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 11,
+                  "topics": [
+                    {
+                      "name": "Digital (Discrete) Control System Fundamentals",
+                      "subtopics": [
+                        "Digital vs Analogue",
+                        "Modelling a digital sampler and Zero-order Hold",
+                        "The z-transform and transfer functions",
+                        "Digital compensator and digital PID control"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc209_quiz_w11",
+                      "name": "Weekly Quiz Week 11",
+                      "due": "2027-09-27",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    },
+                    {
+                      "id": "ass_bsc209_project",
+                      "name": "Project (Report)",
+                      "due": "2027-10-01",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 25,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "Matlab model of a process with controller showing Bode, Nyquist, Root locus, PID. 1st/2nd order modelling. Bonus: advanced/digital control.",
+                      "priority": "high"
+                    }
+                  ]
+                },
+                {
+                  "number": 12,
+                  "topics": [
+                    {
+                      "name": "Project and Unit Review",
+                      "subtopics": [
+                        "Review of contents covered so far",
+                        "Student work review and clarification of outstanding issues"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc209_final",
+                      "name": "Examination (Invigilated)",
+                      "due": "2027-10-15",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 40,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "1st/2nd order system modeling, block diagram reduction, Bode plot, stability (Routh Hurwitz/root locus), digital control. Must achieve 50%+ in exam.",
+                      "priority": "high"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "code": "BIA207",
+              "name": "Modern Industrial Communication Systems And Protocols",
+              "color": "#6f42c1",
+              "weeks": [
+                {
+                  "number": 1,
+                  "topics": [
+                    {
+                      "name": "Review of OSI Model and the TCP/IP Protocol Suite",
+                      "subtopics": [
+                        "The Open System Interconnection (OSI) model",
+                        "The Transmission Control Protocol/Internet Protocol (TCP/IP protocol suite)",
+                        "Protocol data units (PDUs), addressing schemes, TCP/IP layers functions and protocols"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": []
+                },
+                {
+                  "number": 2,
+                  "topics": [
+                    {
+                      "name": "Connection Standards",
+                      "subtopics": [
+                        "RS-232 (connections, voltages levels, signal format, limitations, troubleshooting etc.)",
+                        "RS-485 (characteristics, voltage levels, termination, repeaters, troubleshooting)"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bia207_quiz_w2",
+                      "name": "Weekly Quiz Week 2",
+                      "due": "2027-07-26",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 3,
+                  "topics": [
+                    {
+                      "name": "Industrial Protocols for Communications - Part 1",
+                      "subtopics": [
+                        "Modbus (characteristics, protocol stack, application data units, master-slave operation)",
+                        "Modbus TCP/IP (communication stack, headers, encapsulation, client server connection)",
+                        "Distributed Network Protocol 3 (characteristics, frame format, DNP message)"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bia207_quiz_w3",
+                      "name": "Weekly Quiz Week 3",
+                      "due": "2027-08-02",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 4,
+                  "topics": [
+                    {
+                      "name": "Industrial Protocols for Communications - Part 2",
+                      "subtopics": [
+                        "MODBUS plus, Data Highway Plus, HART (media, physical and data link layers, architecture, frames, Medium Access Control)",
+                        "DeviceNet, PROFIBUS, Foundation Fieldbus H1 (media, physical and data link layers, architecture, frames, Medium Access Control)",
+                        "Third generation industrial protocols - Ethernet/IP, Foundation Fieldbus HSE"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bia207_quiz_w4",
+                      "name": "Weekly Quiz Week 4",
+                      "due": "2027-08-09",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 5,
+                  "topics": [
+                    {
+                      "name": "Wireless Communications and Networks - Part 1",
+                      "subtopics": [
+                        "Wireless fundamentals: frequency allocations, dB, modulation, spread spectrum, multiplexing",
+                        "Antennas: characteristics, dipoles, reflectors, wave energy"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bia207_quiz_w5",
+                      "name": "Weekly Quiz Week 5",
+                      "due": "2027-08-16",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 6,
+                  "topics": [
+                    {
+                      "name": "Wireless Communications and Networks - Part 2",
+                      "subtopics": [
+                        "Site surveys: path profiles, zone clearance, layout, fading",
+                        "IEEE802 standards: bridging, roaming, MAC, frames, selection"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bia207_quiz_w6",
+                      "name": "Weekly Quiz Week 6",
+                      "due": "2027-08-23",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    },
+                    {
+                      "id": "ass_bia207_test",
+                      "name": "Test (Invigilated)",
+                      "due": "2027-08-25",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 30,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "Short questions and/or simple problems. Covers topics 1-4, LOs 1-4.",
+                      "priority": "high"
+                    }
+                  ]
+                },
+                {
+                  "number": 7,
+                  "topics": [
+                    {
+                      "name": "Mobile Networks - Part 1",
+                      "subtopics": [
+                        "Cellular networks: principles and network architecture, 4G and 5G",
+                        "Principles of mobility managements: device mobility, roaming, routing for mobile device"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bia207_quiz_w7",
+                      "name": "Weekly Quiz Week 7",
+                      "due": "2027-08-30",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 8,
+                  "topics": [
+                    {
+                      "name": "Mobile Networks - Part 2",
+                      "subtopics": [
+                        "Mobility management in practice: 4G/5G, Mobile IP"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bia207_quiz_w8",
+                      "name": "Weekly Quiz Week 8",
+                      "due": "2027-09-06",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 9,
+                  "topics": [
+                    {
+                      "name": "Industry 4.0/5.0 and Industrial Internet of Things (IIoT) - Part 1",
+                      "subtopics": [
+                        "Introduction to Industry 4.0/5.0",
+                        "IIoT architecture and key enabling technologies",
+                        "IIoT technical standards and frameworks"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bia207_quiz_w9",
+                      "name": "Weekly Quiz Week 9",
+                      "due": "2027-09-13",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 10,
+                  "topics": [
+                    {
+                      "name": "Industry 4.0/5.0 and Industrial Internet of Things (IIoT) - Part 2",
+                      "subtopics": [
+                        "Applications and case studies of IIoT"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bia207_quiz_w10",
+                      "name": "Weekly Quiz Week 10",
+                      "due": "2027-09-20",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    },
+                    {
+                      "id": "ass_bia207_practical",
+                      "name": "Practical (Report)",
+                      "due": "2027-09-24",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 20,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "Complete practical project using software and submit written report. LOs 4, 5, 6.",
+                      "priority": "high"
+                    }
+                  ]
+                },
+                {
+                  "number": 11,
+                  "topics": [
+                    {
+                      "name": "Supervisory Control and Data Acquisition (SCADA) Systems",
+                      "subtopics": [
+                        "SCADA: fundamentals, architecture, and connectivity technologies",
+                        "Modern SCADA with Industrial IoT",
+                        "International standards and SCADA use cases in industrial applications"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bia207_quiz_w11",
+                      "name": "Weekly Quiz Week 11",
+                      "due": "2027-09-27",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 12,
+                  "topics": [
+                    {
+                      "name": "Project and Unit Review",
+                      "subtopics": [
+                        "Review of contents covered so far",
+                        "Student work review and clarification of outstanding issues"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bia207_final",
+                      "name": "Examination (Invigilated)",
+                      "due": "2027-10-15",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 40,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "All topics. Mix of detailed report questions and numerical problems. Must achieve 50%+ in exam.",
+                      "priority": "high"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "code": "BIA206",
+              "name": "Data Analytics and Artificial Intelligence",
+              "color": "#fd7e14",
+              "weeks": [
+                {
+                  "number": 1,
+                  "topics": [
+                    {
+                      "name": "Python and Data Science Basics Quick Review",
+                      "subtopics": [
+                        "Data types, Strings, Lists, Dictionaries",
+                        "Flow control and loops",
+                        "Conditional statements, objects, classes, plots",
+                        "Python vs R",
+                        "Data Analysis vs Data Science vs Machine Learning"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": []
+                },
+                {
+                  "number": 2,
+                  "topics": [
+                    {
+                      "name": "Data Processing and Visualization",
+                      "subtopics": [
+                        "Working with Jupyter notebooks, Pandas, NumPy",
+                        "Processing data, texts, and csv files",
+                        "Feature selection from data",
+                        "Processing information from online and internal data sources",
+                        "Goal and objectives of visualization",
+                        "Visualization with Matplotlib and pycharts"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bia206_quiz_w2",
+                      "name": "Weekly Quiz Week 2",
+                      "due": "2027-07-26",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 3,
+                  "topics": [
+                    {
+                      "name": "Introduction to Machine Learning",
+                      "subtopics": [
+                        "Linear regression",
+                        "Overfitting and underfitting",
+                        "Regularization",
+                        "Cross-validation",
+                        "Developing a machine learning model",
+                        "Applications of Data Mining"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bia206_quiz_w3",
+                      "name": "Weekly Quiz Week 3",
+                      "due": "2027-08-02",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 4,
+                  "topics": [
+                    {
+                      "name": "Supervised Machine Learning",
+                      "subtopics": [
+                        "Decision trees",
+                        "K-Nearest neighbors",
+                        "Naive bayes",
+                        "Logistic regression",
+                        "Support vector machines"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bia206_quiz_w4",
+                      "name": "Weekly Quiz Week 4",
+                      "due": "2027-08-09",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 5,
+                  "topics": [
+                    {
+                      "name": "Unsupervised Machine Learning",
+                      "subtopics": [
+                        "Clustering",
+                        "Principal components analysis",
+                        "Neural network overview",
+                        "Convolutional neural networks",
+                        "Autoencoders",
+                        "Recurrent neural networks"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bia206_quiz_w5",
+                      "name": "Weekly Quiz Week 5",
+                      "due": "2027-08-16",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 6,
+                  "topics": [
+                    {
+                      "name": "Search with Artificial Intelligence (AI)",
+                      "subtopics": [
+                        "Finding the best route from origin to destination",
+                        "Agents, state, actions",
+                        "Transition model as a function",
+                        "State space by sequence of actions and directed graphs",
+                        "Goal tests and path costs"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bia206_quiz_w6",
+                      "name": "Weekly Quiz Week 6",
+                      "due": "2027-08-23",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    },
+                    {
+                      "id": "ass_bia206_test",
+                      "name": "Test (Invigilated)",
+                      "due": "2027-08-25",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 25,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "Machine learning, data processing, visualization, regression. Solutions to simple problems. LOs 1, 2.",
+                      "priority": "high"
+                    }
+                  ]
+                },
+                {
+                  "number": 7,
+                  "topics": [
+                    {
+                      "name": "Knowledge and Conclusions in AI",
+                      "subtopics": [
+                        "Knowledge-based agents and sentences",
+                        "Propositional logics and symbols",
+                        "Logic connectives, Implication, Biconditional",
+                        "Knowledge-based models",
+                        "Inference and knowledge engineering",
+                        "Modus ponens, elimination, double negation, De Morgan's law, etc."
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bia206_quiz_w7",
+                      "name": "Weekly Quiz Week 7",
+                      "due": "2027-08-30",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 8,
+                  "topics": [
+                    {
+                      "name": "AI for Uncertainty and Probability",
+                      "subtopics": [
+                        "Possible worlds scenario and axioms in probability",
+                        "Unconditional and conditional probability",
+                        "Random variables and independence",
+                        "Baye's rule and joint probability",
+                        "Probability rules: Negation, inclusion-exclusion, marginalization",
+                        "Bayesian networks, inference, sampling",
+                        "Markov's models, assumptions, and chains"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bia206_quiz_w8",
+                      "name": "Weekly Quiz Week 8",
+                      "due": "2027-09-06",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 9,
+                  "topics": [
+                    {
+                      "name": "Optimization of AI Algorithms",
+                      "subtopics": [
+                        "Local search",
+                        "Hill climbing",
+                        "Simulated annealing",
+                        "Linear programming and constraint satisfaction",
+                        "Node and arc consistencies",
+                        "Backtracking search"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bia206_quiz_w9",
+                      "name": "Weekly Quiz Week 9",
+                      "due": "2027-09-13",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    },
+                    {
+                      "id": "ass_bia206_practical",
+                      "name": "Practical (Report) & Pre-recorded Presentation",
+                      "due": "2027-09-17",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 25,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "LOs 3, 4, 5.",
+                      "priority": "high"
+                    }
+                  ]
+                },
+                {
+                  "number": 10,
+                  "topics": [
+                    {
+                      "name": "Neural Networks",
+                      "subtopics": [
+                        "Activation functions",
+                        "Neural network structures",
+                        "Stochastic and mini-batch gradient descent",
+                        "Multilayer neural networks",
+                        "Back propagation and overfitting",
+                        "Tensor flow"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bia206_quiz_w10",
+                      "name": "Weekly Quiz Week 10",
+                      "due": "2027-09-20",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 11,
+                  "topics": [
+                    {
+                      "name": "Computer Vision and Image Processing",
+                      "subtopics": [
+                        "Computer vision and image convolution",
+                        "Convolutional neural networks",
+                        "Deep learning for computer vision",
+                        "Image classification and retrieval",
+                        "Object detection",
+                        "Semantic segmentation"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bia206_quiz_w11",
+                      "name": "Weekly Quiz Week 11",
+                      "due": "2027-09-27",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 12,
+                  "topics": [
+                    {
+                      "name": "Project and Unit Review",
+                      "subtopics": [
+                        "Review of contents covered so far",
+                        "Practical engagement mini projects",
+                        "Student work review and clarification of outstanding issues"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bia206_final",
+                      "name": "Exam (Invigilated)",
+                      "due": "2027-10-15",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 40,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "Machine Learning, Deep Learning, Computer Vision, forecasting with AI tools, Bokeh web documents. Must achieve 50%+ in exam.",
+                      "priority": "high"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "code": "BIA203",
+              "name": "Ancillary Support Systems",
+              "color": "#17a2b8",
+              "weeks": [
+                {
+                  "number": 1,
+                  "topics": [
+                    {
+                      "name": "EMI/EMC and Earthing/Shielding",
+                      "subtopics": [
+                        "Fundamentals of EMI (electromagnetic field theory, coupling modes, sources of transients, Fourier representation of EMI)",
+                        "Earthing and shielding principles and practices (LF magnetic shielding, gaskets and sealing, PCB shielding, safety and signal grounds)",
+                        "Cables, connectors and circuits (noise, cable parameters, routing, screening and connectors, stray capacitance and lead inductance)"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": []
+                },
+                {
+                  "number": 2,
+                  "topics": [
+                    {
+                      "name": "Power Distribution - Part 1 (Fundamentals)",
+                      "subtopics": [
+                        "Power distribution fundamentals (equipment, voltage improvement)",
+                        "Short circuits (common faults, calculations)"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bia203_quiz_w2",
+                      "name": "Weekly Quiz Week 2",
+                      "due": "2027-07-26",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 3,
+                  "topics": [
+                    {
+                      "name": "Power Distribution - Part 1 (Switchgear & Cables)",
+                      "subtopics": [
+                        "Switchgear - medium voltage (Parameters and operating characteristics, isolators/connectors, circuit breakers, insulation types)",
+                        "Power cables (cable types, losses, voltage drops, installation, faults)"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bia203_quiz_w3",
+                      "name": "Weekly Quiz Week 3",
+                      "due": "2027-08-02",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 4,
+                  "topics": [
+                    {
+                      "name": "Power Distribution - Part 2 (Transformers)",
+                      "subtopics": [
+                        "Power transformers (winding connection, earthing, protection and faults)"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bia203_quiz_w4",
+                      "name": "Weekly Quiz Week 4",
+                      "due": "2027-08-09",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 5,
+                  "topics": [
+                    {
+                      "name": "Power Distribution - Part 2 (Power Factor & Earthing)",
+                      "subtopics": [
+                        "Power Factor (concepts, improvement methods)",
+                        "Power factor improvement (shunt and series capacitors, shunt reactors, and etc.)",
+                        "Earthing (principles, safety, lighting, and surge mitigation)"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bia203_quiz_w5",
+                      "name": "Weekly Quiz Week 5",
+                      "due": "2027-08-16",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 6,
+                  "topics": [
+                    {
+                      "name": "Power Distribution - Part 2 (Simulations)",
+                      "subtopics": [
+                        "Distribution simulations (load flow studies, transformer and feeder cable sizing, fault current, motor starting currents)"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bia203_quiz_w6",
+                      "name": "Weekly Quiz Week 6",
+                      "due": "2027-08-23",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    },
+                    {
+                      "id": "ass_bia203_test",
+                      "name": "Test (Invigilated)",
+                      "due": "2027-08-25",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 25,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "Covers EMI/EMC, earthing/shielding, power distribution. LOs 1-4.",
+                      "priority": "high"
+                    }
+                  ]
+                },
+                {
+                  "number": 7,
+                  "topics": [
+                    {
+                      "name": "Electric Motors - Part 1",
+                      "subtopics": [
+                        "Electric motors (motor technology and construction, three-phase induction motors, energy losses and efficiency)"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bia203_quiz_w7",
+                      "name": "Weekly Quiz Week 7",
+                      "due": "2027-08-30",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 8,
+                  "topics": [
+                    {
+                      "name": "Electric Motors - Part 2 (Control & Protection)",
+                      "subtopics": [
+                        "Control and protection (control basics, motor protection, AC variable speed drives)"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bia203_quiz_w8",
+                      "name": "Weekly Quiz Week 8",
+                      "due": "2027-09-06",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 9,
+                  "topics": [
+                    {
+                      "name": "Electric Motors - Part 3 (Management & Maintenance)",
+                      "subtopics": [
+                        "Management and maintenance (installation procedures, fault finding)"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bia203_quiz_w9",
+                      "name": "Weekly Quiz Week 9",
+                      "due": "2027-09-13",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    },
+                    {
+                      "id": "ass_bia203_practical",
+                      "name": "Practical (Report)",
+                      "due": "2027-09-17",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 25,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "Practical project using software with written report. LOs 3, 4.",
+                      "priority": "high"
+                    }
+                  ]
+                },
+                {
+                  "number": 10,
+                  "topics": [
+                    {
+                      "name": "Boiler Control and Instrumentation - Part 1",
+                      "subtopics": [
+                        "Boiler processes and control functions (input/output variables, control functions, furnace air and draft controls, hazards)"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bia203_quiz_w10",
+                      "name": "Weekly Quiz Week 10",
+                      "due": "2027-09-20",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 11,
+                  "topics": [
+                    {
+                      "name": "Boiler Control and Instrumentation - Part 2",
+                      "subtopics": [
+                        "Boiler control functions (drum level measurement, control and protection, combustion controls, pressure controls, steam temperature controls, burner management systems)"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bia203_quiz_w11",
+                      "name": "Weekly Quiz Week 11",
+                      "due": "2027-09-27",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 12,
+                  "topics": [
+                    {
+                      "name": "Project and Course Review",
+                      "subtopics": [
+                        "Review of contents covered so far",
+                        "Student work review and clarification of outstanding issues"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bia203_final",
+                      "name": "Exam (Invigilated)",
+                      "due": "2027-10-15",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 40,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "All topics. Mix of detailed report questions and numerical problems. Must achieve 50%+ in exam.",
+                      "priority": "high"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     }
   ]
 }
