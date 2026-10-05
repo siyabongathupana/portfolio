@@ -15,9 +15,13 @@
       {
         "url": "https://raw.githubusercontent.com/siyabongathupana/portfolio/main/data/users/siyabongatshem%40gmail.com/project_images/1791209138780_WIN_20260917_15_22_29_Pro.jpg",
         "caption": "Siya"
+      },
+      {
+        "url": "https://raw.githubusercontent.com/siyabongathupana/portfolio/main/data/users/siyabongatshem%40gmail.com/project_images/1791209183823_WIN_20260814_14_31_53_Pro.jpg",
+        "caption": "Mandla"
       }
     ],
-    "updatedAt": 1791209164483,
+    "updatedAt": 1791209252633,
     "controllerType": "SX",
     "deltaVVersion": "v14",
     "projectType": "SIS",
