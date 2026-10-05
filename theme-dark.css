@@ -367,3 +367,273 @@ textarea { background: rgba(255,255,255,0.04) !important; color: var(--text-0) !
 code { background: rgba(47, 199, 255, 0.1); color: var(--accent); padding: 2px 6px; border-radius: 4px; font-size: 0.85em; }
 kbd { background: rgba(255,255,255,0.06); color: var(--text-0); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; font-size: 0.8em; }
 canvas { filter: none; }
+
+/* ═══════════════════════════════════════════════════════
+   CONTACT SECTION FIX — force dark bg, glow, grid pattern
+   ═══════════════════════════════════════════════════════ */
+#contact,
+section[style*="background:#eef3fc"],
+section[style*="background: #eef3fc"],
+section[style*="#eef3fc"] {
+  background: transparent !important;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  position: relative;
+  overflow: hidden;
+}
+
+#contact::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(47,199,255,0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(47,199,255,0.05) 1px, transparent 1px);
+  background-size: 44px 44px;
+  pointer-events: none;
+  mask-image: radial-gradient(ellipse at center, black 20%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse at center, black 20%, transparent 75%);
+  z-index: 0;
+}
+
+#contact::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 700px 400px at 50% 0%, rgba(47,199,255,0.10), transparent 65%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+#contact .container { position: relative; z-index: 1; }
+
+#contact h3 {
+  color: var(--text-0) !important;
+  font-weight: 700;
+  font-size: 1.55rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+#contact h3 i { color: var(--accent) !important; }
+
+#contact p {
+  color: var(--text-1) !important;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin-bottom: 18px;
+}
+
+#contact .list-unstyled { margin-top: 20px; }
+#contact .list-unstyled li {
+  color: var(--text-0) !important;
+  padding: 9px 0;
+  font-size: 0.95rem;
+  transition: 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+#contact .list-unstyled li:hover { color: var(--accent) !important; transform: translateX(4px); }
+#contact .list-unstyled li i {
+  color: var(--accent) !important;
+  width: 20px;
+  text-align: center;
+  font-size: 1rem;
+}
+
+#contact .text-dark,
+#contact a.text-dark {
+  color: var(--text-0) !important;
+  transition: 0.2s;
+  display: inline-block;
+}
+#contact a.text-dark:hover {
+  color: var(--accent) !important;
+  transform: translateY(-3px) scale(1.08);
+  filter: drop-shadow(0 0 12px rgba(47,199,255,0.55));
+}
+#contact a.text-dark i {
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.3));
+}
+
+/* Contact form card */
+#contactForm,
+#contact .col-md-7 form {
+  background: rgba(255, 255, 255, 0.03) !important;
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  padding: 28px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow:
+    0 20px 50px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  position: relative;
+  overflow: hidden;
+}
+#contact .col-md-7 form::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  opacity: 0.6;
+}
+
+#contact .col-md-7 form .form-control {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text-0) !important;
+  padding: 12px 16px !important;
+  border-radius: 12px !important;
+  font-size: 0.9rem;
+  transition: 0.2s;
+}
+#contact .col-md-7 form .form-control:focus {
+  border-color: var(--accent) !important;
+  background: rgba(47, 199, 255, 0.05) !important;
+  box-shadow: 0 0 0 3px rgba(47, 199, 255, 0.12) !important;
+}
+#contact .col-md-7 form .form-control::placeholder { color: var(--text-2) !important; }
+
+#contact .col-md-7 form .btn-delta {
+  width: 100%;
+  padding: 13px 24px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+#contactSuccess, #contactError {
+  border-radius: 12px !important;
+  padding: 12px 18px !important;
+  font-size: 0.88rem;
+}
+
+/* ═══════════════════════════════════════════════════════
+   FUTURISTIC TOUCHES — global
+   ═══════════════════════════════════════════════════════ */
+
+/* Button shine sweep */
+.btn-delta, .btn-primary {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.btn-delta::before, .btn-primary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -120%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.45), transparent);
+  transform: skewX(-20deg);
+  transition: left 0.7s cubic-bezier(0.2, 0.8, 0.2, 1);
+  z-index: 1;
+  pointer-events: none;
+}
+.btn-delta:hover::before, .btn-primary:hover::before { left: 130%; }
+
+/* Card glow pulse on hover */
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 14px rgba(47,199,255,0.12), 0 12px 36px rgba(0,0,0,0.4); }
+  50%      { box-shadow: 0 0 28px rgba(47,199,255,0.35), 0 12px 36px rgba(0,0,0,0.4); }
+}
+.project-card:hover, .cert-card:hover { animation: pulse-glow 1.8s ease-in-out infinite; }
+
+/* Gradient headings */
+.hero_area h1,
+.guide-header h1,
+.analytics-header h1,
+section h2 {
+  background: linear-gradient(135deg, #ffffff 0%, #2fc7ff 130%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.hero_area h1 span,
+section h2 span { -webkit-text-fill-color: #2fc7ff; }
+
+/* Animated top border for containers */
+.admin-container, .timesheet-container, .certificates-container,
+.sync-container, .admin-msg-container, .guide-container {
+  position: relative;
+  overflow: hidden;
+}
+.admin-container::before, .timesheet-container::before,
+.certificates-container::before, .sync-container::before,
+.admin-msg-container::before, .guide-container::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), var(--accent-2), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 6s linear infinite;
+  opacity: 0.7;
+}
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Subtle scanline overlay (very faint) */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 3px,
+    rgba(47, 199, 255, 0.012) 3px,
+    rgba(47, 199, 255, 0.012) 4px
+  );
+  pointer-events: none;
+  z-index: 9998;
+  opacity: 0.6;
+}
+
+/* Nav links futuristic underline */
+.custom_nav-container .nav-link,
+.navbar .nav-link {
+  position: relative;
+}
+.custom_nav-container .nav-link::after,
+.navbar .nav-link::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 0;
+  height: 1px;
+  background: var(--accent);
+  transition: all 0.25s;
+  transform: translateX(-50%);
+  box-shadow: 0 0 6px var(--accent);
+}
+.custom_nav-container .nav-link:hover::after,
+.navbar .nav-link:hover::after,
+.custom_nav-container .nav-link.active::after,
+.navbar .nav-link.active::after { width: 70%; }
+
+/* Input focus glow ring */
+.form-control:focus {
+  outline: none;
+  border-color: var(--accent) !important;
+  box-shadow:
+    0 0 0 3px rgba(47, 199, 255, 0.12),
+    0 0 20px rgba(47, 199, 255, 0.15) !important;
+}
+
+/* Icon hover glow */
+.fa:hover { transition: 0.2s; }
+a:hover > .fa, button:hover > .fa { filter: drop-shadow(0 0 6px currentColor); }
