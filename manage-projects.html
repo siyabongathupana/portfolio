@@ -1,0 +1,1785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Projects Command Center | Your Portfolio</title>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="config.js"></script>
+  <script src="crypto.js"></script>
+  <script src="api.js"></script>
+  <script src="shared.js"></script>
+
+  <style>
+    :root {
+      --bg-0: #050810;
+      --bg-1: #0a0e17;
+      --bg-2: #111927;
+      --bg-glass: rgba(17, 25, 39, 0.72);
+      --border: rgba(47, 199, 255, 0.08);
+      --border-strong: rgba(47, 199, 255, 0.22);
+      --text-0: #e0e8ee;
+      --text-1: #8a9fb0;
+      --text-2: #566b7d;
+      --accent: #2fc7ff;
+      --accent-2: #a29bfe;
+      --green: #4ae4b8;
+      --amber: #fdcb6e;
+      --red: #ff6b6b;
+      --purple: #c9c3ff;
+      --shadow-lg: 0 30px 80px rgba(0, 0, 0, 0.55);
+      --shadow-md: 0 12px 36px rgba(0, 0, 0, 0.4);
+      --radius-lg: 22px;
+      --radius-md: 14px;
+      --radius-sm: 10px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg-0);
+      color: var(--text-0);
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 800px 500px at 15% -10%, rgba(47, 199, 255, 0.14), transparent 60%),
+        radial-gradient(ellipse 700px 400px at 100% 5%, rgba(162, 155, 254, 0.10), transparent 60%),
+        radial-gradient(ellipse 900px 600px at 50% 120%, rgba(74, 228, 184, 0.06), transparent 60%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    body.editor-open { overflow: hidden; }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 8px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(47,199,255,0.35); }
+
+    .cc-header {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: var(--bg-glass);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+    }
+    .cc-header-inner {
+      max-width: 1500px;
+      margin: 0 auto;
+      padding: 16px 28px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    .cc-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 1.1rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: var(--text-0);
+      text-decoration: none;
+    }
+    .cc-brand:hover { text-decoration: none; color: var(--text-0); }
+    .cc-brand-mark {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--accent), #0984e3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #0a0e17;
+      font-weight: 900;
+      font-size: 1rem;
+      box-shadow: 0 0 24px rgba(47, 199, 255, 0.35);
+    }
+    .cc-brand span:not(.cc-brand-mark) { color: var(--accent); }
+
+    .cc-search {
+      flex: 1;
+      min-width: 220px;
+      max-width: 420px;
+      position: relative;
+    }
+    .cc-search input {
+      width: 100%;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 40px;
+      padding: 10px 18px 10px 42px;
+      color: var(--text-0);
+      font-size: 0.88rem;
+      outline: none;
+      transition: 0.2s;
+    }
+    .cc-search input::placeholder { color: var(--text-2); }
+    .cc-search input:focus {
+      border-color: var(--accent);
+      background: rgba(47, 199, 255, 0.05);
+      box-shadow: 0 0 0 3px rgba(47, 199, 255, 0.12);
+    }
+    .cc-search i {
+      position: absolute;
+      left: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-2);
+      pointer-events: none;
+    }
+    .cc-search .kbd {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 0.65rem;
+      font-family: monospace;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 2px 6px;
+      color: var(--text-1);
+    }
+
+    .cc-nav-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-left: auto;
+      flex-wrap: wrap;
+    }
+    .cc-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: none;
+      border-radius: 40px;
+      padding: 9px 20px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      transition: 0.2s;
+      cursor: pointer;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .cc-btn:hover { text-decoration: none; }
+    .cc-btn-ghost {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      color: var(--text-0);
+    }
+    .cc-btn-ghost:hover { background: rgba(255,255,255,0.09); color: var(--text-0); }
+    .cc-btn-primary {
+      background: linear-gradient(135deg, var(--accent), #0984e3);
+      color: #0a0e17;
+      box-shadow: 0 4px 20px rgba(47, 199, 255, 0.25);
+    }
+    .cc-btn-primary:hover {
+      color: #0a0e17;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 26px rgba(47, 199, 255, 0.4);
+    }
+
+    .cc-wrap {
+      max-width: 1500px;
+      margin: 0 auto;
+      padding: 32px 28px 100px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .cc-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+    .cc-stat {
+      background: var(--bg-glass);
+      backdrop-filter: blur(14px);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 18px 20px;
+      position: relative;
+      overflow: hidden;
+      transition: 0.25s;
+    }
+    .cc-stat:hover {
+      border-color: var(--border-strong);
+      transform: translateY(-2px);
+    }
+    .cc-stat::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      opacity: 0;
+      transition: 0.3s;
+    }
+    .cc-stat:hover::before { opacity: 1; }
+    .cc-stat .num {
+      font-size: 1.9rem;
+      font-weight: 800;
+      line-height: 1.1;
+      color: var(--text-0);
+      font-variant-numeric: tabular-nums;
+    }
+    .cc-stat .num.accent { color: var(--accent); }
+    .cc-stat .num.green { color: var(--green); }
+    .cc-stat .num.amber { color: var(--amber); }
+    .cc-stat .num.purple { color: var(--purple); }
+    .cc-stat .lbl {
+      font-size: 0.68rem;
+      color: var(--text-1);
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      font-weight: 600;
+      margin-top: 4px;
+    }
+    .cc-stat .icon {
+      position: absolute;
+      top: 14px;
+      right: 16px;
+      font-size: 1.1rem;
+      color: var(--text-2);
+      opacity: 0.5;
+    }
+
+    .cc-filters {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+      align-items: center;
+    }
+    .cc-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 7px 16px;
+      border-radius: 40px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      color: var(--text-1);
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.15s;
+      user-select: none;
+    }
+    .cc-chip:hover { background: rgba(255,255,255,0.07); color: var(--text-0); }
+    .cc-chip.active {
+      background: linear-gradient(135deg, var(--accent), #0984e3);
+      color: #0a0e17;
+      border-color: transparent;
+      box-shadow: 0 2px 12px rgba(47, 199, 255, 0.3);
+    }
+    .cc-chip .count {
+      font-size: 0.7rem;
+      padding: 1px 7px;
+      border-radius: 30px;
+      background: rgba(255,255,255,0.1);
+      font-variant-numeric: tabular-nums;
+    }
+    .cc-chip.active .count { background: rgba(0,0,0,0.2); color: #fff; }
+
+    .cc-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 22px;
+    }
+    .cc-card {
+      background: var(--bg-glass);
+      backdrop-filter: blur(14px);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      cursor: pointer;
+      transition: 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      animation: cardIn 0.4s ease both;
+    }
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .cc-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--border-strong);
+      box-shadow: var(--shadow-md);
+    }
+    .cc-card-img-wrap {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16/9;
+      overflow: hidden;
+      background: linear-gradient(135deg, #0a1520, #0f1a28);
+    }
+    .cc-card-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+      display: block;
+    }
+    .cc-card:hover .cc-card-img { transform: scale(1.06); }
+    .cc-card-img-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-2);
+      font-size: 2.4rem;
+    }
+    .cc-card-img-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, transparent 40%, rgba(5, 8, 16, 0.85) 100%);
+      pointer-events: none;
+    }
+    .cc-card-badges {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      z-index: 2;
+    }
+    .cc-card-imgcount {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: rgba(5, 8, 16, 0.75);
+      backdrop-filter: blur(6px);
+      border: 1px solid var(--border);
+      color: var(--text-0);
+      font-size: 0.68rem;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 30px;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .cc-card-body {
+      padding: 18px 20px 16px;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      gap: 10px;
+    }
+    .cc-card-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text-0);
+      line-height: 1.3;
+      margin: 0;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .cc-card-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.75rem;
+      color: var(--text-1);
+      flex-wrap: wrap;
+    }
+    .cc-card-meta .dot-sep {
+      width: 3px;
+      height: 3px;
+      border-radius: 50%;
+      background: var(--text-2);
+    }
+    .cc-card-desc {
+      font-size: 0.82rem;
+      color: var(--text-1);
+      line-height: 1.5;
+      margin: 0;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .cc-card-stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      padding-top: 10px;
+      border-top: 1px solid var(--border);
+      margin-top: auto;
+    }
+    .cc-card-stat {
+      text-align: center;
+    }
+    .cc-card-stat .v {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--text-0);
+      font-variant-numeric: tabular-nums;
+    }
+    .cc-card-stat .k {
+      font-size: 0.6rem;
+      color: var(--text-2);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-top: 1px;
+    }
+    .cc-card-actions {
+      display: flex;
+      gap: 6px;
+      padding: 0 20px 16px;
+    }
+    .cc-card-actions .cc-mini-btn {
+      flex: 1;
+      padding: 8px;
+      border: none;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.05);
+      color: var(--text-0);
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .cc-card-actions .cc-mini-btn:hover { background: rgba(47, 199, 255, 0.14); color: var(--accent); }
+    .cc-card-actions .cc-mini-btn.danger:hover { background: rgba(255, 107, 107, 0.14); color: var(--red); }
+
+    .cc-badge {
+      font-size: 0.62rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 30px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      border: 1px solid transparent;
+      backdrop-filter: blur(6px);
+    }
+    .cc-badge-deltav {
+      background: rgba(47, 199, 255, 0.15);
+      color: var(--accent);
+      border-color: rgba(47, 199, 255, 0.35);
+    }
+    .cc-badge-general {
+      background: rgba(162, 155, 254, 0.15);
+      color: var(--purple);
+      border-color: rgba(162, 155, 254, 0.35);
+    }
+    .cc-badge-status {
+      background: rgba(0,0,0,0.55);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.12);
+      color: var(--text-0);
+    }
+    .cc-badge-status.Completed { color: var(--green); border-color: rgba(74,228,184,0.4); }
+    .cc-badge-status.Ongoing   { color: var(--accent); border-color: rgba(47,199,255,0.4); }
+    .cc-badge-status.Paused    { color: var(--amber); border-color: rgba(253,203,110,0.4); }
+    .cc-badge-status.Planned   { color: var(--text-1); }
+    .cc-badge-status .d {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: currentColor;
+      box-shadow: 0 0 6px currentColor;
+    }
+
+    .cc-empty {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 80px 20px;
+      color: var(--text-1);
+    }
+    .cc-empty i {
+      font-size: 3.6rem;
+      color: var(--text-2);
+      opacity: 0.5;
+      display: block;
+      margin-bottom: 16px;
+    }
+    .cc-empty h4 { color: var(--text-0); font-weight: 700; margin-bottom: 8px; }
+    .cc-empty p { font-size: 0.9rem; max-width: 420px; margin: 0 auto 20px; }
+
+    .cc-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.65);
+      backdrop-filter: blur(4px);
+      z-index: 200;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s;
+    }
+    .cc-backdrop.open { opacity: 1; pointer-events: auto; }
+
+    .cc-drawer {
+      position: fixed;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: 100%;
+      max-width: 720px;
+      background: var(--bg-1);
+      border-left: 1px solid var(--border);
+      box-shadow: var(--shadow-lg);
+      z-index: 201;
+      transform: translateX(100%);
+      transition: transform 0.32s cubic-bezier(0.2, 0.8, 0.2, 1);
+      display: flex;
+      flex-direction: column;
+    }
+    .cc-drawer.open { transform: translateX(0); }
+
+    .cc-drawer-header {
+      padding: 20px 26px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-shrink: 0;
+      background: linear-gradient(180deg, rgba(47, 199, 255, 0.04), transparent);
+    }
+    .cc-drawer-header .titles { flex: 1; min-width: 0; }
+    .cc-drawer-header h2 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text-0);
+      margin: 0;
+    }
+    .cc-drawer-header .sub {
+      font-size: 0.75rem;
+      color: var(--text-1);
+      margin-top: 3px;
+    }
+    .cc-drawer-header .close-x {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      color: var(--text-1);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.05rem;
+      transition: 0.15s;
+      flex-shrink: 0;
+    }
+    .cc-drawer-header .close-x:hover { background: rgba(255,107,107,0.15); color: var(--red); border-color: rgba(255,107,107,0.3); }
+
+    .cc-drawer-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px 26px;
+    }
+
+    .cc-drawer-footer {
+      padding: 16px 26px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 10px;
+      flex-shrink: 0;
+      background: rgba(5, 8, 16, 0.5);
+      backdrop-filter: blur(10px);
+    }
+    .cc-drawer-footer .cc-btn { flex: 1; justify-content: center; padding: 12px 24px; font-size: 0.88rem; }
+
+    .cc-section {
+      margin-bottom: 24px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      background: rgba(255,255,255,0.015);
+      transition: 0.2s;
+    }
+    .cc-section-header {
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      user-select: none;
+      gap: 10px;
+      transition: 0.15s;
+    }
+    .cc-section-header:hover { background: rgba(255,255,255,0.025); }
+    .cc-section-header h3 {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--text-0);
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .cc-section-header h3 i { color: var(--accent); font-size: 0.95rem; }
+    .cc-section-header .chev {
+      color: var(--text-1);
+      font-size: 0.75rem;
+      transition: transform 0.25s;
+    }
+    .cc-section.open .cc-section-header .chev { transform: rotate(90deg); }
+    .cc-section-body {
+      padding: 0 20px 20px;
+      display: none;
+    }
+    .cc-section.open .cc-section-body { display: block; }
+
+    .cc-type-toggle {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 22px;
+    }
+    .cc-type-tile {
+      padding: 16px;
+      border-radius: var(--radius-md);
+      border: 1.5px solid var(--border);
+      background: rgba(255,255,255,0.02);
+      cursor: pointer;
+      text-align: center;
+      transition: 0.2s;
+    }
+    .cc-type-tile:hover { border-color: var(--border-strong); }
+    .cc-type-tile.active {
+      border-color: var(--accent);
+      background: rgba(47, 199, 255, 0.08);
+      box-shadow: 0 0 0 3px rgba(47, 199, 255, 0.08);
+    }
+    .cc-type-tile i {
+      font-size: 1.6rem;
+      display: block;
+      margin-bottom: 6px;
+      color: var(--text-1);
+    }
+    .cc-type-tile.active i { color: var(--accent); }
+    .cc-type-tile .t { font-weight: 700; font-size: 0.88rem; color: var(--text-0); }
+    .cc-type-tile .s { font-size: 0.7rem; color: var(--text-1); margin-top: 2px; }
+
+    .cc-field {
+      margin-bottom: 14px;
+    }
+    .cc-field label {
+      display: block;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--text-1);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 6px;
+    }
+    .cc-field input[type="text"],
+    .cc-field input[type="number"],
+    .cc-field input[type="date"],
+    .cc-field input[type="url"],
+    .cc-field textarea,
+    .cc-field select {
+      width: 100%;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 11px 14px;
+      color: var(--text-0);
+      font-size: 0.88rem;
+      font-family: inherit;
+      outline: none;
+      transition: 0.15s;
+    }
+    .cc-field input::placeholder,
+    .cc-field textarea::placeholder { color: var(--text-2); }
+    .cc-field input:focus,
+    .cc-field textarea:focus,
+    .cc-field select:focus {
+      border-color: var(--accent);
+      background: rgba(47, 199, 255, 0.04);
+      box-shadow: 0 0 0 3px rgba(47, 199, 255, 0.12);
+    }
+    .cc-field textarea { resize: vertical; min-height: 76px; font-size: 0.85rem; }
+    .cc-field select option { background: var(--bg-2); color: var(--text-0); }
+    .cc-field input.error, .cc-field textarea.error { border-color: var(--red); }
+
+    .cc-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+    }
+    .cc-row-2 { grid-template-columns: 1fr 1fr; }
+    .cc-row-3 { grid-template-columns: repeat(3, 1fr); }
+    .cc-row-4 { grid-template-columns: repeat(4, 1fr); }
+    @media (max-width: 600px) {
+      .cc-row-2, .cc-row-3, .cc-row-4 { grid-template-columns: 1fr; }
+    }
+
+    .cc-dropzone {
+      border: 2px dashed rgba(47, 199, 255, 0.28);
+      border-radius: var(--radius-md);
+      padding: 32px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: 0.2s;
+      background: rgba(47, 199, 255, 0.02);
+      position: relative;
+    }
+    .cc-dropzone:hover, .cc-dropzone.dragover {
+      border-color: var(--accent);
+      background: rgba(47, 199, 255, 0.07);
+    }
+    .cc-dropzone i {
+      font-size: 2.2rem;
+      color: var(--accent);
+      display: block;
+      margin-bottom: 10px;
+      opacity: 0.8;
+    }
+    .cc-dropzone .t { font-size: 0.92rem; font-weight: 600; color: var(--text-0); }
+    .cc-dropzone .s { font-size: 0.74rem; color: var(--text-1); margin-top: 4px; }
+    .cc-dropzone input[type="file"] { display: none; }
+
+    .cc-upload-progress {
+      height: 4px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 12px;
+      display: none;
+    }
+    .cc-upload-progress.active { display: block; }
+    .cc-upload-progress .fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent), var(--green));
+      transition: width 0.3s;
+    }
+
+    .cc-img-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .cc-img-tile {
+      position: relative;
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      border: 1px solid var(--border);
+      background: var(--bg-2);
+      aspect-ratio: 4/3;
+      transition: 0.15s;
+    }
+    .cc-img-tile:hover { border-color: var(--border-strong); }
+    .cc-img-tile img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .cc-img-tile .del {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      border: none;
+      background: rgba(5, 8, 16, 0.85);
+      backdrop-filter: blur(6px);
+      color: var(--red);
+      font-size: 0.85rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: 0.15s;
+    }
+    .cc-img-tile:hover .del { opacity: 1; }
+    .cc-img-tile .del:hover { background: var(--red); color: #fff; }
+    .cc-img-tile .caption-input {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(5, 8, 16, 0.85);
+      backdrop-filter: blur(6px);
+      border: none;
+      border-top: 1px solid var(--border);
+      color: var(--text-0);
+      font-size: 0.72rem;
+      padding: 7px 10px;
+      outline: none;
+      font-family: inherit;
+    }
+    .cc-img-tile .caption-input::placeholder { color: var(--text-2); }
+    .cc-img-tile .cover-tag {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      background: linear-gradient(135deg, var(--accent), #0984e3);
+      color: #0a0e17;
+      font-size: 0.6rem;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 30px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .cc-toasts {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 500;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      pointer-events: none;
+    }
+    .cc-toast {
+      background: var(--bg-glass);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      border-radius: var(--radius-md);
+      padding: 14px 20px;
+      color: var(--text-0);
+      font-size: 0.85rem;
+      font-weight: 500;
+      min-width: 260px;
+      max-width: 400px;
+      box-shadow: var(--shadow-md);
+      animation: toastIn 0.28s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+      pointer-events: auto;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .cc-toast.success { border-left-color: var(--green); }
+    .cc-toast.error   { border-left-color: var(--red); }
+    .cc-toast.info    { border-left-color: var(--accent); }
+    .cc-toast.warning { border-left-color: var(--amber); }
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateX(30px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    @media (max-width: 768px) {
+      .cc-header-inner { padding: 12px 16px; gap: 12px; }
+      .cc-brand span:not(.cc-brand-mark) { display: none; }
+      .cc-search { order: 3; min-width: 100%; max-width: 100%; }
+      .cc-search .kbd { display: none; }
+      .cc-wrap { padding: 22px 16px 80px; }
+      .cc-stats { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+      .cc-stat { padding: 14px 16px; }
+      .cc-stat .num { font-size: 1.5rem; }
+      .cc-grid { grid-template-columns: 1fr; gap: 16px; }
+      .cc-drawer { max-width: 100%; }
+      .cc-drawer-header { padding: 16px 18px; }
+      .cc-drawer-body { padding: 18px; }
+      .cc-drawer-footer { padding: 14px 18px; }
+      .cc-img-grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
+    }
+  </style>
+</head>
+<body>
+
+<header class="cc-header">
+  <div class="cc-header-inner">
+    <a href="admin.html" class="cc-brand">
+      <span class="cc-brand-mark">P</span>
+      <span><span style="color:#2fc7ff;">Projects</span> Command Center</span>
+    </a>
+
+    <div class="cc-search">
+      <i class="fa fa-search"></i>
+      <input type="text" id="searchInput" placeholder="Search projects, clients, tech…" autocomplete="off">
+      <span class="kbd">Ctrl+K</span>
+    </div>
+
+    <div class="cc-nav-actions">
+      <a href="admin.html" class="cc-btn cc-btn-ghost"><i class="fa fa-arrow-left"></i> Dashboard</a>
+      <button class="cc-btn cc-btn-primary" id="addBtn"><i class="fa fa-plus"></i> New Project</button>
+    </div>
+  </div>
+</header>
+
+<main class="cc-wrap">
+  <div class="cc-stats" id="statsBar">
+    <div class="cc-stat">
+      <i class="fa fa-cubes icon"></i>
+      <div class="num accent" id="statTotal">0</div>
+      <div class="lbl">Total Projects</div>
+    </div>
+    <div class="cc-stat">
+      <i class="fa fa-microchip icon"></i>
+      <div class="num" id="statDeltaV">0</div>
+      <div class="lbl">DeltaV</div>
+    </div>
+    <div class="cc-stat">
+      <i class="fa fa-code icon"></i>
+      <div class="num purple" id="statGeneral">0</div>
+      <div class="lbl">General</div>
+    </div>
+    <div class="cc-stat">
+      <i class="fa fa-check-circle icon"></i>
+      <div class="num green" id="statCompleted">0</div>
+      <div class="lbl">Completed</div>
+    </div>
+    <div class="cc-stat">
+      <i class="fa fa-spinner icon"></i>
+      <div class="num" id="statOngoing">0</div>
+      <div class="lbl">Ongoing</div>
+    </div>
+    <div class="cc-stat">
+      <i class="fa fa-image icon"></i>
+      <div class="num amber" id="statImages">0</div>
+      <div class="lbl">Images</div>
+    </div>
+  </div>
+
+  <div class="cc-filters" id="filterBar">
+    <div class="cc-chip active" data-filter="all"><i class="fa fa-th"></i> All <span class="count" id="countAll">0</span></div>
+    <div class="cc-chip" data-filter="deltaV"><i class="fa fa-microchip"></i> DeltaV <span class="count" id="countDeltaV">0</span></div>
+    <div class="cc-chip" data-filter="general"><i class="fa fa-code"></i> General <span class="count" id="countGeneral">0</span></div>
+    <div class="cc-chip" data-filter="Completed"><i class="fa fa-check-circle"></i> Completed <span class="count" id="countCompleted">0</span></div>
+    <div class="cc-chip" data-filter="Ongoing"><i class="fa fa-spinner"></i> Ongoing <span class="count" id="countOngoing">0</span></div>
+    <div class="cc-chip" data-filter="Paused"><i class="fa fa-pause-circle"></i> Paused <span class="count" id="countPaused">0</span></div>
+    <div class="cc-chip" data-filter="Planned"><i class="fa fa-clock-o"></i> Planned <span class="count" id="countPlanned">0</span></div>
+  </div>
+
+  <div class="cc-grid" id="projectsGrid"></div>
+</main>
+
+<div class="cc-backdrop" id="editorBackdrop"></div>
+<aside class="cc-drawer" id="editorDrawer" aria-hidden="true">
+  <div class="cc-drawer-header">
+    <div class="titles">
+      <h2 id="editorTitle">New Project</h2>
+      <div class="sub" id="editorSubtitle">Fill in the details below</div>
+    </div>
+    <button class="close-x" id="closeEditor" aria-label="Close"><i class="fa fa-times"></i></button>
+  </div>
+
+  <div class="cc-drawer-body" id="editorBody">
+    <div class="cc-type-toggle" id="typeToggle">
+      <div class="cc-type-tile active" data-type="deltaV">
+        <i class="fa fa-microchip"></i>
+        <div class="t">DeltaV</div>
+        <div class="s">DCS · SIS · Emerson</div>
+      </div>
+      <div class="cc-type-tile" data-type="nonDeltaV">
+        <i class="fa fa-code"></i>
+        <div class="t">General Engineering</div>
+        <div class="s">Software · Hardware · Other</div>
+      </div>
+    </div>
+
+    <section class="cc-section open" data-section="basic">
+      <div class="cc-section-header">
+        <h3><i class="fa fa-info-circle"></i> Basic Information</h3>
+        <i class="fa fa-chevron-right chev"></i>
+      </div>
+      <div class="cc-section-body">
+        <div class="cc-field">
+          <label>Project Title *</label>
+          <input type="text" id="f_title" placeholder="e.g. Sasol Secunda DCS Upgrade" required>
+        </div>
+        <div class="cc-field">
+          <label>Short Summary</label>
+          <textarea id="f_shortDesc" rows="2" placeholder="One or two lines describing the project..."></textarea>
+        </div>
+        <div class="cc-row cc-row-2">
+          <div class="cc-field"><label>Client / Company</label><input type="text" id="f_client" placeholder="Sasol, Eskom..."></div>
+          <div class="cc-field"><label>Industry / Category</label><input type="text" id="f_industry" placeholder="Petrochemical, Mining..."></div>
+        </div>
+        <div class="cc-row cc-row-3">
+          <div class="cc-field">
+            <label>Status</label>
+            <select id="f_status">
+              <option value="Completed">Completed</option>
+              <option value="Ongoing" selected>Ongoing</option>
+              <option value="Paused">Paused</option>
+              <option value="Planned">Planned</option>
+            </select>
+          </div>
+          <div class="cc-field"><label>Duration</label><input type="text" id="f_duration" placeholder="6 months"></div>
+          <div class="cc-field"><label>Your Role</label><input type="text" id="f_userRole" placeholder="Lead Engineer"></div>
+        </div>
+        <div class="cc-field">
+          <label>Team Members <small style="color:var(--text-2);text-transform:none;letter-spacing:0;">(comma separated)</small></label>
+          <input type="text" id="f_teamMembers" placeholder="John Doe, Jane Smith">
+        </div>
+      </div>
+    </section>
+
+    <section class="cc-section" data-section="deltav" id="sectionDeltaV">
+      <div class="cc-section-header">
+        <h3><i class="fa fa-microchip"></i> DeltaV Configuration</h3>
+        <i class="fa fa-chevron-right chev"></i>
+      </div>
+      <div class="cc-section-body">
+        <div class="cc-row cc-row-2">
+          <div class="cc-field">
+            <label>Controller Type</label>
+            <select id="f_controllerType">
+              <option>PK</option><option>SQ</option><option selected>MD</option><option>SD</option>
+              <option>IQ</option><option>MQ</option><option>SX</option><option>SZ</option>
+            </select>
+          </div>
+          <div class="cc-field"><label>DeltaV Version</label><input type="text" id="f_deltaVVersion" placeholder="v14, v15..."></div>
+        </div>
+        <div class="cc-row cc-row-2">
+          <div class="cc-field">
+            <label>Project Type</label>
+            <select id="f_projectType">
+              <option value="DCS">DCS</option>
+              <option value="SIS">SIS</option>
+              <option value="SIS & DCS">SIS & DCS</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="cc-field"><label># Cabinets</label><input type="number" id="f_cabinetCount" min="0" placeholder="1"></div>
+        </div>
+        <label style="display:block;font-size:0.72rem;font-weight:700;color:var(--text-1);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">I/O Counts</label>
+        <div class="cc-row cc-row-4">
+          <div class="cc-field"><label>AI</label><input type="number" id="f_ai" min="0" placeholder="0"></div>
+          <div class="cc-field"><label>AO</label><input type="number" id="f_ao" min="0" placeholder="0"></div>
+          <div class="cc-field"><label>DI</label><input type="number" id="f_di" min="0" placeholder="0"></div>
+          <div class="cc-field"><label>DO</label><input type="number" id="f_do" min="0" placeholder="0"></div>
+        </div>
+        <div class="cc-row cc-row-4">
+          <div class="cc-field"><label>Start Date</label><input type="date" id="f_start"></div>
+          <div class="cc-field"><label>Finish Date</label><input type="date" id="f_finish"></div>
+          <div class="cc-field"><label>IFAT</label><input type="date" id="f_ifat"></div>
+          <div class="cc-field"><label>CFAT</label><input type="date" id="f_cfat"></div>
+        </div>
+        <div class="cc-row cc-row-3">
+          <div class="cc-field"><label>Lead Engineer</label><input type="text" id="f_lead"></div>
+          <div class="cc-field"><label>Project Engineer</label><input type="text" id="f_engineer"></div>
+          <div class="cc-field"><label>Technician</label><input type="text" id="f_technician"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="cc-section" data-section="tech" id="sectionTech">
+      <div class="cc-section-header">
+        <h3><i class="fa fa-wrench"></i> Technical Details</h3>
+        <i class="fa fa-chevron-right chev"></i>
+      </div>
+      <div class="cc-section-body">
+        <div class="cc-row cc-row-2">
+          <div class="cc-field"><label>Technologies</label><input type="text" id="f_technologies" placeholder="Python, React, Docker..."></div>
+          <div class="cc-field"><label>Hardware</label><input type="text" id="f_hardware" placeholder="Siemens S7, Raspberry Pi..."></div>
+        </div>
+        <div class="cc-row cc-row-2">
+          <div class="cc-field"><label>Software</label><input type="text" id="f_software" placeholder="VS Code, AutoCAD..."></div>
+          <div class="cc-field"><label>Protocols</label><input type="text" id="f_protocols" placeholder="Modbus, OPC UA..."></div>
+        </div>
+        <div class="cc-field"><label>Programming Languages</label><input type="text" id="f_languages" placeholder="C, C++, Python..."></div>
+      </div>
+    </section>
+
+    <section class="cc-section" data-section="wb" id="sectionWorkBreakdown">
+      <div class="cc-section-header">
+        <h3><i class="fa fa-sitemap"></i> Work Breakdown & Analysis</h3>
+        <i class="fa fa-chevron-right chev"></i>
+      </div>
+      <div class="cc-section-body">
+        <div class="cc-field"><label>Work Breakdown Structure</label><textarea id="f_workBreakdown" rows="2"></textarea></div>
+        <div class="cc-field"><label>Problems Encountered</label><textarea id="f_problems" rows="2"></textarea></div>
+        <div class="cc-field"><label>Root Causes</label><textarea id="f_rootCauses" rows="2"></textarea></div>
+        <div class="cc-field"><label>Solutions Implemented</label><textarea id="f_solutions" rows="2"></textarea></div>
+        <div class="cc-field"><label>Improvements Made</label><textarea id="f_improvements" rows="2"></textarea></div>
+        <div class="cc-field"><label>Lessons Learned</label><textarea id="f_lessons" rows="2"></textarea></div>
+        <div class="cc-field"><label>Risks Identified</label><textarea id="f_risks" rows="2"></textarea></div>
+        <div class="cc-field"><label>Testing Procedure</label><textarea id="f_testing" rows="2"></textarea></div>
+      </div>
+    </section>
+
+    <section class="cc-section" data-section="desc">
+      <div class="cc-section-header">
+        <h3><i class="fa fa-align-left"></i> Full Description</h3>
+        <i class="fa fa-chevron-right chev"></i>
+      </div>
+      <div class="cc-section-body">
+        <div class="cc-field">
+          <textarea id="f_description" rows="5" placeholder="Detailed description of the project, scope, deliverables..."></textarea>
+        </div>
+      </div>
+    </section>
+
+    <section class="cc-section open" data-section="media">
+      <div class="cc-section-header">
+        <h3><i class="fa fa-images"></i> Media Gallery</h3>
+        <i class="fa fa-chevron-right chev"></i>
+      </div>
+      <div class="cc-section-body">
+        <div class="cc-dropzone" id="dropzone">
+          <i class="fa fa-cloud-upload"></i>
+          <div class="t">Drop images here or click to browse</div>
+          <div class="s">PNG, JPG, WEBP · Compressed & uploaded to GitHub automatically</div>
+          <input type="file" id="imageInput" accept="image/*" multiple>
+        </div>
+        <div class="cc-upload-progress" id="uploadProgress">
+          <div class="fill" id="uploadProgressFill"></div>
+        </div>
+        <div class="cc-img-grid" id="imageGrid"></div>
+      </div>
+    </section>
+
+    <div style="height:40px;"></div>
+  </div>
+
+  <div class="cc-drawer-footer">
+    <button class="cc-btn cc-btn-ghost" id="cancelBtn"><i class="fa fa-times"></i> Cancel</button>
+    <button class="cc-btn cc-btn-primary" id="saveBtn"><i class="fa fa-check"></i> Save Project</button>
+  </div>
+</aside>
+
+<div class="cc-toasts" id="toastContainer"></div>
+
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+<script>
+(function () {
+  'use strict';
+
+  const user = window.SessionManager?.getCurrentUser();
+  if (!user) {
+    window.location.href = 'login.html?redirect=manage-projects';
+    return;
+  }
+
+  let allProjects = {};
+  let currentFilter = 'all';
+  let currentSearch = '';
+  let editingId = null;
+  let draftImages = [];
+  let pendingUploads = 0;
+  let uploadProgress = { done: 0, total: 0 };
+
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => window.escapeHtml ? window.escapeHtml(s) : String(s || '').replace(/[&<>"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+
+  function toast(msg, type = 'info', duration = 3500) {
+    const c = $('toastContainer');
+    const el = document.createElement('div');
+    el.className = `cc-toast ${type}`;
+    const icons = { success: '✓', error: '✕', info: 'ℹ', warning: '⚠' };
+    el.innerHTML = `<span style="font-size:1rem;">${icons[type] || 'ℹ'}</span><span>${esc(msg)}</span>`;
+    c.appendChild(el);
+    setTimeout(() => {
+      el.style.opacity = '0';
+      el.style.transform = 'translateX(30px)';
+      setTimeout(() => el.remove(), 300);
+    }, duration);
+  }
+
+  function isDeltaV(proj) {
+    return proj.projectCategory === 'deltaV' || !!proj.controllerType;
+  }
+
+  function getCoverImage(proj) {
+    if (proj.selectedImages && proj.selectedImages.length > 0) {
+      return proj.selectedImages[0].url;
+    }
+    return null;
+  }
+
+  function getImageCount(proj) {
+    return (proj.selectedImages && proj.selectedImages.length) || 0;
+  }
+
+  function statusClass(status) {
+    const s = (status || 'Planned').trim();
+    return ['Completed', 'Ongoing', 'Paused', 'Planned'].includes(s) ? s : 'Planned';
+  }
+
+  function renderStats() {
+    const list = Object.values(allProjects);
+    $('statTotal').textContent     = list.length;
+    $('statDeltaV').textContent    = list.filter(isDeltaV).length;
+    $('statGeneral').textContent   = list.filter(p => !isDeltaV(p)).length;
+    $('statCompleted').textContent = list.filter(p => p.status === 'Completed').length;
+    $('statOngoing').textContent   = list.filter(p => p.status === 'Ongoing').length;
+    $('statImages').textContent    = list.reduce((sum, p) => sum + getImageCount(p), 0);
+
+    $('countAll').textContent       = list.length;
+    $('countDeltaV').textContent    = list.filter(isDeltaV).length;
+    $('countGeneral').textContent   = list.filter(p => !isDeltaV(p)).length;
+    $('countCompleted').textContent = list.filter(p => p.status === 'Completed').length;
+    $('countOngoing').textContent   = list.filter(p => p.status === 'Ongoing').length;
+    $('countPaused').textContent    = list.filter(p => p.status === 'Paused').length;
+    $('countPlanned').textContent   = list.filter(p => p.status === 'Planned' || !p.status).length;
+  }
+
+  function passesFilter(proj) {
+    if (currentFilter === 'deltaV') return isDeltaV(proj);
+    if (currentFilter === 'general') return !isDeltaV(proj);
+    if (currentFilter === 'all') return true;
+    return (proj.status || 'Planned') === currentFilter;
+  }
+
+  function passesSearch(proj) {
+    if (!currentSearch) return true;
+    const q = currentSearch.toLowerCase();
+    const hay = [
+      proj.title, proj.client, proj.industry, proj.description, proj.shortDesc,
+      proj.teamMembers, proj.controllerType, proj.projectType, proj.deltaVVersion,
+      proj.technical?.technologies, proj.technical?.hardware, proj.technical?.software
+    ].filter(Boolean).join(' ').toLowerCase();
+    return hay.includes(q);
+  }
+
+  function renderGrid() {
+    const grid = $('projectsGrid');
+    const list = Object.values(allProjects)
+      .filter(passesFilter)
+      .filter(passesSearch);
+
+    const order = { Ongoing: 0, Planned: 1, Paused: 2, Completed: 3 };
+    list.sort((a, b) => {
+      const oa = order[a.status] ?? 4;
+      const ob = order[b.status] ?? 4;
+      if (oa !== ob) return oa - ob;
+      return (b.updatedAt || 0) - (a.updatedAt || 0);
+    });
+
+    if (list.length === 0) {
+      const msg = currentSearch || currentFilter !== 'all'
+        ? `No projects match your filter. <a href="#" id="clearFiltersLink" style="color:var(--accent);">Clear filters</a>`
+        : `No projects yet. Click <strong style="color:var(--accent);">+ New Project</strong> to get started.`;
+      grid.innerHTML = `
+        <div class="cc-empty">
+          <i class="fa fa-folder-open-o"></i>
+          <h4>${Object.keys(allProjects).length === 0 ? 'No projects yet' : 'No matches'}</h4>
+          <p>${msg}</p>
+        </div>`;
+      const clearLink = $('clearFiltersLink');
+      if (clearLink) clearLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        currentFilter = 'all';
+        currentSearch = '';
+        $('searchInput').value = '';
+        document.querySelectorAll('.cc-chip').forEach(c => c.classList.toggle('active', c.dataset.filter === 'all'));
+        renderGrid();
+      });
+      return;
+    }
+
+    grid.innerHTML = list.map((p, i) => {
+      const id = p.id;
+      const dv = isDeltaV(p);
+      const cover = getCoverImage(p);
+      const imgCount = getImageCount(p);
+      const status = statusClass(p.status);
+      const shortDesc = p.shortDesc || p.description || 'No description provided.';
+      const io = p.io || {};
+
+      let statCells = '';
+      if (dv) {
+        statCells = `
+          <div class="cc-card-stat"><div class="v">${io.AI || 0}</div><div class="k">AI</div></div>
+          <div class="cc-card-stat"><div class="v">${io.AO || 0}</div><div class="k">AO</div></div>
+          <div class="cc-card-stat"><div class="v">${io.DI || 0}</div><div class="k">DI</div></div>
+          <div class="cc-card-stat"><div class="v">${io.DO || 0}</div><div class="k">DO</div></div>`;
+      } else {
+        statCells = `
+          <div class="cc-card-stat" style="grid-column:span 2;"><div class="v" style="font-size:0.78rem;">${esc((p.duration || 'N/A').substring(0, 14))}</div><div class="k">Duration</div></div>
+          <div class="cc-card-stat" style="grid-column:span 2;"><div class="v" style="font-size:0.78rem;">${esc((p.userRole || 'N/A').substring(0, 14))}</div><div class="k">Role</div></div>`;
+      }
+
+      return `
+        <article class="cc-card" data-id="${esc(id)}" style="animation-delay:${i * 0.03}s;">
+          <div class="cc-card-img-wrap">
+            ${cover
+              ? `<img class="cc-card-img" src="${esc(cover)}" alt="${esc(p.title)}" loading="lazy" draggable="false">`
+              : `<div class="cc-card-img-placeholder"><i class="fa fa-image"></i></div>`}
+            <div class="cc-card-img-overlay"></div>
+            <div class="cc-card-badges">
+              <span class="cc-badge ${dv ? 'cc-badge-deltav' : 'cc-badge-general'}">
+                <i class="fa ${dv ? 'fa-microchip' : 'fa-code'}"></i>
+                ${dv ? 'DeltaV' : 'General'}
+              </span>
+              <span class="cc-badge cc-badge-status ${status}">
+                <span class="d"></span>${status}
+              </span>
+            </div>
+            ${imgCount > 0 ? `<span class="cc-card-imgcount"><i class="fa fa-image"></i> ${imgCount}</span>` : ''}
+          </div>
+          <div class="cc-card-body">
+            <h3 class="cc-card-title">${esc(p.title || 'Untitled Project')}</h3>
+            <div class="cc-card-meta">
+              ${p.client ? `<span><i class="fa fa-building-o" style="margin-right:4px;"></i>${esc(p.client)}</span>` : ''}
+              ${p.client && p.industry ? '<span class="dot-sep"></span>' : ''}
+              ${p.industry ? `<span>${esc(p.industry)}</span>` : ''}
+            </div>
+            <p class="cc-card-desc">${esc(shortDesc)}</p>
+            <div class="cc-card-stats">${statCells}</div>
+          </div>
+          <div class="cc-card-actions">
+            <button class="cc-mini-btn" data-action="view"><i class="fa fa-eye"></i> View</button>
+            <button class="cc-mini-btn" data-action="edit"><i class="fa fa-pencil"></i> Edit</button>
+            <button class="cc-mini-btn danger" data-action="delete"><i class="fa fa-trash"></i></button>
+          </div>
+        </article>`;
+    }).join('');
+
+    grid.querySelectorAll('.cc-card').forEach(card => {
+      const id = card.dataset.id;
+      card.querySelectorAll('.cc-mini-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const action = btn.dataset.action;
+          if (action === 'view') window.open(`project-details.html?id=${encodeURIComponent(id)}`, '_blank');
+          if (action === 'edit') openEditor(id);
+          if (action === 'delete') confirmDelete(id);
+        });
+      });
+      card.addEventListener('click', () => openEditor(id));
+    });
+
+    if (window.protectImages) window.protectImages();
+  }
+
+  async function loadAll() {
+    window.showLoading('Loading projects…');
+    try {
+      allProjects = await window.portfolioData.loadProjects();
+      renderStats();
+      renderGrid();
+    } catch (err) {
+      console.error(err);
+      toast('Failed to load projects: ' + err.message, 'error');
+    } finally {
+      window.hideLoading();
+    }
+  }
+
+  function openEditor(id = null) {
+    editingId = id;
+    const isEdit = !!id;
+    const proj = isEdit ? allProjects[id] : null;
+
+    $('editorTitle').textContent = isEdit ? 'Edit Project' : 'New Project';
+    $('editorSubtitle').textContent = isEdit
+      ? `${proj?.title || 'Project'}`
+      : 'Fill in the details below';
+
+    const isDV = isEdit ? isDeltaV(proj) : true;
+    setType(isDV ? 'deltaV' : 'nonDeltaV');
+
+    document.querySelectorAll('#editorBody input, #editorBody textarea, #editorBody select').forEach(el => {
+      if (el.type === 'file') return;
+      if (el.tagName === 'SELECT') el.selectedIndex = 0;
+      else el.value = '';
+    });
+
+    draftImages = isEdit && proj.selectedImages ? proj.selectedImages.map(x => ({ ...x })) : [];
+
+    if (proj) {
+      setVal('f_title', proj.title);
+      setVal('f_shortDesc', proj.shortDesc);
+      setVal('f_client', proj.client);
+      setVal('f_industry', proj.industry);
+      setVal('f_status', proj.status || 'Ongoing');
+      setVal('f_duration', proj.duration);
+      setVal('f_userRole', proj.userRole);
+      setVal('f_teamMembers', proj.teamMembers);
+
+      setVal('f_controllerType', proj.controllerType || 'MD');
+      setVal('f_deltaVVersion', proj.deltaVVersion);
+      setVal('f_projectType', proj.projectType || 'DCS');
+      setVal('f_cabinetCount', proj.cabinetCount);
+      setVal('f_ai', proj.io?.AI);
+      setVal('f_ao', proj.io?.AO);
+      setVal('f_di', proj.io?.DI);
+      setVal('f_do', proj.io?.DO);
+      setVal('f_start', proj.dates?.start);
+      setVal('f_finish', proj.dates?.finish);
+      setVal('f_ifat', proj.dates?.ifat);
+      setVal('f_cfat', proj.dates?.cfat);
+      setVal('f_lead', proj.team?.lead);
+      setVal('f_engineer', proj.team?.engineer);
+      setVal('f_technician', proj.team?.technician);
+
+      setVal('f_technologies', proj.technical?.technologies);
+      setVal('f_hardware', proj.technical?.hardware);
+      setVal('f_software', proj.technical?.software);
+      setVal('f_protocols', proj.technical?.protocols);
+      setVal('f_languages', proj.technical?.languages);
+
+      setVal('f_workBreakdown', proj.workBreakdown?.workBreakdown);
+      setVal('f_problems', proj.workBreakdown?.problems);
+      setVal('f_rootCauses', proj.workBreakdown?.rootCauses);
+      setVal('f_solutions', proj.workBreakdown?.solutions);
+      setVal('f_improvements', proj.workBreakdown?.improvements);
+      setVal('f_lessons', proj.workBreakdown?.lessons);
+      setVal('f_risks', proj.workBreakdown?.risks);
+      setVal('f_testing', proj.workBreakdown?.testing);
+
+      setVal('f_description', proj.description);
+    } else {
+      setVal('f_status', 'Ongoing');
+      setVal('f_controllerType', 'MD');
+      setVal('f_projectType', 'DCS');
+    }
+
+    renderImageGrid();
+
+    document.body.classList.add('editor-open');
+    $('editorBackdrop').classList.add('open');
+    $('editorDrawer').classList.add('open');
+    $('editorDrawer').setAttribute('aria-hidden', 'false');
+
+    setTimeout(() => $('f_title')?.focus(), 320);
+  }
+
+  function closeEditor() {
+    document.body.classList.remove('editor-open');
+    $('editorBackdrop').classList.remove('open');
+    $('editorDrawer').classList.remove('open');
+    $('editorDrawer').setAttribute('aria-hidden', 'true');
+    editingId = null;
+    draftImages = [];
+  }
+
+  function setVal(id, v) {
+    const el = $(id);
+    if (el) el.value = v == null ? '' : v;
+  }
+
+  function setType(type) {
+    document.querySelectorAll('.cc-type-tile').forEach(t => {
+      t.classList.toggle('active', t.dataset.type === type);
+    });
+    $('sectionDeltaV').style.display        = type === 'deltaV' ? '' : 'none';
+    $('sectionTech').style.display          = type === 'nonDeltaV' ? '' : 'none';
+    $('sectionWorkBreakdown').style.display = type === 'nonDeltaV' ? '' : 'none';
+  }
+
+  function renderImageGrid() {
+    const grid = $('imageGrid');
+    if (draftImages.length === 0) {
+      grid.innerHTML = '';
+      return;
+    }
+    grid.innerHTML = draftImages.map((img, idx) => `
+      <div class="cc-img-tile" data-idx="${idx}">
+        <img src="${esc(img.url)}" alt="Project image ${idx + 1}" draggable="false">
+        ${idx === 0 ? `<span class="cover-tag">★ Cover</span>` : ''}
+        <button type="button" class="del" data-idx="${idx}" title="Remove image"><i class="fa fa-trash"></i></button>
+        <input type="text" class="caption-input" placeholder="Caption…" value="${esc(img.caption || '')}" data-idx="${idx}">
+      </div>
+    `).join('');
+
+    grid.querySelectorAll('.del').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const idx = parseInt(btn.dataset.idx);
+        const img = draftImages[idx];
+        if (!img) return;
+        if (!confirm('Remove this image?')) return;
+
+        draftImages.splice(idx, 1);
+        renderImageGrid();
+
+        if (img.url && img.url.includes('/project_images/')) {
+          try {
+            await window.deleteImageFromGitHub(img.url, user);
+          } catch (err) {
+            console.warn('Could not delete from GitHub:', err);
+          }
+        }
+      });
+    });
+
+    grid.querySelectorAll('.caption-input').forEach(input => {
+      input.addEventListener('input', () => {
+        const idx = parseInt(input.dataset.idx);
+        if (draftImages[idx]) draftImages[idx].caption = input.value;
+      });
+    });
+  }
+
+  async function handleFiles(files) {
+    const imgs = Array.from(files).filter(f => f.type.startsWith('image/'));
+    if (imgs.length === 0) return;
+
+    pendingUploads += imgs.length;
+    uploadProgress.total += imgs.length;
+
+    $('uploadProgress').classList.add('active');
+    $('uploadProgressFill').style.width = '0%';
+
+    for (const file of imgs) {
+      try {
+        const url = await window.uploadImageToGitHub(file, user, 'project_images');
+        draftImages.push({ url, caption: '' });
+        uploadProgress.done++;
+        const pct = Math.round((uploadProgress.done / uploadProgress.total) * 100);
+        $('uploadProgressFill').style.width = pct + '%';
+        renderImageGrid();
+      } catch (err) {
+        console.error('Upload failed:', err);
+        toast(`Failed to upload ${file.name}: ${err.message}`, 'error');
+      } finally {
+        pendingUploads--;
+      }
+    }
+
+    setTimeout(() => {
+      uploadProgress = { done: 0, total: 0 };
+      $('uploadProgress').classList.remove('active');
+      $('uploadProgressFill').style.width = '0%';
+      if (draftImages.length > 0) toast(`${draftImages.length} image(s) ready`, 'success', 2000);
+    }, 500);
+  }
+
+  function buildProjectPayload() {
+    const type = document.querySelector('.cc-type-tile.active')?.dataset.type || 'deltaV';
+    const title = $('f_title').value.trim();
+    if (!title) {
+      $('f_title').classList.add('error');
+      $('f_title').focus();
+      toast('Project title is required', 'error');
+      return null;
+    }
+    $('f_title').classList.remove('error');
+
+    const id = editingId || ('proj_' + Date.now());
+    const base = {
+      id,
+      projectCategory: type === 'deltaV' ? 'deltaV' : 'nonDeltaV',
+      title,
+      shortDesc: $('f_shortDesc').value.trim(),
+      client: $('f_client').value.trim(),
+      industry: $('f_industry').value.trim(),
+      status: $('f_status').value,
+      duration: $('f_duration').value.trim(),
+      userRole: $('f_userRole').value.trim(),
+      teamMembers: $('f_teamMembers').value.trim(),
+      description: $('f_description').value.trim(),
+      selectedImages: draftImages.map(x => ({ url: x.url, caption: x.caption || '' })),
+      updatedAt: Date.now()
+    };
+
+    if (type === 'deltaV') {
+      base.controllerType = $('f_controllerType').value;
+      base.deltaVVersion = $('f_deltaVVersion').value.trim();
+      base.projectType = $('f_projectType').value;
+      base.cabinetCount = parseInt($('f_cabinetCount').value) || 0;
+      base.io = {
+        AI: parseInt($('f_ai').value) || 0,
+        AO: parseInt($('f_ao').value) || 0,
+        DI: parseInt($('f_di').value) || 0,
+        DO: parseInt($('f_do').value) || 0
+      };
+      base.dates = {
+        start: $('f_start').value,
+        finish: $('f_finish').value,
+        ifat: $('f_ifat').value,
+        cfat: $('f_cfat').value
+      };
+      base.team = {
+        lead: $('f_lead').value.trim(),
+        engineer: $('f_engineer').value.trim(),
+        technician: $('f_technician').value.trim()
+      };
+      base.graphType = 'bar';
+    } else {
+      base.technical = {
+        technologies: $('f_technologies').value.trim(),
+        hardware: $('f_hardware').value.trim(),
+        software: $('f_software').value.trim(),
+        protocols: $('f_protocols').value.trim(),
+        languages: $('f_languages').value.trim()
+      };
+      base.workBreakdown = {
+        workBreakdown: $('f_workBreakdown').value.trim(),
+        problems: $('f_problems').value.trim(),
+        rootCauses: $('f_rootCauses').value.trim(),
+        solutions: $('f_solutions').value.trim(),
+        improvements: $('f_improvements').value.trim(),
+        lessons: $('f_lessons').value.trim(),
+        risks: $('f_risks').value.trim(),
+        testing: $('f_testing').value.trim()
+      };
+    }
+
+    return base;
+  }
+
+  async function saveProject() {
+    if (pendingUploads > 0) {
+      toast('Please wait for uploads to finish…', 'warning');
+      return;
+    }
+
+    const payload = buildProjectPayload();
+    if (!payload) return;
+
+    $('saveBtn').disabled = true;
+    $('saveBtn').innerHTML = '<i class="fa fa-spinner fa-spin"></i> Saving…';
+    window.showLoading('Saving project…');
+
+    try {
+      const fresh = await window.portfolioData.loadProjects();
+      fresh[payload.id] = payload;
+      await window.portfolioData.saveProjects(fresh);
+
+      allProjects = fresh;
+      renderStats();
+      renderGrid();
+      closeEditor();
+      toast(`Project "${payload.title}" saved`, 'success');
+
+      if (window.Logger?.logActivity) {
+        window.Logger.logActivity('project', editingId ? 'edit' : 'create', `Saved project: ${payload.title}`);
+      }
+    } catch (err) {
+      console.error('Save failed:', err);
+      toast('Save failed: ' + err.message, 'error');
+    } finally {
+      $('saveBtn').disabled = false;
+      $('saveBtn').innerHTML = '<i class="fa fa-check"></i> Save Project';
+      window.hideLoading();
+    }
+  }
+
+  async function confirmDelete(id) {
+    const proj = allProjects[id];
+    if (!proj) return;
+    if (!confirm(`Delete "${proj.title}"?\n\nThis will permanently remove the project and its ${getImageCount(proj)} image(s).`)) return;
+
+    window.showLoading('Deleting project…');
+    try {
+      for (const img of (proj.selectedImages || [])) {
+        if (img.url && img.url.includes('/project_images/')) {
+          try { await window.deleteImageFromGitHub(img.url, user); }
+          catch (e) { console.warn('Could not delete image:', e); }
+        }
+      }
+
+      const fresh = await window.portfolioData.loadProjects();
+      delete fresh[id];
+      const isEmpty = Object.keys(fresh).length === 0;
+      await window.portfolioData.saveProjects(fresh, isEmpty);
+
+      allProjects = fresh;
+      renderStats();
+      renderGrid();
+      toast(`Project "${proj.title}" deleted`, 'success');
+
+      if (window.Logger?.logActivity) {
+        window.Logger.logActivity('project', 'delete', `Deleted project: ${proj.title}`);
+      }
+    } catch (err) {
+      console.error('Delete failed:', err);
+      toast('Delete failed: ' + err.message, 'error');
+    } finally {
+      window.hideLoading();
+    }
+  }
+
+  $('addBtn').addEventListener('click', () => openEditor(null));
+  $('closeEditor').addEventListener('click', closeEditor);
+  $('cancelBtn').addEventListener('click', closeEditor);
+  $('saveBtn').addEventListener('click', saveProject);
+  $('editorBackdrop').addEventListener('click', closeEditor);
+
+  document.querySelectorAll('.cc-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('.cc-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      currentFilter = chip.dataset.filter;
+      renderGrid();
+    });
+  });
+
+  let searchTimer = null;
+  $('searchInput').addEventListener('input', (e) => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+      currentSearch = e.target.value.trim();
+      renderGrid();
+    }, 150);
+  });
+
+  document.querySelectorAll('.cc-type-tile').forEach(tile => {
+    tile.addEventListener('click', () => setType(tile.dataset.type));
+  });
+
+  document.querySelectorAll('.cc-section-header').forEach(header => {
+    header.addEventListener('click', () => {
+      header.closest('.cc-section').classList.toggle('open');
+    });
+  });
+
+  const dz = $('dropzone');
+  const fi = $('imageInput');
+  dz.addEventListener('click', () => fi.click());
+  dz.addEventListener('dragover', (e) => { e.preventDefault(); dz.classList.add('dragover'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
+  dz.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dz.classList.remove('dragover');
+    handleFiles(e.dataTransfer.files);
+  });
+  fi.addEventListener('change', () => {
+    handleFiles(fi.files);
+    fi.value = '';
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) {
+      e.preventDefault();
+      $('searchInput').focus();
+      $('searchInput').select();
+    }
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'n' || e.key === 'N') && !$('editorDrawer').classList.contains('open')) {
+      e.preventDefault();
+      openEditor(null);
+    }
+    if (e.key === 'Escape' && $('editorDrawer').classList.contains('open')) {
+      closeEditor();
+    }
+    if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S') && $('editorDrawer').classList.contains('open')) {
+      e.preventDefault();
+      saveProject();
+    }
+  });
+
+  if (window.updateUserFooter) window.updateUserFooter();
+  loadAll();
+
+})();
+</script>
+</body>
+</html>
