@@ -1,5 +1,17 @@
 [
   {
+    "id": 1791280085814,
+    "date": "2026-10-06",
+    "start": "08:30",
+    "end": "16:30",
+    "hours": 8,
+    "project": "Tank Farm",
+    "category": "Hardware",
+    "billable": "yes",
+    "notes": "Setting up Screens & Servers",
+    "updatedAt": 1791280085814
+  },
+  {
     "id": 1790690331593,
     "date": "2026-09-29",
     "start": "07:15",
