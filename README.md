@@ -48,7 +48,7 @@
   - 
 
 - ** Your Portfolio** - Siya (1 year)
-  - Status: Ongoing | Progress: 75%
+  - Status: Ongoing | Progress: 80%
   - 
 
 
@@ -112,6 +112,6 @@
 
 <div align="center">
 
-*Last updated: October 06, 2026 at 12:45:34 UTC*
+*Last updated: October 06, 2026 at 12:46:59 UTC*
 
 </div>
