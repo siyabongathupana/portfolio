@@ -26,7 +26,7 @@
 
 | Projects | Certifications | Users | Hours | Billable | Daily Avg |
 |:--------:|:--------------:|:-----:|:-----:|:--------:|:---------:|
-| 1 | 18 | 7 | 771.3 | 521.6 | 8.0h |
+| 2 | 18 | 7 | 771.3 | 521.6 | 8.0h |
 
 ---
 
@@ -45,6 +45,10 @@
 
 - ** Steam Station 1** - SASOL (-)
   - Status: Completed | Progress: 100%
+  - 
+
+- ** Your Portfolio** - Siya (1 year)
+  - Status: Ongoing | Progress: 75%
   - 
 
 
@@ -77,11 +81,21 @@
 ## 🛠️ Skills
 
 
+`CSS`
+
 `DeltaV SZ`
 
 `DeltaV v14`
 
+`HTML`
+
+`JavaScript`
+
+`Node.js`
+
 `SIS & DCS`
+
+`Software & Technology`
 
 `Thermal Power & Utility`
 
@@ -98,6 +112,6 @@
 
 <div align="center">
 
-*Last updated: October 06, 2026 at 12:25:40 UTC*
+*Last updated: October 06, 2026 at 12:45:34 UTC*
 
 </div>
