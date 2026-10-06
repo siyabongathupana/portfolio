@@ -1,4 +1,5 @@
-// shared.js – Complete version with fixed project deletion, enhanced logging, Excel report generation (no PDF, no dark mode)
+// shared.js – Complete version with fixed project deletion, enhanced logging, Excel report generation
+// + Excel access lock + gallery image protection
 
 window.showLoading = function (msg = 'Processing...') {
   let loader = document.getElementById('globalLoader');
@@ -25,6 +26,19 @@ window.hideLoading = function () {
 window.escapeHtml = function (str) {
   if (!str) return '';
   return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m] || m);
+};
+
+// ═══════════════════════════════════════════════════════════
+//  EXCEL ACCESS CONTROL
+// ═══════════════════════════════════════════════════════════
+window.canDownloadExcel = function () {
+  try {
+    const isAdmin = window.SessionManager?.isAdmin?.() === true;
+    const publicAllowed = window.APP_CONFIG?.excelReportEnabled === true;
+    return isAdmin || publicAllowed;
+  } catch (e) {
+    return false;
+  }
 };
 
 window.SessionManager = (() => {
@@ -603,7 +617,6 @@ window.portfolioData = (() => {
     return JSON.parse(localStorage.getItem(CERTS_KEY) || '[]');
   }
 
-  // Fixed saveProjects with proper SHA retry
   async function saveProjects(data, forceEmpty = false) {
     const prev = localStorage.getItem(PROJECTS_KEY);
     if (!forceEmpty && prev) {
@@ -772,13 +785,48 @@ window.lazyLoadImages = function() {
   }
 };
 
+// ═══════════════════════════════════════════════════════════
+//  IMAGE PROTECTION — blocks right-click, drag, long-press save
+// ═══════════════════════════════════════════════════════════
 window.protectImages = function () {
-  document.querySelectorAll('.project-img, .modal-carousel-img').forEach(img => {
+  const selectors = '.project-img, .modal-carousel-img, .gallery-img, .cert-card img, .about-img';
+  document.querySelectorAll(selectors).forEach(img => {
     img.setAttribute('draggable', 'false');
-    img.addEventListener('contextmenu', e => e.preventDefault());
-    img.addEventListener('dragstart', e => e.preventDefault());
+    img.setAttribute('ondragstart', 'return false;');
+    img.style.webkitUserDrag = 'none';
+    img.style.webkitTouchCallout = 'none';
+    img.style.webkitUserSelect = 'none';
+    img.style.userSelect = 'none';
+    img.style.msUserSelect = 'none';
+    img.style.pointerEvents = 'auto'; // allow normal clicks (admin open)
+
+    if (!img.dataset.protected) {
+      img.dataset.protected = '1';
+      img.addEventListener('contextmenu', e => e.preventDefault());
+      img.addEventListener('dragstart', e => e.preventDefault());
+      img.addEventListener('selectstart', e => e.preventDefault());
+      img.addEventListener('mousedown', e => { if (e.button !== 0) e.preventDefault(); });
+      // Mobile: prevent long-press save sheet
+      img.addEventListener('touchstart', e => {
+        // We don't stop the whole event (would break scroll),
+        // but we do disable the default touch-callout via CSS above.
+        // Extra safety: intercept long-press on the image itself
+        img._longPressTimer = setTimeout(() => {
+          try { e.preventDefault(); } catch (_) {}
+        }, 500);
+      }, { passive: true });
+      img.addEventListener('touchend', () => {
+        if (img._longPressTimer) { clearTimeout(img._longPressTimer); img._longPressTimer = null; }
+      });
+      img.addEventListener('touchmove', () => {
+        if (img._longPressTimer) { clearTimeout(img._longPressTimer); img._longPressTimer = null; }
+      });
+    }
   });
 };
+
+// Keep the old name working (some files may call protectGallery)
+window.protectGallery = window.protectImages;
 
 function showToast(message, type = 'success') {
   let container = document.getElementById('toastContainer');
@@ -813,11 +861,19 @@ async function generateQRCodeDataURL(text, size = 50) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Project report — EXCEL DOSSIER (replaces the old PDF version)
-// Produces 5 sheets: Overview · Summary & Metrics · Technical
-// Details · Work Breakdown · Gallery
+// Project report — EXCEL DOSSIER (with access guard)
 // ─────────────────────────────────────────────────────────────
 window.generateProjectReport = async function (projectId) {
+  // ── ACCESS GUARD: only admin (or public when flag enabled) ──
+  if (!window.canDownloadExcel()) {
+    if (typeof showToast === 'function') {
+      showToast('Excel reports are locked for now — they’ll be available soon.', 'info');
+    } else {
+      alert('Excel reports are currently locked.');
+    }
+    return;
+  }
+
   // ── Dynamically ensure ExcelJS + FileSaver are present ──
   if (typeof ExcelJS === 'undefined') {
     await new Promise((res, rej) => {
@@ -895,7 +951,6 @@ window.generateProjectReport = async function (projectId) {
     workbook.creator = 'Your Portfolio';
     workbook.created = new Date();
 
-    // ─── Styling constants ───
     const NAVY = 'FF0B2B3B';
     const ACCENT = 'FF2FC7FF';
     const LIGHT = 'FFEEF3FC';
@@ -938,9 +993,7 @@ window.generateProjectReport = async function (projectId) {
       return 'jpeg';
     }
 
-    // ═══════════════════════════════════════════════════════
-    //  SHEET 1 — OVERVIEW
-    // ═══════════════════════════════════════════════════════
+    // ═══ SHEET 1 — OVERVIEW ═══
     const cover = workbook.addWorksheet('Overview', {
       pageSetup: { orientation: 'portrait', fitToPage: true, fitToWidth: 1, paperSize: 9,
         margins: { left: 0.5, right: 0.5, top: 0.6, bottom: 0.6, header: 0.3, footer: 0.3 } }
@@ -974,7 +1027,6 @@ window.generateProjectReport = async function (projectId) {
     typeCell.alignment = { horizontal: 'center', vertical: 'middle' };
     cover.getRow(7).height = 24;
 
-    // Cover image
     let coverImageRow = 9;
     if (selectedImages.length > 0 && selectedImages[0].url) {
       try {
@@ -986,7 +1038,6 @@ window.generateProjectReport = async function (projectId) {
       } catch (e) { console.warn('Cover image embed failed:', e); coverImageRow = 10; }
     }
 
-    // Snapshot
     let r = coverImageRow;
     cover.mergeCells(`B${r}:E${r}`);
     styleSectionHeader(cover.getCell(`B${r}`), '📋   PROJECT SNAPSHOT');
@@ -1024,9 +1075,7 @@ window.generateProjectReport = async function (projectId) {
     footerCell.font = { size: 9, italic: true, color: { argb: 'FF6B7D8F' } };
     footerCell.alignment = { horizontal: 'center' };
 
-    // ═══════════════════════════════════════════════════════
-    //  SHEET 2 — EXECUTIVE SUMMARY & METRICS
-    // ═══════════════════════════════════════════════════════
+    // ═══ SHEET 2 — EXECUTIVE SUMMARY & METRICS ═══
     const summary = workbook.addWorksheet('Summary & Metrics', {
       pageSetup: { orientation: 'portrait', fitToPage: true, fitToWidth: 1, paperSize: 9,
         margins: { left: 0.5, right: 0.5, top: 0.6, bottom: 0.6, header: 0.3, footer: 0.3 } }
@@ -1060,7 +1109,6 @@ window.generateProjectReport = async function (projectId) {
     styleSectionHeader(summary.getCell(`B${sr}`), '📊   KEY METRICS');
     summary.getRow(sr).height = 24; sr++;
 
-    // Header row
     const mh = summary.getRow(sr);
     mh.getCell(2).value = 'Metric';
     mh.getCell(2).font = { size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
@@ -1110,9 +1158,7 @@ window.generateProjectReport = async function (projectId) {
     respCell.border = BORDER;
     summary.getRow(sr).height = Math.max(60, Math.ceil((respCell.value || '').length / 100) * 14);
 
-    // ═══════════════════════════════════════════════════════
-    //  SHEET 3 — TECHNICAL DETAILS
-    // ═══════════════════════════════════════════════════════
+    // ═══ SHEET 3 — TECHNICAL DETAILS ═══
     const tech = workbook.addWorksheet('Technical Details', {
       pageSetup: { orientation: 'portrait', fitToPage: true, fitToWidth: 1, paperSize: 9,
         margins: { left: 0.5, right: 0.5, top: 0.6, bottom: 0.6, header: 0.3, footer: 0.3 } }
@@ -1148,7 +1194,6 @@ window.generateProjectReport = async function (projectId) {
       }
       tr++;
 
-      // I/O Summary
       tech.mergeCells(`B${tr}:D${tr}`);
       styleSectionHeader(tech.getCell(`B${tr}`), '🔌   I/O SUMMARY');
       tech.getRow(tr).height = 24; tr++;
@@ -1156,7 +1201,6 @@ window.generateProjectReport = async function (projectId) {
       const io = proj.io || { AI: 0, AO: 0, DI: 0, DO: 0 };
       const maxIO = Math.max(io.AI || 0, io.AO || 0, io.DI || 0, io.DO || 0, 1);
 
-      // Header
       ['Type', 'Count', 'Visual'].forEach((h, i) => {
         const cell = tech.getRow(tr).getCell(2 + i);
         cell.value = h;
@@ -1204,7 +1248,6 @@ window.generateProjectReport = async function (projectId) {
       tech.getCell(`D${tr}`).border = BORDER;
       tech.getRow(tr).height = 24; tr += 2;
 
-      // Dates
       if (proj.dates && (proj.dates.start || proj.dates.finish || proj.dates.ifat || proj.dates.cfat)) {
         tech.mergeCells(`B${tr}:D${tr}`);
         styleSectionHeader(tech.getCell(`B${tr}`), '📅   PROJECT DATES');
@@ -1224,7 +1267,6 @@ window.generateProjectReport = async function (projectId) {
         tr++;
       }
 
-      // Team
       if (proj.team && (proj.team.lead || proj.team.engineer || proj.team.technician)) {
         tech.mergeCells(`B${tr}:D${tr}`);
         styleSectionHeader(tech.getCell(`B${tr}`), '👥   PROJECT TEAM');
@@ -1267,9 +1309,7 @@ window.generateProjectReport = async function (projectId) {
       tech.getRow(tr).height = 40;
     }
 
-    // ═══════════════════════════════════════════════════════
-    //  SHEET 4 — WORK BREAKDOWN
-    // ═══════════════════════════════════════════════════════
+    // ═══ SHEET 4 — WORK BREAKDOWN ═══
     const wbSheet = workbook.addWorksheet('Work Breakdown', {
       pageSetup: { orientation: 'portrait', fitToPage: true, fitToWidth: 1, paperSize: 9,
         margins: { left: 0.5, right: 0.5, top: 0.6, bottom: 0.6, header: 0.3, footer: 0.3 } }
@@ -1320,9 +1360,7 @@ window.generateProjectReport = async function (projectId) {
       wbSheet.getRow(wr).height = 40;
     }
 
-    // ═══════════════════════════════════════════════════════
-    //  SHEET 5 — GALLERY (only if images selected)
-    // ═══════════════════════════════════════════════════════
+    // ═══ SHEET 5 — GALLERY ═══
     if (selectedImages.length > 0) {
       const gallery = workbook.addWorksheet('Gallery', {
         pageSetup: { orientation: 'portrait', fitToPage: true, fitToWidth: 1, paperSize: 9,
@@ -1388,7 +1426,6 @@ window.generateProjectReport = async function (projectId) {
       }
     }
 
-    // ── Save ─────────────────────────────────────────────────
     const buffer = await workbook.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const safeName = (proj.title || 'project').replace(/[^a-z0-9]/gi, '_').toLowerCase();
