@@ -159,8 +159,25 @@
     "userRole": "Technician",
     "teamMembers": "-",
     "description": "",
-    "selectedImages": [],
-    "updatedAt": 1791291978774,
+    "selectedImages": [
+      {
+        "url": "https://raw.githubusercontent.com/siyabongathupana/portfolio/main/data/users/siyabongatshem%40gmail.com/project_images/1791292151924_1000272990.jpg",
+        "caption": ""
+      },
+      {
+        "url": "https://raw.githubusercontent.com/siyabongathupana/portfolio/main/data/users/siyabongatshem%40gmail.com/project_images/1791292156687_1000269498.jpg",
+        "caption": ""
+      },
+      {
+        "url": "https://raw.githubusercontent.com/siyabongathupana/portfolio/main/data/users/siyabongatshem%40gmail.com/project_images/1791292160103_1000269073.jpg",
+        "caption": ""
+      },
+      {
+        "url": "https://raw.githubusercontent.com/siyabongathupana/portfolio/main/data/users/siyabongatshem%40gmail.com/project_images/1791292163722_1000080544.jpg",
+        "caption": ""
+      }
+    ],
+    "updatedAt": 1791292240100,
     "controllerType": "PK",
     "deltaVVersion": "v13",
     "projectType": "DCS",
