@@ -1,33 +1,592 @@
-// This code still has errors, to be fixed
-// timesheet.js – Optimistic UI with background sync + Yearly Calendar + Progress Loader
-// Enhanced with "Last Week", "Last Month", "Last 30 Days" filters, localStorage cache, manual sync, sync status feedback
-// FIXES: UTC timezone consistency, race-free force sync, status indicator improvements
+// timesheet.js – Supabase edition (COMPLETE — nothing omitted)
+// Reads/writes timesheet_entries table directly. No GitHub JSON files.
 
-(function() {
-  const user = window.SessionManager?.getCurrentUser();
-  if (!user) {
-    window.location.href = "login.html?redirect=timesheet";
-    return;
-  }
+(function () {
+  'use strict';
 
-  // ======================== TOKEN EXPIRY HANDLING ========================
-  async function handleUnauthorized(showMessage = true) {
-    if (showMessage) showToast("❌ Your GitHub token has expired. Please log in again.", "error");
-    await window.Logger?.log('token_expired', 'GitHub token invalid or expired');
-    window.SessionManager.logout();
-    setTimeout(() => window.location.href = "login.html?redirect=timesheet&reason=token_expired", 2000);
-  }
+  const LOCAL_RANGE_KEY = 'timesheet_filterRange';
 
-  async function githubFetchWithAuth(url, options) {
-    const response = await fetch(url, options);
-    if (response.status === 401 || response.status === 403) {
-      await handleUnauthorized(true);
-      throw new Error("Token expired – redirecting");
+  let entries = [];
+  let allProjectOptions = [];
+  let userFullName = '';
+  let notificationsEnabled = true;
+
+  let projectChart = null, categoryChart = null, billableChart = null;
+
+  // ═════════════════════════════════════════════════════════
+  //  BOOT
+  // ═════════════════════════════════════════════════════════
+  (async function init() {
+    const user = await window.authReady;
+    if (!user) {
+      window.location.href = 'login.html?redirect=timesheet';
+      return;
     }
-    return response;
+
+    await Promise.all([loadProfile(), loadEntries(), loadProjects()]);
+    wireUI();
+    renderHistory();
+    updateSummaryAndProgress();
+    updateCharts();
+
+    window.__timesheetEntries = entries;
+    window.__timesheetProjectOptions = allProjectOptions;
+    document.dispatchEvent(new Event('timesheetUpdated'));
+
+    const savedFilter = localStorage.getItem(LOCAL_RANGE_KEY);
+    const sel = document.getElementById('filterRange');
+    if (savedFilter && sel && sel.querySelector(`option[value="${savedFilter}"]`)) {
+      sel.value = savedFilter;
+      renderHistory(); updateSummaryAndProgress(); updateCharts();
+    }
+  })();
+
+  // ═════════════════════════════════════════════════════════
+  //  DATA LOADING
+  // ═════════════════════════════════════════════════════════
+  async function loadProfile() {
+    const user = window.SessionManager.getCurrentUser();
+    if (!user) return;
+    const { data, error } = await window.supabase
+      .from('profiles')
+      .select('full_name, notifications_enabled')
+      .eq('id', user.id)
+      .maybeSingle();
+    if (error) { console.warn(error); return; }
+    userFullName = data?.full_name || '';
+    notificationsEnabled = data?.notifications_enabled !== false;
+
+    const nameEl = document.getElementById('userFullName');
+    if (nameEl) nameEl.value = userFullName;
+    const reportName = document.getElementById('reportName');
+    if (reportName) reportName.value = userFullName;
+    const toggle = document.getElementById('notificationsToggle');
+    if (toggle) toggle.checked = notificationsEnabled;
   }
 
-  // ======================== SAVE AS HELPER ========================
+  async function loadEntries() {
+    const user = window.SessionManager.getCurrentUser();
+    if (!user) return;
+    const { data, error } = await window.supabase
+      .from('timesheet_entries')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('date', { ascending: false });
+
+    if (error) {
+      console.error(error);
+      window.showToast('Failed to load timesheet: ' + error.message, 'error');
+      return;
+    }
+
+    entries = (data || []).map(r => ({
+      id: r.id,
+      date: r.date,
+      start: r.start_time ? r.start_time.slice(0, 5) : '',
+      end:   r.end_time   ? r.end_time.slice(0, 5)   : '',
+      hours: parseFloat(r.hours) || 0,
+      project: r.project,
+      category: r.category,
+      billable: r.billable ? 'yes' : 'no',
+      notes: r.notes || ''
+    }));
+  }
+
+  async function loadProjects() {
+    const user = window.SessionManager.getCurrentUser();
+    if (!user) return;
+
+    const fromEntries = [...new Set(entries.map(e => e.project).filter(Boolean))];
+
+    const { data: projData } = await window.supabase
+      .from('projects')
+      .select('title')
+      .eq('user_id', user.id);
+
+    const fromProjects = (projData || []).map(p => p.title).filter(Boolean);
+
+    allProjectOptions = [...new Set([...fromEntries, ...fromProjects])].sort();
+    populateProjectSelects();
+  }
+
+  function populateProjectSelects() {
+    for (const id of ['taskProject', 'editProject', 'filterProject']) {
+      const sel = document.getElementById(id);
+      if (!sel) continue;
+      const current = sel.value;
+      sel.innerHTML = id === 'filterProject'
+        ? '<option value="all">All Projects</option>'
+        : '';
+      for (const p of allProjectOptions) {
+        const opt = document.createElement('option');
+        opt.value = p; opt.textContent = p;
+        sel.appendChild(opt);
+      }
+      if (current && allProjectOptions.includes(current)) sel.value = current;
+    }
+  }
+
+  // ═════════════════════════════════════════════════════════
+  //  HELPERS
+  // ═════════════════════════════════════════════════════════
+  function formatDate(d) { return new Date(d).toISOString().split('T')[0]; }
+
+  function calcHours(start, end) {
+    if (!start || !end) return 0;
+    const [sh, sm] = start.split(':').map(Number);
+    const [eh, em] = end.split(':').map(Number);
+    let minutes = (eh * 60 + em) - (sh * 60 + sm);
+    if (minutes < 0) minutes += 24 * 60;
+    return +(minutes / 60).toFixed(2);
+  }
+
+  function updateHoursAuto() {
+    const start = document.getElementById('startTime').value;
+    const end   = document.getElementById('endTime').value;
+    document.getElementById('hoursAuto').value = calcHours(start, end).toFixed(2);
+  }
+
+  function showToast(msg, type = 'success') { window.showToast(msg, type); }
+
+  // ═════════════════════════════════════════════════════════
+  //  CRUD
+  // ═════════════════════════════════════════════════════════
+  async function addEntry(duplicateData = null) {
+    const user = window.SessionManager.getCurrentUser();
+    if (!user) return;
+
+    let date, start, end, project, category, billable, notes;
+    if (duplicateData) {
+      ({ date, start, end, project, category, billable, notes } = duplicateData);
+      notes = notes ? notes + ' (copy)' : 'copy';
+    } else {
+      date     = document.getElementById('logDate').value;
+      start    = document.getElementById('startTime').value;
+      end      = document.getElementById('endTime').value;
+      project  = document.getElementById('taskProject').value;
+      category = document.getElementById('taskCategory').value;
+      billable = document.getElementById('billable').value;
+      notes    = document.getElementById('taskNotes').value.trim();
+    }
+    if (!date || !start || !end || !project || !category) {
+      showToast('Please fill all required fields.', 'error'); return;
+    }
+    const hours = calcHours(start, end);
+    if (hours <= 0) { showToast('End time must be after start time.', 'error'); return; }
+
+    window.showLoading('Saving entry...');
+    const { data, error } = await window.supabase
+      .from('timesheet_entries')
+      .insert({
+        user_id: user.id,
+        date,
+        start_time: start,
+        end_time: end,
+        hours,
+        project,
+        category,
+        billable: billable === 'yes',
+        notes: notes || null
+      })
+      .select()
+      .single();
+    window.hideLoading();
+
+    if (error) { showToast('Failed to save: ' + error.message, 'error'); return; }
+
+    entries.unshift({
+      id: data.id,
+      date: data.date,
+      start: data.start_time?.slice(0, 5) || '',
+      end:   data.end_time?.slice(0, 5) || '',
+      hours: parseFloat(data.hours),
+      project: data.project,
+      category: data.category,
+      billable: data.billable ? 'yes' : 'no',
+      notes: data.notes || ''
+    });
+
+    // Update project list if a new project name is used
+    if (!allProjectOptions.includes(project)) {
+      allProjectOptions.push(project);
+      allProjectOptions.sort();
+      populateProjectSelects();
+    }
+
+    window.__timesheetEntries = entries;
+    document.dispatchEvent(new Event('timesheetUpdated'));
+    renderHistory(); updateSummaryAndProgress(); updateCharts();
+    showToast(duplicateData ? 'Entry duplicated!' : 'Entry saved.', 'success');
+
+    if (!duplicateData) {
+      document.getElementById('startTime').value = '';
+      document.getElementById('endTime').value = '';
+      document.getElementById('taskNotes').value = '';
+      document.getElementById('hoursAuto').value = '';
+    }
+  }
+
+  async function deleteEntry(id) {
+    if (!confirm('Delete this entry?')) return;
+    window.showLoading('Deleting...');
+    const { error } = await window.supabase
+      .from('timesheet_entries')
+      .delete()
+      .eq('id', id);
+    window.hideLoading();
+
+    if (error) { showToast('Delete failed: ' + error.message, 'error'); return; }
+    entries = entries.filter(e => e.id !== id);
+    window.__timesheetEntries = entries;
+    document.dispatchEvent(new Event('timesheetUpdated'));
+    renderHistory(); updateSummaryAndProgress(); updateCharts();
+    showToast('Entry deleted.', 'success');
+  }
+
+  async function saveEdit() {
+    const id = document.getElementById('editEntryId').value;
+    const date = document.getElementById('editDate').value;
+    const start = document.getElementById('editStart').value;
+    const end = document.getElementById('editEnd').value;
+    const project = document.getElementById('editProject').value;
+    const category = document.getElementById('editCategory').value;
+    const billable = document.getElementById('editBillable').value;
+    const notes = document.getElementById('editNotes').value.trim();
+
+    if (!date || !start || !end || !project || !category) { showToast('Please fill all fields.', 'error'); return; }
+    const hours = calcHours(start, end);
+    if (hours <= 0) { showToast('End time must be after start.', 'error'); return; }
+
+    window.showLoading('Saving changes...');
+    const { error } = await window.supabase
+      .from('timesheet_entries')
+      .update({
+        date, start_time: start, end_time: end, hours,
+        project, category, billable: billable === 'yes',
+        notes: notes || null
+      })
+      .eq('id', id);
+    window.hideLoading();
+
+    if (error) { showToast('Update failed: ' + error.message, 'error'); return; }
+
+    const idx = entries.findIndex(e => e.id === id);
+    if (idx !== -1) {
+      entries[idx] = { id, date, start, end, hours, project, category, billable, notes };
+    }
+    window.__timesheetEntries = entries;
+    document.dispatchEvent(new Event('timesheetUpdated'));
+    renderHistory(); updateSummaryAndProgress(); updateCharts();
+    $('#editModal').modal('hide');
+    showToast('Entry updated.', 'success');
+  }
+
+  async function editEntry(id) {
+    const entry = entries.find(e => String(e.id) === String(id));
+    if (!entry) return;
+    document.getElementById('editEntryId').value = entry.id;
+    document.getElementById('editDate').value = entry.date;
+    document.getElementById('editStart').value = entry.start;
+    document.getElementById('editEnd').value = entry.end;
+    document.getElementById('editProject').value = entry.project;
+    document.getElementById('editCategory').value = entry.category;
+    document.getElementById('editBillable').value = entry.billable;
+    document.getElementById('editNotes').value = entry.notes || '';
+    $('#editModal').modal('show');
+  }
+
+  // ═════════════════════════════════════════════════════════
+  //  FILTERS
+  // ═════════════════════════════════════════════════════════
+  function getFilteredEntries() {
+    const range = document.getElementById('filterRange').value;
+    const project = document.getElementById('filterProject').value;
+    const category = document.getElementById('filterCategory').value;
+
+    const now = new Date();
+    const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    const todayYMD = formatDate(today);
+    const thisMonthPrefix = todayYMD.substring(0, 7);
+
+    const thirtyDaysAgo = new Date(today);
+    thirtyDaysAgo.setUTCDate(today.getUTCDate() - 30);
+    const thirtyDaysAgoStr = formatDate(thirtyDaysAgo);
+
+    const todayDay = today.getUTCDay();
+    const currentMonday = new Date(today);
+    currentMonday.setUTCDate(today.getUTCDate() - (todayDay === 0 ? 6 : todayDay - 1));
+    currentMonday.setUTCHours(0,0,0,0);
+    const lastMonday = new Date(currentMonday);
+    lastMonday.setUTCDate(currentMonday.getUTCDate() - 7);
+    const lastSunday = new Date(lastMonday);
+    lastSunday.setUTCDate(lastMonday.getUTCDate() + 6);
+
+    const lastMonth = new Date(today);
+    lastMonth.setUTCMonth(today.getUTCMonth() - 1);
+    const lastMonthStart = new Date(lastMonth.getUTCFullYear(), lastMonth.getUTCMonth(), 1);
+    const lastMonthEnd = new Date(lastMonth.getUTCFullYear(), lastMonth.getUTCMonth() + 1, 0);
+
+    let filtered = [...entries];
+    if (range !== 'all') {
+      filtered = filtered.filter(e => {
+        if (range === 'day')       return e.date === todayYMD;
+        if (range === 'month')     return e.date.substring(0, 7) === thisMonthPrefix;
+        if (range === 'last30')    return e.date >= thirtyDaysAgoStr;
+        if (range === 'lastWeek')  return e.date >= formatDate(lastMonday) && e.date <= formatDate(lastSunday);
+        if (range === 'lastMonth') return e.date >= formatDate(lastMonthStart) && e.date <= formatDate(lastMonthEnd);
+        if (range === 'week') {
+          const d = new Date(e.date); d.setUTCHours(0,0,0,0);
+          const end = new Date(currentMonday);
+          end.setUTCDate(end.getUTCDate() + 6);
+          end.setUTCHours(23,59,59,999);
+          return d >= currentMonday && d <= end;
+        }
+        return true;
+      });
+    }
+    if (project  !== 'all') filtered = filtered.filter(e => e.project === project);
+    if (category !== 'all') filtered = filtered.filter(e => e.category === category);
+    return filtered;
+  }
+
+  // ═════════════════════════════════════════════════════════
+  //  RENDERING
+  // ═════════════════════════════════════════════════════════
+  function renderHistory() {
+    const filtered = getFilteredEntries();
+    const tbody = document.getElementById('historyBody');
+    const tfoot = document.getElementById('historyFoot');
+
+    let total = 0;
+    tbody.innerHTML = '';
+    if (!filtered.length) {
+      tbody.innerHTML = '<tr><td colspan="9" class="text-center">No entries found.</td></tr>';
+      document.getElementById('totalHoursCell').innerHTML = '<strong>0.00</strong>';
+      tfoot.style.display = 'table-footer-group';
+      return;
+    }
+    filtered.forEach(e => {
+      total += e.hours;
+      const row = tbody.insertRow();
+      row.insertCell(0).innerText = e.date;
+      row.insertCell(1).innerText = e.start;
+      row.insertCell(2).innerText = e.end;
+      row.insertCell(3).innerText = e.hours.toFixed(2);
+      row.insertCell(4).innerText = e.project;
+      row.insertCell(5).innerText = e.category;
+      row.insertCell(6).innerText = e.billable === 'yes' ? 'Billable' : 'Non-billable';
+      row.insertCell(7).innerText = e.notes || '-';
+
+      const actions = row.insertCell(8);
+      actions.className = 'print-hide';
+      actions.innerHTML = `
+        <button class="btn btn-sm btn-edit mr-1" data-id="${e.id}" data-action="edit"><i class="fa fa-pencil"></i></button>
+        <button class="btn btn-sm btn-duplicate mr-1" data-id="${e.id}" data-action="duplicate"><i class="fa fa-copy"></i></button>
+        <button class="btn btn-sm btn-danger" data-id="${e.id}" data-action="delete"><i class="fa fa-trash"></i></button>
+      `;
+    });
+    document.getElementById('totalHoursCell').innerHTML = '<strong>' + total.toFixed(2) + '</strong>';
+    tfoot.style.display = 'table-footer-group';
+  }
+
+  function calculateOvertimeForPeriod(list) {
+    const daily = {};
+    list.forEach(e => { daily[e.date] = (daily[e.date] || 0) + e.hours; });
+    return Object.values(daily).reduce((sum, h) => sum + (h > 8 ? h - 8 : 0), 0);
+  }
+
+  function updateSummaryAndProgress() {
+    const filtered = getFilteredEntries();
+    const total = filtered.reduce((s,e) => s + e.hours, 0);
+    const billable = filtered.filter(e => e.billable === 'yes').reduce((s,e) => s + e.hours, 0);
+    const nonBill = total - billable;
+    const ot = calculateOvertimeForPeriod(filtered);
+
+    document.getElementById('summaryTotalHours').innerText = total.toFixed(1);
+    document.getElementById('summaryBillable').innerText = billable.toFixed(1);
+    document.getElementById('summaryNonBillable').innerText = nonBill.toFixed(1);
+    document.getElementById('summaryOvertime').innerText = ot.toFixed(1);
+    document.getElementById('summaryCard').style.display = 'flex';
+
+    const now = new Date();
+    const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    const todayYMD = formatDate(todayUTC);
+    const todayHours = entries.filter(e => e.date === todayYMD).reduce((s,e) => s + e.hours, 0);
+
+    const pct = Math.min(100, (todayHours / 8) * 100);
+    const fill = document.getElementById('dailyProgressFill');
+    fill.style.width = pct + '%';
+    fill.innerText = todayHours.toFixed(1) + 'h';
+    const warn = document.getElementById('overtimeWarning');
+    if (todayHours > 8) {
+      fill.classList.add('overtime');
+      warn.style.display = 'block';
+      warn.innerHTML = `<i class="fa fa-exclamation-triangle"></i> Overtime: ${(todayHours-8).toFixed(1)}h over 8h today`;
+    } else {
+      fill.classList.remove('overtime');
+      warn.style.display = 'none';
+    }
+  }
+
+  function updateCharts() {
+    const filtered = getFilteredEntries();
+
+    const projMap = {};
+    filtered.forEach(e => { projMap[e.project] = (projMap[e.project] || 0) + e.hours; });
+    if (projectChart) projectChart.destroy();
+    const ctxP = document.getElementById('projectChart');
+    if (ctxP) projectChart = new Chart(ctxP, {
+      type: 'pie',
+      data: { labels: Object.keys(projMap), datasets: [{ data: Object.values(projMap),
+        backgroundColor: ['#2fc7ff','#ffc107','#28a745','#dc3545','#6f42c1','#fd7e14','#17a2b8','#e83e8c'] }] },
+      options: { responsive:true, maintainAspectRatio:true, plugins:{ legend:{ position:'bottom', labels:{ boxWidth:10, font:{ size:9 } } } } }
+    });
+
+    const catMap = {};
+    filtered.forEach(e => { catMap[e.category] = (catMap[e.category] || 0) + e.hours; });
+    if (categoryChart) categoryChart.destroy();
+    const ctxC = document.getElementById('categoryChart');
+    if (ctxC) categoryChart = new Chart(ctxC, {
+      type: 'pie',
+      data: { labels: Object.keys(catMap), datasets: [{ data: Object.values(catMap),
+        backgroundColor: ['#2fc7ff','#ffc107','#28a745','#dc3545','#6f42c1','#fd7e14'] }] },
+      options: { responsive:true, maintainAspectRatio:true, plugins:{ legend:{ position:'bottom', labels:{ boxWidth:10, font:{ size:9 } } } } }
+    });
+
+    let bill = 0, non = 0;
+    filtered.forEach(e => { if (e.billable === 'yes') bill += e.hours; else non += e.hours; });
+    if (billableChart) billableChart.destroy();
+    const ctxB = document.getElementById('billableChart');
+    if (ctxB) billableChart = new Chart(ctxB, {
+      type: 'pie',
+      data: { labels: ['Billable','Non-billable'], datasets: [{ data:[bill, non],
+        backgroundColor: ['#28a745','#dc3545'] }] },
+      options: { responsive:true, maintainAspectRatio:true, plugins:{ legend:{ position:'bottom', labels:{ boxWidth:10, font:{ size:9 } } } } }
+    });
+  }
+
+  // ═════════════════════════════════════════════════════════
+  //  UI WIRING
+  // ═════════════════════════════════════════════════════════
+  function wireUI() {
+    document.getElementById('logDate').value = formatDate(new Date());
+    document.getElementById('startTime')?.addEventListener('change', updateHoursAuto);
+    document.getElementById('endTime')?.addEventListener('change', updateHoursAuto);
+    document.getElementById('nowStartBtn').onclick = () => {
+      document.getElementById('startTime').value = new Date().toTimeString().slice(0,5);
+      updateHoursAuto();
+    };
+    document.getElementById('nowEndBtn').onclick = () => {
+      document.getElementById('endTime').value = new Date().toTimeString().slice(0,5);
+      updateHoursAuto();
+    };
+    document.getElementById('addEntryBtn').onclick = () => addEntry();
+    document.getElementById('printBtn').onclick = () => window.print();
+
+    document.getElementById('refreshHistoryBtn').onclick = async () => {
+      window.showLoading('Refreshing...');
+      await Promise.all([loadEntries(), loadProjects()]);
+      renderHistory(); updateSummaryAndProgress(); updateCharts();
+      window.__timesheetEntries = entries;
+      document.dispatchEvent(new Event('timesheetUpdated'));
+      window.hideLoading();
+      showToast('Refreshed.', 'success');
+    };
+
+    document.getElementById('filterRange').onchange = () => {
+      localStorage.setItem(LOCAL_RANGE_KEY, document.getElementById('filterRange').value);
+      renderHistory(); updateSummaryAndProgress(); updateCharts();
+    };
+    document.getElementById('filterProject').onchange  = () => { renderHistory(); updateSummaryAndProgress(); updateCharts(); };
+    document.getElementById('filterCategory').onchange = () => { renderHistory(); updateSummaryAndProgress(); updateCharts(); };
+
+    document.getElementById('saveNameBtn').onclick = async () => {
+      const user = window.SessionManager.getCurrentUser();
+      const name = document.getElementById('userFullName').value.trim();
+      if (!name) return;
+      window.showLoading('Saving name...');
+      const { error } = await window.supabase
+        .from('profiles')
+        .update({ full_name: name, updated_at: new Date().toISOString() })
+        .eq('id', user.id);
+      window.hideLoading();
+      if (error) { showToast('Failed: ' + error.message, 'error'); return; }
+      userFullName = name;
+      document.getElementById('reportName').value = name;
+      showToast('Name saved.', 'success');
+    };
+
+    document.getElementById('notificationsToggle')?.addEventListener('change', async (e) => {
+      const user = window.SessionManager.getCurrentUser();
+      const enabled = e.target.checked;
+      const { error } = await window.supabase
+        .from('profiles')
+        .update({ notifications_enabled: enabled })
+        .eq('id', user.id);
+      if (error) {
+        showToast('Failed: ' + error.message, 'error');
+        e.target.checked = !enabled;
+      } else {
+        notificationsEnabled = enabled;
+        showToast(enabled ? 'Notifications enabled' : 'Notifications disabled', 'success');
+      }
+    });
+
+    // Hide the legacy Save button (no longer relevant)
+    const legacySave = document.getElementById('saveToGithubBtn');
+    if (legacySave) legacySave.style.display = 'none';
+
+    document.getElementById('addProjectBtn').onclick = () => {
+      document.getElementById('newProjectName').value = '';
+      $('#newProjectModal').modal('show');
+    };
+    document.getElementById('confirmNewProjectBtn').onclick = () => {
+      const name = document.getElementById('newProjectName').value.trim();
+      if (!name) return;
+      if (!allProjectOptions.includes(name)) {
+        allProjectOptions.push(name);
+        allProjectOptions.sort();
+        populateProjectSelects();
+      }
+      document.getElementById('taskProject').value = name;
+      $('#newProjectModal').modal('hide');
+    };
+
+    document.getElementById('generateReportBtn').onclick = () => {
+      document.getElementById('reportName').value = userFullName;
+      const end = new Date();
+      const start = new Date(); start.setDate(start.getDate() - 30);
+      document.getElementById('reportStartDate').value = formatDate(start);
+      document.getElementById('reportEndDate').value = formatDate(end);
+      $('#reportModal').modal('show');
+    };
+    document.getElementById('generateReportConfirmBtn').onclick = () => {
+      const start = document.getElementById('reportStartDate').value;
+      const end   = document.getElementById('reportEndDate').value;
+      if (!start || !end) return;
+      $('#reportModal').modal('hide');
+      exportStyledExcel(start, end);
+    };
+
+    document.getElementById('saveEditBtn').onclick = saveEdit;
+
+    document.getElementById('historyBody').addEventListener('click', (e) => {
+      const btn = e.target.closest('button');
+      if (!btn) return;
+      const action = btn.dataset.action;
+      const id = btn.dataset.id;
+      if (action === 'edit')      editEntry(id);
+      else if (action === 'delete')   deleteEntry(id);
+      else if (action === 'duplicate') {
+        const entry = entries.find(x => String(x.id) === String(id));
+        if (entry) addEntry(entry);
+      }
+    });
+  }
+
+  // ═════════════════════════════════════════════════════════
+  //  HELPERS — used by the Excel report
+  // ═════════════════════════════════════════════════════════
   function saveAs(blob, filename) {
     if (typeof window.saveAs === 'function') {
       window.saveAs(blob, filename);
@@ -42,94 +601,7 @@
     setTimeout(() => URL.revokeObjectURL(link.href), 1000);
   }
 
-  // ======================== CONFIGURATION ========================
-  const TIMESHEET_FILE = "timesheet.json";
-  const TIMESHEET_PROJECTS_FILE = "timesheet_projects.json";
-  const USER_META_FILE = "user_meta.json";
-  const PREFS_FILE = "preferences.json";
-  const LOCAL_STORAGE_KEY = 'timesheet_entries_cache';
-
-  let entries = [];
-  let timesheetProjects = [];
-  let mainPortfolioProjects = [];
-  let allProjectOptions = [];
-  let userFullName = "";
-  let notificationsEnabled = false;
-  let autoRefreshInterval = null;
-
-  let projectChart = null, categoryChart = null, billableChart = null;
-
-  let _projectsLoaded = false;
-  let _isSaving = false;
-  let _saveQueue = [];
-  let _syncStatusTimeout = null;
-
-  // ======================== LOCAL STORAGE CACHE ========================
-  function saveToLocalStorage(entriesArray) {
-    try {
-      const data = {
-        entries: entriesArray,
-        timestamp: Date.now(),
-        version: '1.0'
-      };
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data));
-    } catch (e) {
-      console.warn('Failed to save timesheet to localStorage:', e);
-    }
-  }
-
-  function loadFromLocalStorage() {
-    try {
-      const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (!raw) return null;
-      const data = JSON.parse(raw);
-      if (data && Array.isArray(data.entries)) {
-        console.log(`📦 Loaded ${data.entries.length} entries from localStorage (cached at ${new Date(data.timestamp).toLocaleString()})`);
-        return data.entries;
-      }
-      return null;
-    } catch (e) {
-      console.warn('Failed to load timesheet from localStorage:', e);
-      return null;
-    }
-  }
-
-  // ======================== SYNC STATUS UI ========================
-  function updateSyncStatus(message, type = 'saved') {
-    const el = document.getElementById('syncStatus');
-    if (!el) return;
-    el.textContent = message;
-    el.className = 'sync-status';
-    if (type === 'saving') el.classList.add('saving');
-    else if (type === 'saved') el.classList.add('saved');
-    else if (type === 'error') el.classList.add('error');
-    // Only auto-revert if not "saving" – we don't want to revert while a save is ongoing
-    if (type !== 'saving') {
-      if (_syncStatusTimeout) clearTimeout(_syncStatusTimeout);
-      _syncStatusTimeout = setTimeout(() => {
-        if (el) {
-          el.textContent = 'Synced';
-          el.className = 'sync-status saved';
-        }
-      }, 4000);
-    }
-  }
-
-  function showToast(message, type = "success") {
-    const container = document.getElementById("toastContainer");
-    if (!container) return;
-    const toastId = "toast-" + Date.now();
-    const bgClass = type === "success" ? "bg-success" : (type === "error" ? "bg-danger" : "bg-info");
-    const html = `<div id="${toastId}" class="toast ${bgClass} text-white" role="alert" data-autohide="true" data-delay="5000"><div class="toast-body">${message}</div></div>`;
-    container.insertAdjacentHTML("beforeend", html);
-    const toastEl = document.getElementById(toastId);
-    $(toastEl).toast("show");
-    toastEl.addEventListener("hidden.bs.toast", () => toastEl.remove());
-  }
-
   // ======================== PROGRESS LOADER ========================
-  let _progressCallback = null;
-
   function showProgressLoader() {
     let loader = document.getElementById('progressLoader');
     if (!loader) {
@@ -237,532 +709,7 @@
     if (loader) loader.style.display = 'none';
   }
 
-  // ======================== DATA LOAD & SAVE ========================
-  async function loadTimesheet(useCache = true) {
-    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const encUser = encodeURIComponent(user.username);
-    const path = `${dataPath}/users/${encUser}/${TIMESHEET_FILE}`;
-    const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`;
-    let loadedFromGitHub = false;
-    try {
-      const resp = await githubFetchWithAuth(url, { headers: { Authorization: `token ${user.pat}`, Accept: 'application/vnd.github.v3+json' } });
-      if (resp.ok) {
-        const data = await resp.json();
-        const content = atob(data.content.replace(/\n/g, ''));
-        let parsed;
-        try {
-          parsed = JSON.parse(content);
-        } catch (e) {
-          console.warn("Timesheet JSON parse failed, using empty array:", e);
-          parsed = [];
-          showToast("Timesheet data was corrupted; reset to empty.", "error");
-        }
-        entries = Array.isArray(parsed) ? parsed : [];
-        entries = entries.map(e => ({ ...e, updatedAt: e.updatedAt || e.id }));
-        entries.sort((a, b) => new Date(b.date) - new Date(a.date));
-        loadedFromGitHub = true;
-        saveToLocalStorage(entries);
-        updateSyncStatus('Synced', 'saved');
-      } else if (resp.status === 404) {
-        entries = [];
-        saveToLocalStorage(entries);
-        loadedFromGitHub = true;
-      } else {
-        throw new Error(`HTTP ${resp.status}`);
-      }
-    } catch(e) {
-      if (e.message.includes("Token expired")) {
-        return;
-      }
-      console.warn('Failed to load from GitHub, trying localStorage:', e);
-      if (useCache) {
-        const cached = loadFromLocalStorage();
-        if (cached) {
-          entries = cached;
-          entries.sort((a, b) => new Date(b.date) - new Date(a.date));
-          showToast('Loaded from local cache (GitHub unavailable).', 'warning');
-          updateSyncStatus('Offline (cached)', 'error');
-        } else {
-          entries = [];
-          showToast('Could not load any data. Starting fresh.', 'error');
-          updateSyncStatus('No data', 'error');
-        }
-      } else {
-        entries = [];
-        showToast('Could not load data.', 'error');
-      }
-    }
-    if (loadedFromGitHub) {
-      saveToLocalStorage(entries);
-    }
-  }
-
-  // ------------------ SYNC WITH RACE-FREE FORCE ------------------
-  async function syncEntriesToGitHub(force = false, showFeedback = false) {
-    // If a save is already in progress, wait for it if forced
-    if (_isSaving) {
-      if (force) {
-        // Wait for the current save to finish
-        while (_isSaving) {
-          await new Promise(r => setTimeout(r, 100));
-        }
-        // Then proceed (fall through)
-      } else {
-        if (showFeedback) showToast('Sync already in progress...', 'info');
-        return new Promise((resolve) => {
-          _saveQueue.push(resolve);
-        });
-      }
-    }
-
-    _isSaving = true;
-    if (showFeedback) updateSyncStatus('Saving...', 'saving');
-    try {
-      await _doSaveEntries(entries);
-      updateSyncStatus('Synced', 'saved');
-      showToast('Data saved to GitHub.', 'success');
-      while (_saveQueue.length) {
-        const resolve = _saveQueue.shift();
-        resolve();
-      }
-    } catch (err) {
-      console.error("Background sync failed:", err);
-      updateSyncStatus('Sync failed', 'error');
-      showToast("⚠️ Could not save to GitHub. Your data is safe locally but not synced.", "error");
-      while (_saveQueue.length) {
-        const resolve = _saveQueue.shift();
-        resolve();
-      }
-    } finally {
-      _isSaving = false;
-    }
-  }
-
-  async function _doSaveEntries(dataToSave) {
-    if (!Array.isArray(dataToSave)) throw new Error("Invalid data: expected array");
-    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const encUser = encodeURIComponent(user.username);
-    const path = `${dataPath}/users/${encUser}/${TIMESHEET_FILE}`;
-    const content = JSON.stringify(dataToSave, null, 2);
-    const encodedContent = btoa(unescape(encodeURIComponent(content)));
-
-    let sha = null;
-    const getUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`;
-    try {
-      const getResp = await githubFetchWithAuth(getUrl, { headers: { Authorization: `token ${user.pat}` } });
-      if (getResp.ok) { const data = await getResp.json(); sha = data.sha; }
-    } catch(e) {}
-
-    const putUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
-    const body = { message: `Update timesheet – ${new Date().toISOString()} – ${dataToSave.length} entries`, content: encodedContent, branch };
-    if (sha) body.sha = sha;
-
-    let retries = 3;
-    let lastError;
-    while (retries > 0) {
-      try {
-        const putResp = await githubFetchWithAuth(putUrl, { method: 'PUT', headers: { Authorization: `token ${user.pat}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-        if (!putResp.ok) throw new Error(`GitHub API error: ${putResp.status}`);
-        entries = [...dataToSave];
-        saveToLocalStorage(entries);
-        return true;
-      } catch (err) {
-        lastError = err;
-        retries--;
-        if (retries === 0) throw err;
-        await new Promise(r => setTimeout(r, 1000 * (4 - retries)));
-      }
-    }
-    throw lastError;
-  }
-
-  // ======================== PROJECTS ========================
-  async function loadTimesheetProjects() {
-    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const encUser = encodeURIComponent(user.username);
-    const path = `${dataPath}/users/${encUser}/${TIMESHEET_PROJECTS_FILE}`;
-    try {
-      const resp = await githubFetchWithAuth(`https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`, { headers: { Authorization: `token ${user.pat}` } });
-      if (resp.ok) { const data = await resp.json(); timesheetProjects = JSON.parse(atob(data.content.replace(/\n/g, ''))); }
-      else if (resp.status === 404) timesheetProjects = [];
-    } catch(e) { console.warn("Failed to load timesheet projects:", e); timesheetProjects = []; }
-  }
-
-  async function saveTimesheetProjects(projectsArray) {
-    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const encUser = encodeURIComponent(user.username);
-    const path = `${dataPath}/users/${encUser}/${TIMESHEET_PROJECTS_FILE}`;
-    const content = JSON.stringify(projectsArray, null, 2);
-    let sha = null;
-    try {
-      const getResp = await githubFetchWithAuth(`https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`, { headers: { Authorization: `token ${user.pat}` } });
-      if (getResp.ok) sha = (await getResp.json()).sha;
-    } catch(e) {}
-    const putResp = await githubFetchWithAuth(`https://api.github.com/repos/${owner}/${repo}/contents/${path}`, {
-      method: 'PUT', headers: { Authorization: `token ${user.pat}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: 'Update timesheet projects', content: btoa(unescape(encodeURIComponent(content))), branch, ...(sha && { sha }) })
-    });
-    if (!putResp.ok) throw new Error('Failed to save timesheet projects');
-    timesheetProjects = projectsArray;
-  }
-
-  async function loadPortfolioProjects() {
-    try {
-      const projectsData = await window.portfolioData.loadProjects();
-      mainPortfolioProjects = Object.values(projectsData).map(p => p.title).filter(p => p);
-    } catch(e) { mainPortfolioProjects = []; }
-  }
-
-  function updateCombinedProjectList() {
-    const combined = [...new Set([...mainPortfolioProjects, ...timesheetProjects])];
-    combined.sort();
-    allProjectOptions = combined;
-  }
-
-  async function loadProjectsForTimesheet(force = false) {
-    if (_projectsLoaded && !force) {
-      return;
-    }
-    await loadPortfolioProjects();
-    await loadTimesheetProjects();
-    updateCombinedProjectList();
-    const selects = ['taskProject', 'editProject', 'filterProject'];
-    for (let id of selects) {
-      const sel = document.getElementById(id);
-      if (!sel) continue;
-      const currentVal = sel.value;
-      sel.innerHTML = id === 'filterProject' ? '<option value="all">All Projects</option>' : '';
-      allProjectOptions.forEach(proj => { const opt = document.createElement('option'); opt.value = proj; opt.textContent = proj; sel.appendChild(opt); });
-      if (currentVal && allProjectOptions.includes(currentVal)) sel.value = currentVal;
-    }
-    _projectsLoaded = true;
-  }
-
-  async function createTimesheetOnlyProject(projectName) {
-    if (allProjectOptions.includes(projectName)) return false;
-    await saveTimesheetProjects([...timesheetProjects, projectName]);
-    timesheetProjects.push(projectName);
-    updateCombinedProjectList();
-    await loadProjectsForTimesheet(true);
-    return true;
-  }
-
-  async function deleteTimesheetProject(projectName) {
-    if (!timesheetProjects.includes(projectName)) return false;
-    const updated = timesheetProjects.filter(p => p !== projectName);
-    await saveTimesheetProjects(updated);
-    timesheetProjects = updated;
-    updateCombinedProjectList();
-    await loadProjectsForTimesheet(true);
-    showToast(`Project "${projectName}" deleted from timesheet list.`, "success");
-    return true;
-  }
-
-  // ======================== UI HELPERS ========================
-  function formatDate(date) { return new Date(date).toISOString().split('T')[0]; }
-  function calcHours(start, end) {
-    if (!start || !end) return 0;
-    const [sh, sm] = start.split(':').map(Number);
-    const [eh, em] = end.split(':').map(Number);
-    let minutes = (eh * 60 + em) - (sh * 60 + sm);
-    if (minutes < 0) minutes += 24 * 60;
-    return +(minutes / 60).toFixed(2);
-  }
-  function updateHoursAuto() {
-    const start = document.getElementById('startTime').value;
-    const end = document.getElementById('endTime').value;
-    document.getElementById('hoursAuto').value = calcHours(start, end).toFixed(2);
-  }
-
-  // ======================== ADD ENTRY – OPTIMISTIC UI ========================
-  async function addEntry(duplicateData = null) {
-    let date, start, end, project, category, billable, notes;
-    if (duplicateData) {
-      date = duplicateData.date; start = duplicateData.start; end = duplicateData.end;
-      project = duplicateData.project; category = duplicateData.category;
-      billable = duplicateData.billable; notes = duplicateData.notes ? duplicateData.notes + " (copy)" : "copy";
-    } else {
-      date = document.getElementById('logDate').value;
-      start = document.getElementById('startTime').value;
-      end = document.getElementById('endTime').value;
-      project = document.getElementById('taskProject').value;
-      category = document.getElementById('taskCategory').value;
-      billable = document.getElementById('billable').value;
-      notes = document.getElementById('taskNotes').value.trim();
-    }
-    if (!date || !start || !end || !project || !category) { showToast("Please fill all required fields.", "error"); return; }
-    const hours = calcHours(start, end);
-    if (hours <= 0) { showToast("End time must be after start time.", "error"); return; }
-
-    const newEntry = { id: Date.now(), date, start, end, hours, project, category, billable, notes, updatedAt: Date.now() };
-
-    entries = [newEntry, ...entries];
-    saveToLocalStorage(entries);
-    renderHistory();
-    updateSummaryAndProgress();
-    updateCharts();
-    showToast(duplicateData ? "Entry duplicated!" : "Entry saved locally.", "success");
-
-    if (!duplicateData) {
-      document.getElementById('startTime').value = '';
-      document.getElementById('endTime').value = '';
-      document.getElementById('taskNotes').value = '';
-      document.getElementById('hoursAuto').value = '';
-    }
-
-    debouncedSync();
-  }
-
-  // ======================== DELETE / EDIT / DUPLICATE ========================
-  async function deleteEntry(id) {
-    if (!confirm("Delete this entry?")) return;
-    const deleted = entries.find(e => e.id == id);
-    if (!deleted) return;
-    entries = entries.filter(e => e.id != id);
-    saveToLocalStorage(entries);
-    renderHistory();
-    updateSummaryAndProgress();
-    updateCharts();
-    showToast("Entry deleted locally.", "success");
-    debouncedSync();
-  }
-
-  async function saveEdit() {
-    const id = parseInt(document.getElementById('editEntryId').value);
-    const date = document.getElementById('editDate').value;
-    const start = document.getElementById('editStart').value;
-    const end = document.getElementById('editEnd').value;
-    const project = document.getElementById('editProject').value;
-    const category = document.getElementById('editCategory').value;
-    const billable = document.getElementById('editBillable').value;
-    const notes = document.getElementById('editNotes').value.trim();
-    if (!date || !start || !end || !project || !category) { showToast("Please fill all fields.", "error"); return; }
-    const hours = calcHours(start, end);
-    if (hours <= 0) { showToast("End time must be after start.", "error"); return; }
-
-    const index = entries.findIndex(e => e.id == id);
-    if (index === -1) { showToast("Entry not found.", "error"); return; }
-    const updatedEntry = { ...entries[index], date, start, end, hours, project, category, billable, notes, updatedAt: Date.now() };
-    entries[index] = updatedEntry;
-    saveToLocalStorage(entries);
-
-    renderHistory();
-    updateSummaryAndProgress();
-    updateCharts();
-    $('#editModal').modal('hide');
-    showToast("Entry updated locally.", "success");
-    debouncedSync();
-  }
-
-  async function duplicateEntry(entry) { await addEntry(entry); }
-  async function editEntry(id) {
-    const entry = entries.find(e => e.id == id);
-    if (!entry) return;
-    document.getElementById('editEntryId').value = id;
-    document.getElementById('editDate').value = entry.date;
-    document.getElementById('editStart').value = entry.start;
-    document.getElementById('editEnd').value = entry.end;
-    document.getElementById('editProject').value = entry.project;
-    document.getElementById('editCategory').value = entry.category;
-    document.getElementById('editBillable').value = entry.billable;
-    document.getElementById('editNotes').value = entry.notes || '';
-    $('#editModal').modal('show');
-  }
-
-  // ======================== DEBOUNCED SYNC ========================
-  let _debounceTimer = null;
-  function debouncedSync() {
-    if (_debounceTimer) clearTimeout(_debounceTimer);
-    _debounceTimer = setTimeout(() => {
-      syncEntriesToGitHub(false, false).catch(err => console.warn("Sync error:", err));
-      _debounceTimer = null;
-    }, 3000);
-  }
-
-  // ======================== FILTERS & RENDERING ========================
-  function getFilteredEntries() {
-    const range = document.getElementById('filterRange').value;
-    const project = document.getElementById('filterProject').value;
-    const category = document.getElementById('filterCategory').value;
-    
-    // Use UTC date for all calculations to avoid timezone shifts
-    const now = new Date();
-    const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-    const todayYMD = formatDate(today);
-    const thisMonthPrefix = todayYMD.substring(0, 7);
-    
-    const thirtyDaysAgo = new Date(today);
-    thirtyDaysAgo.setUTCDate(today.getUTCDate() - 30);
-    const thirtyDaysAgoStr = formatDate(thirtyDaysAgo);
-    
-    const todayDay = today.getUTCDay();
-    const currentMonday = new Date(today);
-    currentMonday.setUTCDate(today.getUTCDate() - (todayDay === 0 ? 6 : todayDay - 1));
-    currentMonday.setUTCHours(0,0,0,0);
-    const lastMonday = new Date(currentMonday);
-    lastMonday.setUTCDate(currentMonday.getUTCDate() - 7);
-    const lastSunday = new Date(lastMonday);
-    lastSunday.setUTCDate(lastMonday.getUTCDate() + 6);
-    const lastMondayStr = formatDate(lastMonday);
-    const lastSundayStr = formatDate(lastSunday);
-    
-    const lastMonth = new Date(today);
-    lastMonth.setUTCMonth(today.getUTCMonth() - 1);
-    const lastMonthStart = new Date(lastMonth.getUTCFullYear(), lastMonth.getUTCMonth(), 1);
-    const lastMonthEnd = new Date(lastMonth.getUTCFullYear(), lastMonth.getUTCMonth() + 1, 0);
-    const lastMonthStartStr = formatDate(lastMonthStart);
-    const lastMonthEndStr = formatDate(lastMonthEnd);
-    
-    let filtered = [...entries];
-    if (range !== 'all') {
-      filtered = filtered.filter(entry => {
-        const entryDate = entry.date;
-        if (range === 'day') {
-          return entryDate === todayYMD;
-        }
-        if (range === 'week') {
-          const d = new Date(entryDate);
-          d.setUTCHours(0, 0, 0, 0);
-          const startOfWeek = new Date(currentMonday);
-          startOfWeek.setUTCHours(0,0,0,0);
-          const endOfWeek = new Date(startOfWeek);
-          endOfWeek.setUTCDate(startOfWeek.getUTCDate() + 6);
-          endOfWeek.setUTCHours(23, 59, 59, 999);
-          return d >= startOfWeek && d <= endOfWeek;
-        }
-        if (range === 'month') {
-          return entryDate.substring(0, 7) === thisMonthPrefix;
-        }
-        if (range === 'lastWeek') {
-          return entryDate >= lastMondayStr && entryDate <= lastSundayStr;
-        }
-        if (range === 'lastMonth') {
-          return entryDate >= lastMonthStartStr && entryDate <= lastMonthEndStr;
-        }
-        if (range === 'last30') {
-          return entryDate >= thirtyDaysAgoStr;
-        }
-        return true;
-      });
-    }
-    if (project !== 'all') filtered = filtered.filter(e => e.project === project);
-    if (category !== 'all') filtered = filtered.filter(e => e.category === category);
-    return filtered;
-  }
-
-  function renderHistory() {
-    const filtered = getFilteredEntries();
-    const tbody = document.getElementById('historyBody');
-    const tfoot = document.getElementById('historyFoot');
-    
-    let totalHours = 0;
-    tbody.innerHTML = '';
-    
-    if (filtered.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="9" class="text-center">No entries found.</td></tr>';
-      document.getElementById('totalHoursCell').innerHTML = '<strong>0.00</strong>';
-      tfoot.style.display = 'table-footer-group';
-      return;
-    }
-    
-    filtered.forEach(entry => {
-      totalHours += entry.hours;
-      const row = tbody.insertRow();
-      row.insertCell(0).innerText = entry.date;
-      row.insertCell(1).innerText = entry.start;
-      row.insertCell(2).innerText = entry.end;
-      row.insertCell(3).innerText = entry.hours.toFixed(2);
-      row.insertCell(4).innerText = entry.project;
-      row.insertCell(5).innerText = entry.category;
-      row.insertCell(6).innerText = entry.billable === 'yes' ? 'Billable' : 'Non-billable';
-      row.insertCell(7).innerText = entry.notes || '-';
-      
-      const actionCell = row.insertCell(8);
-      actionCell.className = 'print-hide';
-      
-      const editBtn = document.createElement('button');
-      editBtn.className = 'btn btn-sm btn-edit mr-1';
-      editBtn.innerHTML = '<i class="fa fa-pencil"></i>';
-      editBtn.dataset.id = entry.id;
-      editBtn.dataset.action = 'edit';
-      
-      const dupBtn = document.createElement('button');
-      dupBtn.className = 'btn btn-sm btn-duplicate mr-1';
-      dupBtn.innerHTML = '<i class="fa fa-copy"></i>';
-      dupBtn.dataset.id = entry.id;
-      dupBtn.dataset.action = 'duplicate';
-      
-      const delBtn = document.createElement('button');
-      delBtn.className = 'btn btn-sm btn-danger';
-      delBtn.innerHTML = '<i class="fa fa-trash"></i>';
-      delBtn.dataset.id = entry.id;
-      delBtn.dataset.action = 'delete';
-      
-      actionCell.appendChild(editBtn);
-      actionCell.appendChild(dupBtn);
-      actionCell.appendChild(delBtn);
-    });
-    
-    document.getElementById('totalHoursCell').innerHTML = '<strong>' + totalHours.toFixed(2) + '</strong>';
-    tfoot.style.display = 'table-footer-group';
-  }
-
-  function calculateOvertimeForPeriod(entriesList) {
-    const dailyHours = {};
-    entriesList.forEach(e => { dailyHours[e.date] = (dailyHours[e.date] || 0) + e.hours; });
-    return Object.values(dailyHours).reduce((sum, hrs) => sum + (hrs > 8 ? hrs - 8 : 0), 0);
-  }
-
- function updateSummaryAndProgress() {
-    const filtered = getFilteredEntries();
-    const totalHours = filtered.reduce((s,e) => s + e.hours, 0);
-    const billable = filtered.filter(e => e.billable === 'yes').reduce((s,e) => s + e.hours, 0);
-    const nonBillable = totalHours - billable;
-    const overtime = calculateOvertimeForPeriod(filtered);
-    document.getElementById('summaryTotalHours').innerText = totalHours.toFixed(1);
-    document.getElementById('summaryBillable').innerText = billable.toFixed(1);
-    document.getElementById('summaryNonBillable').innerText = nonBillable.toFixed(1);
-    document.getElementById('summaryOvertime').innerText = overtime.toFixed(1);
-    document.getElementById('summaryCard').style.display = 'flex';
-
-    const now = new Date();
-    const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-    const todayStr = formatDate(todayUTC);
-    const todayHours = entries.filter(e => e.date === todayStr).reduce((s,e) => s + e.hours, 0);
-    
-    const percent = Math.min(100, (todayHours / 8) * 100);
-    const fill = document.getElementById('dailyProgressFill');
-    fill.style.width = percent + '%';
-    fill.innerText = todayHours.toFixed(1) + 'h';
-    if (todayHours > 8) { 
-        fill.classList.add('overtime'); 
-        document.getElementById('overtimeWarning').style.display = 'block'; 
-        document.getElementById('overtimeWarning').innerHTML = `<i class="fa fa-exclamation-triangle"></i> Overtime: ${(todayHours-8).toFixed(1)}h over 8h today`; 
-    } else { 
-        fill.classList.remove('overtime'); 
-        document.getElementById('overtimeWarning').style.display = 'none'; 
-    }
-}
-
-  function updateCharts() {
-    const filtered = getFilteredEntries();
-    const projMap = {}; filtered.forEach(e => { projMap[e.project] = (projMap[e.project] || 0) + e.hours; });
-    if (projectChart) projectChart.destroy();
-    const ctxProj = document.getElementById('projectChart');
-    if (ctxProj) projectChart = new Chart(ctxProj, { type: 'pie', data: { labels: Object.keys(projMap), datasets: [{ data: Object.values(projMap), backgroundColor: ['#2fc7ff','#ffc107','#28a745','#dc3545','#6f42c1','#fd7e14','#17a2b8','#e83e8c'] }] }, options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } } } } });
-
-    const catMap = {}; filtered.forEach(e => { catMap[e.category] = (catMap[e.category] || 0) + e.hours; });
-    if (categoryChart) categoryChart.destroy();
-    const ctxCat = document.getElementById('categoryChart');
-    if (ctxCat) categoryChart = new Chart(ctxCat, { type: 'pie', data: { labels: Object.keys(catMap), datasets: [{ data: Object.values(catMap), backgroundColor: ['#2fc7ff','#ffc107','#28a745','#dc3545','#6f42c1','#fd7e14'] }] }, options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } } } } });
-
-    let billable = 0, nonBill = 0; filtered.forEach(e => { if (e.billable === 'yes') billable += e.hours; else nonBill += e.hours; });
-    if (billableChart) billableChart.destroy();
-    const ctxBill = document.getElementById('billableChart');
-    if (ctxBill) billableChart = new Chart(ctxBill, { type: 'pie', data: { labels: ['Billable', 'Non-billable'], datasets: [{ data: [billable, nonBill], backgroundColor: ['#28a745','#dc3545'] }] }, options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } } } } });
-  }
-
-  // ======================== WEEK-BASED COLORING HELPER ========================
+  // ======================== WEEK NUMBER ========================
   function getWeekNumber(date) {
     const d = new Date(date);
     d.setHours(0,0,0,0);
@@ -771,7 +718,7 @@
     return 1 + Math.round(((d - week1) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
   }
 
-  // ======================== SAFE CHART CAPTURE WITH FALLBACK ========================
+  // ======================== SAFE CHART CAPTURE ========================
   let _chartCanvas = null;
 
   async function safeCaptureChart(chartBuilder, width = 800, height = 600) {
@@ -817,11 +764,13 @@
     });
   }
 
-  // ======================== EXCEL EXPORT (with Yearly Calendar) ========================
+  // ═════════════════════════════════════════════════════════
+  //  EXCEL EXPORT (with Yearly Calendar) — full, unchanged
+  // ═════════════════════════════════════════════════════════
   async function exportStyledExcel(startDate, endDate) {
     showProgressLoader();
     updateProgress(0, 'Initializing...');
-    
+
     try {
       if (typeof getWeekNumber === 'undefined') {
         window.getWeekNumber = function(date) {
@@ -853,7 +802,7 @@
       const weeks = [...new Map(filtered.map(e => [e.weekKey, e.weekKey])).values()];
       const weekFills = weeks.map((w, idx) => ({
         week: w,
-        fill: idx % 2 === 0 
+        fill: idx % 2 === 0
           ? { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE6F0FA' } }
           : { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF8E7' } }
       }));
@@ -889,7 +838,7 @@
 
       worksheet.mergeCells('A1:H1');
       const titleCell = worksheet.getCell('A1');
-      titleCell.value = `TIMESHEET REPORT - ${userFullName || user.username}`;
+      titleCell.value = `TIMESHEET REPORT - ${userFullName || window.SessionManager.getCurrentUser()?.email || ''}`;
       titleCell.font = { size: 18, bold: true, color: { argb: 'FFFFFFFF' } };
       titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
       titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
@@ -986,7 +935,7 @@
 
       worksheet.views = [{ state: 'frozen', ySplit: 4 }];
       worksheet.pageSetup.printArea = `A1:H${totalRowNum}`;
-      
+
       worksheet.protect('Siya', {
         selectLockedCells: true,
         selectUnlockedCells: true,
@@ -1008,10 +957,10 @@
         pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, paperSize: 9 }
       });
       summarySheet.columns = [{ width: 25 }, { width: 20 }, { width: 20 }];
-      
+
       summarySheet.mergeCells('A1:C1');
       const sumTitle = summarySheet.getCell('A1');
-      sumTitle.value = `TIMESHEET SUMMARY - ${userFullName || user.username}`;
+      sumTitle.value = `TIMESHEET SUMMARY - ${userFullName || window.SessionManager.getCurrentUser()?.email || ''}`;
       sumTitle.font = { size: 16, bold: true, color: { argb: 'FF0B2B3B' } };
       sumTitle.alignment = { horizontal: 'center' };
       summarySheet.getRow(1).height = 28;
@@ -1028,7 +977,7 @@
       const uniqueProjects = new Set(filtered.map(e => e.project)).size;
       const uniqueDays = new Set(filtered.map(e => e.date)).size;
       const avgDaily = uniqueDays > 0 ? totalHours / uniqueDays : 0;
-      
+
       const kpiRows = [
         ["Total Hours", totalHours.toFixed(1)],
         ["Billable Hours", billableHours.toFixed(1)],
@@ -1041,7 +990,7 @@
         ["Admin Ratio (%)", adminRatio.toFixed(1) + "%"],
         ["Total Entries", filtered.length]
       ];
-      
+
       let r = 4;
       for (const [label, val] of kpiRows) {
         const labelCell = summarySheet.getCell(`A${r}`);
@@ -1063,16 +1012,16 @@
         filtered.forEach(e => { projMap[e.project] = (projMap[e.project] || 0) + e.hours; });
         const projLabels = Object.keys(projMap).slice(0, 10);
         const projData = projLabels.map(l => projMap[l]);
-        
+
         const canvas = document.createElement('canvas');
         canvas.width = 900;
         canvas.height = 600;
         const ctx = canvas.getContext('2d');
         const chart = new Chart(ctx, {
           type: 'bar',
-          data: { 
-            labels: projLabels, 
-            datasets: [{ label: 'Hours', data: projData, backgroundColor: '#2fc7ff' }] 
+          data: {
+            labels: projLabels,
+            datasets: [{ label: 'Hours', data: projData, backgroundColor: '#2fc7ff' }]
           },
           options: {
             responsive: false,
@@ -1082,11 +1031,11 @@
               title: { display: true, text: 'Top Projects by Hours', font: { size: 56 } }
             },
             scales: {
-              x: { 
+              x: {
                 ticks: { font: { size: 36 } },
                 title: { display: true, text: 'Project', font: { size: 48 } }
               },
-              y: { 
+              y: {
                 ticks: { font: { size: 40 } },
                 title: { display: true, text: 'Hours', font: { size: 48 } }
               }
@@ -1129,14 +1078,14 @@
       const chartsSheet = workbook.addWorksheet("Charts", {
         pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, paperSize: 9 }
       });
-      
+
       chartsSheet.mergeCells('A1:F1');
       const chartsTitle = chartsSheet.getCell('A1');
       chartsTitle.value = "VISUAL ANALYTICS DASHBOARD";
       chartsTitle.font = { size: 20, bold: true, color: { argb: 'FF0B2B3B' } };
       chartsTitle.alignment = { horizontal: 'center' };
       chartsSheet.getRow(1).height = 38;
-      
+
       chartsSheet.getColumn(1).width = 46;
       chartsSheet.getColumn(2).width = 8;
       chartsSheet.getColumn(3).width = 8;
@@ -1180,7 +1129,7 @@
       }
 
       const row1Start = 4;
-      
+
       await addChart(chartsSheet, (ctx, canvas) => {
         const catMap = {};
         filtered.forEach(e => { catMap[e.category] = (catMap[e.category] || 0) + e.hours; });
@@ -1200,7 +1149,7 @@
       }, 1, row1Start, 'Billable Breakdown');
 
       const row2Start = row1Start + ROW_OFFSET + 4;
-      
+
       await addChart(chartsSheet, (ctx, canvas) => {
         const weeklyTotals = {};
         filtered.forEach(e => {
@@ -1236,7 +1185,7 @@
       }, 1, row2Start, 'Admin vs Project Hours');
 
       const row3Start = row2Start + ROW_OFFSET + 4;
-      
+
       await addChart(chartsSheet, (ctx, canvas) => {
         const weeklyBillable = {};
         const weeklyNonBillable = {};
@@ -1251,25 +1200,25 @@
         const allWeeks = [...new Set([...Object.keys(weeklyBillable), ...Object.keys(weeklyNonBillable)])].sort();
         return new Chart(ctx, {
           type: 'bar',
-          data: { 
-            labels: allWeeks, 
+          data: {
+            labels: allWeeks,
             datasets: [
               { label: 'Billable', data: allWeeks.map(w => weeklyBillable[w] || 0), backgroundColor: '#28a745' },
               { label: 'Non-Billable', data: allWeeks.map(w => weeklyNonBillable[w] || 0), backgroundColor: '#dc3545' }
-            ] 
+            ]
           },
-          options: { 
-            responsive: false, 
-            maintainAspectRatio: true, 
-            scales: { 
-              x: { stacked: true, ticks: { font: { size: 36 } } }, 
-              y: { stacked: true, ticks: { font: { size: 48 } } } 
-            }, 
-            plugins: { 
-              legend: { labels: { font: { size: 56 } } }, 
-              title: { display: true, text: 'Weekly Billable vs Non-Billable', font: { size: 64 } }, 
-              tooltip: { bodyFont: { size: 32 } } 
-            } 
+          options: {
+            responsive: false,
+            maintainAspectRatio: true,
+            scales: {
+              x: { stacked: true, ticks: { font: { size: 36 } } },
+              y: { stacked: true, ticks: { font: { size: 48 } } }
+            },
+            plugins: {
+              legend: { labels: { font: { size: 56 } } },
+              title: { display: true, text: 'Weekly Billable vs Non-Billable', font: { size: 64 } },
+              tooltip: { bodyFont: { size: 32 } }
+            }
           }
         });
       }, 0, row3Start, 'Weekly Billable vs Non-Billable');
@@ -1312,7 +1261,7 @@
         pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, paperSize: 9 }
       });
       analysisSheet.columns = [{ width: 28 }, { width: 22 }, { width: 35 }];
-      
+
       analysisSheet.mergeCells('A1:C1');
       const analysisTitle = analysisSheet.getCell('A1');
       analysisTitle.value = "DEEP DIVE ANALYSIS";
@@ -1322,7 +1271,7 @@
       analysisSheet.getRow(1).height = 32;
 
       let rowIdx = 3;
-      
+
       function addSectionHeader(title, startRow) {
         const cell = analysisSheet.getCell(`A${startRow}`);
         cell.value = title;
@@ -1415,7 +1364,7 @@
 
       // ===== 3. MONTHLY COMPARISON =====
       rowIdx = addSectionHeader("📅 MONTHLY COMPARISON", rowIdx);
-      
+
       const monthlyData = {};
       filtered.forEach(e => {
         const monthKey = e.date.substring(0, 7);
@@ -1426,7 +1375,7 @@
         if (e.billable === 'yes') monthlyData[monthKey].billable += e.hours;
         monthlyData[monthKey].days.add(e.date);
       });
-      
+
       const monthlyOvertime = {};
       const dailyHoursByMonth = {};
       filtered.forEach(e => {
@@ -1444,18 +1393,18 @@
         }
         monthlyOvertime[monthKey] = ot;
       }
-      
+
       const monthKeys = Object.keys(monthlyData).sort();
       const monthTable = [];
       let prevTotal = null;
-      
+
       function formatMonthKey(monthKey) {
         const [year, month] = monthKey.split('-');
-        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 
+        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
                            'July', 'August', 'September', 'October', 'November', 'December'];
         return monthNames[parseInt(month) - 1] + '-' + year;
       }
-      
+
       for (const m of monthKeys) {
         const data = monthlyData[m];
         const total = data.total;
@@ -1478,7 +1427,7 @@
         });
         prevTotal = total;
       }
-      
+
       const monthHeaders = ['Month', 'Hours', 'Billable', 'Overtime', 'Avg/Day', 'Growth'];
       const monthDataRows = monthTable.map(row => [
         row.month,
@@ -1488,7 +1437,7 @@
         row.avg.toFixed(1),
         row.growth !== null ? (row.growth >= 0 ? '+' : '') + row.growth.toFixed(1) + '%' : '-'
       ]);
-      
+
       const hRow = analysisSheet.getRow(rowIdx);
       monthHeaders.forEach((h, idx) => {
         const cell = hRow.getCell(idx+1);
@@ -1500,7 +1449,7 @@
       });
       analysisSheet.getRow(rowIdx).height = 22;
       rowIdx++;
-      
+
       for (const rowData of monthDataRows) {
         const row = analysisSheet.getRow(rowIdx);
         rowData.forEach((val, idx) => {
@@ -1536,7 +1485,7 @@
         return [day, dayMap[day].toFixed(1), avg.toFixed(1)];
       });
       dayTable.sort((a, b) => parseFloat(b[2]) - parseFloat(a[2]));
-      
+
       const dayHeaders = ['Day', 'Total Hours', 'Avg Hours'];
       const dayRow = analysisSheet.getRow(rowIdx);
       dayHeaders.forEach((h, idx) => {
@@ -1575,7 +1524,7 @@
         const pct = totalProjHours > 0 ? (hrs / totalProjHours) * 100 : 0;
         return [proj, hrs.toFixed(1), pct.toFixed(1) + '%'];
       });
-      
+
       const projHeaders = ['Project', 'Hours', 'Share'];
       const projRow = analysisSheet.getRow(rowIdx);
       projHeaders.forEach((h, idx) => {
@@ -1617,7 +1566,7 @@
         const formattedMonth = formatMonthKey(m);
         return [formattedMonth, data.total.toFixed(1), data.billable.toFixed(1), ratio.toFixed(1) + '%'];
       });
-      
+
       const trendHeaders = ['Month', 'Total', 'Billable', 'Billable %'];
       const trendRow = analysisSheet.getRow(rowIdx);
       trendHeaders.forEach((h, idx) => {
@@ -1656,10 +1605,10 @@
       const sortedCats = Object.entries(catCount).sort((a, b) => b[1] - a[1]);
       const mostUsed = sortedCats.length > 0 ? sortedCats[0][0] : 'N/A';
       const mostCount = sortedCats.length > 0 ? sortedCats[0][1] : 0;
-      
+
       rowIdx = addKeyValue("Most Used Category", mostUsed + ' (' + mostCount + ' entries)', rowIdx);
       rowIdx = addKeyValue("Total Categories Used", sortedCats.length, rowIdx);
-      
+
       const catHeaders = ['Category', 'Entries', 'Share'];
       const catRow = analysisSheet.getRow(rowIdx);
       catHeaders.forEach((h, idx) => {
@@ -1772,10 +1721,9 @@
           verticalCentered: true
         }
       });
-      
+
       const reportYear = new Date(startDate).getFullYear();
-      
-      // Build fast lookup maps
+
       const hoursMap = new Map();
       const leaveMap = new Map();
       entries.forEach(e => {
@@ -1790,18 +1738,17 @@
           }
         }
       });
-      
+
       function getHoursForDay(month, day) {
         const dateStr = `${reportYear}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
         return hoursMap.has(dateStr) ? hoursMap.get(dateStr) : null;
       }
-      
+
       function isLeaveDay(month, day) {
         const dateStr = `${reportYear}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
         return leaveMap.has(dateStr);
       }
-      
-      // ---- South African public holidays ----
+
       function getEasterDate(year) {
         const a = year % 19;
         const b = Math.floor(year / 100);
@@ -1819,7 +1766,7 @@
         const day = ((h + l - 7 * m + 114) % 31) + 1;
         return new Date(year, month - 1, day);
       }
-      
+
       function isPublicHoliday(year, month, day) {
         const date = new Date(year, month, day);
         const y = date.getFullYear();
@@ -1840,64 +1787,56 @@
         ];
         return fixed.includes(key) || movable.includes(key);
       }
-      
+
       function getColorForDay(month, day, hours) {
-        // Holiday or leave → purple
         if (isPublicHoliday(reportYear, month, day) || isLeaveDay(month, day)) {
           return { fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFB19CD9' } } };
         }
         if (hours === null) {
           return { fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF0F0F0' } } };
         }
-        // Normal: 7.5 – 8.0 → green
         if (hours >= 7.5 && hours <= 8.0) {
           return { fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFA8E6CF' } } };
         }
-        // High: >8.0 – 8.5 → yellow
         if (hours > 8.0 && hours <= 8.5) {
           return { fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFD966' } } };
         }
-        // Under‑time (<7.5) OR Overtime (>8.5) → red
         if (hours < 7.5 || hours > 8.5) {
           return { fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFF6B6B' } } };
         }
         return { fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF0F0F0' } } };
       }
-      
+
       const monthNamesCal = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
       const weekdayNamesCal = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-      
-      // Layout: 3 columns, 4 rows with spacers
+
       const monthsPerRow = 3;
       const monthCols = 7;
       const spacerCols = 1;
-      const blockCols = monthCols + spacerCols; // 8
-      const totalCols = monthsPerRow * blockCols - spacerCols; // 23
-      
+      const blockCols = monthCols + spacerCols;
+      const totalCols = monthsPerRow * blockCols - spacerCols;
+
       const blockRows = 9;
       const spacerRows = 1;
       const startRow = 1;
       const startCol = 1;
-      
-      // Set column widths: day columns = 8 (wider, to span page), spacer columns = 1
+
       for (let col = 1; col <= totalCols; col++) {
         const offset = col - startCol;
         const mod = offset % blockCols;
         if (mod === monthCols) {
-          calendarSheet.getColumn(col).width = 1; // spacer
+          calendarSheet.getColumn(col).width = 1;
         } else {
-          calendarSheet.getColumn(col).width = 8; // day column
+          calendarSheet.getColumn(col).width = 8;
         }
       }
-      
-      // Build each month
+
       for (let m = 0; m < 12; m++) {
         const rowIndex = Math.floor(m / monthsPerRow);
         const colIndex = m % monthsPerRow;
         const baseRow = startRow + rowIndex * (blockRows + spacerRows);
         const baseCol = startCol + colIndex * blockCols;
-      
-        // ---- Month title ----
+
         const titleRow = baseRow;
         const titleCell = calendarSheet.getRow(titleRow).getCell(baseCol);
         calendarSheet.mergeCells(titleRow, baseCol, titleRow, baseCol + monthCols - 1);
@@ -1906,8 +1845,7 @@
         titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
         titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
         calendarSheet.getRow(titleRow).height = 28;
-      
-        // ---- Weekday headers ----
+
         const headerRow = baseRow + 1;
         for (let wd = 0; wd < monthCols; wd++) {
           const cell = calendarSheet.getRow(headerRow).getCell(baseCol + wd);
@@ -1918,23 +1856,22 @@
           cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
         }
         calendarSheet.getRow(headerRow).height = 20;
-      
-        // ---- Day grid: 6 weeks ----
+
         const firstDay = new Date(reportYear, m, 1);
         const daysInMonth = new Date(reportYear, m + 1, 0).getDate();
         const startWeekday = firstDay.getDay();
-      
+
         let dayCounter = 1;
         let done = false;
         for (let week = 0; week < 6 && !done; week++) {
           const rowNum = baseRow + 2 + week;
           const row = calendarSheet.getRow(rowNum);
-          row.height = 30; // increased to give more vertical space
+          row.height = 30;
           for (let wd = 0; wd < monthCols; wd++) {
             const cell = row.getCell(baseCol + wd);
             let dayNumber = null;
             let hours = null;
-      
+
             if (week === 0 && wd < startWeekday) {
               cell.value = '';
               cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } };
@@ -1943,7 +1880,7 @@
               hours = getHoursForDay(m, dayCounter);
               dayCounter++;
             }
-      
+
             if (dayNumber !== null) {
               const colorInfo = getColorForDay(m, dayNumber, hours);
               const dayText = dayNumber.toString();
@@ -1962,15 +1899,14 @@
               cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } };
               if (dayCounter > daysInMonth + 1) done = true;
             }
-      
+
             cell.border = {
               top: { style: 'thin' }, bottom: { style: 'thin' },
               left: { style: 'thin' }, right: { style: 'thin' }
             };
           }
         }
-      
-        // ---- Total row ----
+
         const totalRowNum = baseRow + 8;
         const totalRow = calendarSheet.getRow(totalRowNum);
         let monthTotal = 0;
@@ -1985,7 +1921,7 @@
         totalCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE6F4FA' } };
         totalCell.alignment = { horizontal: 'right', vertical: 'middle' };
         totalRow.height = 20;
-      
+
         let workingDaysLogged = 0;
         for (let d = 1; d <= daysInMonth; d++) {
           const date = new Date(reportYear, m, d);
@@ -1997,8 +1933,7 @@
         wdCell.font = { bold: true, size: 8 };
         wdCell.alignment = { horizontal: 'center', vertical: 'middle' };
         wdCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE6F4FA' } };
-      
-        // ---- Thick outer borders ----
+
         for (let c = baseCol; c < baseCol + monthCols; c++) {
           const cell = calendarSheet.getRow(baseRow).getCell(c);
           try { cell.border.top = { style: 'thick' }; } catch(e) {}
@@ -2016,15 +1951,14 @@
           try { cell.border.right = { style: 'thick' }; } catch(e) {}
         }
       }
-      
-      // ---- Legend ----
+
       const legendStartRow = startRow + 4 * (blockRows + spacerRows) + 2;
       calendarSheet.mergeCells(legendStartRow, 1, legendStartRow, totalCols);
       const legendTitle = calendarSheet.getRow(legendStartRow).getCell(1);
       legendTitle.value = '📊 Legend';
       legendTitle.font = { bold: true, size: 12 };
       legendTitle.alignment = { horizontal: 'center' };
-      
+
       const legendData = [
         ['🟩', 'Normal (7.5–8.0h)', 'FFA8E6CF'],
         ['🟨', 'High (>8.0–8.5h)', 'FFFFD966'],
@@ -2048,9 +1982,9 @@
         sampleCell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
         lRow++;
       }
-      
+
       calendarSheet.views = [{ showGridLines: false }];
-      
+
       calendarSheet.protect('Siya', {
         selectLockedCells: true,
         selectUnlockedCells: true,
@@ -2065,13 +1999,13 @@
         autoFilter: false,
         pivotTables: false
       });
-      
+
       // ==================== SAVE ====================
       updateProgress(95, 'Saving Excel file...');
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       saveAs(blob, `Timesheet_${startDate}_to_${endDate}_readonly.xlsx`);
-      
+
       updateProgress(100, 'Done!');
       showToast("Excel report generated successfully!", "success");
       setTimeout(hideProgressLoader, 1000);
@@ -2084,227 +2018,4 @@
     }
   }
 
-  // ======================== USER META & NOTIFICATIONS ========================
-  async function loadUserMeta() {
-    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const encUser = encodeURIComponent(user.username);
-    const path = `${dataPath}/users/${encUser}/${USER_META_FILE}`;
-    try {
-      const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
-      if (file && file.content) userFullName = JSON.parse(file.content).fullName || "";
-    } catch(e) { userFullName = ""; }
-    document.getElementById('userFullName').value = userFullName;
-    document.getElementById('reportName').value = userFullName;
-  }
-
-  async function saveUserMeta(fullName) {
-    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const encUser = encodeURIComponent(user.username);
-    const path = `${dataPath}/users/${encUser}/${USER_META_FILE}`;
-    let sha = null;
-    try { const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat); if (existing) sha = existing.sha; } catch(e) {}
-    await GitHubAPI.updateFile(owner, repo, path, { fullName }, "Update user name", branch, user.pat, sha);
-    userFullName = fullName;
-  }
-
-  async function loadNotificationPreference() {
-    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const encUser = encodeURIComponent(user.username);
-    const path = `${dataPath}/users/${encUser}/${PREFS_FILE}`;
-    try {
-      const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
-      if (file && file.content) notificationsEnabled = JSON.parse(file.content).notifications === true;
-      else notificationsEnabled = false;
-    } catch(e) { notificationsEnabled = false; }
-    document.getElementById('notificationsToggle').checked = notificationsEnabled;
-  }
-
-  async function saveNotificationPreference(enabled) {
-    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const encUser = encodeURIComponent(user.username);
-    const path = `${dataPath}/users/${encUser}/${PREFS_FILE}`;
-    let sha = null;
-    try { const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat); if (existing) sha = existing.sha; } catch(e) {}
-    await GitHubAPI.updateFile(owner, repo, path, { notifications: enabled }, "Update notification preference", branch, user.pat, sha);
-    notificationsEnabled = enabled;
-  }
-
-  // ======================== REFRESH (manual) ========================
-  async function refreshView() {
-    window.showLoading("Refreshing from GitHub...");
-    try {
-      await loadTimesheet(true);
-      await loadProjectsForTimesheet(false);
-      renderHistory();
-      updateSummaryAndProgress();
-      updateCharts();
-
-      window.__timesheetEntries = entries;
-      window.__timesheetProjectOptions = allProjectOptions;
-      document.dispatchEvent(new Event('timesheetUpdated'));
-      showToast("Refreshed from GitHub.", "success");
-    } catch(err) {
-      if (!err.message.includes("Token expired")) showToast("Refresh failed: " + err.message, "error");
-    } finally {
-      window.hideLoading();
-    }
-  }
-
-  function startAutoRefresh() { if (autoRefreshInterval) clearInterval(autoRefreshInterval); autoRefreshInterval = setInterval(() => { if (!document.hidden) refreshView(); }, 600000); }
-
-  // ======================== INITIALISATION ========================
-  async function init() {
-    document.getElementById('logDate').value = formatDate(new Date());
-    document.getElementById('startTime')?.addEventListener('change', updateHoursAuto);
-    document.getElementById('endTime')?.addEventListener('change', updateHoursAuto);
-    document.getElementById('nowStartBtn').onclick = () => { document.getElementById('startTime').value = new Date().toTimeString().slice(0,5); updateHoursAuto(); };
-    document.getElementById('nowEndBtn').onclick = () => { document.getElementById('endTime').value = new Date().toTimeString().slice(0,5); updateHoursAuto(); };
-    document.getElementById('addEntryBtn').onclick = () => addEntry();
-    document.getElementById('refreshHistoryBtn').onclick = () => refreshView();
-    document.getElementById('printBtn').onclick = () => window.print();
-    document.getElementById('filterRange').onchange = () => { renderHistory(); updateSummaryAndProgress(); updateCharts(); localStorage.setItem('timesheet_filterRange', document.getElementById('filterRange').value); };
-    document.getElementById('filterProject').onchange = () => { renderHistory(); updateSummaryAndProgress(); updateCharts(); };
-    document.getElementById('filterCategory').onchange = () => { renderHistory(); updateSummaryAndProgress(); updateCharts(); };
-    document.getElementById('saveNameBtn').onclick = async () => { const newName = document.getElementById('userFullName')?.value.trim(); if(!newName) return; window.showLoading("Saving name..."); try { await saveUserMeta(newName); showToast("Name saved."); } catch(err){ showToast("Failed: "+err.message,"error"); } finally{ window.hideLoading(); } };
-
-    // Manual sync button – now race-free
-    document.getElementById('saveToGithubBtn').addEventListener('click', async () => {
-      if (_isSaving) { showToast('Sync already in progress...', 'info'); return; }
-      window.showLoading('Saving to GitHub...');
-      try {
-        await syncEntriesToGitHub(true, true);
-        showToast('Data synced to GitHub.', 'success');
-      } catch (err) {
-        showToast('Sync failed: ' + err.message, 'error');
-      } finally {
-        window.hideLoading();
-      }
-    });
-
-    const manageProjectsBtn = document.createElement('button');
-    manageProjectsBtn.type = 'button';
-    manageProjectsBtn.className = 'btn btn-sm btn-outline-secondary ml-2';
-    manageProjectsBtn.innerHTML = '<i class="fa fa-cog"></i> Manage Projects';
-    manageProjectsBtn.onclick = () => showManageProjectsModal();
-    const projectSelectParent = document.getElementById('taskProject').parentNode;
-    projectSelectParent.appendChild(manageProjectsBtn);
-
-    document.getElementById('addProjectBtn').onclick = () => { document.getElementById('newProjectName').value = ''; $('#newProjectModal').modal('show'); };
-    document.getElementById('confirmNewProjectBtn').onclick = async () => { const newProj = document.getElementById('newProjectName')?.value.trim(); if(!newProj) return; window.showLoading(`Creating project "${newProj}"...`); try { await createTimesheetOnlyProject(newProj); showToast(`Project "${newProj}" created.`); } catch(err){ showToast("Failed: "+err.message,"error"); } finally{ window.hideLoading(); $('#newProjectModal').modal('hide'); } };
-    
-    document.getElementById('generateReportBtn').onclick = () => { 
-      document.getElementById('reportName').value = userFullName; 
-      const end = new Date(); 
-      const start = new Date(); 
-      start.setDate(start.getDate()-30); 
-      document.getElementById('reportStartDate').value = formatDate(start); 
-      document.getElementById('reportEndDate').value = formatDate(end); 
-      $('#reportModal').modal('show'); 
-    };
-    
-    document.getElementById('generateReportConfirmBtn').onclick = () => { 
-      const start = document.getElementById('reportStartDate')?.value; 
-      const end = document.getElementById('reportEndDate')?.value; 
-      if(!start||!end) return; 
-      $('#reportModal').modal('hide'); 
-      exportStyledExcel(start, end); 
-    };
-    document.getElementById('saveEditBtn').onclick = saveEdit;
-
-    document.getElementById('historyBody').addEventListener('click', function(e) {
-      const target = e.target.closest('button');
-      if (!target) return;
-      const action = target.dataset.action;
-      const id = target.dataset.id;
-      if (!id) return;
-      const entryId = parseInt(id, 10);
-      if (action === 'edit') {
-        editEntry(entryId);
-      } else if (action === 'delete') {
-        deleteEntry(entryId);
-      } else if (action === 'duplicate') {
-        const entry = entries.find(e => e.id === entryId);
-        if (entry) duplicateEntry(entry);
-      }
-    });
-
-    await loadNotificationPreference();
-    document.getElementById('notificationsToggle').addEventListener('change', async (e) => { window.showLoading("Saving preference..."); try { await saveNotificationPreference(e.target.checked); showToast(e.target.checked ? "Notifications enabled" : "Notifications disabled"); } catch(err){ if(err.message.includes("401")){ showToast("Token expired. Please login again.","error"); window.SessionManager.logout(); setTimeout(()=>window.location.href="login.html",2000); } else showToast("Failed: "+err.message,"error"); e.target.checked = !e.target.checked; } finally{ window.hideLoading(); } });
-
-    await loadUserMeta();
-    await loadTimesheet(true);
-    await loadProjectsForTimesheet(false);
-    renderHistory();
-    updateSummaryAndProgress();
-    updateCharts();
-
-    window.__timesheetEntries = entries;
-    window.__timesheetProjectOptions = allProjectOptions;
-    document.dispatchEvent(new Event('timesheetUpdated'));
-    startAutoRefresh();
-
-    // Restore filter selection
-    const savedFilter = localStorage.getItem('timesheet_filterRange');
-    if (savedFilter) {
-      const select = document.getElementById('filterRange');
-      if (select && select.querySelector(`option[value="${savedFilter}"]`)) {
-        select.value = savedFilter;
-        renderHistory();
-        updateSummaryAndProgress();
-        updateCharts();
-      }
-    }
-  }
-
-  function showManageProjectsModal() {
-    let modal = document.getElementById('manageProjectsModal');
-    if (!modal) {
-      modal = document.createElement('div');
-      modal.id = 'manageProjectsModal';
-      modal.className = 'modal fade';
-      modal.tabIndex = -1;
-      modal.innerHTML = `
-        <div class="modal-dialog modal-sm">
-          <div class="modal-content">
-            <div class="modal-header"><h5>Timesheet Projects</h5><button type="button" class="close" data-dismiss="modal">&times;</button></div>
-            <div class="modal-body" id="manageProjectsList"><p>Loading...</p></div>
-            <div class="modal-footer"><button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button></div>
-          </div>
-        </div>
-      `;
-      document.body.appendChild(modal);
-    }
-    const renderList = () => {
-      const container = document.getElementById('manageProjectsList');
-      if (!timesheetProjects.length) {
-        container.innerHTML = '<p class="text-muted">No timesheet-only projects. Use "New Project" to add.</p>';
-        return;
-      }
-      container.innerHTML = '<ul class="list-group">';
-      timesheetProjects.forEach(proj => {
-        container.innerHTML += `
-          <li class="list-group-item d-flex justify-content-between align-items-center">
-            ${escapeHtml(proj)}
-            <button class="btn btn-sm btn-outline-danger delete-ts-project" data-project="${escapeHtml(proj)}"><i class="fa fa-trash"></i></button>
-          </li>
-        `;
-      });
-      container.innerHTML += '</ul>';
-      document.querySelectorAll('.delete-ts-project').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-          const projectName = btn.getAttribute('data-project');
-          if (confirm(`Delete timesheet project "${projectName}"? This will NOT delete existing entries, but the project will be removed from the dropdown.`)) {
-            await deleteTimesheetProject(projectName);
-            renderList();
-          }
-        });
-      });
-    };
-    renderList();
-    $(modal).modal('show');
-  }
-
-  function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m] || m); }
-
-  init().catch(err => console.error("Timesheet init error", err));
 })();
