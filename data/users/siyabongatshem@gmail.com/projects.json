@@ -87,5 +87,48 @@
       "testing": ""
     },
     "blocked": false
+  },
+  "proj_1791291225056": {
+    "id": "proj_1791291225056",
+    "projectCategory": "deltaV",
+    "title": "ATKSS",
+    "shortDesc": "Configured Network Switches and Tested Hardware (IFAT & CFAT)",
+    "client": "ESKOM",
+    "industry": "",
+    "status": "Ongoing",
+    "duration": "-",
+    "userRole": "-",
+    "teamMembers": "-",
+    "description": "",
+    "selectedImages": [
+      {
+        "url": "https://raw.githubusercontent.com/siyabongathupana/portfolio/main/data/users/siyabongatshem%40gmail.com/project_images/1791291209969_1000282638.jpg",
+        "caption": ""
+      }
+    ],
+    "updatedAt": 1791291225056,
+    "controllerType": "MD",
+    "deltaVVersion": "",
+    "projectType": "DCS",
+    "cabinetCount": 0,
+    "io": {
+      "AI": 0,
+      "AO": 0,
+      "DI": 0,
+      "DO": 0
+    },
+    "dates": {
+      "start": "",
+      "finish": "",
+      "ifat": "",
+      "cfat": ""
+    },
+    "team": {
+      "lead": "",
+      "engineer": "",
+      "technician": ""
+    },
+    "graphType": "bar",
+    "blocked": false
   }
 }
