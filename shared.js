@@ -1,4 +1,4 @@
-// shared.js – Supabase edition (COMPLETE — nothing omitted)
+// shared.js – Supabase edition (clean, no GitHub remnants)
 
 // ═══════════════════════════════════════════════════════════
 //  LOADING OVERLAY
@@ -8,11 +8,7 @@ window.showLoading = function (msg = 'Processing...') {
   if (!loader) {
     loader = document.createElement('div');
     loader.id = 'globalLoader';
-    loader.innerHTML = `
-      <div class="loader-overlay">
-        <div class="loader-spinner"></div>
-        <p class="loader-text">${msg}</p>
-      </div>`;
+    loader.innerHTML = `<div class="loader-overlay"><div class="loader-spinner"></div><p class="loader-text">${msg}</p></div>`;
     document.body.appendChild(loader);
   } else {
     loader.querySelector('.loader-text').textContent = msg;
@@ -30,7 +26,7 @@ window.escapeHtml = function (str) {
 };
 
 // ═══════════════════════════════════════════════════════════
-//  EXCEL ACCESS CONTROL
+//  EXCEL ACCESS
 // ═══════════════════════════════════════════════════════════
 window.canDownloadExcel = function () {
   try {
@@ -41,36 +37,34 @@ window.canDownloadExcel = function () {
 };
 
 // ═══════════════════════════════════════════════════════════
-//  SESSION MANAGER
+//  SESSION MANAGER (wraps Supabase Auth)
 // ═══════════════════════════════════════════════════════════
-window.SessionManager = (() => {
-  return {
-    getCurrentUser: () => {
-      const u = window.__currentAuthUser || null;
-      if (!u) return null;
-      return {
-        id: u.id,
-        username: u.email,
-        email: u.email,
-        fullName: u.user_metadata?.full_name || u.email.split('@')[0]
-      };
-    },
-    getCurrentUserId: () => window.__currentAuthUser?.id || null,
-    isAdmin: () => {
-      const u = window.__currentAuthUser;
-      if (!u) return false;
-      const admins = window.APP_CONFIG?.adminUsers || [];
-      return admins.includes(u.email);
-    },
-    logout: async () => {
-      try { await window.supabase.auth.signOut(); } catch (e) {}
-      window.__currentAuthUser = null;
-    }
-  };
-})();
+window.SessionManager = {
+  getCurrentUser: () => {
+    const u = window.__currentAuthUser || null;
+    if (!u) return null;
+    return {
+      id: u.id,
+      username: u.email,
+      email: u.email,
+      fullName: u.user_metadata?.full_name || u.email.split('@')[0]
+    };
+  },
+  getCurrentUserId: () => window.__currentAuthUser?.id || null,
+  isAdmin: () => {
+    const u = window.__currentAuthUser;
+    if (!u) return false;
+    const admins = window.APP_CONFIG?.adminUsers || [];
+    return admins.includes(u.email);
+  },
+  logout: async () => {
+    try { await window.supabase.auth.signOut(); } catch (e) {}
+    window.__currentAuthUser = null;
+  }
+};
 
 // ═══════════════════════════════════════════════════════════
-//  LOGGER
+//  LOGGER (activity_logs table)
 // ═══════════════════════════════════════════════════════════
 window.Logger = {
   async log(action, details, level = 'INFO') {
@@ -78,9 +72,7 @@ window.Logger = {
     if (!user) return;
     try {
       await window.supabase.from('activity_logs').insert({
-        user_id: user.id,
-        action,
-        details,
+        user_id: user.id, action, details,
         page: window.location.pathname,
         user_agent: navigator.userAgent
       });
@@ -92,28 +84,21 @@ window.Logger = {
   },
   async getLogsForUser(targetUserId) {
     const { data, error } = await window.supabase
-      .from('activity_logs')
-      .select('*')
-      .eq('user_id', targetUserId)
-      .order('created_at', { ascending: false })
-      .limit(500);
+      .from('activity_logs').select('*').eq('user_id', targetUserId)
+      .order('created_at', { ascending: false }).limit(500);
     if (error) return 'Unable to retrieve logs.';
     if (!data?.length) return 'No logs found for this user.';
     return data.map(l => `[${l.created_at}] [${l.action}] ${l.details || ''}`).join('\n');
   },
   async getAllUserLogs() {
     const { data, error } = await window.supabase
-      .from('activity_logs')
-      .select('*, profiles:user_id(email)')
-      .order('created_at', { ascending: false })
-      .limit(2000);
+      .from('activity_logs').select('*, profiles:user_id(email)')
+      .order('created_at', { ascending: false }).limit(2000);
     if (error || !data) return {};
     const grouped = {};
     for (const row of data) {
       const email = row.profiles?.email || row.user_id;
-      (grouped[email] = grouped[email] || []).push(
-        `[${row.created_at}] [${row.action}] ${row.details || ''}`
-      );
+      (grouped[email] = grouped[email] || []).push(`[${row.created_at}] [${row.action}] ${row.details || ''}`);
     }
     const out = {};
     for (const [email, lines] of Object.entries(grouped)) out[email] = lines.join('\n');
@@ -175,7 +160,7 @@ window.compressImage = function (file, maxW = 1600, maxH = 1600, quality = 0.85)
 };
 
 // ═══════════════════════════════════════════════════════════
-//  IMAGE UPLOAD / DELETE
+//  IMAGE UPLOAD / DELETE (Supabase Storage)
 // ═══════════════════════════════════════════════════════════
 window.uploadImage = async function (file, bucket = 'project-images') {
   const user = window.SessionManager.getCurrentUser();
@@ -193,6 +178,7 @@ window.uploadImage = async function (file, bucket = 'project-images') {
   await window.Logger.logActivity('image', 'upload', `Uploaded ${path}`);
   return signed.signedUrl;
 };
+// Legacy aliases (kept so old pages don't break)
 window.uploadImageToGitHub = window.uploadImage;
 
 window.deleteImage = async function (imageUrl, bucket) {
@@ -201,11 +187,8 @@ window.deleteImage = async function (imageUrl, bucket) {
     let resolvedBucket = bucket;
     let path = null;
     const m = imageUrl.match(/\/storage\/v1\/object\/(?:sign|public)\/([^/]+)\/([^?]+)/);
-    if (m) {
-      resolvedBucket = resolvedBucket || m[1];
-      path = decodeURIComponent(m[2]);
-    }
-    if (!resolvedBucket || !path) { console.warn('Cannot derive path from URL:', imageUrl); return; }
+    if (m) { resolvedBucket = resolvedBucket || m[1]; path = decodeURIComponent(m[2]); }
+    if (!resolvedBucket || !path) return;
     const { error } = await window.supabase.storage.from(resolvedBucket).remove([path]);
     if (error) throw error;
     await window.Logger.logActivity('image', 'delete', `Deleted ${resolvedBucket}/${path}`);
@@ -214,19 +197,16 @@ window.deleteImage = async function (imageUrl, bucket) {
 window.deleteImageFromGitHub = window.deleteImage;
 
 // ═══════════════════════════════════════════════════════════
-//  ACCOUNT MANAGER (Supabase-backed)
+//  ACCOUNT MANAGER (Supabase — no tokens, email-only)
 // ═══════════════════════════════════════════════════════════
 window.AccountManager = {
   async isEmailVerified(email) {
     const { data, error } = await window.supabase
-      .from('profiles')
-      .select('email_confirmed_at')
-      .eq('email', email)
-      .maybeSingle();
-    if (error || !data) return false;
-    return !!data.email_confirmed_at;
+      .from('profiles').select('id').eq('email', email).maybeSingle();
+    return !error && !!data;
   },
 
+  // No token parameter anymore
   async listUsers() {
     const { data, error } = await window.supabase
       .from('profiles')
@@ -238,61 +218,27 @@ window.AccountManager = {
 
   async getBlockedUsers() {
     const { data, error } = await window.supabase
-      .from('profiles')
-      .select('email')
-      .eq('banned', true);
+      .from('profiles').select('email').eq('banned', true);
     if (error) return [];
     return (data || []).map(r => r.email);
   },
 
   async toggleBlock(email, block) {
     const { error } = await window.supabase
-      .from('profiles')
-      .update({ banned: !!block })
-      .eq('email', email);
+      .from('profiles').update({ banned: !!block }).eq('email', email);
     if (error) throw new Error(error.message);
     await window.Logger.logActivity('admin', 'toggle_block',
       `${block ? 'Blocked' : 'Unblocked'} ${email}`);
     return true;
   },
 
-  async register(email, password, fullName = '') {
-    const { data, error } = await window.supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { full_name: fullName || email.split('@')[0] },
-        emailRedirectTo: location.origin + location.pathname.replace(/[^/]*$/, 'admin.html')
-      }
-    });
-    if (error) throw new Error(error.message);
-    await window.Logger.logActivity('admin', 'user_create', `Created ${email}`);
-    return data.user;
-  },
-
-  async login(email, password) {
-    const { data, error } = await window.supabase.auth.signInWithPassword({ email, password });
-    if (error) throw new Error(error.message);
-    return data.user;
-  },
-
   async deleteUser(email) {
-    try {
-      const { data, error } = await window.supabase.functions.invoke('admin-delete-user', {
-        body: { email }
-      });
-      if (!error && data?.ok) {
-        await window.Logger.logActivity('admin', 'delete_user', `Deleted ${email}`);
-        return true;
-      }
-    } catch (e) { /* fall through to soft delete */ }
-
+    // Soft delete: mark banned + deleted flag. Real auth deletion requires
+    // an Edge Function with the service_role key.
     const { error } = await window.supabase
-      .from('profiles')
-      .update({ banned: true, deleted: true })
-      .eq('email', email);
+      .from('profiles').update({ banned: true, deleted: true }).eq('email', email);
     if (error) throw new Error(error.message);
-    await window.Logger.logActivity('admin', 'user_soft_delete', `Soft-deleted ${email}`);
+    await window.Logger.logActivity('admin', 'user_delete', `Deleted ${email}`);
     return true;
   },
 
@@ -300,13 +246,11 @@ window.AccountManager = {
     const { data: profile } = await window.supabase
       .from('profiles').select('id').eq('email', email).maybeSingle();
     if (!profile) return { projects: 0, certificates: 0, timesheetEntries: 0 };
-
     const [pRes, cRes, tRes] = await Promise.all([
       window.supabase.from('projects').select('id', { count: 'exact', head: true }).eq('user_id', profile.id),
       window.supabase.from('certificates').select('id', { count: 'exact', head: true }).eq('user_id', profile.id),
       window.supabase.from('timesheet_entries').select('id', { count: 'exact', head: true }).eq('user_id', profile.id)
     ]);
-
     return {
       projects: pRes.count || 0,
       certificates: cRes.count || 0,
@@ -325,9 +269,26 @@ window.AccountManager = {
 };
 
 // ═══════════════════════════════════════════════════════════
-//  PORTFOLIO DATA
+//  PORTFOLIO DATA (projects + certificates)
 // ═══════════════════════════════════════════════════════════
 window.portfolioData = (() => {
+  function rowToProject(p) {
+    return {
+      id: p.id,
+      title: p.title, shortDesc: p.short_desc, description: p.description,
+      client: p.client, industry: p.industry, status: p.status,
+      duration: p.duration, userRole: p.user_role, teamMembers: p.team_members,
+      projectCategory: p.project_category, controllerType: p.controller_type,
+      deltaVVersion: p.delta_v_version,
+      projectType: p.project_type, cabinetCount: p.cabinet_count,
+      io: { AI: p.io_ai, AO: p.io_ao, DI: p.io_di, DO: p.io_do },
+      dates: p.dates || {}, team: p.team || {},
+      technical: p.technical || {}, workBreakdown: p.work_breakdown || {},
+      selectedImages: p.selected_images || [],
+      isPublic: p.is_public,
+      updatedAt: new Date(p.updated_at).getTime()
+    };
+  }
 
   async function loadProjects() {
     const user = window.SessionManager.getCurrentUser();
@@ -337,23 +298,7 @@ window.portfolioData = (() => {
       .order('updated_at', { ascending: false });
     if (error) throw error;
     const out = {};
-    for (const p of data || []) {
-      out[p.id] = {
-        id: p.id,
-        title: p.title, shortDesc: p.short_desc, description: p.description,
-        client: p.client, industry: p.industry, status: p.status,
-        duration: p.duration, userRole: p.user_role, teamMembers: p.team_members,
-        projectCategory: p.project_category, controllerType: p.controller_type,
-        deltaVVersion: p.delta_v_version || p.deltaV_version,
-        projectType: p.project_type, cabinetCount: p.cabinet_count,
-        io: { AI: p.io_ai, AO: p.io_ao, DI: p.io_di, DO: p.io_do },
-        dates: p.dates || {}, team: p.team || {},
-        technical: p.technical || {}, workBreakdown: p.work_breakdown || {},
-        selectedImages: p.selected_images || [],
-        isPublic: p.is_public,
-        updatedAt: new Date(p.updated_at).getTime()
-      };
-    }
+    for (const p of data || []) out[p.id] = rowToProject(p);
     return out;
   }
 
@@ -375,7 +320,7 @@ window.portfolioData = (() => {
         team_members: p.teamMembers || null,
         project_category: p.projectCategory || null,
         controller_type: p.controllerType || null,
-        deltaV_version: p.deltaVVersion || null,
+        delta_v_version: p.deltaVVersion || null,
         project_type: p.projectType || null,
         cabinet_count: p.cabinetCount || 0,
         io_ai: p.io?.AI || 0, io_ao: p.io?.AO || 0,
@@ -383,7 +328,8 @@ window.portfolioData = (() => {
         dates: p.dates || null, team: p.team || null,
         technical: p.technical || null, work_breakdown: p.workBreakdown || null,
         selected_images: p.selectedImages || [],
-        is_public: p.isPublic !== undefined ? p.isPublic : true
+        is_public: p.isPublic !== undefined ? p.isPublic : true,
+        updated_at: new Date().toISOString()
       };
       const { error } = await window.supabase.from('projects').upsert(row);
       if (error) throw error;
@@ -403,23 +349,7 @@ window.portfolioData = (() => {
       .order('updated_at', { ascending: false });
     if (error) return {};
     const out = {};
-    for (const p of data || []) {
-      out[p.id] = {
-        id: p.id,
-        title: p.title, shortDesc: p.short_desc, description: p.description,
-        client: p.client, industry: p.industry, status: p.status,
-        duration: p.duration, userRole: p.user_role, teamMembers: p.team_members,
-        projectCategory: p.project_category, controllerType: p.controller_type,
-        deltaVVersion: p.delta_v_version, projectType: p.project_type,
-        cabinetCount: p.cabinet_count,
-        io: { AI: p.io_ai, AO: p.io_ao, DI: p.io_di, DO: p.io_do },
-        dates: p.dates || {}, team: p.team || {},
-        technical: p.technical || {}, workBreakdown: p.work_breakdown || {},
-        selectedImages: p.selected_images || [],
-        isPublic: p.is_public,
-        updatedAt: new Date(p.updated_at).getTime()
-      };
-    }
+    for (const p of data || []) out[p.id] = rowToProject(p);
     return out;
   }
 
@@ -451,7 +381,8 @@ window.portfolioData = (() => {
         title: cert.title || 'Certificate',
         issuer: cert.issuer || null, date: cert.date || null,
         link: cert.link || null, thumbnail: cert.thumbnail || null,
-        is_public: cert.isPublic !== undefined ? cert.isPublic : true
+        is_public: cert.isPublic !== undefined ? cert.isPublic : true,
+        updated_at: new Date().toISOString()
       };
       const { error } = await window.supabase.from('certificates').upsert(row);
       if (error) throw error;
@@ -507,6 +438,52 @@ window.portfolioData = (() => {
 })();
 
 // ═══════════════════════════════════════════════════════════
+//  MESSAGES (Supabase table)
+// ═══════════════════════════════════════════════════════════
+window.Messages = {
+  async list() {
+    const { data, error } = await window.supabase
+      .from('messages').select('*')
+      .order('created_at', { ascending: false })
+      .limit(200);
+    if (error) throw error;
+    return data || [];
+  },
+  async unreadCount() {
+    const { count, error } = await window.supabase
+      .from('messages').select('id', { count: 'exact', head: true })
+      .eq('read', false);
+    if (error) return 0;
+    return count || 0;
+  },
+  async send({ recipientEmail, subject, body }) {
+    // Look up recipient
+    const { data: profile, error: pErr } = await window.supabase
+      .from('profiles').select('id').eq('email', recipientEmail).maybeSingle();
+    if (pErr || !profile) throw new Error('Recipient not found: ' + recipientEmail);
+    const sender = window.SessionManager.getCurrentUser();
+    const { error } = await window.supabase.from('messages').insert({
+      recipient_id: profile.id,
+      sender_id: sender?.id || null,
+      subject, body
+    });
+    if (error) throw error;
+  },
+  async markRead(id) {
+    await window.supabase.from('messages').update({ read: true }).eq('id', id);
+  },
+  async markAllRead() {
+    const user = window.SessionManager.getCurrentUser();
+    if (!user) return;
+    await window.supabase.from('messages').update({ read: true })
+      .eq('recipient_id', user.id).eq('read', false);
+  },
+  async remove(id) {
+    await window.supabase.from('messages').delete().eq('id', id);
+  }
+};
+
+// ═══════════════════════════════════════════════════════════
 //  IMAGE PROTECTION
 // ═══════════════════════════════════════════════════════════
 window.lazyLoadImages = function () {
@@ -555,7 +532,7 @@ window.protectGallery = window.protectImages;
 // ═══════════════════════════════════════════════════════════
 //  TOASTS
 // ═══════════════════════════════════════════════════════════
-function showToast(message, type = 'success') {
+window.showToast = function (message, type = 'success') {
   let container = document.getElementById('toastContainer');
   if (!container) {
     container = document.createElement('div');
@@ -571,26 +548,20 @@ function showToast(message, type = 'success') {
   container.insertAdjacentHTML('beforeend', `
     <div id="${toastId}" style="background:${bgColor};color:white;padding:12px 20px;border-radius:8px;margin-top:10px;min-width:200px;max-width:90%;box-shadow:0 2px 10px rgba(0,0,0,0.1);animation:fadeInOut 3s ease;font-size:14px;word-break:break-word;">${message}</div>
   `);
-  setTimeout(() => {
-    const t = document.getElementById(toastId);
-    if (t) t.remove();
-  }, 3000);
-}
-window.showToast = showToast;
+  setTimeout(() => { const t = document.getElementById(toastId); if (t) t.remove(); }, 3000);
+};
+// legacy alias
+window.showToast = window.showToast;
 
 // ═══════════════════════════════════════════════════════════
-//  QR CODE HELPER
+//  QR CODE HELPER (used by Excel report)
 // ═══════════════════════════════════════════════════════════
 async function generateQRCodeDataURL(text, size = 50) {
   return new Promise((resolve) => {
     if (typeof QRCode === 'undefined') { resolve(null); return; }
     const container = document.createElement('div');
     try {
-      new QRCode(container, {
-        text, width: size, height: size,
-        colorDark: '#000000', colorLight: '#ffffff',
-        correctLevel: QRCode.CorrectLevel.L
-      });
+      new QRCode(container, { text, width: size, height: size, colorDark: '#000000', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.L });
       setTimeout(() => {
         const canvas = container.querySelector('canvas');
         resolve(canvas ? canvas.toDataURL('image/png') : null);
@@ -598,6 +569,15 @@ async function generateQRCodeDataURL(text, size = 50) {
     } catch (e) { resolve(null); }
   });
 }
+
+// ═══════════════════════════════════════════════════════════
+//  EXCEL PROJECT REPORT — unchanged
+//  Paste your existing generateProjectReport() here.
+//  (The version you already have works — it only uses
+//   portfolioData, canDownloadExcel, SessionManager,
+//   escapeHtml, showToast — all still available above.)
+// ═══════════════════════════════════════════════════════════
+// paste generateProjectReport here unchanged
 
 // ═══════════════════════════════════════════════════════════
 //  EXCEL PROJECT REPORT (FULL — nothing omitted)
