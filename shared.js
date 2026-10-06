@@ -1,4 +1,4 @@
-// shared.js – Complete version with fixed project deletion, enhanced logging, full PDF generation (no analytics, no dark mode)
+// shared.js – Complete version with fixed project deletion, enhanced logging, Excel report generation (no PDF, no dark mode)
 
 window.showLoading = function (msg = 'Processing...') {
   let loader = document.getElementById('globalLoader');
@@ -812,139 +812,594 @@ async function generateQRCodeDataURL(text, size = 50) {
   });
 }
 
-window.generateProjectReport = async function(projectId) {
+// ─────────────────────────────────────────────────────────────
+// Project report — EXCEL DOSSIER (replaces the old PDF version)
+// Produces 5 sheets: Overview · Summary & Metrics · Technical
+// Details · Work Breakdown · Gallery
+// ─────────────────────────────────────────────────────────────
+window.generateProjectReport = async function (projectId) {
+  // ── Dynamically ensure ExcelJS + FileSaver are present ──
+  if (typeof ExcelJS === 'undefined') {
+    await new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';
+      s.onload = res; s.onerror = () => rej(new Error('Failed to load ExcelJS'));
+      document.head.appendChild(s);
+    });
+  }
+  if (typeof saveAs === 'undefined') {
+    await new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js';
+      s.onload = res; s.onerror = () => rej(new Error('Failed to load FileSaver'));
+      document.head.appendChild(s);
+    });
+  }
+
   const data = await window.portfolioData.loadProjectsForView();
   const proj = data[projectId];
-  if (!proj) { alert("Project not found!"); return; }
-  if (proj.blocked === true && !window.SessionManager.isAdmin()) { alert("Access denied: This project is blocked."); return; }
+  if (!proj) { alert('Project not found!'); return; }
+  if (proj.blocked === true && !window.SessionManager.isAdmin()) {
+    alert('Access denied: This project is blocked.'); return;
+  }
+
   const isDeltaV = proj.projectCategory === 'deltaV' || proj.controllerType;
   let selectedImages = proj.selectedImages || [];
-  
+
+  // ── Image selection modal ─────────────────────────────────
   if (selectedImages.length > 0) {
-    const imageOptions = selectedImages.map((img, idx) => `<div class="image-select-option" style="display: flex; align-items: center; margin-bottom: 15px; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; background: white; flex-wrap: wrap;">
-        <input type="checkbox" class="pdf-image-checkbox" data-idx="${idx}" checked style="margin-right: 15px; width: 20px; height: 20px;">
-        <img src="${img.url}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 6px; margin-right: 15px;">
-        <div style="flex: 1; min-width: 150px;"><div style="font-weight: 500; margin-bottom: 4px; color: #1e2a3e;">Image ${idx + 1}</div><div style="font-size: 12px; color: #666; word-break: break-word;">${img.caption || 'No caption'}</div></div>
+    const imageOptions = selectedImages.map((img, idx) => `
+      <div style="display:flex;align-items:center;margin-bottom:12px;padding:10px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;gap:12px;">
+        <input type="checkbox" class="xlsx-image-checkbox" data-idx="${idx}" checked style="width:18px;height:18px;cursor:pointer;">
+        <img src="${img.url}" style="width:56px;height:56px;object-fit:cover;border-radius:8px;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:600;color:#1e2a3e;font-size:0.9rem;">Image ${idx + 1}</div>
+          <div style="font-size:12px;color:#666;">${window.escapeHtml(img.caption || 'No caption')}</div>
+        </div>
       </div>`).join('');
-    const modalHtml = `<div id="pdfImageModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 15px;">
-        <div style="background: white; border-radius: 20px; max-width: 550px; width: 100%; max-height: 85vh; overflow: auto; padding: 20px;">
-          <h3>Select Images for PDF Report</h3><div id="pdfImageList">${imageOptions}</div>
-          <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
-            <button id="selectAllImagesBtn">Select All</button><button id="deselectAllImagesBtn">Deselect All</button>
-            <button id="confirmPdfImagesBtn">Generate PDF</button><button id="cancelPdfImagesBtn">Cancel</button>
+
+    const modalHtml = `
+      <div id="xlsxImageModal" style="position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px);">
+        <div style="background:#fff;border-radius:20px;max-width:560px;width:100%;max-height:85vh;overflow:auto;padding:26px;font-family:Inter,sans-serif;">
+          <h3 style="margin-bottom:18px;color:#0b2b3b;">📊 Select Images for Excel Report</h3>
+          <div id="xlsxImageList">${imageOptions}</div>
+          <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:22px;flex-wrap:wrap;">
+            <button id="xlsxSelectAll" style="padding:8px 16px;border:1px solid #cbd5e1;background:#f8fafc;border-radius:8px;cursor:pointer;">Select All</button>
+            <button id="xlsxDeselectAll" style="padding:8px 16px;border:1px solid #cbd5e1;background:#f8fafc;border-radius:8px;cursor:pointer;">Deselect All</button>
+            <button id="xlsxCancel" style="padding:8px 16px;border:1px solid #cbd5e1;background:#fff;border-radius:8px;cursor:pointer;">Cancel</button>
+            <button id="xlsxConfirm" style="padding:8px 22px;background:#28a745;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600;">Generate Excel</button>
           </div>
         </div>
       </div>`;
     document.body.insertAdjacentHTML('beforeend', modalHtml);
+
     const result = await new Promise((resolve) => {
-      const modal = document.getElementById('pdfImageModal');
-      document.getElementById('selectAllImagesBtn').onclick = () => document.querySelectorAll('#pdfImageList .pdf-image-checkbox').forEach(cb => cb.checked = true);
-      document.getElementById('deselectAllImagesBtn').onclick = () => document.querySelectorAll('#pdfImageList .pdf-image-checkbox').forEach(cb => cb.checked = false);
-      document.getElementById('confirmPdfImagesBtn').onclick = () => {
-        const selected = []; document.querySelectorAll('#pdfImageList .pdf-image-checkbox:checked').forEach(cb => selected.push(selectedImages[parseInt(cb.dataset.idx)]));
-        modal.remove(); resolve(selected);
+      const modal = document.getElementById('xlsxImageModal');
+      document.getElementById('xlsxSelectAll').onclick = () => modal.querySelectorAll('.xlsx-image-checkbox').forEach(cb => cb.checked = true);
+      document.getElementById('xlsxDeselectAll').onclick = () => modal.querySelectorAll('.xlsx-image-checkbox').forEach(cb => cb.checked = false);
+      document.getElementById('xlsxConfirm').onclick = () => {
+        const sel = [];
+        modal.querySelectorAll('.xlsx-image-checkbox:checked').forEach(cb => sel.push(selectedImages[parseInt(cb.dataset.idx)]));
+        modal.remove(); resolve(sel);
       };
-      document.getElementById('cancelPdfImagesBtn').onclick = () => { modal.remove(); resolve(null); };
+      document.getElementById('xlsxCancel').onclick = () => { modal.remove(); resolve(null); };
     });
     if (result === null) return;
     selectedImages = result;
   }
-  window.showLoading('Generating PDF...');
+
+  window.showLoading('Generating Excel report...');
+
   try {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const pageHeight = doc.internal.pageSize.getHeight();
-    const darkColor = '#0b2b3b';
-    const textColor = '#1e2a3e';
-    const repoOwner = window.REPO_CONFIG.owner;
-    const repoName = window.REPO_CONFIG.repo;
-    const repoUrl = `https://github.com/${repoOwner}/${repoName}`;
-    let logoImage = null;
-    try {
-      const logoResponse = await fetch(`https://raw.githubusercontent.com/${repoOwner}/${repoName}/main/logo.png`);
-      if (logoResponse.ok) { const logoBlob = await logoResponse.blob(); logoImage = await new Promise(resolve => { const reader = new FileReader(); reader.onloadend = () => resolve(reader.result); reader.readAsDataURL(logoBlob); }); }
-    } catch(e) {}
-    // Cover
-    doc.setFillColor(11,43,59); doc.rect(0,0,pageWidth,15,'F');
-    doc.setFillColor(47,199,255); doc.rect(0,15,pageWidth,3,'F');
-    if(logoImage) doc.addImage(logoImage,'PNG',pageWidth/2-20,35,40,40);
-    else { doc.setFillColor(47,199,255); doc.circle(pageWidth/2,55,20,'F'); doc.setFillColor(255,255,255); doc.setFontSize(24); doc.setFont(undefined,'bold'); doc.text('YP',pageWidth/2,62,{align:'center'}); }
-    doc.setTextColor(11,43,59); doc.setFontSize(32); doc.setFont(undefined,'bold'); doc.text('PROJECT REPORT',pageWidth/2,95,{align:'center'});
-    doc.setFontSize(14); doc.setFont(undefined,'normal'); doc.setTextColor(100,100,100); doc.text('Professional Engineering Documentation',pageWidth/2,110,{align:'center'});
-    doc.setDrawColor(47,199,255); doc.setLineWidth(1); doc.line(pageWidth/2-50,118,pageWidth/2+50,118);
-    doc.setFontSize(22); doc.setFont(undefined,'bold'); doc.setTextColor(darkColor); const titleLines = doc.splitTextToSize(proj.title,140); doc.text(titleLines,pageWidth/2,145,{align:'center'});
-    const projectTypeText = isDeltaV ? 'DELTAV PROJECT' : 'GENERAL ENGINEERING PROJECT';
-    doc.setFillColor(47,199,255); doc.roundedRect(pageWidth/2-45,165,90,10,5,5,'F'); doc.setTextColor(255,255,255); doc.setFontSize(9); doc.setFont(undefined,'bold'); doc.text(projectTypeText,pageWidth/2,172,{align:'center'});
-    const status = proj.status||'Planned'; let statusColor; if(status==='Completed')statusColor=[40,167,69]; else if(status==='Ongoing')statusColor=[47,199,255]; else if(status==='Paused')statusColor=[255,193,7]; else statusColor=[108,117,125];
-    doc.setFillColor(statusColor[0],statusColor[1],statusColor[2]); doc.roundedRect(pageWidth/2-35,182,70,9,5,5,'F'); doc.setTextColor(255,255,255); doc.setFontSize(9); doc.text(status,pageWidth/2,188,{align:'center'});
-    doc.setFontSize(8); doc.setFont(undefined,'italic'); doc.setTextColor(150,150,150); doc.text(`Generated: ${new Date().toLocaleString()}`,pageWidth/2,pageHeight-25,{align:'center'}); doc.text('Your Portfolio System',pageWidth/2,pageHeight-18,{align:'center'});
-    const qrDataURL = await generateQRCodeDataURL(repoUrl,50); if(qrDataURL) doc.addImage(qrDataURL,'PNG',pageWidth-25,pageHeight-28,15,15);
-    doc.addPage();
-    let yPos=20;
-    doc.setFillColor(11,43,59); doc.rect(0,yPos,pageWidth,10,'F'); doc.setFillColor(47,199,255); doc.rect(0,yPos+10,pageWidth,3,'F'); yPos+=20;
-    doc.setFontSize(20); doc.setFont(undefined,'bold'); doc.setTextColor(darkColor); doc.text('Project Overview',20,yPos); yPos+=15;
-    const infoItems = [{label:'Project Title',value:proj.title},{label:'Industry/Category',value:proj.industry||'N/A'},{label:'Company/Client',value:proj.client||'N/A'},{label:'Project Duration',value:proj.duration||'N/A'},{label:'Status',value:proj.status||'N/A'},{label:'User Role',value:proj.userRole||'N/A'},{label:'Team Members',value:proj.teamMembers||'N/A'}];
-    let leftX=20,rightX=110,leftY=yPos,rightY=yPos,boxHeight=22;
-    for(let i=0;i<infoItems.length;i++){ const item=infoItems[i]; const isLeft=i<Math.ceil(infoItems.length/2); const x=isLeft?leftX:rightX; const y=isLeft?leftY:rightY;
-      doc.setFillColor(248,250,252); doc.roundedRect(x-3,y-5,85,boxHeight,4,4,'F');
-      doc.setFontSize(8); doc.setFont(undefined,'bold'); doc.setTextColor(100,100,100); doc.text(item.label,x,y);
-      doc.setFontSize(10); doc.setFont(undefined,'normal'); doc.setTextColor(textColor); const valueLines=doc.splitTextToSize(item.value||'N/A',78); doc.text(valueLines,x,y+6);
-      if(isLeft) leftY+=boxHeight+3; else rightY+=boxHeight+3;
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'Your Portfolio';
+    workbook.created = new Date();
+
+    // ─── Styling constants ───
+    const NAVY = 'FF0B2B3B';
+    const ACCENT = 'FF2FC7FF';
+    const LIGHT = 'FFEEF3FC';
+    const PURPLE = 'FFA29BFE';
+    const BORDER = {
+      top:    { style: 'thin', color: { argb: 'FFB0BEC5' } },
+      bottom: { style: 'thin', color: { argb: 'FFB0BEC5' } },
+      left:   { style: 'thin', color: { argb: 'FFB0BEC5' } },
+      right:  { style: 'thin', color: { argb: 'FFB0BEC5' } }
+    };
+
+    function styleSectionHeader(cell, text) {
+      cell.value = text;
+      cell.font = { size: 12, bold: true, color: { argb: 'FFFFFFFF' } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A4D5F' } };
+      cell.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
     }
-    yPos = Math.max(leftY,rightY)+10;
-    if(proj.description||proj.shortDesc){
-      doc.setFillColor(240,248,252); doc.roundedRect(15,yPos-3,pageWidth-30,8,4,4,'F');
-      doc.setFontSize(14); doc.setFont(undefined,'bold'); doc.setTextColor(darkColor); doc.text('Project Description',20,yPos); yPos+=10;
-      doc.setFontSize(10); doc.setFont(undefined,'normal'); doc.setTextColor(textColor); const descText=proj.description||proj.shortDesc||'No description provided'; const descLines=doc.splitTextToSize(descText,pageWidth-40); doc.text(descLines,20,yPos); yPos+=(descLines.length*5)+15;
+    function styleLabel(cell, text) {
+      cell.value = text;
+      cell.font = { size: 10, bold: true, color: { argb: NAVY } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: LIGHT } };
+      cell.alignment = { horizontal: 'left', vertical: 'middle', indent: 1, wrapText: true };
+      cell.border = BORDER;
     }
-    if(isDeltaV){
-      doc.setFillColor(11,43,59); doc.rect(0,yPos,pageWidth,10,'F'); doc.setFillColor(47,199,255); doc.rect(0,yPos+10,pageWidth,3,'F'); yPos+=20;
-      doc.setFontSize(18); doc.setFont(undefined,'bold'); doc.setTextColor(darkColor); doc.text('DeltaV Configuration',20,yPos); yPos+=15;
-      const deltaVItems=[{label:'Controller Type',value:proj.controllerType||'N/A'},{label:'DeltaV Version',value:proj.deltaVVersion||'N/A'},{label:'Project Type',value:proj.projectType||'N/A'},{label:'Cabinets',value:proj.cabinetCount?.toString()||'0'}];
-      for(const item of deltaVItems){
-        doc.setFillColor(245,247,250); doc.roundedRect(18,yPos-3,pageWidth-36,10,3,3,'F');
-        doc.setFontSize(9); doc.setFont(undefined,'bold'); doc.setTextColor(100,100,100); doc.text(item.label,25,yPos);
-        doc.setFontSize(10); doc.setFont(undefined,'normal'); doc.setTextColor(textColor); doc.text(item.value,75,yPos); yPos+=12;
-      }
-      yPos+=10; doc.setFontSize(14); doc.setFont(undefined,'bold'); doc.setTextColor(darkColor); doc.text('I/O Configuration',20,yPos); yPos+=12;
-      const io=proj.io||{AI:0,AO:0,DI:0,DO:0}; const ioData=[{label:'AI',value:io.AI},{label:'AO',value:io.AO},{label:'DI',value:io.DI},{label:'DO',value:io.DO}];
-      const maxIo=Math.max(io.AI,io.AO,io.DI,io.DO,1); const startX=20; const barWidth=35;
-      for(let i=0;i<ioData.length;i++){ const item=ioData[i]; const barX=startX+(i*42); doc.setFillColor(230,240,250); doc.rect(barX,yPos+5,barWidth,30,'F'); const barHeight=(item.value/maxIo)*28; doc.setFillColor(47,199,255); doc.rect(barX,yPos+35-barHeight,barWidth,barHeight,'F'); doc.setFontSize(9); doc.setFont(undefined,'bold'); doc.setTextColor(100,100,100); doc.text(item.label,barX+barWidth/2,yPos+42,{align:'center'}); doc.setFontSize(11); doc.setFont(undefined,'bold'); doc.setTextColor(darkColor); doc.text(item.value.toString(),barX+barWidth/2,yPos+50,{align:'center'}); }
-      yPos+=60;
-      if(proj.dates?.start){ const dateParts=[]; if(proj.dates.start) dateParts.push(`Start: ${proj.dates.start}`); if(proj.dates.finish) dateParts.push(`Finish: ${proj.dates.finish}`); if(proj.dates.ifat) dateParts.push(`IFAT: ${proj.dates.ifat}`); if(proj.dates.cfat) dateParts.push(`CFAT: ${proj.dates.cfat}`); if(dateParts.length){ doc.setFillColor(240,248,252); doc.roundedRect(15,yPos-5,pageWidth-30,12,4,4,'F'); doc.setFontSize(9); doc.setFont(undefined,'normal'); doc.setTextColor(textColor); doc.text(dateParts.join('  |  '),20,yPos); yPos+=15; } }
-      if(proj.team?.lead||proj.team?.engineer||proj.team?.technician){ doc.setFontSize(9); doc.setTextColor(100,100,100); doc.text(`Team: Lead: ${proj.team.lead||'N/A'}  |  Engineer: ${proj.team.engineer||'N/A'}  |  Technician: ${proj.team.technician||'N/A'}`,20,yPos); yPos+=12; }
+    function styleValue(cell, text) {
+      cell.value = (text != null && text !== '') ? text : '—';
+      cell.font = { size: 10 };
+      cell.alignment = { horizontal: 'left', vertical: 'middle', indent: 1, wrapText: true };
+      cell.border = BORDER;
+    }
+    async function embedImage(imageUrl) {
+      const resp = await fetch(imageUrl);
+      if (!resp.ok) throw new Error('fetch failed');
+      return await resp.arrayBuffer();
+    }
+    function guessExt(url) {
+      const u = (url || '').toLowerCase();
+      if (u.includes('.png')) return 'png';
+      if (u.includes('.gif')) return 'gif';
+      return 'jpeg';
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  SHEET 1 — OVERVIEW
+    // ═══════════════════════════════════════════════════════
+    const cover = workbook.addWorksheet('Overview', {
+      pageSetup: { orientation: 'portrait', fitToPage: true, fitToWidth: 1, paperSize: 9,
+        margins: { left: 0.5, right: 0.5, top: 0.6, bottom: 0.6, header: 0.3, footer: 0.3 } }
+    });
+    cover.columns = [{ width: 4 }, { width: 24 }, { width: 32 }, { width: 32 }, { width: 24 }, { width: 4 }];
+
+    cover.mergeCells('B2:E2');
+    const titleCell = cover.getCell('B2');
+    titleCell.value = 'ENGINEERING PROJECT REPORT';
+    titleCell.font = { size: 22, bold: true, color: { argb: 'FFFFFFFF' } };
+    titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
+    titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+    cover.getRow(2).height = 48;
+
+    cover.mergeCells('B3:E3');
+    cover.getCell('B3').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: ACCENT } };
+    cover.getRow(3).height = 6;
+
+    cover.mergeCells('B5:E6');
+    const projTitleCell = cover.getCell('B5');
+    projTitleCell.value = proj.title || 'Untitled Project';
+    projTitleCell.font = { size: 18, bold: true, color: { argb: NAVY } };
+    projTitleCell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+    cover.getRow(5).height = 28; cover.getRow(6).height = 28;
+
+    cover.mergeCells('B7:E7');
+    const typeCell = cover.getCell('B7');
+    typeCell.value = isDeltaV ? '◆  DELTAV PROJECT' : '◆  GENERAL ENGINEERING PROJECT';
+    typeCell.font = { size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
+    typeCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: isDeltaV ? ACCENT : PURPLE } };
+    typeCell.alignment = { horizontal: 'center', vertical: 'middle' };
+    cover.getRow(7).height = 24;
+
+    // Cover image
+    let coverImageRow = 9;
+    if (selectedImages.length > 0 && selectedImages[0].url) {
+      try {
+        const buf = await embedImage(selectedImages[0].url);
+        const imgId = workbook.addImage({ buffer: buf, extension: guessExt(selectedImages[0].url) });
+        cover.addImage(imgId, { tl: { col: 1, row: 8 }, ext: { width: 480, height: 300 }, editAs: 'oneCell' });
+        for (let i = 9; i < 25; i++) cover.getRow(i).height = 18;
+        coverImageRow = 25;
+      } catch (e) { console.warn('Cover image embed failed:', e); coverImageRow = 10; }
+    }
+
+    // Snapshot
+    let r = coverImageRow;
+    cover.mergeCells(`B${r}:E${r}`);
+    styleSectionHeader(cover.getCell(`B${r}`), '📋   PROJECT SNAPSHOT');
+    cover.getRow(r).height = 24; r++;
+
+    const infoPairs = [
+      ['Client / Company', proj.client],
+      ['Industry', proj.industry],
+      ['Project Type', proj.projectType || (isDeltaV ? 'DCS' : 'General Engineering')],
+      ['Status', proj.status],
+      ['Duration', proj.duration],
+      ['My Role', proj.userRole],
+      ['Team', proj.teamMembers || (proj.team
+        ? [proj.team.lead && 'Lead: ' + proj.team.lead,
+           proj.team.engineer && 'Engineer: ' + proj.team.engineer,
+           proj.team.technician && 'Tech: ' + proj.team.technician].filter(Boolean).join(' · ')
+        : '')]
+    ];
+    if (isDeltaV && proj.dates) {
+      infoPairs.push(['Start Date', proj.dates.start]);
+      infoPairs.push(['Finish Date', proj.dates.finish]);
+    }
+    for (const [label, value] of infoPairs) {
+      if (!value) continue;
+      styleLabel(cover.getCell(`B${r}`), label);
+      cover.mergeCells(`C${r}:E${r}`);
+      styleValue(cover.getCell(`C${r}`), value);
+      cover.getRow(r).height = 22; r++;
+    }
+
+    r += 2;
+    cover.mergeCells(`B${r}:E${r}`);
+    const footerCell = cover.getCell(`B${r}`);
+    footerCell.value = `Generated: ${new Date().toLocaleString()}  ·  Your Portfolio System`;
+    footerCell.font = { size: 9, italic: true, color: { argb: 'FF6B7D8F' } };
+    footerCell.alignment = { horizontal: 'center' };
+
+    // ═══════════════════════════════════════════════════════
+    //  SHEET 2 — EXECUTIVE SUMMARY & METRICS
+    // ═══════════════════════════════════════════════════════
+    const summary = workbook.addWorksheet('Summary & Metrics', {
+      pageSetup: { orientation: 'portrait', fitToPage: true, fitToWidth: 1, paperSize: 9,
+        margins: { left: 0.5, right: 0.5, top: 0.6, bottom: 0.6, header: 0.3, footer: 0.3 } }
+    });
+    summary.columns = [{ width: 4 }, { width: 28 }, { width: 26 }, { width: 26 }, { width: 4 }];
+
+    summary.mergeCells('B2:D2');
+    const sumTitle = summary.getCell('B2');
+    sumTitle.value = 'EXECUTIVE SUMMARY & KEY METRICS';
+    sumTitle.font = { size: 16, bold: true, color: { argb: 'FFFFFFFF' } };
+    sumTitle.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
+    sumTitle.alignment = { horizontal: 'center', vertical: 'middle' };
+    summary.getRow(2).height = 38;
+
+    let sr = 4;
+    summary.mergeCells(`B${sr}:D${sr}`);
+    styleSectionHeader(summary.getCell(`B${sr}`), '📝   PROJECT DESCRIPTION');
+    summary.getRow(sr).height = 24; sr++;
+
+    const descText = proj.shortDesc || proj.description || 'No description provided.';
+    summary.mergeCells(`B${sr}:D${sr}`);
+    const descCell = summary.getCell(`B${sr}`);
+    descCell.value = descText;
+    descCell.font = { size: 10 };
+    descCell.alignment = { horizontal: 'left', vertical: 'top', wrapText: true, indent: 1 };
+    descCell.border = BORDER;
+    summary.getRow(sr).height = Math.max(60, Math.ceil(descText.length / 110) * 14);
+    sr += 2;
+
+    summary.mergeCells(`B${sr}:D${sr}`);
+    styleSectionHeader(summary.getCell(`B${sr}`), '📊   KEY METRICS');
+    summary.getRow(sr).height = 24; sr++;
+
+    // Header row
+    const mh = summary.getRow(sr);
+    mh.getCell(2).value = 'Metric';
+    mh.getCell(2).font = { size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
+    mh.getCell(2).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
+    mh.getCell(2).alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
+    mh.getCell(2).border = BORDER;
+    summary.mergeCells(`C${sr}:D${sr}`);
+    mh.getCell(3).value = 'Value';
+    mh.getCell(3).font = { size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
+    mh.getCell(3).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
+    mh.getCell(3).alignment = { horizontal: 'center', vertical: 'middle' };
+    mh.getCell(3).border = BORDER;
+    summary.getRow(sr).height = 22; sr++;
+
+    const metrics = [['Status', proj.status || 'N/A']];
+    if (isDeltaV) {
+      metrics.push(['Controller Type', proj.controllerType || 'N/A']);
+      metrics.push(['DeltaV Version', proj.deltaVVersion || 'N/A']);
+      metrics.push(['Cabinets', proj.cabinetCount || 0]);
+      const io = proj.io || { AI: 0, AO: 0, DI: 0, DO: 0 };
+      metrics.push(['Total I/O', (io.AI || 0) + (io.AO || 0) + (io.DI || 0) + (io.DO || 0)]);
     } else {
-      if(proj.technical){
-        doc.setFillColor(11,43,59); doc.rect(0,yPos,pageWidth,10,'F'); doc.setFillColor(47,199,255); doc.rect(0,yPos+10,pageWidth,3,'F'); yPos+=20;
-        doc.setFontSize(18); doc.setFont(undefined,'bold'); doc.setTextColor(darkColor); doc.text('Technical Details',20,yPos); yPos+=15;
-        const techItems=[{label:'Technologies',value:proj.technical.technologies},{label:'Hardware',value:proj.technical.hardware},{label:'Software',value:proj.technical.software},{label:'Protocols',value:proj.technical.protocols},{label:'Languages',value:proj.technical.languages}];
-        for(const item of techItems){ if(item.value){ doc.setFillColor(245,247,250); doc.roundedRect(18,yPos-3,pageWidth-36,10,3,3,'F'); doc.setFontSize(9); doc.setFont(undefined,'bold'); doc.setTextColor(100,100,100); doc.text(item.label,25,yPos); doc.setFontSize(9); doc.setFont(undefined,'normal'); doc.setTextColor(textColor); const lines=doc.splitTextToSize(item.value,pageWidth-80); doc.text(lines,70,yPos); yPos+=12+(lines.length*4); } }
-        yPos+=5;
-      }
-      if(proj.workBreakdown){
-        const wb=proj.workBreakdown; const wbSections=[{title:'Work Breakdown Structure',content:wb.workBreakdown},{title:'Problems Encountered',content:wb.problems},{title:'Root Causes',content:wb.rootCauses},{title:'Solutions Implemented',content:wb.solutions},{title:'Improvements Made',content:wb.improvements},{title:'Lessons Learned',content:wb.lessons},{title:'Risks Identified',content:wb.risks},{title:'Testing Procedure',content:wb.testing}];
-        for(const section of wbSections){ if(section.content){ if(yPos>pageHeight-60){ doc.addPage(); yPos=20; doc.setFillColor(11,43,59); doc.rect(0,yPos,pageWidth,10,'F'); doc.setFillColor(47,199,255); doc.rect(0,yPos+10,pageWidth,3,'F'); yPos+=20; doc.setFontSize(18); doc.setFont(undefined,'bold'); doc.setTextColor(darkColor); doc.text('Work Breakdown & Analysis',20,yPos); yPos+=15; }
-            doc.setFillColor(240,248,252); doc.roundedRect(15,yPos-3,pageWidth-30,8,4,4,'F'); doc.setFontSize(12); doc.setFont(undefined,'bold'); doc.setTextColor(darkColor); doc.text(section.title,20,yPos); yPos+=10; doc.setFontSize(9); doc.setFont(undefined,'normal'); doc.setTextColor(textColor); const contentLines=doc.splitTextToSize(section.content,pageWidth-40); doc.text(contentLines,20,yPos); yPos+=(contentLines.length*5)+10; } }
-      }
+      metrics.push(['Duration', proj.duration || 'N/A']);
+      metrics.push(['Role', proj.userRole || 'N/A']);
     }
-    if(selectedImages.length>0){
-      if(yPos>pageHeight-60){ doc.addPage(); yPos=20; }
-      doc.setFillColor(11,43,59); doc.rect(0,yPos,pageWidth,10,'F'); doc.setFillColor(47,199,255); doc.rect(0,yPos+10,pageWidth,3,'F'); yPos+=20;
-      doc.setFontSize(18); doc.setFont(undefined,'bold'); doc.setTextColor(darkColor); doc.text('Project Gallery',20,yPos); yPos+=15;
-      let imgCount=0;
-      for(const img of selectedImages){
-        if(imgCount%2===0){ if(yPos>pageHeight-80){ doc.addPage(); yPos=20; doc.setFillColor(11,43,59); doc.rect(0,yPos,pageWidth,10,'F'); doc.setFillColor(47,199,255); doc.rect(0,yPos+10,pageWidth,3,'F'); yPos+=20; doc.setFontSize(18); doc.setFont(undefined,'bold'); doc.setTextColor(darkColor); doc.text('Project Gallery (continued)',20,yPos); yPos+=15; }
-          const imgX=15,imgY=yPos; doc.setDrawColor(200,200,200); doc.setFillColor(250,250,250); doc.roundedRect(imgX,imgY,85,70,5,5,'FD');
-          try{ const imgResponse=await fetch(img.url); if(imgResponse.ok){ const imgBlob=await imgResponse.blob(); const imgDataUrl=await new Promise(resolve=>{const reader=new FileReader(); reader.onloadend=()=>resolve(reader.result); reader.readAsDataURL(imgBlob);}); doc.addImage(imgDataUrl,'JPEG',imgX+2,imgY+2,81,50); } }catch(err){ doc.setFontSize(8); doc.setFont(undefined,'italic'); doc.setTextColor(150,150,150); doc.text('Image preview',imgX+42,imgY+30,{align:'center'}); }
-          if(img.caption){ doc.setFontSize(7); doc.setFont(undefined,'normal'); doc.setTextColor(100,100,100); const captionLines=doc.splitTextToSize(img.caption,80); doc.text(captionLines,imgX+2,imgY+60); }
+    metrics.push(['Images', selectedImages.length]);
+
+    for (const [label, value] of metrics) {
+      styleLabel(summary.getCell(`B${sr}`), label);
+      summary.mergeCells(`C${sr}:D${sr}`);
+      styleValue(summary.getCell(`C${sr}`), String(value));
+      summary.getRow(sr).height = 20; sr++;
+    }
+    sr++;
+
+    summary.mergeCells(`B${sr}:D${sr}`);
+    styleSectionHeader(summary.getCell(`B${sr}`), '🎯   MY RESPONSIBILITIES');
+    summary.getRow(sr).height = 24; sr++;
+
+    summary.mergeCells(`B${sr}:D${sr}`);
+    const respCell = summary.getCell(`B${sr}`);
+    respCell.value = proj.userRole
+      ? `${proj.userRole}\n\n${proj.shortDesc || proj.description || ''}`
+      : (proj.shortDesc || proj.description || 'See project description.');
+    respCell.font = { size: 10 };
+    respCell.alignment = { horizontal: 'left', vertical: 'top', wrapText: true, indent: 1 };
+    respCell.border = BORDER;
+    summary.getRow(sr).height = Math.max(60, Math.ceil((respCell.value || '').length / 100) * 14);
+
+    // ═══════════════════════════════════════════════════════
+    //  SHEET 3 — TECHNICAL DETAILS
+    // ═══════════════════════════════════════════════════════
+    const tech = workbook.addWorksheet('Technical Details', {
+      pageSetup: { orientation: 'portrait', fitToPage: true, fitToWidth: 1, paperSize: 9,
+        margins: { left: 0.5, right: 0.5, top: 0.6, bottom: 0.6, header: 0.3, footer: 0.3 } }
+    });
+    tech.columns = [{ width: 4 }, { width: 28 }, { width: 26 }, { width: 26 }, { width: 4 }];
+
+    tech.mergeCells('B2:D2');
+    const techTitle = tech.getCell('B2');
+    techTitle.value = 'TECHNICAL DETAILS';
+    techTitle.font = { size: 16, bold: true, color: { argb: 'FFFFFFFF' } };
+    techTitle.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
+    techTitle.alignment = { horizontal: 'center', vertical: 'middle' };
+    tech.getRow(2).height = 38;
+
+    let tr = 4;
+    if (isDeltaV) {
+      tech.mergeCells(`B${tr}:D${tr}`);
+      styleSectionHeader(tech.getCell(`B${tr}`), '⚙️   DELTAV CONFIGURATION');
+      tech.getRow(tr).height = 24; tr++;
+
+      const dvItems = [
+        ['Controller Type', proj.controllerType],
+        ['DeltaV Version', proj.deltaVVersion],
+        ['Project Type', proj.projectType],
+        ['Cabinet Count', proj.cabinetCount]
+      ];
+      for (const [label, value] of dvItems) {
+        if (value == null || value === '') continue;
+        styleLabel(tech.getCell(`B${tr}`), label);
+        tech.mergeCells(`C${tr}:D${tr}`);
+        styleValue(tech.getCell(`C${tr}`), String(value));
+        tech.getRow(tr).height = 20; tr++;
+      }
+      tr++;
+
+      // I/O Summary
+      tech.mergeCells(`B${tr}:D${tr}`);
+      styleSectionHeader(tech.getCell(`B${tr}`), '🔌   I/O SUMMARY');
+      tech.getRow(tr).height = 24; tr++;
+
+      const io = proj.io || { AI: 0, AO: 0, DI: 0, DO: 0 };
+      const maxIO = Math.max(io.AI || 0, io.AO || 0, io.DI || 0, io.DO || 0, 1);
+
+      // Header
+      ['Type', 'Count', 'Visual'].forEach((h, i) => {
+        const cell = tech.getRow(tr).getCell(2 + i);
+        cell.value = h;
+        cell.font = { size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
+        cell.alignment = { horizontal: i === 2 ? 'left' : 'center', vertical: 'middle', indent: i === 2 ? 1 : 0 };
+        cell.border = BORDER;
+      });
+      tech.getRow(tr).height = 22; tr++;
+
+      const ioRows = [
+        ['AI (Analog Input)',  io.AI || 0],
+        ['AO (Analog Output)', io.AO || 0],
+        ['DI (Digital Input)', io.DI || 0],
+        ['DO (Digital Output)',io.DO || 0]
+      ];
+      for (const [label, count] of ioRows) {
+        styleLabel(tech.getCell(`B${tr}`), label);
+        const cCell = tech.getCell(`C${tr}`);
+        cCell.value = count;
+        cCell.font = { size: 11, bold: true };
+        cCell.alignment = { horizontal: 'center', vertical: 'middle' };
+        cCell.border = BORDER;
+        const barLen = Math.round((count / maxIO) * 30);
+        const vCell = tech.getCell(`D${tr}`);
+        vCell.value = barLen > 0 ? '█'.repeat(barLen) : '—';
+        vCell.font = { size: 10, color: { argb: ACCENT } };
+        vCell.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
+        vCell.border = BORDER;
+        tech.getRow(tr).height = 20; tr++;
+      }
+
+      const totalIO = (io.AI || 0) + (io.AO || 0) + (io.DI || 0) + (io.DO || 0);
+      tech.getCell(`B${tr}`).value = 'TOTAL I/O';
+      tech.getCell(`B${tr}`).font = { size: 10, bold: true, color: { argb: NAVY } };
+      tech.getCell(`B${tr}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: ACCENT } };
+      tech.getCell(`B${tr}`).alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
+      tech.getCell(`B${tr}`).border = BORDER;
+      tech.getCell(`C${tr}`).value = totalIO;
+      tech.getCell(`C${tr}`).font = { size: 12, bold: true, color: { argb: NAVY } };
+      tech.getCell(`C${tr}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: ACCENT } };
+      tech.getCell(`C${tr}`).alignment = { horizontal: 'center', vertical: 'middle' };
+      tech.getCell(`C${tr}`).border = BORDER;
+      tech.getCell(`D${tr}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: ACCENT } };
+      tech.getCell(`D${tr}`).border = BORDER;
+      tech.getRow(tr).height = 24; tr += 2;
+
+      // Dates
+      if (proj.dates && (proj.dates.start || proj.dates.finish || proj.dates.ifat || proj.dates.cfat)) {
+        tech.mergeCells(`B${tr}:D${tr}`);
+        styleSectionHeader(tech.getCell(`B${tr}`), '📅   PROJECT DATES');
+        tech.getRow(tr).height = 24; tr++;
+        for (const [label, value] of [
+          ['Start Date', proj.dates.start],
+          ['Finish Date', proj.dates.finish],
+          ['IFAT', proj.dates.ifat],
+          ['CFAT', proj.dates.cfat]
+        ]) {
+          if (!value) continue;
+          styleLabel(tech.getCell(`B${tr}`), label);
+          tech.mergeCells(`C${tr}:D${tr}`);
+          styleValue(tech.getCell(`C${tr}`), value);
+          tech.getRow(tr).height = 20; tr++;
         }
-        imgCount++; if(imgCount%2===0) yPos+=78;
+        tr++;
+      }
+
+      // Team
+      if (proj.team && (proj.team.lead || proj.team.engineer || proj.team.technician)) {
+        tech.mergeCells(`B${tr}:D${tr}`);
+        styleSectionHeader(tech.getCell(`B${tr}`), '👥   PROJECT TEAM');
+        tech.getRow(tr).height = 24; tr++;
+        for (const [label, value] of [
+          ['Lead Engineer', proj.team.lead],
+          ['Project Engineer', proj.team.engineer],
+          ['Technician', proj.team.technician]
+        ]) {
+          if (!value) continue;
+          styleLabel(tech.getCell(`B${tr}`), label);
+          tech.mergeCells(`C${tr}:D${tr}`);
+          styleValue(tech.getCell(`C${tr}`), value);
+          tech.getRow(tr).height = 20; tr++;
+        }
+      }
+    } else if (proj.technical) {
+      tech.mergeCells(`B${tr}:D${tr}`);
+      styleSectionHeader(tech.getCell(`B${tr}`), '⚙️   TECHNICAL DETAILS');
+      tech.getRow(tr).height = 24; tr++;
+      for (const [label, value] of [
+        ['Technologies', proj.technical.technologies],
+        ['Hardware',     proj.technical.hardware],
+        ['Software',     proj.technical.software],
+        ['Protocols',    proj.technical.protocols],
+        ['Languages',    proj.technical.languages]
+      ]) {
+        if (!value) continue;
+        styleLabel(tech.getCell(`B${tr}`), label);
+        tech.mergeCells(`C${tr}:D${tr}`);
+        styleValue(tech.getCell(`C${tr}`), value);
+        tech.getRow(tr).height = 22; tr++;
+      }
+    } else {
+      tech.mergeCells(`B${tr}:D${tr}`);
+      const empty = tech.getCell(`B${tr}`);
+      empty.value = 'No technical details provided.';
+      empty.font = { size: 10, italic: true, color: { argb: 'FF6B7D8F' } };
+      empty.alignment = { horizontal: 'center', vertical: 'middle' };
+      tech.getRow(tr).height = 40;
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  SHEET 4 — WORK BREAKDOWN
+    // ═══════════════════════════════════════════════════════
+    const wbSheet = workbook.addWorksheet('Work Breakdown', {
+      pageSetup: { orientation: 'portrait', fitToPage: true, fitToWidth: 1, paperSize: 9,
+        margins: { left: 0.5, right: 0.5, top: 0.6, bottom: 0.6, header: 0.3, footer: 0.3 } }
+    });
+    wbSheet.columns = [{ width: 4 }, { width: 28 }, { width: 60 }, { width: 4 }];
+
+    wbSheet.mergeCells('B2:C2');
+    const wbTitle = wbSheet.getCell('B2');
+    wbTitle.value = 'WORK BREAKDOWN & ANALYSIS';
+    wbTitle.font = { size: 16, bold: true, color: { argb: 'FFFFFFFF' } };
+    wbTitle.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
+    wbTitle.alignment = { horizontal: 'center', vertical: 'middle' };
+    wbSheet.getRow(2).height = 38;
+
+    let wr = 4;
+    const hasWB = proj.workBreakdown && Object.values(proj.workBreakdown).some(v => v && String(v).trim());
+    if (hasWB) {
+      const sections = [
+        ['Work Breakdown Structure', proj.workBreakdown.workBreakdown],
+        ['Problems Encountered',    proj.workBreakdown.problems],
+        ['Root Causes',             proj.workBreakdown.rootCauses],
+        ['Solutions Implemented',   proj.workBreakdown.solutions],
+        ['Improvements Made',       proj.workBreakdown.improvements],
+        ['Lessons Learned',         proj.workBreakdown.lessons],
+        ['Risks Identified',        proj.workBreakdown.risks],
+        ['Testing Procedure',       proj.workBreakdown.testing]
+      ];
+      for (const [label, content] of sections) {
+        if (!content || !String(content).trim()) continue;
+        const lCell = wbSheet.getCell(`B${wr}`);
+        styleLabel(lCell, label);
+        lCell.alignment = { horizontal: 'left', vertical: 'top', wrapText: true, indent: 1 };
+        const cCell = wbSheet.getCell(`C${wr}`);
+        cCell.value = String(content);
+        cCell.font = { size: 10 };
+        cCell.alignment = { horizontal: 'left', vertical: 'top', wrapText: true, indent: 1 };
+        cCell.border = BORDER;
+        const lines = String(content).split('\n').reduce((s, line) => s + Math.max(1, Math.ceil(line.length / 75)), 0);
+        wbSheet.getRow(wr).height = Math.max(28, lines * 14);
+        wr++;
+      }
+    } else {
+      wbSheet.mergeCells(`B${wr}:C${wr}`);
+      const empty = wbSheet.getCell(`B${wr}`);
+      empty.value = 'No work breakdown information provided for this project.';
+      empty.font = { size: 10, italic: true, color: { argb: 'FF6B7D8F' } };
+      empty.alignment = { horizontal: 'center', vertical: 'middle' };
+      wbSheet.getRow(wr).height = 40;
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  SHEET 5 — GALLERY (only if images selected)
+    // ═══════════════════════════════════════════════════════
+    if (selectedImages.length > 0) {
+      const gallery = workbook.addWorksheet('Gallery', {
+        pageSetup: { orientation: 'portrait', fitToPage: true, fitToWidth: 1, paperSize: 9,
+          margins: { left: 0.5, right: 0.5, top: 0.6, bottom: 0.6, header: 0.3, footer: 0.3 } }
+      });
+      gallery.columns = [{ width: 4 }, { width: 6 }, { width: 22 }, { width: 44 }, { width: 4 }];
+
+      gallery.mergeCells('B2:D2');
+      const galTitle = gallery.getCell('B2');
+      galTitle.value = 'PROJECT GALLERY';
+      galTitle.font = { size: 16, bold: true, color: { argb: 'FFFFFFFF' } };
+      galTitle.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
+      galTitle.alignment = { horizontal: 'center', vertical: 'middle' };
+      gallery.getRow(2).height = 38;
+
+      const gh = gallery.getRow(4);
+      ['#', 'Image', 'Caption'].forEach((h, i) => {
+        const cell = gh.getCell(2 + i);
+        cell.value = h;
+        cell.font = { size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        cell.border = BORDER;
+      });
+      gh.height = 22;
+
+      let gr = 5;
+      for (let i = 0; i < selectedImages.length; i++) {
+        const img = selectedImages[i];
+        gallery.getCell(`B${gr}`).value = i + 1;
+        gallery.getCell(`B${gr}`).alignment = { horizontal: 'center', vertical: 'middle' };
+        gallery.getCell(`B${gr}`).font = { size: 10, bold: true };
+        gallery.getCell(`B${gr}`).border = BORDER;
+
+        let embedded = false;
+        try {
+          const buf = await embedImage(img.url);
+          const imgId = workbook.addImage({ buffer: buf, extension: guessExt(img.url) });
+          gallery.addImage(imgId, {
+            tl: { col: 2, row: gr - 1 },
+            ext: { width: 130, height: 90 },
+            editAs: 'oneCell'
+          });
+          embedded = true;
+        } catch (e) { console.warn('Gallery image embed failed:', e); }
+
+        const imgCell = gallery.getCell(`C${gr}`);
+        if (!embedded) {
+          imgCell.value = img.url;
+          imgCell.font = { size: 8, color: { argb: 'FF2FC7FF' } };
+          imgCell.alignment = { horizontal: 'left', vertical: 'middle', wrapText: true };
+        }
+        imgCell.border = BORDER;
+
+        const capCell = gallery.getCell(`D${gr}`);
+        capCell.value = img.caption || '(No caption)';
+        capCell.font = { size: 9 };
+        capCell.alignment = { horizontal: 'left', vertical: 'middle', wrapText: true };
+        capCell.border = BORDER;
+
+        gallery.getRow(gr).height = 96;
+        gr++;
       }
     }
-    const pageCount=doc.internal.getNumberOfPages();
-    for(let i=1;i<=pageCount;i++){ doc.setPage(i); doc.setDrawColor(200,200,200); doc.setLineWidth(0.5); doc.line(15,pageHeight-15,pageWidth-15,pageHeight-15); doc.setFontSize(8); doc.setFont(undefined,'normal'); doc.setTextColor(120,120,120); doc.text(`Your Portfolio - ${proj.title.substring(0,40)}`,20,pageHeight-8); doc.text(`Page ${i} of ${pageCount}`,pageWidth/2,pageHeight-8,{align:'center'}); const pageQrDataURL=await generateQRCodeDataURL(repoUrl,25); if(pageQrDataURL) doc.addImage(pageQrDataURL,'PNG',pageWidth-22,pageHeight-20,12,12); doc.setFontSize(35); doc.setTextColor(240,240,240); doc.setGState(new doc.GState({opacity:0.08})); doc.text('CONFIDENTIAL',pageWidth/2,pageHeight/2,{align:'center',angle:45}); doc.setGState(new doc.GState({opacity:1})); }
-    const safeFileName=proj.title.replace(/[^a-z0-9]/gi,'_').toLowerCase(); doc.save(`${safeFileName}_report.pdf`);
-    showToast('PDF generated successfully!','success');
-  } catch(err){ console.error(err); showToast('PDF generation failed: '+err.message,'error'); } finally{ window.hideLoading(); }
+
+    // ── Save ─────────────────────────────────────────────────
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const safeName = (proj.title || 'project').replace(/[^a-z0-9]/gi, '_').toLowerCase();
+    saveAs(blob, `${safeName}_report_${new Date().toISOString().slice(0, 10)}.xlsx`);
+
+    if (typeof showToast === 'function') showToast('Excel report generated successfully!', 'success');
+    else alert('Excel report generated successfully!');
+  } catch (err) {
+    console.error('Excel generation failed:', err);
+    alert('Excel generation failed: ' + err.message);
+  } finally {
+    window.hideLoading();
+  }
 };
