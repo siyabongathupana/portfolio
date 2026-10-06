@@ -26,7 +26,7 @@
 
 | Projects | Certifications | Users | Hours | Billable | Daily Avg |
 |:--------:|:--------------:|:-----:|:-----:|:--------:|:---------:|
-| 2 | 18 | 7 | 771.3 | 521.6 | 8.0h |
+| 3 | 18 | 7 | 771.3 | 521.6 | 8.0h |
 
 ---
 
@@ -49,6 +49,10 @@
 
 - ** Your Portfolio** - Siya (1 year)
   - Status: Ongoing | Progress: 80%
+  - 
+
+- ** ATKSS** - ESKOM (-)
+  - Status: Ongoing | Progress: 70%
   - 
 
 
@@ -83,6 +87,10 @@
 
 `CSS`
 
+`DCS`
+
+`DeltaV MD`
+
 `DeltaV SZ`
 
 `DeltaV v14`
@@ -112,6 +120,6 @@
 
 <div align="center">
 
-*Last updated: October 06, 2026 at 12:49:25 UTC*
+*Last updated: October 06, 2026 at 12:54:02 UTC*
 
 </div>
