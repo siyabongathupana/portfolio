@@ -31,7 +31,6 @@
 })();
 </script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   <script src="config.js"></script>
@@ -249,7 +248,7 @@
                   <i class="fa fa-info-circle"></i> Details
                 </button>
                 <button class="btn btn-sm btn-delta" onclick="event.stopPropagation(); window.generateProjectReport('${proj.id}')">
-                  <i class="fa fa-file-pdf-o"></i> PDF
+                  <i class="fa fa-file-excel-o"></i> Excel
                 </button>
               </div>
               <div class="mt-2 text-muted" style="font-size:0.7rem;">${techInfo}</div>
