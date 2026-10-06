@@ -1,8 +1,48 @@
-// supabase.js
-const SUPABASE_URL = 'https://nisecbxtspozeqlpqtbd.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5pc2VjYnh0c3BvemVxbHBxdGJkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyOTExODUsImV4cCI6MjEwNjg2NzE4NX0.TOogQFKCtp-b_XKhMkXg03mB0LCFvjlvspmosPjigeg';   // the anon key
+// supabase.js — Initialises the Supabase client and exposes helpers.
+// Load AFTER @supabase/supabase-js and config.js.
 
-window.supabase = window.supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_ANON_KEY
-);
+(function () {
+  'use strict';
+
+  const cfg = window.APP_CONFIG || {};
+  if (!cfg.supabaseUrl || !cfg.supabaseAnonKey) {
+    console.error('[supabase.js] Missing supabaseUrl / supabaseAnonKey in config.js');
+    return;
+  }
+
+  // The @supabase/supabase-js UMD bundle exposes `window.supabase.createClient`
+  window.supabase = window.supabase.createClient(
+    cfg.supabaseUrl,
+    cfg.supabaseAnonKey,
+    {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        storageKey: 'portfolio-auth'
+      }
+    }
+  );
+
+  // ── Auth readiness ──────────────────────────────────────
+  // Pages can `await window.authReady` before reading the user.
+  window.authReady = (async () => {
+    const { data, error } = await window.supabase.auth.getSession();
+    if (error) {
+      console.warn('[supabase.js] getSession failed:', error.message);
+      return null;
+    }
+    window.__currentAuthUser = data.session?.user || null;
+    return window.__currentAuthUser;
+  })();
+
+  // Keep the cached user fresh
+  window.supabase.auth.onAuthStateChange((event, session) => {
+    window.__currentAuthUser = session?.user || null;
+    window.dispatchEvent(new CustomEvent('authChanged', {
+      detail: { event, user: session?.user || null }
+    }));
+  });
+
+  console.log('[supabase.js] ready');
+})();
