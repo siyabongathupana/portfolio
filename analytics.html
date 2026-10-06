@@ -9,259 +9,75 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="styles.css" />
-   <link rel="stylesheet" href="theme-dark.css" id="theme-dark-css">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="supabase.js"></script>
-<script>
-(function(){
-  try {
-    if ((localStorage.getItem('site-theme') || 'dark') === 'light') {
-      window.__THEME_LIGHT__ = true;
-    }
-  } catch(e) {}
-})();
-</script>
-<script>
-(function(){
-  if (window.__THEME_LIGHT__) {
-    var l = document.getElementById('theme-dark-css');
-    if (l) l.disabled = true;
-    document.documentElement.classList.add('theme-light');
-  } else {
-    document.documentElement.classList.add('theme-dark');
-  }
-})();
-</script>
+    <link rel="stylesheet" href="theme-dark.css" id="theme-dark-css">
+    <script>
+    (function(){ try { if ((localStorage.getItem('site-theme') || 'dark') === 'light') window.__THEME_LIGHT__ = true; } catch(e) {} })();
+    </script>
+    <script>
+    (function(){
+      if (window.__THEME_LIGHT__) {
+        var l = document.getElementById('theme-dark-css');
+        if (l) l.disabled = true;
+        document.documentElement.classList.add('theme-light');
+      } else {
+        document.documentElement.classList.add('theme-dark');
+      }
+    })();
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
-    <script src="crypto.js"></script>
-    <script src="api.js"></script>
+    <script src="supabase.js"></script>
     <script src="shared.js"></script>
 
     <style>
-        /* ── Base ── */
         body { background: #eef3fc; font-family: 'Inter', sans-serif; }
         .analytics-container { max-width: 1600px; margin: 20px auto; padding: 0 20px; }
-
-        /* ── Header ── */
-        .analytics-header {
-            background: linear-gradient(135deg, #0b2b3b 0%, #1a4d5f 100%);
-            border-radius: 28px;
-            padding: 30px 35px;
-            margin-bottom: 30px;
-            color: white;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-            animation: fadeInDown 0.6s ease;
-        }
+        .analytics-header { background: linear-gradient(135deg, #0b2b3b 0%, #1a4d5f 100%); border-radius: 28px; padding: 30px 35px; margin-bottom: 30px; color: white; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; box-shadow: 0 10px 30px rgba(0,0,0,0.15); }
         .analytics-header h1 { font-weight: 700; font-size: 2rem; margin: 0; }
         .analytics-header h1 i { color: #2fc7ff; margin-right: 12px; }
         .analytics-header .subtitle { opacity: 0.8; font-size: 0.95rem; margin-top: 4px; }
-        .analytics-header .btn-group-actions { display: flex; gap: 10px; flex-wrap: wrap; }
-
-        /* ── Filter Bar ── */
-        .filter-bar-analytics {
-            background: white;
-            border-radius: 20px;
-            padding: 16px 24px;
-            margin-bottom: 30px;
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 16px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.04);
-            border: 1px solid #e2e8f0;
-            animation: fadeIn 0.8s ease;
-        }
+        .filter-bar-analytics { background: white; border-radius: 20px; padding: 16px 24px; margin-bottom: 30px; display: flex; flex-wrap: wrap; align-items: center; gap: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.04); border: 1px solid #e2e8f0; }
         .filter-bar-analytics label { font-weight: 600; font-size: 0.85rem; color: #5a7d9a; margin-right: 4px; margin-bottom: 0; }
-        .filter-bar-analytics select, .filter-bar-analytics input {
-            border-radius: 40px;
-            border: 1px solid #e2e8f0;
-            padding: 6px 16px;
-            font-size: 0.85rem;
-            background: #f8fafc;
-            transition: 0.2s;
-        }
-        .filter-bar-analytics select:focus, .filter-bar-analytics input:focus {
-            outline: none;
-            border-color: #2fc7ff;
-            box-shadow: 0 0 0 3px rgba(47,199,255,0.2);
-        }
-        .filter-bar-analytics .filter-group { display: flex; align-items: center; gap: 6px; }
-        .last-updated { font-size: 0.75rem; color: #8a9fb0; margin-left: 12px; }
-
-        /* ── KPI Grid ── */
-        .kpi-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-            gap: 16px;
-            margin-bottom: 30px;
-        }
-        .kpi-card {
-            background: white;
-            border-radius: 20px;
-            padding: 18px 20px;
-            border: 1px solid #e2e8f0;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
-            text-align: center;
-            transition: transform 0.25s ease, box-shadow 0.25s ease;
-            animation: fadeInUp 0.6s ease both;
-            animation-delay: calc(0.05s * var(--i, 0));
-        }
-        .kpi-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 10px 25px rgba(0,0,0,0.07);
-        }
-        .kpi-card .kpi-icon { font-size: 1.6rem; margin-bottom: 6px; display: block; }
-        .kpi-card .kpi-number {
-            font-size: 2rem;
-            font-weight: 800;
-            color: #0b2b3b;
-            line-height: 1.2;
-            transition: color 0.3s;
-        }
+        .filter-bar-analytics select, .filter-bar-analytics input { border-radius: 40px; border: 1px solid #e2e8f0; padding: 6px 16px; font-size: 0.85rem; background: #f8fafc; }
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 30px; }
+        .kpi-card { background: white; border-radius: 20px; padding: 18px 20px; border: 1px solid #e2e8f0; box-shadow: 0 4px 12px rgba(0,0,0,0.03); text-align: center; }
+        .kpi-card .kpi-number { font-size: 2rem; font-weight: 800; color: #0b2b3b; line-height: 1.2; }
         .kpi-card .kpi-label { font-size: 0.75rem; color: #5a7d9a; font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em; }
         .kpi-card .kpi-sub { font-size: 0.7rem; color: #8a9fb0; margin-top: 2px; }
         .kpi-card.overtime .kpi-number { color: #dc3545; }
         .kpi-card.billable .kpi-number { color: #28a745; }
         .kpi-card.nonbillable .kpi-number { color: #dc3545; }
-        .kpi-card.total .kpi-number { color: #0b2b3b; }
-        .kpi-card.health .kpi-number { color: #2fc7ff; }
         .kpi-card.streak .kpi-number { color: #ff6b00; }
-
-        /* ── Chart Cards ── */
-        .chart-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-            gap: 24px;
-            margin-bottom: 30px;
-        }
-        .chart-card {
-            background: white;
-            border-radius: 24px;
-            padding: 20px 20px 16px;
-            border: 1px solid #e2e8f0;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
-            transition: box-shadow 0.2s;
-            animation: fadeInUp 0.6s ease both;
-            animation-delay: calc(0.08s * var(--i, 0));
-        }
-        .chart-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.06); }
-        .chart-card .chart-title { font-weight: 600; font-size: 1rem; color: #0b2b3b; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
-        .chart-card .chart-title i { color: #2fc7ff; }
+        .kpi-card.health .kpi-number { color: #2fc7ff; }
+        .chart-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 24px; margin-bottom: 30px; }
+        .chart-card { background: white; border-radius: 24px; padding: 20px; border: 1px solid #e2e8f0; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
+        .chart-card .chart-title { font-weight: 600; font-size: 1rem; color: #0b2b3b; margin-bottom: 12px; }
+        .chart-card .chart-title i { color: #2fc7ff; margin-right: 6px; }
         .chart-card .chart-container { position: relative; height: 240px; }
-
-        /* ── Table Cards ── */
-        .table-card {
-            background: white;
-            border-radius: 24px;
-            padding: 20px 24px 24px;
-            border: 1px solid #e2e8f0;
-            margin-bottom: 30px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
-            overflow-x: auto;
-            animation: fadeInUp 0.6s ease both;
-            animation-delay: calc(0.1s * var(--i, 0));
-        }
-        .table-card .table-title { font-weight: 600; font-size: 1.05rem; color: #0b2b3b; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
-        .table-card .table-title i { color: #2fc7ff; }
-        .table-card table { width: 100%; font-size: 0.85rem; border-collapse: collapse; }
-        .table-card table th { background: #f1f5f9; font-weight: 600; color: #0b2b3b; padding: 10px 12px; text-align: left; border-bottom: 2px solid #e2e8f0; }
+        .table-card { background: white; border-radius: 24px; padding: 20px 24px 24px; border: 1px solid #e2e8f0; margin-bottom: 30px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); overflow-x: auto; }
+        .table-card .table-title { font-weight: 600; font-size: 1.05rem; color: #0b2b3b; margin-bottom: 16px; }
+        .table-card .table-title i { color: #2fc7ff; margin-right: 6px; }
+        .table-card table { width: 100%; font-size: 0.85rem; }
+        .table-card table th { background: #f1f5f9; font-weight: 600; color: #0b2b3b; padding: 10px 12px; text-align: left; }
         .table-card table td { padding: 8px 12px; border-bottom: 1px solid #f1f5f9; }
-        .table-card table tr:hover td { background: #f8fafc; }
-        .highlight-green { color: #28a745; font-weight: 600; }
-        .highlight-red { color: #dc3545; font-weight: 600; }
-
-        /* ── Health Ring ── */
-        .health-ring-container {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 30px;
-            flex-wrap: wrap;
-            padding: 10px 0;
-        }
-        .health-ring {
-            position: relative;
-            width: 130px;
-            height: 130px;
-            animation: pulseGlow 2s ease-in-out infinite;
-        }
-        .health-ring canvas { width: 100% !important; height: 100% !important; }
-        .health-ring .health-label {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center;
-        }
+        .health-ring-container { display: flex; align-items: center; justify-content: center; gap: 30px; flex-wrap: wrap; padding: 10px 0; }
+        .health-ring { position: relative; width: 130px; height: 130px; }
+        .health-ring .health-label { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; }
         .health-ring .health-label .score { font-size: 2.2rem; font-weight: 800; color: #0b2b3b; line-height: 1; }
-        .health-ring .health-label .label { font-size: 0.65rem; color: #5a7d9a; font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em; }
+        .health-ring .health-label .label { font-size: 0.65rem; color: #5a7d9a; font-weight: 500; text-transform: uppercase; }
         .health-details { font-size: 0.85rem; color: #4a627a; max-width: 300px; }
-        .health-details ul { margin: 6px 0 0 18px; padding: 0; }
-        .health-details ul li { margin-bottom: 2px; }
         .health-badge { display: inline-block; padding: 4px 14px; border-radius: 40px; font-weight: 600; font-size: 0.8rem; }
         .health-badge.good { background: #d4edda; color: #155724; }
         .health-badge.ok { background: #fff3cd; color: #856404; }
         .health-badge.bad { background: #f8d7da; color: #721c24; }
-
-        /* ── Coach ── */
         #coachMessage { font-size: 1rem; padding: 10px 0; min-height: 60px; }
-        #coachMessage .cursor { display: inline-block; width: 2px; height: 1.2em; background: #2fc7ff; margin-left: 4px; animation: blink 0.8s step-end infinite; }
-        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
-
-        /* ── Animations ── */
-        @keyframes fadeInDown {
-            from { opacity: 0; transform: translateY(-20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(30px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-        @keyframes pulseGlow {
-            0% { filter: drop-shadow(0 0 5px rgba(47,199,255,0.2)); }
-            50% { filter: drop-shadow(0 0 20px rgba(47,199,255,0.4)); }
-            100% { filter: drop-shadow(0 0 5px rgba(47,199,255,0.2)); }
-        }
-
-        /* ── Responsive ── */
-        @media (max-width: 768px) {
-            .analytics-header { padding: 20px; flex-direction: column; align-items: flex-start; gap: 16px; }
-            .analytics-header h1 { font-size: 1.5rem; }
-            .filter-bar-analytics { flex-direction: column; align-items: stretch; }
-            .kpi-grid { grid-template-columns: repeat(2,1fr); gap: 10px; }
-            .kpi-card .kpi-number { font-size: 1.4rem; }
-            .chart-grid { grid-template-columns: 1fr; gap: 16px; }
-            .chart-card .chart-container { height: 200px; }
-            .health-ring-container { flex-direction: column; align-items: center; }
-            .health-details { max-width: 100%; text-align: center; }
-            .health-details ul { text-align: left; }
-        }
-
-        @media print {
-            .filter-bar-analytics, .analytics-header .btn-group-actions, .no-print { display: none !important; }
-            .analytics-header { background: #0b2b3b !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            .kpi-card, .chart-card, .table-card { break-inside: avoid; border: 1px solid #ddd !important; }
-            body { background: white !important; }
-        }
-
-        /* ── Footer ── */
-        .footer-status { color: #bdd3e0; }
+        .highlight-green { color: #28a745; font-weight: 600; }
+        .highlight-red { color: #dc3545; font-weight: 600; }
     </style>
 </head>
 <body>
 
-    <!-- ─── NAV ─── -->
     <nav class="navbar navbar-expand-lg custom_nav-container pt-3" style="background:#0b2b3b; padding:15px 0;">
         <div class="container">
             <a class="navbar-brand" href="index.html"><span>Your</span> Portfolio</a>
@@ -281,25 +97,19 @@
         </div>
     </nav>
 
-    <!-- ─── MAIN ─── -->
     <div class="analytics-container" id="analyticsApp">
 
-        <!-- Header -->
         <div class="analytics-header">
             <div>
                 <h1><i class="fa fa-bar-chart"></i> Analytics Dashboard</h1>
                 <div class="subtitle">Deep insights into your timesheet data</div>
             </div>
             <div class="btn-group-actions">
-                <button class="btn btn-light btn-sm" id="syncGitHubBtn"><i class="fa fa-cloud-download"></i> Sync from Database</button>
-               
                 <button class="btn btn-light btn-sm" id="refreshAnalyticsBtn"><i class="fa fa-refresh"></i> Refresh</button>
-                <!--button class="btn btn-outline-light btn-sm" id="exportAnalyticsPdfBtn"><i class="fa fa-file-pdf-o"></i> Export PDF</button-->
                 <a href="timesheet.html" class="btn btn-outline-light btn-sm"><i class="fa fa-arrow-left"></i> Back</a>
             </div>
         </div>
 
-        <!-- Filter Bar -->
         <div class="filter-bar-analytics" id="filterBar">
             <div class="filter-group">
                 <label><i class="fa fa-calendar"></i> Period</label>
@@ -329,84 +139,49 @@
             </div>
             <div style="margin-left:auto; display:flex; align-items:center; gap:12px;">
                 <span id="recordCount" style="font-size:0.8rem; color:#5a7d9a;">0 entries</span>
-                <span id="lastUpdated" class="last-updated">Last updated: —</span>
             </div>
         </div>
 
-        <!-- KPI Grid (with new Streak card) -->
         <div class="kpi-grid" id="kpiGrid">
-            <div class="kpi-card total" style="--i:0;">
-                <span class="kpi-icon">📊</span>
-                <div class="kpi-number" id="kpiTotal">0</div>
-                <div class="kpi-label">Total Hours</div>
-            </div>
-            <div class="kpi-card billable" style="--i:1;">
-                <span class="kpi-icon">✅</span>
-                <div class="kpi-number" id="kpiBillable">0</div>
-                <div class="kpi-label">Billable</div>
-            </div>
-            <div class="kpi-card nonbillable" style="--i:2;">
-                <span class="kpi-icon">❌</span>
-                <div class="kpi-number" id="kpiNonBillable">0</div>
-                <div class="kpi-label">Non-Billable</div>
-            </div>
-            <div class="kpi-card overtime" style="--i:3;">
-                <span class="kpi-icon">⏰</span>
-                <div class="kpi-number" id="kpiOvertime">0</div>
-                <div class="kpi-label">Overtime</div>
-            </div>
-            <div class="kpi-card" style="--i:4;">
-                <span class="kpi-icon">📅</span>
-                <div class="kpi-number" id="kpiDays">0</div>
-                <div class="kpi-label">Working Days</div>
-            </div>
-            <div class="kpi-card streak" style="--i:5;">
-                <span class="kpi-icon">🔥</span>
-                <div class="kpi-number" id="kpiStreak">0</div>
-                <div class="kpi-label">Longest Streak</div>
-                <div class="kpi-sub">days ≥7.5h</div>
-            </div>
-            <div class="kpi-card health" style="--i:6;">
-                <span class="kpi-icon">💚</span>
-                <div class="kpi-number" id="kpiHealth">—</div>
-                <div class="kpi-label">Health Score</div>
-                <div class="kpi-sub" id="kpiHealthLabel"></div>
-            </div>
+            <div class="kpi-card"><span class="kpi-icon">📊</span><div class="kpi-number" id="kpiTotal">0</div><div class="kpi-label">Total Hours</div></div>
+            <div class="kpi-card billable"><span class="kpi-icon">✅</span><div class="kpi-number" id="kpiBillable">0</div><div class="kpi-label">Billable</div></div>
+            <div class="kpi-card nonbillable"><span class="kpi-icon">❌</span><div class="kpi-number" id="kpiNonBillable">0</div><div class="kpi-label">Non-Billable</div></div>
+            <div class="kpi-card overtime"><span class="kpi-icon">⏰</span><div class="kpi-number" id="kpiOvertime">0</div><div class="kpi-label">Overtime</div></div>
+            <div class="kpi-card"><span class="kpi-icon">📅</span><div class="kpi-number" id="kpiDays">0</div><div class="kpi-label">Working Days</div></div>
+            <div class="kpi-card streak"><span class="kpi-icon">🔥</span><div class="kpi-number" id="kpiStreak">0</div><div class="kpi-label">Longest Streak</div><div class="kpi-sub">days ≥7.5h</div></div>
+            <div class="kpi-card health"><span class="kpi-icon">💚</span><div class="kpi-number" id="kpiHealth">—</div><div class="kpi-label">Health Score</div><div class="kpi-sub" id="kpiHealthLabel"></div></div>
         </div>
 
-        <!-- Chart Grid -->
-        <div class="chart-grid" id="chartGrid">
-            <div class="chart-card" style="--i:0;"><div class="chart-title"><i class="fa fa-cubes"></i> Hours by Project</div><div class="chart-container"><canvas id="chartProject"></canvas></div></div>
-            <div class="chart-card" style="--i:1;"><div class="chart-title"><i class="fa fa-pie-chart"></i> Hours by Category</div><div class="chart-container"><canvas id="chartCategory"></canvas></div></div>
-            <div class="chart-card" style="--i:2;"><div class="chart-title"><i class="fa fa-usd"></i> Billable vs Non-Billable</div><div class="chart-container"><canvas id="chartBillable"></canvas></div></div>
-            <div class="chart-card" style="--i:3;"><div class="chart-title"><i class="fa fa-line-chart"></i> Weekly Hours Trend</div><div class="chart-container"><canvas id="chartWeeklyTrend"></canvas></div></div>
-            <div class="chart-card" style="--i:4;"><div class="chart-title"><i class="fa fa-tasks"></i> Admin vs Project Hours</div><div class="chart-container"><canvas id="chartAdminProject"></canvas></div></div>
-            <div class="chart-card" style="--i:5;"><div class="chart-title"><i class="fa fa-trophy"></i> Top Projects</div><div class="chart-container"><canvas id="chartTopProjects"></canvas></div></div>
+        <div class="chart-grid">
+            <div class="chart-card"><div class="chart-title"><i class="fa fa-cubes"></i> Hours by Project</div><div class="chart-container"><canvas id="chartProject"></canvas></div></div>
+            <div class="chart-card"><div class="chart-title"><i class="fa fa-pie-chart"></i> Hours by Category</div><div class="chart-container"><canvas id="chartCategory"></canvas></div></div>
+            <div class="chart-card"><div class="chart-title"><i class="fa fa-usd"></i> Billable vs Non-Billable</div><div class="chart-container"><canvas id="chartBillable"></canvas></div></div>
+            <div class="chart-card"><div class="chart-title"><i class="fa fa-line-chart"></i> Weekly Hours Trend</div><div class="chart-container"><canvas id="chartWeeklyTrend"></canvas></div></div>
+            <div class="chart-card"><div class="chart-title"><i class="fa fa-tasks"></i> Admin vs Project Hours</div><div class="chart-container"><canvas id="chartAdminProject"></canvas></div></div>
+            <div class="chart-card"><div class="chart-title"><i class="fa fa-trophy"></i> Top Projects</div><div class="chart-container"><canvas id="chartTopProjects"></canvas></div></div>
         </div>
 
-        <!-- Tables -->
-        <div class="table-card" style="--i:0;">
+        <div class="table-card">
             <div class="table-title"><i class="fa fa-calendar-check-o"></i> Monthly Comparison</div>
-            <div id="monthlyTableWrapper"><table class="table" id="monthlyTable"><thead><tr><th>Month</th><th>Hours</th><th>Billable</th><th>Overtime</th><th>Avg/Day</th><th>Growth</th></tr></thead><tbody id="monthlyBody"><tr><td colspan="6" class="text-center text-muted">No data</td></tr></tbody></table></div>
+            <table class="table"><thead><tr><th>Month</th><th>Hours</th><th>Billable</th><th>Overtime</th><th>Avg/Day</th><th>Growth</th></tr></thead><tbody id="monthlyBody"><tr><td colspan="6" class="text-center text-muted">No data</td></tr></tbody></table>
         </div>
 
         <div class="row">
             <div class="col-md-6">
-                <div class="table-card" style="--i:1;">
+                <div class="table-card">
                     <div class="table-title"><i class="fa fa-users"></i> Busiest Day of Week</div>
-                    <table class="table" id="busiestDayTable"><thead><tr><th>Day</th><th>Total Hours</th><th>Avg Hours</th></tr></thead><tbody id="busiestDayBody"><tr><td colspan="3" class="text-center text-muted">No data</td></tr></tbody></table>
+                    <table class="table"><thead><tr><th>Day</th><th>Total Hours</th><th>Avg Hours</th></tr></thead><tbody id="busiestDayBody"><tr><td colspan="3" class="text-center text-muted">No data</td></tr></tbody></table>
                 </div>
             </div>
             <div class="col-md-6">
-                <div class="table-card" style="--i:2;">
+                <div class="table-card">
                     <div class="table-title"><i class="fa fa-list-alt"></i> Category Insights</div>
-                    <table class="table" id="categoryInsightsTable"><thead><tr><th>Category</th><th>Entries</th><th>Share</th></tr></thead><tbody id="categoryInsightsBody"><tr><td colspan="3" class="text-center text-muted">No data</td></tr></tbody></table>
+                    <table class="table"><thead><tr><th>Category</th><th>Entries</th><th>Share</th></tr></thead><tbody id="categoryInsightsBody"><tr><td colspan="3" class="text-center text-muted">No data</td></tr></tbody></table>
                 </div>
             </div>
         </div>
 
-        <!-- Health + Coach -->
-        <div class="table-card" style="--i:3;">
+        <div class="table-card">
             <div class="table-title"><i class="fa fa-heartbeat"></i> Portfolio Health</div>
             <div class="health-ring-container">
                 <div class="health-ring">
@@ -416,7 +191,7 @@
                         <div class="label">Health Score</div>
                     </div>
                 </div>
-                <div class="health-details" id="healthDetails">
+                <div class="health-details">
                     <p><strong>Analysis</strong></p>
                     <ul id="healthBullets"><li>Loading health data...</li></ul>
                     <div style="margin-top:10px;"><span class="health-badge" id="healthBadge">—</span></div>
@@ -424,206 +199,94 @@
             </div>
         </div>
 
-        <!-- Coach's Corner -->
-        <div class="table-card" id="coachCard" style="--i:4;">
+        <div class="table-card">
             <div class="table-title"><i class="fa fa-commenting-o"></i> Coach's Corner</div>
-            <div id="coachMessage" style="font-size:1rem; padding:10px 0; min-height:60px;">
-                💡 Analysing your data...
-            </div>
+            <div id="coachMessage">💡 Analysing your data...</div>
             <div style="font-size:0.9rem; color:#5a7d9a; border-top:1px solid #e2e8f0; padding-top:10px;">
                 <i class="fa fa-lightbulb-o"></i> <span id="tipText">Tip: consistency beats intensity.</span>
             </div>
         </div>
 
-        <!-- Footer inside container -->
         <div class="text-center text-muted small py-3">
             <span id="userFooterStatus"></span>
         </div>
     </div>
 
-    <!-- ─── FOOTER ─── -->
     <footer style="background:#0b2b3b; color:#bdd3e0; text-align:center; padding:20px; margin-top:20px;">
-        <p>© 2026 Your Portfolio — <a href="admin.html" class="text-white">Manage</a> | <a href="analytics.html" class="text-white">Analytics</a></p>
-        <p class="footer-status"><span id="footerStatus"></span></p>
+        <p>© 2026 Your Portfolio — <a href="admin.html" class="text-white">Manage</a></p>
     </footer>
 
-    <!-- ─── SCRIPTS ─── -->
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 
     <script>
-        (function() {
+        (async function() {
             'use strict';
 
-            const user = window.SessionManager?.getCurrentUser();
-            if (!user) {
-                window.location.href = 'login.html?redirect=analytics';
-                return;
-            }
+            const authUser = await window.authReady;
+            if (!authUser) { window.location.href = 'login.html?redirect=analytics'; return; }
 
+            const user = window.SessionManager.getCurrentUser();
             let entries = [];
-            let allProjects = [];
             let chartInstances = {};
-            let lastFetchTime = null;
             let coachTimeout = null;
             let prevKPI = {};
 
-            // ── Helpers ──
-            function formatDate(d) { return d.toISOString().split('T')[0]; }
-            function getWeekNumber(date) {
+            function fmtDate(d) { return d.toISOString().split('T')[0]; }
+
+            function getWeekKey(date) {
                 const d = new Date(date);
                 d.setHours(0,0,0,0);
                 d.setDate(d.getDate() + 3 - (d.getDay() + 6) % 7);
                 const week1 = new Date(d.getFullYear(), 0, 4);
-                return 1 + Math.round(((d - week1) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
+                const wn = 1 + Math.round(((d - week1) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
+                return d.getFullYear() + '-W' + String(wn).padStart(2,'0');
             }
-            function getWeekKey(date) {
-                const d = new Date(date);
-                return d.getFullYear() + '-W' + String(getWeekNumber(d)).padStart(2,'0');
-            }
-            function formatMonthKey(m) {
-                const [year, month] = m.split('-');
+
+            function fmtMonthKey(m) {
+                const [y, mo] = m.split('-');
                 const names = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-                return names[parseInt(month)-1] + ' ' + year;
+                return names[parseInt(mo)-1] + ' ' + y;
             }
-            function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m] || m); }
+
+            const esc = window.escapeHtml;
+
             function showToast(msg, type) {
-                let container = document.getElementById('toastContainer');
-                if (!container) {
-                    container = document.createElement('div');
-                    container.id = 'toastContainer';
-                    container.style.position = 'fixed';
-                    container.style.bottom = '20px';
-                    container.style.right = '20px';
-                    container.style.zIndex = '1050';
-                    document.body.appendChild(container);
-                }
-                const toastId = 'toast-' + Date.now();
-                const bgClass = type === 'success' ? 'bg-success' : (type === 'error' ? 'bg-danger' : 'bg-info');
-                const html = `<div id="${toastId}" class="toast ${bgClass} text-white" role="alert" data-autohide="true" data-delay="3000"><div class="toast-body">${msg}</div></div>`;
-                container.insertAdjacentHTML('beforeend', html);
-                const toastEl = document.getElementById(toastId);
-                $(toastEl).toast('show');
-                toastEl.addEventListener('hidden.bs.toast', () => toastEl.remove());
+                if (window.showToast) window.showToast(msg, type);
             }
 
-            // ── Animated Counter ──
-            function animateNumber(element, target, duration = 800) {
-                const start = parseFloat(element.textContent) || 0;
-                const diff = target - start;
-                if (Math.abs(diff) < 0.1) { element.textContent = target.toFixed(1); return; }
-                const startTime = performance.now();
-                const isInt = Number.isInteger(target);
-                function update(now) {
-                    const elapsed = now - startTime;
-                    const progress = Math.min(elapsed / duration, 1);
-                    const eased = 1 - Math.pow(1 - progress, 3); // easeOutCubic
-                    const current = start + diff * eased;
-                    element.textContent = isInt ? Math.round(current) : current.toFixed(1);
-                    if (progress < 1) requestAnimationFrame(update);
-                    else element.textContent = isInt ? Math.round(target) : target.toFixed(1);
-                }
-                requestAnimationFrame(update);
-            }
-
-            // ── GitHub Sync ──
-            async function fetchFromGitHub() {
-                window.showLoading('Syncing from GitHub...');
-                try {
-                    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-                    const encUser = encodeURIComponent(user.username);
-                    const path = `${dataPath}/users/${encUser}/timesheet.json`;
-                    const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`;
-                    const resp = await fetch(url, {
-                        headers: { Authorization: `token ${user.pat}`, Accept: 'application/vnd.github.v3+json' }
-                    });
-                    if (!resp.ok) {
-                        if (resp.status === 404) {
-                            entries = [];
-                            localStorage.setItem('timesheet_entries_cache', JSON.stringify({ entries: [], timestamp: Date.now() }));
-                            showToast('No timesheet file found. Starting fresh.', 'warning');
-                        } else {
-                            throw new Error(`GitHub error: ${resp.status}`);
-                        }
-                    } else {
-                        const data = await resp.json();
-                        const content = atob(data.content.replace(/\n/g, ''));
-                        let parsed;
-                        try { parsed = JSON.parse(content); } catch(e) { parsed = []; }
-                        entries = Array.isArray(parsed) ? parsed : [];
-                        entries.sort((a,b) => new Date(b.date) - new Date(a.date));
-                        localStorage.setItem('timesheet_entries_cache', JSON.stringify({ entries, timestamp: Date.now() }));
-                        showToast(`Synced ${entries.length} entries from GitHub`, 'success');
-                    }
-                    lastFetchTime = new Date();
-                    document.getElementById('lastUpdated').textContent = 'Last updated: ' + lastFetchTime.toLocaleString();
-                    window.__timesheetEntries = entries;
-                    // Update project list
-                    const projSet = new Set();
-                    entries.forEach(e => { if (e.project) projSet.add(e.project); });
-                    allProjects = Array.from(projSet);
-                    window.__timesheetProjectOptions = allProjects;
-                    const sel = document.getElementById('analyticsProject');
-                    if (sel) {
-                        const current = sel.value;
-                        sel.innerHTML = '<option value="all">All Projects</option>';
-                        allProjects.forEach(p => {
-                            const opt = document.createElement('option');
-                            opt.value = p;
-                            opt.textContent = p;
-                            sel.appendChild(opt);
-                        });
-                        if (current && allProjects.includes(current)) sel.value = current;
-                    }
-                    renderAll();
-                } catch (err) {
-                    console.error(err);
-                    showToast('Sync failed: ' + err.message, 'error');
-                } finally {
-                    window.hideLoading();
-                }
-            }
-
-            // ── Load from cache ──
-            function loadFromCache() {
-                try {
-                    const raw = localStorage.getItem('timesheet_entries_cache');
-                    if (raw) {
-                        const data = JSON.parse(raw);
-                        if (data && Array.isArray(data.entries)) {
-                            entries = data.entries;
-                            if (data.timestamp) {
-                                lastFetchTime = new Date(data.timestamp);
-                                document.getElementById('lastUpdated').textContent = 'Last updated: ' + lastFetchTime.toLocaleString();
-                            }
-                            return true;
-                        }
-                    }
-                } catch(e) {}
-                entries = [];
-                return false;
+            async function loadEntries() {
+                const { data, error } = await window.supabase
+                    .from('timesheet_entries').select('*')
+                    .eq('user_id', user.id)
+                    .order('date', { ascending: false });
+                if (error) { showToast('Failed to load: ' + error.message, 'error'); return []; }
+                return (data || []).map(r => ({
+                    id: r.id, date: r.date,
+                    start: r.start_time ? r.start_time.slice(0,5) : '',
+                    end: r.end_time ? r.end_time.slice(0,5) : '',
+                    hours: parseFloat(r.hours) || 0,
+                    project: r.project, category: r.category,
+                    billable: r.billable ? 'yes' : 'no',
+                    notes: r.notes || ''
+                }));
             }
 
             function loadProjects() {
-                const projSet = new Set();
-                entries.forEach(e => { if (e.project) projSet.add(e.project); });
-                allProjects = Array.from(projSet);
+                const set = new Set();
+                entries.forEach(e => { if (e.project) set.add(e.project); });
                 const sel = document.getElementById('analyticsProject');
-                if (sel) {
-                    const current = sel.value;
-                    sel.innerHTML = '<option value="all">All Projects</option>';
-                    allProjects.forEach(p => {
-                        const opt = document.createElement('option');
-                        opt.value = p;
-                        opt.textContent = p;
-                        sel.appendChild(opt);
-                    });
-                    if (current && allProjects.includes(current)) sel.value = current;
-                }
+                const current = sel.value;
+                sel.innerHTML = '<option value="all">All Projects</option>';
+                [...set].sort().forEach(p => {
+                    const o = document.createElement('option');
+                    o.value = p; o.textContent = p;
+                    sel.appendChild(o);
+                });
+                if (current && set.has(current)) sel.value = current;
             }
 
-            // ── Filtering ──
             function getFilteredEntries() {
                 const range = document.getElementById('analyticsRange').value;
                 const project = document.getElementById('analyticsProject').value;
@@ -631,11 +294,13 @@
 
                 const now = new Date();
                 const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-                const todayYMD = formatDate(today);
+                const todayYMD = fmtDate(today);
                 const thisMonthPrefix = todayYMD.substring(0, 7);
+
                 const thirtyDaysAgo = new Date(today);
                 thirtyDaysAgo.setUTCDate(today.getUTCDate() - 30);
-                const thirtyDaysAgoStr = formatDate(thirtyDaysAgo);
+                const thirtyDaysAgoStr = fmtDate(thirtyDaysAgo);
+
                 const todayDay = today.getUTCDay();
                 const currentMonday = new Date(today);
                 currentMonday.setUTCDate(today.getUTCDate() - (todayDay === 0 ? 6 : todayDay - 1));
@@ -644,31 +309,25 @@
                 lastMonday.setUTCDate(currentMonday.getUTCDate() - 7);
                 const lastSunday = new Date(lastMonday);
                 lastSunday.setUTCDate(lastMonday.getUTCDate() + 6);
-                const lastMondayStr = formatDate(lastMonday);
-                const lastSundayStr = formatDate(lastSunday);
+
                 const lastMonth = new Date(today);
                 lastMonth.setUTCMonth(today.getUTCMonth() - 1);
                 const lastMonthStart = new Date(lastMonth.getUTCFullYear(), lastMonth.getUTCMonth(), 1);
                 const lastMonthEnd = new Date(lastMonth.getUTCFullYear(), lastMonth.getUTCMonth() + 1, 0);
-                const lastMonthStartStr = formatDate(lastMonthStart);
-                const lastMonthEndStr = formatDate(lastMonthEnd);
 
                 let filtered = [...entries];
                 if (range !== 'all') {
                     filtered = filtered.filter(entry => {
-                        const entryDate = entry.date;
-                        if (range === 'day') return entryDate === todayYMD;
+                        const d = entry.date;
                         if (range === 'week') {
-                            const d = new Date(entryDate);
-                            d.setUTCHours(0,0,0,0);
-                            const start = new Date(currentMonday); start.setUTCHours(0,0,0,0);
-                            const end = new Date(start); end.setUTCDate(start.getUTCDate()+6); end.setUTCHours(23,59,59,999);
-                            return d >= start && d <= end;
+                            const dt = new Date(d); dt.setUTCHours(0,0,0,0);
+                            const end = new Date(currentMonday); end.setUTCDate(end.getUTCDate() + 6); end.setUTCHours(23,59,59,999);
+                            return dt >= currentMonday && dt <= end;
                         }
-                        if (range === 'month') return entryDate.substring(0,7) === thisMonthPrefix;
-                        if (range === 'lastWeek') return entryDate >= lastMondayStr && entryDate <= lastSundayStr;
-                        if (range === 'lastMonth') return entryDate >= lastMonthStartStr && entryDate <= lastMonthEndStr;
-                        if (range === 'last30') return entryDate >= thirtyDaysAgoStr;
+                        if (range === 'month') return d.substring(0,7) === thisMonthPrefix;
+                        if (range === 'lastWeek') return d >= fmtDate(lastMonday) && d <= fmtDate(lastSunday);
+                        if (range === 'lastMonth') return d >= fmtDate(lastMonthStart) && d <= fmtDate(lastMonthEnd);
+                        if (range === 'last30') return d >= thirtyDaysAgoStr;
                         return true;
                     });
                 }
@@ -677,509 +336,359 @@
                 return filtered;
             }
 
-            // ── Overtime ──
             function calcOvertime(list) {
                 const daily = {};
                 list.forEach(e => { daily[e.date] = (daily[e.date] || 0) + e.hours; });
-                return Object.values(daily).reduce((sum, hrs) => sum + (hrs > 8 ? hrs - 8 : 0), 0);
+                return Object.values(daily).reduce((s, h) => s + (h > 8 ? h - 8 : 0), 0);
             }
 
-            // ── Streak ──
             function computeStreak(list) {
                 if (!list.length) return 0;
                 const dates = [...new Set(list.map(e => e.date))].sort((a,b) => new Date(b) - new Date(a));
                 let streak = 0;
-                for (let d of dates) {
-                    const dayHours = list.filter(e => e.date === d).reduce((s,e) => s + e.hours, 0);
-                    if (dayHours >= 7.5) streak++;
-                    else break;
+                for (const d of dates) {
+                    const h = list.filter(e => e.date === d).reduce((s,e) => s + e.hours, 0);
+                    if (h >= 7.5) streak++; else break;
                 }
                 return streak;
             }
 
-            // ── Health ──
             function computeHealth(list) {
                 if (!list.length) return { score: 0, status: 'No data', issues: [] };
                 const total = list.reduce((s,e) => s + e.hours, 0);
-                const billable = list.filter(e => e.billable === 'yes').reduce((s,e) => s + e.hours, 0);
                 const admin = list.filter(e => e.category === 'Admin').reduce((s,e) => s + e.hours, 0);
                 const adminRatio = total > 0 ? (admin/total)*100 : 0;
-                const overtime = calcOvertime(list);
-                const uniqueProjects = new Set(list.map(e => e.project)).size;
-                const missingNotes = list.filter(e => !e.notes || e.notes.trim() === '').length;
+                const ot = calcOvertime(list);
+                const projects = new Set(list.map(e => e.project)).size;
+                const missingNotes = list.filter(e => !e.notes || !e.notes.trim()).length;
                 let score = 100;
                 const issues = [];
                 if (adminRatio > 15) { score -= 10; issues.push('Admin >15%'); }
-                if (overtime > 5) { score -= 8; issues.push('High overtime'); }
-                if (uniqueProjects === 0) { score -= 20; issues.push('No projects'); }
-                if (missingNotes/list.length > 0.3) { score -= 5; issues.push('Many missing notes'); }
+                if (ot > 5) { score -= 8; issues.push('High overtime'); }
+                if (!projects) { score -= 20; issues.push('No projects'); }
+                if (list.length && missingNotes/list.length > 0.3) { score -= 5; issues.push('Many missing notes'); }
                 if (list.length < 5) { score -= 10; issues.push('Too few entries'); }
                 score = Math.max(0, Math.min(100, score));
-                let status = 'good';
-                if (score < 50) status = 'bad';
-                else if (score < 75) status = 'ok';
+                const status = score < 50 ? 'bad' : score < 75 ? 'ok' : 'good';
                 return { score, status, issues };
             }
 
-            // ── Coach ──
-            function generateCoach(filtered) {
-                if (!filtered.length) {
-                    return { message: "No data to analyse yet. Start logging your time!", tip: "Log your first entry today." };
+            function animateNumber(el, target, dur = 600) {
+                const start = parseFloat(el.textContent) || 0;
+                const diff = target - start;
+                if (Math.abs(diff) < 0.1) { el.textContent = Number.isInteger(target) ? target : target.toFixed(1); return; }
+                const t0 = performance.now();
+                const isInt = Number.isInteger(target);
+                function tick(now) {
+                    const p = Math.min((now - t0)/dur, 1);
+                    const eased = 1 - Math.pow(1 - p, 3);
+                    const v = start + diff * eased;
+                    el.textContent = isInt ? Math.round(v) : v.toFixed(1);
+                    if (p < 1) requestAnimationFrame(tick);
+                    else el.textContent = isInt ? Math.round(target) : target.toFixed(1);
                 }
-                const total = filtered.reduce((s,e) => s + e.hours, 0);
-                const admin = filtered.filter(e => e.category === 'Admin').reduce((s,e) => s + e.hours, 0);
-                const adminRatio = total > 0 ? (admin/total)*100 : 0;
-                const overtime = calcOvertime(filtered);
-                const missingNotes = filtered.filter(e => !e.notes || e.notes.trim() === '').length;
-                const noteRatio = filtered.length ? missingNotes/filtered.length : 0;
-                const streak = computeStreak(filtered);
-
-                let message = '', tip = '';
-
-                if (adminRatio > 15) {
-                    message = '⚡ You’re spending a lot of time on admin (' + adminRatio.toFixed(1) + '%). Try to batch admin tasks or delegate routine work.';
-                    tip = 'Block 30 min daily for admin and stick to it.';
-                } else if (overtime > 5) {
-                    message = '⏰ Overtime is piling up (' + overtime.toFixed(1) + 'h). Your health matters – consider taking a half‑day off or adjusting your workload.';
-                    tip = 'Use a "no‑overtime" day this week to reset.';
-                } else if (noteRatio > 0.3) {
-                    message = '📝 ' + (noteRatio*100).toFixed(0) + '% of your entries lack notes. Adding a few words helps you recall context later.';
-                    tip = 'Write at least one sentence per task – it pays off in reviews.';
-                } else if (filtered.length < 5) {
-                    message = '🌱 You’re building your timesheet habit. Keep it up – every entry counts.';
-                    tip = 'Try to log at least one entry every working day.';
-                } else if (streak >= 5) {
-                    message = '🔥 You’re on a ' + streak + '‑day streak with 7.5h+ each day! That’s impressive.';
-                    tip = 'Keep the momentum – reward yourself with a short break after a full week.';
-                } else if (streak >= 2) {
-                    message = '💪 You’ve logged 7.5h+ for ' + streak + ' days in a row. Consistency is building!';
-                    tip = 'Aim for a full workweek streak – you’re almost there.';
-                } else {
-                    message = '✅ Your portfolio looks balanced. Keep tracking to maintain this healthy rhythm.';
-                    tip = 'Review your weekly totals every Friday to spot trends.';
-                }
-                return { message, tip };
+                requestAnimationFrame(tick);
             }
 
-            // ── Typewriter effect ──
-            function typewriter(element, text, speed = 30) {
-                if (coachTimeout) clearTimeout(coachTimeout);
-                element.innerHTML = '';
-                let index = 0;
-                function type() {
-                    if (index < text.length) {
-                        element.innerHTML += text.charAt(index);
-                        index++;
-                        coachTimeout = setTimeout(type, speed);
-                    } else {
-                        // add blinking cursor
-                        element.innerHTML += '<span class="cursor"></span>';
-                    }
-                }
-                type();
-            }
+            function renderKPI(f) {
+                const total = f.reduce((s,e) => s + e.hours, 0);
+                const billable = f.filter(e => e.billable === 'yes').reduce((s,e) => s + e.hours, 0);
+                const nonBill = total - billable;
+                const ot = calcOvertime(f);
+                const days = new Set(f.map(e => e.date)).size;
+                const streak = computeStreak(f);
+                const health = computeHealth(f);
 
-            // ── Render functions ──
-            function renderKPI(filtered) {
-                const total = filtered.reduce((s,e) => s + e.hours, 0);
-                const billable = filtered.filter(e => e.billable === 'yes').reduce((s,e) => s + e.hours, 0);
-                const nonBillable = total - billable;
-                const overtime = calcOvertime(filtered);
-                const days = new Set(filtered.map(e => e.date)).size;
-                const streak = computeStreak(filtered);
-                const health = computeHealth(filtered);
-
-                const kpiMap = {
-                    kpiTotal: total,
-                    kpiBillable: billable,
-                    kpiNonBillable: nonBillable,
-                    kpiOvertime: overtime,
-                    kpiDays: days,
-                    kpiStreak: streak
-                };
-                for (const [id, val] of Object.entries(kpiMap)) {
+                const map = { kpiTotal: total, kpiBillable: billable, kpiNonBillable: nonBill, kpiOvertime: ot, kpiDays: days, kpiStreak: streak };
+                for (const [id, val] of Object.entries(map)) {
                     const el = document.getElementById(id);
-                    if (el) {
-                        const prev = prevKPI[id] || 0;
-                        if (Math.abs(prev - val) > 0.01) {
-                            animateNumber(el, val, 600);
-                        } else {
-                            el.textContent = Number.isInteger(val) ? val : val.toFixed(1);
-                        }
-                        prevKPI[id] = val;
-                    }
+                    if (el) { animateNumber(el, val); prevKPI[id] = val; }
                 }
-
-                // Health KPI
-                const healthEl = document.getElementById('kpiHealth');
-                if (health.score > 0) {
-                    animateNumber(healthEl, health.score, 600);
-                    const label = document.getElementById('kpiHealthLabel');
-                    const emoji = health.status === 'good' ? '💚' : (health.status === 'ok' ? '💛' : '❤️');
-                    label.textContent = emoji + ' ' + health.status.toUpperCase();
-                } else {
-                    healthEl.textContent = '—';
+                const hEl = document.getElementById('kpiHealth');
+                if (hEl) {
+                    if (health.score > 0) {
+                        animateNumber(hEl, health.score);
+                        const lbl = document.getElementById('kpiHealthLabel');
+                        const emoji = health.status === 'good' ? '💚' : health.status === 'ok' ? '💛' : '❤️';
+                        if (lbl) lbl.textContent = emoji + ' ' + health.status.toUpperCase();
+                    } else { hEl.textContent = '—'; }
                 }
-
-                document.getElementById('recordCount').textContent = filtered.length + ' entries';
+                document.getElementById('recordCount').textContent = f.length + ' entries';
             }
 
-            function renderCharts(filtered) {
-                Object.keys(chartInstances).forEach(key => {
-                    if (chartInstances[key]) { chartInstances[key].destroy(); delete chartInstances[key]; }
-                });
-                if (!filtered.length) {
+            function renderCharts(f) {
+                Object.values(chartInstances).forEach(c => { try { c.destroy(); } catch(e){} });
+                chartInstances = {};
+                const colors = ['#2fc7ff','#28a745','#ffc107','#dc3545','#6f42c1','#fd7e14','#17a2b8','#e83e8c','#20c997','#6610f2'];
+
+                if (!f.length) {
                     ['chartProject','chartCategory','chartBillable','chartWeeklyTrend','chartAdminProject','chartTopProjects'].forEach(id => {
                         const ctx = document.getElementById(id);
-                        if (ctx) {
-                            chartInstances[id] = new Chart(ctx, {
-                                type: 'doughnut',
-                                data: { labels: ['No Data'], datasets: [{ data: [1], backgroundColor: ['#e2e8f0'] }] },
-                                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-                            });
-                        }
+                        if (ctx) chartInstances[id] = new Chart(ctx, { type: 'doughnut', data: { labels: ['No Data'], datasets: [{ data: [1], backgroundColor: ['#e2e8f0'] }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } } });
                     });
                     return;
                 }
-                // Hours by Project
+
                 const projMap = {};
-                filtered.forEach(e => { projMap[e.project] = (projMap[e.project] || 0) + e.hours; });
+                f.forEach(e => { projMap[e.project] = (projMap[e.project] || 0) + e.hours; });
                 const projLabels = Object.keys(projMap);
-                const projData = Object.values(projMap);
-                const colors = ['#2fc7ff','#28a745','#ffc107','#dc3545','#6f42c1','#fd7e14','#17a2b8','#e83e8c','#20c997','#6610f2'];
-                const bgColors = projLabels.map((_,i) => colors[i % colors.length]);
                 const ctx1 = document.getElementById('chartProject');
-                if (ctx1) {
-                    chartInstances['chartProject'] = new Chart(ctx1, {
-                        type: 'bar',
-                        data: { labels: projLabels, datasets: [{ label: 'Hours', data: projData, backgroundColor: bgColors, borderRadius: 6 }] },
-                        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { font: { size: 9 }, maxRotation: 45 } }, y: { beginAtZero: true, ticks: { font: { size: 9 } } } } }
-                    });
-                }
-                // Category Pie
-                const catMap = {};
-                filtered.forEach(e => { catMap[e.category] = (catMap[e.category] || 0) + e.hours; });
-                const catLabels = Object.keys(catMap);
-                const catData = Object.values(catMap);
-                const ctx2 = document.getElementById('chartCategory');
-                if (ctx2) {
-                    chartInstances['chartCategory'] = new Chart(ctx2, {
-                        type: 'pie',
-                        data: { labels: catLabels, datasets: [{ data: catData, backgroundColor: colors.slice(0, catLabels.length) }] },
-                        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 9 } } } } }
-                    });
-                }
-                // Billable Doughnut
-                const billable = filtered.filter(e => e.billable === 'yes').reduce((s,e) => s + e.hours, 0);
-                const nonBill = filtered.reduce((s,e) => s + e.hours, 0) - billable;
-                const ctx3 = document.getElementById('chartBillable');
-                if (ctx3) {
-                    chartInstances['chartBillable'] = new Chart(ctx3, {
-                        type: 'doughnut',
-                        data: { labels: ['Billable', 'Non-Billable'], datasets: [{ data: [billable, nonBill], backgroundColor: ['#28a745','#dc3545'] }] },
-                        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 9 } } } } }
-                    });
-                }
-                // Weekly Trend
-                const weekly = {};
-                filtered.forEach(e => { const wk = getWeekKey(e.date); weekly[wk] = (weekly[wk] || 0) + e.hours; });
-                const weeks = Object.keys(weekly).sort();
-                const weekData = weeks.map(w => weekly[w]);
-                const ctx4 = document.getElementById('chartWeeklyTrend');
-                if (ctx4) {
-                    chartInstances['chartWeeklyTrend'] = new Chart(ctx4, {
-                        type: 'line',
-                        data: { labels: weeks, datasets: [{ label: 'Hours', data: weekData, borderColor: '#2fc7ff', backgroundColor: 'rgba(47,199,255,0.08)', fill: true, tension: 0.3, pointBackgroundColor: '#2fc7ff' }] },
-                        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { font: { size: 8 }, maxRotation: 30 } }, y: { beginAtZero: true, ticks: { font: { size: 9 } } } } }
-                    });
-                }
-                // Admin vs Project
-                const weeklyAdmin = {};
-                const weeklyProject = {};
-                filtered.forEach(e => {
-                    const wk = getWeekKey(e.date);
-                    if (e.category === 'Admin') weeklyAdmin[wk] = (weeklyAdmin[wk] || 0) + e.hours;
-                    else weeklyProject[wk] = (weeklyProject[wk] || 0) + e.hours;
+                if (ctx1) chartInstances['chartProject'] = new Chart(ctx1, {
+                    type: 'bar',
+                    data: { labels: projLabels, datasets: [{ label: 'Hours', data: Object.values(projMap), backgroundColor: projLabels.map((_,i) => colors[i % colors.length]), borderRadius: 6 }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { font: { size: 9 }, maxRotation: 45 } }, y: { beginAtZero: true, ticks: { font: { size: 9 } } } } }
                 });
-                const allWeeks = [...new Set([...Object.keys(weeklyAdmin), ...Object.keys(weeklyProject)])].sort();
+
+                const catMap = {};
+                f.forEach(e => { catMap[e.category] = (catMap[e.category] || 0) + e.hours; });
+                const ctx2 = document.getElementById('chartCategory');
+                if (ctx2) chartInstances['chartCategory'] = new Chart(ctx2, {
+                    type: 'pie',
+                    data: { labels: Object.keys(catMap), datasets: [{ data: Object.values(catMap), backgroundColor: colors.slice(0, Object.keys(catMap).length) }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 9 } } } } }
+                });
+
+                const bill = f.filter(e => e.billable === 'yes').reduce((s,e) => s + e.hours, 0);
+                const nonB = f.reduce((s,e) => s + e.hours, 0) - bill;
+                const ctx3 = document.getElementById('chartBillable');
+                if (ctx3) chartInstances['chartBillable'] = new Chart(ctx3, {
+                    type: 'doughnut',
+                    data: { labels: ['Billable', 'Non-Billable'], datasets: [{ data: [bill, nonB], backgroundColor: ['#28a745','#dc3545'] }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 9 } } } } }
+                });
+
+                const weekly = {};
+                f.forEach(e => { const k = getWeekKey(e.date); weekly[k] = (weekly[k] || 0) + e.hours; });
+                const wk = Object.keys(weekly).sort();
+                const ctx4 = document.getElementById('chartWeeklyTrend');
+                if (ctx4) chartInstances['chartWeeklyTrend'] = new Chart(ctx4, {
+                    type: 'line',
+                    data: { labels: wk, datasets: [{ label: 'Hours', data: wk.map(w => weekly[w]), borderColor: '#2fc7ff', backgroundColor: 'rgba(47,199,255,0.08)', fill: true, tension: 0.3 }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { font: { size: 8 }, maxRotation: 30 } }, y: { beginAtZero: true, ticks: { font: { size: 9 } } } } }
+                });
+
+                const wkAdmin = {}, wkProj = {};
+                f.forEach(e => {
+                    const k = getWeekKey(e.date);
+                    if (e.category === 'Admin') wkAdmin[k] = (wkAdmin[k] || 0) + e.hours;
+                    else wkProj[k] = (wkProj[k] || 0) + e.hours;
+                });
+                const allWeeks = [...new Set([...Object.keys(wkAdmin), ...Object.keys(wkProj)])].sort();
                 const ctx5 = document.getElementById('chartAdminProject');
-                if (ctx5) {
-                    chartInstances['chartAdminProject'] = new Chart(ctx5, {
-                        type: 'bar',
-                        data: { labels: allWeeks, datasets: [ { label: 'Admin', data: allWeeks.map(w => weeklyAdmin[w] || 0), backgroundColor: '#ffc107' }, { label: 'Project', data: allWeeks.map(w => weeklyProject[w] || 0), backgroundColor: '#2fc7ff' } ] },
-                        options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: true, ticks: { font: { size: 8 }, maxRotation: 30 } }, y: { stacked: true, ticks: { font: { size: 9 } } } }, plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { size: 9 } } } } }
-                    });
-                }
-                // Top Projects
-                const projSorted = Object.entries(projMap).sort((a,b) => b[1] - a[1]).slice(0, 8);
+                if (ctx5) chartInstances['chartAdminProject'] = new Chart(ctx5, {
+                    type: 'bar',
+                    data: { labels: allWeeks, datasets: [
+                        { label: 'Admin', data: allWeeks.map(w => wkAdmin[w] || 0), backgroundColor: '#ffc107' },
+                        { label: 'Project', data: allWeeks.map(w => wkProj[w] || 0), backgroundColor: '#2fc7ff' }
+                    ]},
+                    options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: true, ticks: { font: { size: 8 } } }, y: { stacked: true, ticks: { font: { size: 9 } } } }, plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { size: 9 } } } } }
+                });
+
+                const sortedProj = Object.entries(projMap).sort((a,b) => b[1] - a[1]).slice(0, 8);
                 const ctx6 = document.getElementById('chartTopProjects');
-                if (ctx6) {
-                    chartInstances['chartTopProjects'] = new Chart(ctx6, {
-                        type: 'bar',
-                        data: { labels: projSorted.map(p => p[0]), datasets: [{ label: 'Hours', data: projSorted.map(p => p[1]), backgroundColor: ['#2fc7ff','#28a745','#ffc107','#dc3545','#6f42c1','#fd7e14','#17a2b8','#e83e8c'], borderRadius: 4 }] },
-                        options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { font: { size: 9 } } }, y: { ticks: { font: { size: 9 } } } } }
-                    });
-                }
+                if (ctx6) chartInstances['chartTopProjects'] = new Chart(ctx6, {
+                    type: 'bar',
+                    data: { labels: sortedProj.map(p => p[0]), datasets: [{ label: 'Hours', data: sortedProj.map(p => p[1]), backgroundColor: colors.slice(0, sortedProj.length), borderRadius: 4 }] },
+                    options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { font: { size: 9 } } }, y: { ticks: { font: { size: 9 } } } } }
+                });
             }
 
-            function renderTables(filtered) {
-                // Monthly
+            function renderTables(f) {
                 const monthly = {};
-                filtered.forEach(e => {
+                f.forEach(e => {
                     const m = e.date.substring(0,7);
                     if (!monthly[m]) monthly[m] = { total:0, billable:0, days: new Set() };
                     monthly[m].total += e.hours;
                     if (e.billable === 'yes') monthly[m].billable += e.hours;
                     monthly[m].days.add(e.date);
                 });
-                const monthlyOvertime = {};
+                const otByMonth = {};
                 const dailyByMonth = {};
-                filtered.forEach(e => {
+                f.forEach(e => {
                     const m = e.date.substring(0,7);
                     if (!dailyByMonth[m]) dailyByMonth[m] = {};
-                    if (!dailyByMonth[m][e.date]) dailyByMonth[m][e.date] = 0;
-                    dailyByMonth[m][e.date] += e.hours;
+                    dailyByMonth[m][e.date] = (dailyByMonth[m][e.date] || 0) + e.hours;
                 });
                 for (const m in dailyByMonth) {
                     let ot = 0;
-                    for (const day in dailyByMonth[m]) {
-                        const hrs = dailyByMonth[m][day];
-                        if (hrs > 8) ot += (hrs - 8);
-                    }
-                    monthlyOvertime[m] = ot;
+                    for (const d in dailyByMonth[m]) if (dailyByMonth[m][d] > 8) ot += dailyByMonth[m][d] - 8;
+                    otByMonth[m] = ot;
                 }
                 const monthKeys = Object.keys(monthly).sort();
                 const tbody = document.getElementById('monthlyBody');
                 if (!monthKeys.length) {
                     tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No data</td></tr>';
                 } else {
-                    let prevTotal = null;
-                    let html = '';
+                    let prev = null; let html = '';
                     for (const m of monthKeys) {
-                        const data = monthly[m];
-                        const total = data.total;
-                        const billable = data.billable;
-                        const days = data.days.size;
-                        const avg = days > 0 ? total / days : 0;
-                        const ot = monthlyOvertime[m] || 0;
+                        const d = monthly[m];
+                        const days = d.days.size;
+                        const avg = days > 0 ? d.total/days : 0;
+                        const ot = otByMonth[m] || 0;
                         let growth = null;
-                        if (prevTotal !== null) {
-                            const diff = total - prevTotal;
-                            growth = prevTotal > 0 ? ((diff / prevTotal) * 100) : 0;
-                        }
-                        const growthStr = growth !== null ? (growth >= 0 ? '+' : '') + growth.toFixed(1) + '%' : '-';
-                        const growClass = growth !== null ? (growth >= 0 ? 'highlight-green' : 'highlight-red') : '';
-                        html += `<tr><td>${formatMonthKey(m)}</td><td><strong>${total.toFixed(1)}</strong></td><td>${billable.toFixed(1)}</td><td>${ot.toFixed(1)}</td><td>${avg.toFixed(1)}</td><td class="${growClass}">${growthStr}</td></tr>`;
-                        prevTotal = total;
+                        if (prev !== null) growth = prev > 0 ? ((d.total - prev)/prev)*100 : 0;
+                        const gs = growth !== null ? (growth >= 0 ? '+' : '') + growth.toFixed(1) + '%' : '-';
+                        const gc = growth !== null ? (growth >= 0 ? 'highlight-green' : 'highlight-red') : '';
+                        html += `<tr><td>${fmtMonthKey(m)}</td><td><strong>${d.total.toFixed(1)}</strong></td><td>${d.billable.toFixed(1)}</td><td>${ot.toFixed(1)}</td><td>${avg.toFixed(1)}</td><td class="${gc}">${gs}</td></tr>`;
+                        prev = d.total;
                     }
                     tbody.innerHTML = html;
                 }
-                // Busiest Day
+
                 const dayMap = { Monday:0, Tuesday:0, Wednesday:0, Thursday:0, Friday:0, Saturday:0, Sunday:0 };
                 const dayCount = { Monday:0, Tuesday:0, Wednesday:0, Thursday:0, Friday:0, Saturday:0, Sunday:0 };
-                filtered.forEach(e => {
-                    const d = new Date(e.date);
+                f.forEach(e => {
                     const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-                    const dayName = dayNames[d.getUTCDay()];
-                    dayMap[dayName] += e.hours;
-                    dayCount[dayName] += 1;
+                    const dn = dayNames[new Date(e.date).getUTCDay()];
+                    dayMap[dn] += e.hours; dayCount[dn] += 1;
                 });
-                const dayBody = document.getElementById('busiestDayBody');
-                const dayEntries = Object.keys(dayMap).map(day => ({ day, total: dayMap[day], avg: dayCount[day] > 0 ? dayMap[day]/dayCount[day] : 0 }));
-                dayEntries.sort((a,b) => b.total - a.total);
+                const dayEntries = Object.keys(dayMap).map(d => ({ day: d, total: dayMap[d], avg: dayCount[d] > 0 ? dayMap[d]/dayCount[d] : 0 })).sort((a,b) => b.total - a.total);
+                const dbody = document.getElementById('busiestDayBody');
                 if (!dayEntries.length || dayEntries.every(d => d.total === 0)) {
-                    dayBody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">No data</td></tr>';
+                    dbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">No data</td></tr>';
                 } else {
-                    let html = '';
-                    const maxTotal = dayEntries[0].total;
-                    dayEntries.forEach(d => {
-                        const highlight = d.total > 0 && d.total === maxTotal ? 'highlight-green' : '';
-                        html += `<tr><td><strong>${d.day}</strong></td><td>${d.total.toFixed(1)}</td><td class="${highlight}">${d.avg.toFixed(1)}</td></tr>`;
-                    });
-                    dayBody.innerHTML = html;
+                    const max = dayEntries[0].total;
+                    dbody.innerHTML = dayEntries.map(d =>
+                        `<tr><td><strong>${d.day}</strong></td><td>${d.total.toFixed(1)}</td><td class="${d.total === max ? 'highlight-green' : ''}">${d.avg.toFixed(1)}</td></tr>`
+                    ).join('');
                 }
-                // Category Insights
+
                 const catCount = {};
-                filtered.forEach(e => { catCount[e.category] = (catCount[e.category] || 0) + 1; });
+                f.forEach(e => { catCount[e.category] = (catCount[e.category] || 0) + 1; });
                 const sortedCats = Object.entries(catCount).sort((a,b) => b[1] - a[1]);
-                const catBody = document.getElementById('categoryInsightsBody');
-                const totalEntries = filtered.length;
+                const cbody = document.getElementById('categoryInsightsBody');
                 if (!sortedCats.length) {
-                    catBody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">No data</td></tr>';
+                    cbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">No data</td></tr>';
                 } else {
-                    let html = '';
-                    sortedCats.slice(0,10).forEach(([cat, count]) => {
-                        const pct = totalEntries > 0 ? (count / totalEntries) * 100 : 0;
-                        html += `<tr><td><strong>${escapeHtml(cat)}</strong></td><td>${count}</td><td>${pct.toFixed(1)}%</td></tr>`;
-                    });
-                    catBody.innerHTML = html;
+                    cbody.innerHTML = sortedCats.slice(0,10).map(([c, n]) =>
+                        `<tr><td><strong>${esc(c)}</strong></td><td>${n}</td><td>${((n/f.length)*100).toFixed(1)}%</td></tr>`
+                    ).join('');
                 }
             }
 
-            function renderHealth(filtered) {
-                const health = computeHealth(filtered);
-                document.getElementById('healthScoreNum').textContent = health.score || '—';
+            function renderHealth(f) {
+                const h = computeHealth(f);
+                document.getElementById('healthScoreNum').textContent = h.score || '—';
                 const badge = document.getElementById('healthBadge');
-                if (!filtered.length) {
+                if (!f.length) {
                     badge.textContent = 'No Data';
                     badge.className = 'health-badge bad';
                     document.getElementById('healthBullets').innerHTML = '<li>No entries to analyse.</li>';
                     return;
                 }
-                let cls = 'health-badge ';
-                let txt = '';
-                if (health.status === 'good') { cls += 'good'; txt = '💚 Healthy'; }
-                else if (health.status === 'ok') { cls += 'ok'; txt = '💛 Needs Attention'; }
+                let cls = 'health-badge ', txt = '';
+                if (h.status === 'good') { cls += 'good'; txt = '💚 Healthy'; }
+                else if (h.status === 'ok') { cls += 'ok'; txt = '💛 Needs Attention'; }
                 else { cls += 'bad'; txt = '❤️ Needs Action'; }
-                badge.className = cls;
-                badge.textContent = txt;
+                badge.className = cls; badge.textContent = txt;
 
-                const total = filtered.reduce((s,e) => s + e.hours, 0);
-                const billable = filtered.filter(e => e.billable === 'yes').reduce((s,e) => s + e.hours, 0);
-                const admin = filtered.filter(e => e.category === 'Admin').reduce((s,e) => s + e.hours, 0);
+                const total = f.reduce((s,e) => s + e.hours, 0);
+                const billable = f.filter(e => e.billable === 'yes').reduce((s,e) => s + e.hours, 0);
+                const admin = f.filter(e => e.category === 'Admin').reduce((s,e) => s + e.hours, 0);
                 const adminRatio = total > 0 ? (admin/total)*100 : 0;
-                const overtime = calcOvertime(filtered);
-                const days = new Set(filtered.map(e => e.date)).size;
-                const avg = days > 0 ? total / days : 0;
-                let issuesHtml = health.issues.length ? health.issues.map(i => `<li>⚠️ ${i}</li>`).join('') : '<li>✅ All metrics look good!</li>';
+                const ot = calcOvertime(f);
+                const days = new Set(f.map(e => e.date)).size;
+                const avg = days > 0 ? total/days : 0;
+                const issuesHtml = h.issues.length ? h.issues.map(i => `<li>⚠️ ${i}</li>`).join('') : '<li>✅ All metrics look good!</li>';
                 document.getElementById('healthBullets').innerHTML = `
                     <li>📊 Total hours: ${total.toFixed(1)}</li>
                     <li>✅ Billable: ${billable.toFixed(1)} (${total > 0 ? ((billable/total)*100).toFixed(1) : 0}%)</li>
                     <li>⚙️ Admin: ${admin.toFixed(1)} (${adminRatio.toFixed(1)}%)</li>
-                    <li>⏰ Overtime: ${overtime.toFixed(1)}</li>
+                    <li>⏰ Overtime: ${ot.toFixed(1)}</li>
                     <li>📅 Working days: ${days}</li>
                     <li>📈 Avg daily: ${avg.toFixed(1)}h</li>
-                    ${issuesHtml}
-                `;
-                // Draw ring
+                    ${issuesHtml}`;
+
                 const canvas = document.getElementById('healthRingCanvas');
                 if (!canvas) return;
                 const ctx = canvas.getContext('2d');
-                const w = canvas.width, h = canvas.height;
-                const cx = w/2, cy = h/2, radius = 100, lineWidth = 24;
-                ctx.clearRect(0,0,w,h);
-                ctx.beginPath(); ctx.arc(cx,cy,radius,0,Math.PI*2); ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = lineWidth; ctx.stroke();
-                const pct = Math.min(100, Math.max(0, health.score));
-                const endAngle = -Math.PI/2 + (pct/100)*Math.PI*2;
-                ctx.beginPath(); ctx.arc(cx,cy,radius,-Math.PI/2,endAngle);
+                const w = canvas.width, h2 = canvas.height;
+                const cx = w/2, cy = h2/2, radius = 100, lw = 24;
+                ctx.clearRect(0,0,w,h2);
+                ctx.beginPath(); ctx.arc(cx,cy,radius,0,Math.PI*2); ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = lw; ctx.stroke();
+                const pct = Math.min(100, Math.max(0, h.score));
+                const end = -Math.PI/2 + (pct/100)*Math.PI*2;
                 let color = '#28a745';
                 if (pct < 50) color = '#dc3545';
                 else if (pct < 75) color = '#ffc107';
-                ctx.strokeStyle = color;
-                ctx.lineWidth = lineWidth;
-                ctx.lineCap = 'round';
-                ctx.stroke();
+                ctx.beginPath(); ctx.arc(cx,cy,radius,-Math.PI/2,end);
+                ctx.strokeStyle = color; ctx.lineWidth = lw; ctx.lineCap = 'round'; ctx.stroke();
             }
 
-            function renderCoach(filtered) {
-                const coach = generateCoach(filtered);
-                const msgEl = document.getElementById('coachMessage');
-                // Clear any existing timeout
+            function renderCoach(f) {
+                let msg = '', tip = '';
+                if (!f.length) {
+                    msg = "No data to analyse yet. Start logging your time!";
+                    tip = "Log your first entry today.";
+                } else {
+                    const total = f.reduce((s,e) => s + e.hours, 0);
+                    const admin = f.filter(e => e.category === 'Admin').reduce((s,e) => s + e.hours, 0);
+                    const adminRatio = total > 0 ? (admin/total)*100 : 0;
+                    const ot = calcOvertime(f);
+                    const missingNotes = f.filter(e => !e.notes || !e.notes.trim()).length;
+                    const noteRatio = f.length ? missingNotes/f.length : 0;
+                    const streak = computeStreak(f);
+
+                    if (adminRatio > 15) { msg = `⚡ You're spending ${adminRatio.toFixed(1)}% on admin. Try batching admin tasks.`; tip = 'Block 30 min daily for admin.'; }
+                    else if (ot > 5) { msg = `⏰ Overtime is piling up (${ot.toFixed(1)}h). Take a break to reset.`; tip = 'Use a "no-overtime" day this week.'; }
+                    else if (noteRatio > 0.3) { msg = `📝 ${(noteRatio*100).toFixed(0)}% of entries lack notes. Add a few words for future context.`; tip = 'Write at least one sentence per task.'; }
+                    else if (f.length < 5) { msg = '🌱 Building your timesheet habit. Keep it up!'; tip = 'Try to log at least one entry every working day.'; }
+                    else if (streak >= 5) { msg = `🔥 ${streak}-day streak with 7.5h+ each day! Impressive.`; tip = 'Keep the momentum – take breaks between weeks.'; }
+                    else if (streak >= 2) { msg = `💪 ${streak} days in a row of 7.5h+. Consistency is building!`; tip = 'Aim for a full workweek streak.'; }
+                    else { msg = '✅ Your portfolio looks balanced. Keep tracking!'; tip = 'Review weekly totals every Friday.'; }
+                }
+                const el = document.getElementById('coachMessage');
                 if (coachTimeout) clearTimeout(coachTimeout);
-                // Typewriter effect
-                typewriter(msgEl, coach.message, 25);
-                document.getElementById('tipText').textContent = coach.tip;
+                el.innerHTML = '';
+                let i = 0;
+                function type() {
+                    if (i < msg.length) { el.innerHTML += msg.charAt(i); i++; coachTimeout = setTimeout(type, 25); }
+                }
+                type();
+                document.getElementById('tipText').textContent = tip;
             }
 
             function renderAll() {
-                const filtered = getFilteredEntries();
-                renderKPI(filtered);
-                renderCharts(filtered);
-                renderTables(filtered);
-                renderHealth(filtered);
-                renderCoach(filtered);
+                const f = getFilteredEntries();
+                renderKPI(f);
+                renderCharts(f);
+                renderTables(f);
+                renderHealth(f);
+                renderCoach(f);
             }
 
-            // ── Init ──
-            function init() {
+            async function init() {
                 window.showLoading('Loading analytics...');
-                const hasCache = loadFromCache();
-                loadProjects();
-                if (!hasCache || entries.length === 0) {
-                    fetchFromGitHub().finally(() => {
-                        if (entries.length === 0) {
-                            document.getElementById('kpiTotal').textContent = '0';
-                            document.getElementById('recordCount').textContent = '0 entries';
-                            showToast('No timesheet data found. Please log some hours or sync from Database.', 'warning');
-                        }
-                        window.hideLoading();
-                    });
-                } else {
-                    renderAll();
-                    window.hideLoading();
-                    // fetch in background
-                    fetchFromGitHub().catch(() => {});
-                }
-
-                // Event listeners
-                document.getElementById('analyticsRange').addEventListener('change', renderAll);
-                document.getElementById('analyticsProject').addEventListener('change', renderAll);
-                document.getElementById('analyticsCategory').addEventListener('change', renderAll);
-                document.getElementById('refreshAnalyticsBtn').addEventListener('click', () => {
-                    loadFromCache();
+                try {
+                    entries = await loadEntries();
                     loadProjects();
                     renderAll();
-                    showToast('Refreshed from cache', 'success');
-                });
-                document.getElementById('syncGitHubBtn').addEventListener('click', fetchFromGitHub);
-                document.getElementById('exportAnalyticsPdfBtn').addEventListener('click', exportPDF);
-
-                window.updateUserFooter();
-                document.getElementById('footerStatus').innerHTML = document.getElementById('userFooterStatus')?.innerHTML || '';
-
-                // Listen for timesheet updates (from other tabs)
-                document.addEventListener('timesheetUpdated', () => {
-                    loadFromCache();
-                    renderAll();
-                });
-            }
-
-            // ── Export PDF ──
-            async function exportPDF() {
-                window.showLoading('Generating PDF...');
-                try {
-                    const { jsPDF } = window.jspdf;
-                    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-                    const pageWidth = doc.internal.pageSize.getWidth();
-                    const container = document.getElementById('analyticsApp');
-                    const canvas = await html2canvas(container, { scale: 2, useCORS: true, logging: false, backgroundColor: '#eef3fc' });
-                    const imgData = canvas.toDataURL('image/jpeg', 0.95);
-                    const imgWidth = pageWidth - 20;
-                    const imgHeight = (canvas.height / canvas.width) * imgWidth;
-                    let remainingHeight = imgHeight;
-                    let yOffset = 0;
-                    const pageHeightMM = doc.internal.pageSize.getHeight() - 20;
-                    while (remainingHeight > 0) {
-                        if (yOffset > 0) doc.addPage();
-                        const sliceHeight = Math.min(remainingHeight, pageHeightMM);
-                        const ratio = sliceHeight / imgHeight;
-                        const srcY = yOffset / imgHeight * canvas.height;
-                        const srcH = ratio * canvas.height;
-                        const tempCanvas = document.createElement('canvas');
-                        tempCanvas.width = canvas.width;
-                        tempCanvas.height = Math.ceil(srcH);
-                        const ctx = tempCanvas.getContext('2d');
-                        ctx.drawImage(canvas, 0, srcY, canvas.width, srcH, 0, 0, canvas.width, srcH);
-                        const sliceData = tempCanvas.toDataURL('image/jpeg', 0.92);
-                        doc.addImage(sliceData, 'JPEG', 10, 10, imgWidth, sliceHeight);
-                        yOffset += sliceHeight;
-                        remainingHeight -= sliceHeight;
-                    }
-                    doc.save(`Analytics_${new Date().toISOString().slice(0,10)}.pdf`);
-                    showToast('PDF exported successfully!', 'success');
-                } catch (err) {
-                    console.error(err);
-                    showToast('PDF export failed: ' + err.message, 'error');
+                } catch (e) {
+                    console.error(e);
+                    window.showToast('Failed to load analytics: ' + e.message, 'error');
                 } finally {
                     window.hideLoading();
                 }
+
+                document.getElementById('analyticsRange').addEventListener('change', renderAll);
+                document.getElementById('analyticsProject').addEventListener('change', renderAll);
+                document.getElementById('analyticsCategory').addEventListener('change', renderAll);
+
+                document.getElementById('refreshAnalyticsBtn').addEventListener('click', async () => {
+                    window.showLoading('Refreshing...');
+                    entries = await loadEntries();
+                    loadProjects();
+                    renderAll();
+                    window.hideLoading();
+                    window.showToast('Refreshed', 'success');
+                });
+
+                window.updateUserFooter();
             }
 
-            if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
-            else init();
-
+            init();
         })();
     </script>
-<script src="theme-toggle.js"></script>    
+    <script src="theme-toggle.js"></script>
 </body>
 </html>
