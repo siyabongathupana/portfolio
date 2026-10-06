@@ -14,6 +14,11 @@ window.APP_CONFIG = {
   adminUsers: ["siyabongatshem@gmail.com"],
   publicProfileEmail: "siyabongatshem@gmail.com",
 
+  // ── Excel report access control ──
+  // false → only admins can generate/download Excel reports.
+  // true  → everyone (public visitors) can also download.
+  excelReportEnabled: false,
+
   emailjs: {
     publicKey: "ZhEE6fQ9A0icSOSYh",
     serviceID: "service_yp6od5r",
