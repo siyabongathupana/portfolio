@@ -26,7 +26,7 @@
 
 | Projects | Certifications | Users | Hours | Billable | Daily Avg |
 |:--------:|:--------------:|:-----:|:-----:|:--------:|:---------:|
-| 0 | 18 | 7 | 771.3 | 521.6 | 8.0h |
+| 1 | 18 | 7 | 771.3 | 521.6 | 8.0h |
 
 ---
 
@@ -42,6 +42,10 @@
 
 ## 🏗️ Featured Projects
 
+
+- ** Steam Station 1** - SASOL ()
+  - Status: Ongoing | Progress: 65%
+  - 
 
 
 ---
@@ -73,6 +77,12 @@
 ## 🛠️ Skills
 
 
+`DeltaV SZ`
+
+`DeltaV v14`
+
+`SIS & DCS`
+
 
 ---
 
@@ -86,6 +96,6 @@
 
 <div align="center">
 
-*Last updated: October 06, 2026 at 09:49:08 UTC*
+*Last updated: October 06, 2026 at 12:24:43 UTC*
 
 </div>
