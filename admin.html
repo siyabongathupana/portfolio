@@ -9,34 +9,30 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
- <link rel="stylesheet" href="theme-dark.css" id="theme-dark-css">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="supabase.js"></script>
-<script>
-(function(){
-  try {
-    if ((localStorage.getItem('site-theme') || 'dark') === 'light') {
-      window.__THEME_LIGHT__ = true;
+  <link rel="stylesheet" href="theme-dark.css" id="theme-dark-css">
+  <script>
+  (function(){
+    try { if ((localStorage.getItem('site-theme') || 'dark') === 'light') window.__THEME_LIGHT__ = true; } catch(e) {}
+  })();
+  </script>
+  <script>
+  (function(){
+    if (window.__THEME_LIGHT__) {
+      var l = document.getElementById('theme-dark-css');
+      if (l) l.disabled = true;
+      document.documentElement.classList.add('theme-light');
+    } else {
+      document.documentElement.classList.add('theme-dark');
     }
-  } catch(e) {}
-})();
-</script>
-<script>
-(function(){
-  if (window.__THEME_LIGHT__) {
-    var l = document.getElementById('theme-dark-css');
-    if (l) l.disabled = true;
-    document.documentElement.classList.add('theme-light');
-  } else {
-    document.documentElement.classList.add('theme-dark');
-  }
-})();
-</script>
+  })();
+  </script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
-  <script src="crypto.js"></script>
-  <script src="api.js"></script>
+  <script src="supabase.js"></script>
   <script src="shared.js"></script>
+  <script src="auth.js"></script>
+  <script src="messaging.js"></script>
   <style>
     .user-badge { background:#2fc7ff; color:white; padding:4px 12px; border-radius:20px; font-size:0.9rem; }
     .cert-thumb-preview { max-width:80px; max-height:80px; margin-top:8px; border-radius:12px; }
@@ -83,7 +79,7 @@
         <a class="nav-link" href="admin-messages.html">Send Message</a>
       </li>
       <li class="nav-item" id="usersTabNav" style="display:none;">
-        <a class="nav-link" data-toggle="tab" href="#usersTab">Users</a>
+        <a class="nav-link" href="admin-users.html">Users</a>
       </li>
     </ul>
 
@@ -113,14 +109,6 @@
             <button id="downloadAllLogsBtn" class="btn btn-secondary btn-log" style="display:none;"><i class="fa fa-archive"></i> Download All Logs (ZIP)</button>
           </div>
         </div>
-      </div>
-
-      <div class="tab-pane fade" id="usersTab">
-        <div class="mb-3 d-flex align-items-center flex-wrap">
-          <button class="btn btn-delta mr-2" id="refreshUsersBtn"><i class="fa fa-refresh"></i> Refresh List</button>
-          <span class="text-muted">Blocked users cannot log in. Deleting a user permanently removes all their data.</span>
-        </div>
-        <div id="usersList"></div>
       </div>
 
     </div>
@@ -169,18 +157,28 @@
 <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script>
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-<script src="messaging.js"></script>
 
 <script>
-  const user = window.SessionManager?.getCurrentUser();
-  if (!user) {
-    window.location.href = 'login.html';
-  } else {
-    document.getElementById('dashboard').style.display = 'block';
-    document.getElementById('currentUserDisplay').textContent = user.username;
-    window.updateUserFooter();
-    window.showLoading('Loading your dashboard...');
-    initDashboard();
+(async function () {
+  'use strict';
+
+  const authUser = await window.authReady;
+  if (!authUser) { window.location.href = 'login.html'; return; }
+
+  const user = window.SessionManager.getCurrentUser();
+  const isAdmin = window.SessionManager.isAdmin();
+
+  document.getElementById('dashboard').style.display = 'block';
+  document.getElementById('currentUserDisplay').textContent = user.email;
+  window.updateUserFooter();
+  window.showLoading('Loading your dashboard...');
+
+  if (isAdmin) {
+    document.getElementById('usersTabNav').style.display = 'block';
+    document.getElementById('sendMsgTabNav').style.display = 'block';
+    document.getElementById('downloadAllLogsBtn').style.display = 'inline-block';
+    document.getElementById('logUserSelectGroup').style.display = 'block';
+    populateUserSelect();
   }
 
   function showToast(message, type = 'success') {
@@ -188,140 +186,120 @@
     if (!container) return;
     const toastId = 'toast-' + Date.now();
     const bgClass = type === 'success' ? 'bg-success' : (type === 'error' ? 'bg-danger' : 'bg-info');
-    const html = `<div id="${toastId}" class="toast ${bgClass} text-white" role="alert" data-autohide="true" data-delay="3000"><div class="toast-body">${message}</div></div>`;
+    const html = `<div id="${toastId}" class="toast ${bgClass} text-white" role="alert" data-autohide="true" data-delay="3000"><div class="toast-body">${window.escapeHtml(message)}</div></div>`;
     container.insertAdjacentHTML('beforeend', html);
     const toastEl = document.getElementById(toastId);
     $(toastEl).toast('show');
     toastEl.addEventListener('hidden.bs.toast', () => toastEl.remove());
   }
 
-  async function initDashboard() {
-    const isAdmin = window.APP_CONFIG.adminUsers && window.APP_CONFIG.adminUsers.includes(user.username);
-
-    document.getElementById('certThumbFile').addEventListener('change', async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      try {
-        const url = await window.uploadImageToGitHub(file, user, 'cert_thumbnails');
-        document.getElementById('certThumb').value = url;
-        const preview = document.getElementById('thumbPreview');
-        preview.src = url;
-        preview.style.display = 'inline-block';
-        window.Logger.log('cert_thumb_upload', `Uploaded certificate thumbnail`);
-        showToast('Thumbnail uploaded', 'success');
-      } catch (err) {
-        showToast('Thumb upload failed: ' + err.message, 'error');
-      }
-    });
-
-    async function renderCertificates() {
-      try {
-        const certs = await window.portfolioData.loadCertificates();
-        const container = document.getElementById('certificatesList');
-        if (!container) return;
-        container.innerHTML = '';
-        if (certs.length === 0) {
-          container.innerHTML = '<div class="empty-state"><i class="fa fa-certificate"></i><h5>No certificates added</h5><p>Click "Add Certificate" to create one.</p></div>';
-          return;
-        }
-        certs.forEach((cert, idx) => {
-          const card = document.createElement('div');
-          card.className = 'card mb-2';
-          card.innerHTML = `
-            <div class="card-body d-flex justify-content-between align-items-center flex-wrap">
-              <div><strong>${window.escapeHtml(cert.title)}</strong> - ${window.escapeHtml(cert.issuer)} (${cert.date})</div>
-              <div>
-                <button class="btn btn-sm btn-outline-primary edit-cert" data-index="${idx}">Edit</button>
-                <button class="btn btn-sm btn-outline-danger delete-cert" data-index="${idx}">Delete</button>
-              </div>
-            </div>`;
-          container.appendChild(card);
-        });
-
-        document.querySelectorAll('.edit-cert').forEach(btn => {
-          btn.addEventListener('click', () => openCertModal(parseInt(btn.dataset.index)));
-        });
-        document.querySelectorAll('.delete-cert').forEach(btn => {
-          btn.addEventListener('click', async () => {
-            if (confirm('Delete this certificate?')) await safeDeleteCertificate(parseInt(btn.dataset.index));
-          });
-        });
-      } catch (err) {
-        console.error('Error rendering certificates:', err);
-        showToast('Error loading certificates: ' + err.message, 'error');
-      }
+  // ═══ Certificate thumbnail upload ═══
+  document.getElementById('certThumbFile').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const url = await window.uploadImage(file, 'cert-thumbnails');
+      document.getElementById('certThumb').value = url;
+      const preview = document.getElementById('thumbPreview');
+      preview.src = url;
+      preview.style.display = 'inline-block';
+      showToast('Thumbnail uploaded', 'success');
+    } catch (err) {
+      showToast('Thumb upload failed: ' + err.message, 'error');
     }
+  });
 
-    async function safeDeleteCertificate(idx) {
-      window.showLoading('Deleting certificate...');
-      try {
-        const certs = await window.portfolioData.loadCertificates();
-        if (!certs[idx]) { window.hideLoading(); return; }
-        const thumb = certs[idx].thumbnail;
-        if (thumb && thumb.startsWith('https://raw.githubusercontent.com')) {
-          try { await window.deleteImageFromGitHub(thumb, user); } catch(e) { console.warn(e); }
-        }
-        const certTitle = certs[idx].title;
-        certs.splice(idx, 1);
-        const isEmpty = certs.length === 0;
-        await window.portfolioData.saveCertificates(certs, isEmpty);
-        await renderCertificates();
-        window.Logger.logActivity('certificate', 'delete', `Deleted certificate: ${certTitle}`);
-        showToast(`Certificate "${certTitle}" deleted`, 'success');
-      } catch (err) {
-        showToast('Delete failed: ' + err.message, 'error');
-      } finally {
-        window.hideLoading();
-      }
-    }
+  document.getElementById('certThumb').addEventListener('input', e => {
+    const preview = document.getElementById('thumbPreview');
+    if (e.target.value) { preview.src = e.target.value; preview.style.display = 'inline-block'; }
+    else preview.style.display = 'none';
+  });
 
-    async function safeSaveCertificate(certs) {
-      window.showLoading('Saving certificate...');
-      try {
-        await window.portfolioData.saveCertificates(certs);
-        await renderCertificates();
-        $('#certModal').modal('hide');
-        window.Logger.logActivity('certificate', 'save', `Saved certificates`);
-        showToast('Certificate saved', 'success');
-      } catch (err) {
-        showToast('Save failed: ' + err.message, 'error');
-      } finally {
-        window.hideLoading();
-      }
-    }
-
-    async function openCertModal(index = null) {
+  // ═══ Certificates list ═══
+  async function renderCertificates() {
+    try {
       const certs = await window.portfolioData.loadCertificates();
-      const isEdit = index !== null && certs[index];
-      document.getElementById('certModalTitle').innerText = isEdit ? 'Edit Certificate' : 'New Certificate';
-      if (isEdit) {
-        const cert = certs[index];
-        document.getElementById('certIndex').value = index;
-        document.getElementById('certTitle').value = cert.title;
-        document.getElementById('certIssuer').value = cert.issuer;
-        document.getElementById('certDate').value = cert.date;
-        document.getElementById('certLink').value = cert.link || '';
-        document.getElementById('certThumb').value = cert.thumbnail || '';
-        const preview = document.getElementById('thumbPreview');
-        if (preview) {
-          preview.src = cert.thumbnail || '';
-          preview.style.display = cert.thumbnail ? 'inline-block' : 'none';
-        }
-      } else {
-        document.getElementById('certIndex').value = '';
-        document.getElementById('certTitle').value = '';
-        document.getElementById('certIssuer').value = '';
-        document.getElementById('certDate').value = '';
-        document.getElementById('certLink').value = '';
-        document.getElementById('certThumb').value = '';
-        const preview = document.getElementById('thumbPreview');
-        if (preview) preview.style.display = 'none';
+      const container = document.getElementById('certificatesList');
+      container.innerHTML = '';
+      if (!certs.length) {
+        container.innerHTML = '<div class="empty-state"><i class="fa fa-certificate"></i><h5>No certificates added</h5><p>Click "Add Certificate" to create one.</p></div>';
+        return;
       }
-      $('#certModal').modal('show');
-    }
+      certs.forEach((cert, idx) => {
+        const card = document.createElement('div');
+        card.className = 'card mb-2';
+        card.innerHTML = `
+          <div class="card-body d-flex justify-content-between align-items-center flex-wrap">
+            <div><strong>${window.escapeHtml(cert.title)}</strong> — ${window.escapeHtml(cert.issuer || '')} ${cert.date ? '(' + cert.date + ')' : ''}</div>
+            <div>
+              <button class="btn btn-sm btn-outline-primary edit-cert" data-index="${idx}">Edit</button>
+              <button class="btn btn-sm btn-outline-danger delete-cert" data-index="${idx}">Delete</button>
+            </div>
+          </div>`;
+        container.appendChild(card);
+      });
 
-    document.getElementById('certForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
+      container.querySelectorAll('.edit-cert').forEach(btn =>
+        btn.addEventListener('click', () => openCertModal(parseInt(btn.dataset.index))));
+      container.querySelectorAll('.delete-cert').forEach(btn =>
+        btn.addEventListener('click', () => deleteCertificate(parseInt(btn.dataset.index))));
+    } catch (err) {
+      console.error(err);
+      showToast('Error loading certificates: ' + err.message, 'error');
+    }
+  }
+
+  async function deleteCertificate(idx) {
+    if (!confirm('Delete this certificate?')) return;
+    window.showLoading('Deleting...');
+    try {
+      const certs = await window.portfolioData.loadCertificates();
+      const cert = certs[idx];
+      if (!cert) return;
+      if (cert.thumbnail) {
+        try { await window.deleteImage(cert.thumbnail); } catch (e) { console.warn(e); }
+      }
+      certs.splice(idx, 1);
+      await window.portfolioData.saveCertificates(certs);
+      await renderCertificates();
+      window.Logger.logActivity('certificate', 'delete', `Deleted certificate: ${cert.title}`);
+      showToast('Certificate deleted', 'success');
+    } catch (err) {
+      showToast('Delete failed: ' + err.message, 'error');
+    } finally {
+      window.hideLoading();
+    }
+  }
+
+  async function openCertModal(index = null) {
+    const certs = await window.portfolioData.loadCertificates();
+    const isEdit = index !== null && certs[index];
+    document.getElementById('certModalTitle').innerText = isEdit ? 'Edit Certificate' : 'New Certificate';
+    if (isEdit) {
+      const c = certs[index];
+      document.getElementById('certIndex').value = index;
+      document.getElementById('certTitle').value = c.title;
+      document.getElementById('certIssuer').value = c.issuer || '';
+      document.getElementById('certDate').value = c.date || '';
+      document.getElementById('certLink').value = c.link || '';
+      document.getElementById('certThumb').value = c.thumbnail || '';
+      const preview = document.getElementById('thumbPreview');
+      if (preview) {
+        preview.src = c.thumbnail || '';
+        preview.style.display = c.thumbnail ? 'inline-block' : 'none';
+      }
+    } else {
+      document.getElementById('certIndex').value = '';
+      ['certTitle','certIssuer','certDate','certLink','certThumb'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('thumbPreview').style.display = 'none';
+    }
+    $('#certModal').modal('show');
+  }
+
+  document.getElementById('certForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    window.showLoading('Saving...');
+    try {
       const certs = await window.portfolioData.loadCertificates();
       const idx = document.getElementById('certIndex').value;
       const newCert = {
@@ -331,248 +309,147 @@
         date: document.getElementById('certDate').value,
         link: document.getElementById('certLink').value,
         thumbnail: document.getElementById('certThumb').value,
-        updatedAt: Date.now()
+        isPublic: true
       };
       if (idx !== '' && certs[idx]) certs[idx] = newCert;
       else certs.push(newCert);
-      await safeSaveCertificate(certs);
-    });
-
-    if (isAdmin) {
-      const usersTabNav = document.getElementById('usersTabNav');
-      if (usersTabNav) usersTabNav.style.display = 'block';
-      const sendMsgTabNav = document.getElementById('sendMsgTabNav');
-      if (sendMsgTabNav) sendMsgTabNav.style.display = 'block';
-      const refreshUsersBtn = document.getElementById('refreshUsersBtn');
-      if (refreshUsersBtn) refreshUsersBtn.addEventListener('click', loadUsers);
-      const downloadAllLogsBtn = document.getElementById('downloadAllLogsBtn');
-      if (downloadAllLogsBtn) downloadAllLogsBtn.style.display = 'inline-block';
-      const logUserSelectGroup = document.getElementById('logUserSelectGroup');
-      if (logUserSelectGroup) logUserSelectGroup.style.display = 'block';
-      loadUsers();
+      await window.portfolioData.saveCertificates(certs);
+      $('#certModal').modal('hide');
+      await renderCertificates();
+      showToast('Certificate saved', 'success');
+    } catch (err) {
+      showToast('Save failed: ' + err.message, 'error');
+    } finally {
+      window.hideLoading();
     }
+  });
 
-    async function downloadLogsForUser(username, isAdminView = false) {
-      window.showLoading(`Fetching logs for ${username}...`);
-      try {
-        let logs;
-        if (isAdminView && username !== user.username) {
-          logs = await window.Logger.getLogsForUser(username, user.pat);
-        } else {
-          logs = await window.Logger.getLogsForUser(user.username, user.pat);
-        }
-        const blob = new Blob([logs], { type: 'text/plain' });
-        const a = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-        a.href = url;
-        a.download = `logs_${username}_${new Date().toISOString().slice(0,19)}.txt`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        window.Logger.logActivity('logs', 'download', `Downloaded logs for ${username}`);
-        showToast('Logs downloaded', 'success');
-      } catch (err) {
-        showToast(`Failed to download logs: ${err.message}`, 'error');
-      } finally {
-        window.hideLoading();
+  // ═══ Buttons ═══
+  document.getElementById('addCertBtn').addEventListener('click', () => openCertModal());
+  document.getElementById('downloadDataBtn').addEventListener('click', () => window.portfolioData.exportData());
+
+  document.getElementById('deleteAllCertsBtn').addEventListener('click', async () => {
+    if (!confirm('PERMANENTLY delete ALL certificates? This cannot be undone.')) return;
+    window.showLoading('Deleting all...');
+    try {
+      const certs = await window.portfolioData.loadCertificates();
+      for (const cert of certs) {
+        if (cert.thumbnail) { try { await window.deleteImage(cert.thumbnail); } catch (e) { console.warn(e); } }
       }
+      await window.portfolioData.saveCertificates([]);
+      await renderCertificates();
+      window.Logger.logActivity('certificate', 'delete_all', 'Deleted all certificates');
+      showToast('All certificates deleted', 'success');
+    } catch (err) {
+      showToast('Failed: ' + err.message, 'error');
+    } finally {
+      window.hideLoading();
     }
+  });
 
-    async function downloadAllLogs() {
-      if (!isAdmin) { showToast('Only admin can download all logs.', 'error'); return; }
-      window.showLoading('Fetching all user logs...');
-      try {
-        const users = await window.AccountManager.listUsers(user.pat);
-        const zip = new JSZip();
-        let fileCount = 0;
-        for (const u of users) {
-          const logs = await window.Logger.getLogsForUser(u, user.pat);
-          if (logs && logs !== 'No logs found for this user.' && logs !== 'Unable to retrieve logs.') {
-            zip.file(`${u}_activity.txt`, logs);
-            fileCount++;
-          }
-        }
-        if (fileCount === 0) {
-          showToast('No logs found for any user.', 'error');
-        } else {
-          const blob = await zip.generateAsync({ type: 'blob' });
-          const a = document.createElement('a');
-          const url = URL.createObjectURL(blob);
-          a.href = url;
-          a.download = `all_logs_${new Date().toISOString().slice(0,19)}.zip`;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-          window.Logger.logActivity('logs', 'download_all', `Downloaded ZIP of all users' logs (${fileCount} users)`);
-          showToast('All logs downloaded', 'success');
-        }
-      } catch (err) {
-        showToast(`Failed to download all logs: ${err.message}`, 'error');
-      } finally {
-        window.hideLoading();
-      }
-    }
-
-    async function populateUserSelect() {
-      if (!isAdmin) return;
-      try {
-        const users = await window.AccountManager.listUsers(user.pat);
-        const select = document.getElementById('logUserSelect');
-        if (!select) return;
-        select.innerHTML = '<option value="">-- Select user to download logs --</option>';
-        for (const u of users) {
-          select.innerHTML += `<option value="${u}">${u}</option>`;
-        }
-      } catch (err) {
-        console.error('Failed to load user list for logs', err);
-      }
-    }
-
-    const downloadMyLogBtn = document.getElementById('downloadMyLogBtn');
-    if (downloadMyLogBtn) downloadMyLogBtn.addEventListener('click', async () => await downloadLogsForUser(user.username, false));
-
-    const logUserSelect = document.getElementById('logUserSelect');
-    if (logUserSelect) {
-      logUserSelect.addEventListener('change', async (e) => {
-        const selected = e.target.value;
-        if (selected && isAdmin) {
-          await downloadLogsForUser(selected, true);
-          e.target.value = '';
-        }
-      });
-    }
-
-    const downloadAllLogsBtn = document.getElementById('downloadAllLogsBtn');
-    if (downloadAllLogsBtn) downloadAllLogsBtn.addEventListener('click', downloadAllLogs);
-    await populateUserSelect();
-
-    async function loadUsers() {
-      window.showLoading('Loading users...');
-      const container = document.getElementById('usersList');
-      if (!container) return;
-      try {
-        const usernames = await window.AccountManager.listUsers(user.pat);
-        const blocked = await window.AccountManager.getBlockedUsers();
-        container.innerHTML = '';
-        if (usernames.length === 0) {
-          container.innerHTML = '<div class="empty-state"><i class="fa fa-users"></i><h5>No registered users yet.</h5></div>';
-        } else {
-          for (const username of usernames) {
-            const isBlocked = blocked.includes(username);
-            let stats = { projects: 0, certificates: 0 };
-            try { stats = await window.AccountManager.getUserStats(username, user.pat); } catch(e) {}
-            const card = document.createElement('div');
-            card.className = 'card mb-2';
-            card.innerHTML = `
-              <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center flex-wrap">
-                  <div>
-                    <strong>${window.escapeHtml(username)}</strong>
-                    ${isBlocked ? '<span class="badge badge-danger ml-2">Blocked</span>' : '<span class="badge badge-success ml-2">Active</span>'}
-                    <div class="small text-muted">Projects: ${stats.projects} | Certificates: ${stats.certificates}</div>
-                  </div>
-                  <div class="mt-2 mt-sm-0">
-                    <button class="btn btn-sm ${isBlocked ? 'btn-success' : 'btn-warning'} toggle-block-btn" data-username="${username}">${isBlocked ? 'Unblock' : 'Block'}</button>
-                    <button class="btn btn-sm btn-danger delete-user-btn" data-username="${username}">Delete</button>
-                  </div>
-                </div>
-              </div>`;
-            container.appendChild(card);
-          }
-          document.querySelectorAll('.toggle-block-btn').forEach(btn => {
-            btn.addEventListener('click', async () => {
-              const username = btn.dataset.username;
-              const block = !blocked.includes(username);
-              if (!confirm(`${block ? 'Block' : 'Unblock'} "${username}"?`)) return;
-              window.showLoading('Updating...');
-              try {
-                await window.AccountManager.toggleBlock(username, block, user.pat);
-                await loadUsers();
-                showToast(`User ${block ? 'blocked' : 'unblocked'}`, 'success');
-              } catch(err) { showToast('Failed: ' + err.message, 'error'); }
-              window.hideLoading();
-            });
-          });
-          document.querySelectorAll('.delete-user-btn').forEach(btn => {
-            btn.addEventListener('click', async () => {
-              const username = btn.dataset.username;
-              if (!confirm(`Delete all data for "${username}"? This cannot be undone.`)) return;
-              window.showLoading('Deleting user...');
-              try {
-                await window.AccountManager.deleteUser(username, user.pat);
-                await loadUsers();
-                showToast(`User ${username} deleted`, 'success');
-              } catch(err) { showToast('Failed: ' + err.message, 'error'); }
-              window.hideLoading();
-            });
-          });
-        }
-      } catch (err) {
-        container.innerHTML = `<div class="alert alert-danger">Unable to load users: ${err.message}</div>`;
-      } finally {
-        window.hideLoading();
-      }
-    }
-
-    const addCertBtn = document.getElementById('addCertBtn');
-    if (addCertBtn) addCertBtn.addEventListener('click', () => openCertModal());
-
-    const downloadDataBtn = document.getElementById('downloadDataBtn');
-    if (downloadDataBtn) downloadDataBtn.addEventListener('click', () => window.portfolioData.exportData());
-
-    const deleteAllCertsBtn = document.getElementById('deleteAllCertsBtn');
-    if (deleteAllCertsBtn) {
-      deleteAllCertsBtn.addEventListener('click', async () => {
-        if (confirm('PERMANENTLY delete ALL certificates? This action cannot be undone.')) {
-          window.showLoading('Deleting all certificates...');
-          try {
-            const certs = await window.portfolioData.loadCertificates();
-            for (const cert of certs) {
-              if (cert.thumbnail && cert.thumbnail.startsWith('https://raw.githubusercontent.com')) {
-                try { await window.deleteImageFromGitHub(cert.thumbnail, user); } catch(e) { console.warn(e); }
-              }
-            }
-            await window.portfolioData.saveCertificates([], true);
-            await renderCertificates();
-            window.Logger.logActivity('certificate', 'delete_all', 'Deleted all certificates');
-            showToast('All certificates deleted', 'success');
-          } catch (err) { showToast('Failed: ' + err.message, 'error'); }
-          window.hideLoading();
-        }
-      });
-    }
-
-    const syncCertsBtn = document.getElementById('syncCertsBtn');
-    if (syncCertsBtn) {
-      syncCertsBtn.addEventListener('click', async () => {
-        window.showLoading('Refreshing from GitHub...');
-        await renderCertificates();
-        window.hideLoading();
-        showToast('Certificates refreshed', 'success');
-        window.Logger.logActivity('data', 'sync', 'Manually synced certificates from GitHub');
-      });
-    }
-
-    const logoutBtn = document.getElementById('logoutBtn');
-    if (logoutBtn) {
-      logoutBtn.addEventListener('click', () => {
-        window.Logger.logActivity('account', 'logout', 'User logged out');
-        window.SessionManager.logout();
-        window.location.href = 'login.html';
-      });
-    }
-
-    setInterval(async () => {
-      if (!document.hidden) {
-        await renderCertificates();
-      }
-    }, 60000);
-
+  document.getElementById('syncCertsBtn').addEventListener('click', async () => {
+    window.showLoading('Refreshing...');
     await renderCertificates();
     window.hideLoading();
+    showToast('Certificates refreshed', 'success');
+  });
+
+  document.getElementById('logoutBtn').addEventListener('click', async () => {
+    await window.Logger.logActivity('account', 'logout', 'User logged out');
+    await window.SessionManager.logout();
+    window.location.href = 'login.html';
+  });
+
+  // ═══ Logs ═══
+  async function downloadLogsForUser(username, isAdminView = false) {
+    window.showLoading(`Fetching logs for ${username}...`);
+    try {
+      let logs;
+      if (isAdminView) {
+        // Admin viewing another user's logs — get their user_id first
+        const { data: profile } = await window.supabase
+          .from('profiles').select('id').eq('email', username).maybeSingle();
+        if (!profile) { showToast('User not found', 'error'); return; }
+        logs = await window.Logger.getLogsForUser(profile.id);
+      } else {
+        logs = await window.Logger.getLogsForUser(user.id);
+      }
+      const blob = new Blob([logs], { type: 'text/plain' });
+      const a = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      a.href = url;
+      a.download = `logs_${username}_${new Date().toISOString().slice(0,19)}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('Logs downloaded', 'success');
+    } catch (err) {
+      showToast(`Failed: ${err.message}`, 'error');
+    } finally {
+      window.hideLoading();
+    }
   }
+
+  async function downloadAllLogs() {
+    if (!isAdmin) { showToast('Only admin can do this.', 'error'); return; }
+    window.showLoading('Fetching all user logs...');
+    try {
+      const allLogs = await window.Logger.getAllUserLogs();
+      const zip = new JSZip();
+      let fileCount = 0;
+      for (const [email, logs] of Object.entries(allLogs)) {
+        if (logs && logs.trim()) { zip.file(`${email}_activity.txt`, logs); fileCount++; }
+      }
+      if (fileCount === 0) { showToast('No logs found.', 'error'); return; }
+      const blob = await zip.generateAsync({ type: 'blob' });
+      const a = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      a.href = url;
+      a.download = `all_logs_${new Date().toISOString().slice(0,19)}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast(`Downloaded logs for ${fileCount} users`, 'success');
+    } catch (err) {
+      showToast(`Failed: ${err.message}`, 'error');
+    } finally {
+      window.hideLoading();
+    }
+  }
+
+  async function populateUserSelect() {
+    try {
+      const users = await window.AccountManager.listUsers();
+      const select = document.getElementById('logUserSelect');
+      if (!select) return;
+      select.innerHTML = '<option value="">-- Select user to download logs --</option>';
+      for (const u of users) {
+        select.innerHTML += `<option value="${window.escapeHtml(u.email)}">${window.escapeHtml(u.email)}</option>`;
+      }
+    } catch (err) {
+      console.error('Populate user select failed:', err);
+    }
+  }
+
+  document.getElementById('downloadMyLogBtn').addEventListener('click', () =>
+    downloadLogsForUser(user.email, false));
+
+  document.getElementById('logUserSelect').addEventListener('change', async (e) => {
+    const selected = e.target.value;
+    if (selected && isAdmin && selected !== user.email) {
+      await downloadLogsForUser(selected, true);
+      e.target.value = '';
+    }
+  });
+
+  document.getElementById('downloadAllLogsBtn').addEventListener('click', downloadAllLogs);
+
+  // Initial render
+  await renderCertificates();
+  window.hideLoading();
+})();
 </script>
 <script src="theme-toggle.js"></script>
 </body>
