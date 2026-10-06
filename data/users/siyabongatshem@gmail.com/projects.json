@@ -5,10 +5,10 @@
     "title": "Steam Station 1",
     "shortDesc": "",
     "client": "SASOL",
-    "industry": "",
-    "status": "Ongoing",
-    "duration": "",
-    "userRole": "",
+    "industry": "Thermal Power & Utility",
+    "status": "Completed",
+    "duration": "-",
+    "userRole": "Engineer",
     "teamMembers": "",
     "description": "",
     "selectedImages": [
@@ -17,7 +17,7 @@
         "caption": ""
       }
     ],
-    "updatedAt": 1791289422498,
+    "updatedAt": 1791289477598,
     "controllerType": "SZ",
     "deltaVVersion": "v14",
     "projectType": "SIS & DCS",
