@@ -41,5 +41,38 @@
     },
     "graphType": "bar",
     "blocked": false
+  },
+  "proj_1791290671832": {
+    "id": "proj_1791290671832",
+    "projectCategory": "nonDeltaV",
+    "title": "Your Portfolio",
+    "shortDesc": "A smart personal platform for showcasing projects, tracking work and studies, and managing productivity.",
+    "client": "Siya",
+    "industry": "Software & Technology",
+    "status": "Ongoing",
+    "duration": "1 year",
+    "userRole": "Developer",
+    "teamMembers": "Siyabonga Thupana",
+    "description": "A personal engineering and productivity platform that showcases projects. tracks work and studies, manages timesheets, and provides smart tools for career and personal growth.",
+    "selectedImages": [],
+    "updatedAt": 1791290671832,
+    "technical": {
+      "technologies": "HTML, CSS, JavaScript",
+      "hardware": "Software-based Project",
+      "software": "GitHub, VSCode",
+      "protocols": "HTTPS, REST API, WebSocket",
+      "languages": "Node.js, JavaScript, CSS"
+    },
+    "workBreakdown": {
+      "workBreakdown": "",
+      "problems": "",
+      "rootCauses": "",
+      "solutions": "",
+      "improvements": "",
+      "lessons": "",
+      "risks": "",
+      "testing": ""
+    },
+    "blocked": false
   }
 }
