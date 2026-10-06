@@ -26,7 +26,7 @@
 
 | Projects | Certifications | Users | Hours | Billable | Daily Avg |
 |:--------:|:--------------:|:-----:|:-----:|:--------:|:---------:|
-| 3 | 18 | 7 | 771.3 | 521.6 | 8.0h |
+| 4 | 18 | 7 | 771.3 | 521.6 | 8.0h |
 
 ---
 
@@ -53,6 +53,10 @@
 
 - ** ATKSS** - ESKOM (-)
   - Status: Ongoing | Progress: 70%
+  - 
+
+- ** OMNIA Phase 1** - Omnia (6 months)
+  - Status: Completed | Progress: 100%
   - 
 
 
@@ -87,11 +91,17 @@
 
 `CSS`
 
+`Chemical`
+
 `DCS`
 
 `DeltaV MD`
 
+`DeltaV PK`
+
 `DeltaV SZ`
+
+`DeltaV v13`
 
 `DeltaV v14`
 
@@ -120,6 +130,6 @@
 
 <div align="center">
 
-*Last updated: October 06, 2026 at 13:01:49 UTC*
+*Last updated: October 06, 2026 at 13:07:21 UTC*
 
 </div>
