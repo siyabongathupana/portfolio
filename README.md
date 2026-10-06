@@ -43,8 +43,8 @@
 ## 🏗️ Featured Projects
 
 
-- ** Steam Station 1** - SASOL ()
-  - Status: Ongoing | Progress: 65%
+- ** Steam Station 1** - SASOL (-)
+  - Status: Completed | Progress: 100%
   - 
 
 
@@ -83,6 +83,8 @@
 
 `SIS & DCS`
 
+`Thermal Power & Utility`
+
 
 ---
 
@@ -96,6 +98,6 @@
 
 <div align="center">
 
-*Last updated: October 06, 2026 at 12:24:43 UTC*
+*Last updated: October 06, 2026 at 12:25:40 UTC*
 
 </div>
