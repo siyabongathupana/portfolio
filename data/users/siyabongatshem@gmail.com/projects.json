@@ -58,9 +58,17 @@
       {
         "url": "https://raw.githubusercontent.com/siyabongathupana/portfolio/main/data/users/siyabongatshem%40gmail.com/project_images/1791290746063_Screenshot_2026-10-06_144509.png",
         "caption": ""
+      },
+      {
+        "url": "https://raw.githubusercontent.com/siyabongathupana/portfolio/main/data/users/siyabongatshem%40gmail.com/project_images/1791290877339_Screenshot_2026-10-06_144634.png",
+        "caption": "Showcase Certificates"
+      },
+      {
+        "url": "https://raw.githubusercontent.com/siyabongathupana/portfolio/main/data/users/siyabongatshem%40gmail.com/project_images/1791290881413_Screenshot_2026-10-06_144728.png",
+        "caption": "Timesheets Analysis"
       }
     ],
-    "updatedAt": 1791290757759,
+    "updatedAt": 1791290903912,
     "technical": {
       "technologies": "HTML, CSS, JavaScript",
       "hardware": "Software-based Project",
