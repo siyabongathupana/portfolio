@@ -54,8 +54,13 @@
     "userRole": "Developer",
     "teamMembers": "Siyabonga Thupana",
     "description": "A personal engineering and productivity platform that showcases projects. tracks work and studies, manages timesheets, and provides smart tools for career and personal growth.",
-    "selectedImages": [],
-    "updatedAt": 1791290671832,
+    "selectedImages": [
+      {
+        "url": "https://raw.githubusercontent.com/siyabongathupana/portfolio/main/data/users/siyabongatshem%40gmail.com/project_images/1791290746063_Screenshot_2026-10-06_144509.png",
+        "caption": ""
+      }
+    ],
+    "updatedAt": 1791290757759,
     "technical": {
       "technologies": "HTML, CSS, JavaScript",
       "hardware": "Software-based Project",
