@@ -9,10 +9,11 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
-    <script src="crypto.js"></script>
-    <script src="api.js"></script>
+    <script src="supabase.js"></script>
     <script src="shared.js"></script>
+    <script src="auth.js"></script>
     <style>
         .admin-msg-container {
             max-width: 800px;
@@ -41,9 +42,9 @@
         .progress-status {
             font-size: 0.9rem;
         }
-        .warning-box {
-            background: #fff3cd;
-            border-left: 4px solid #ffc107;
+        .info-box {
+            background: #e7f3ff;
+            border-left: 4px solid #2fc7ff;
             padding: 10px;
             margin-bottom: 20px;
             font-size: 0.85rem;
@@ -71,9 +72,9 @@
 <div class="container admin-msg-container">
     <h2><i class="fa fa-paper-plane"></i> Send Message to Users</h2>
     <p class="text-muted">Compose a message and send it to all users or selected individuals.</p>
-    
-    <div class="warning-box">
-        <i class="fa fa-lock"></i> <strong>Privacy note:</strong> Messages are encrypted using a site‑wide key. For true security, make your GitHub repository private.
+
+    <div class="info-box">
+        <i class="fa fa-info-circle"></i> <strong>How it works:</strong> Messages are saved to the Supabase database and appear in the recipient's inbox bell.
     </div>
 
     <form id="sendMessageForm">
@@ -120,100 +121,45 @@
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 
 <script>
-    (function() {
-        const user = window.SessionManager?.getCurrentUser();
-        const isAdmin = user && window.APP_CONFIG.adminUsers && window.APP_CONFIG.adminUsers.includes(user.username);
-        if (!user) {
-            window.location.href = 'login.html?redirect=admin-messages';
-            return;
-        }
+    (async function() {
+        const authUser = await window.authReady;
+        if (!authUser) { window.location.href = 'login.html?redirect=admin-messages'; return; }
+
+        const user = window.SessionManager.getCurrentUser();
+        const isAdmin = window.SessionManager.isAdmin();
         if (!isAdmin) {
             document.body.innerHTML = '<div class="container text-center mt-5"><h3>Access Denied</h3><p>Admin privileges required.</p><a href="index.html" class="btn btn-delta">Go Home</a></div>';
             return;
         }
 
         let allUsers = [];
-        let blockedUsers = [];
-
-        // === Encryption helpers using the same secret ===
-        async function getEncryptionKey() {
-            const keyMaterial = await crypto.subtle.importKey(
-                'raw',
-                new TextEncoder().encode(window.APP_CONFIG.dogsname),
-                'PBKDF2',
-                false,
-                ['deriveKey']
-            );
-            return crypto.subtle.deriveKey(
-                {
-                    name: 'PBKDF2',
-                    salt: new TextEncoder().encode('messages-salt'),
-                    iterations: 100000,
-                    hash: 'SHA-256'
-                },
-                keyMaterial,
-                { name: 'AES-GCM', length: 256 },
-                false,
-                ['encrypt', 'decrypt']
-            );
-        }
-
-        async function encryptMessages(messages) {
-            const key = await getEncryptionKey();
-            const iv = crypto.getRandomValues(new Uint8Array(12));
-            const encoded = new TextEncoder().encode(JSON.stringify(messages));
-            const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, encoded);
-            return {
-                iv: Array.from(iv),
-                data: Array.from(new Uint8Array(encrypted))
-            };
-        }
-
-        async function decryptMessages(encryptedObj) {
-            const key = await getEncryptionKey();
-            const iv = new Uint8Array(encryptedObj.iv);
-            const data = new Uint8Array(encryptedObj.data);
-            const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, data);
-            return JSON.parse(new TextDecoder().decode(decrypted));
-        }
-
-        async function fetchWithRetry(fn, retries = 3, delay = 1000) {
-            for (let i = 0; i < retries; i++) {
-                try {
-                    return await fn();
-                } catch (err) {
-                    if (i === retries - 1) throw err;
-                    await new Promise(r => setTimeout(r, delay * (i + 1)));
-                }
-            }
-        }
+        let bannedEmails = [];
 
         async function loadUsers() {
             try {
-                const users = await window.AccountManager.listUsers(user.pat);
-                blockedUsers = await window.AccountManager.getBlockedUsers();
-                allUsers = users.filter(u => !blockedUsers.includes(u));
+                const profiles = await window.AccountManager.listUsers();
+                bannedEmails = profiles.filter(p => p.banned).map(p => p.email);
+                allUsers = profiles.filter(p => !p.banned && p.email !== user.email).map(p => p.email);
+
                 const container = document.getElementById('userCheckboxes');
                 container.innerHTML = '';
-                if (allUsers.length === 0) {
-                    container.innerHTML = '<div class="text-muted">No active users found.</div>';
+                if (!allUsers.length) {
+                    container.innerHTML = '<div class="text-muted">No other active users found.</div>';
                     return;
                 }
                 for (const u of allUsers) {
                     const div = document.createElement('div');
                     div.className = 'form-check';
+                    const safeId = 'u_' + u.replace(/[^a-z0-9]/gi, '_');
                     div.innerHTML = `
-                        <input type="checkbox" class="form-check-input user-checkbox" value="${u.replace(/"/g, '&quot;')}" id="user_${u.replace(/[^a-z0-9]/gi, '_')}">
-                        <label class="form-check-label" for="user_${u.replace(/[^a-z0-9]/gi, '_')}">${window.escapeHtml(u)}</label>
+                        <input type="checkbox" class="form-check-input user-checkbox" value="${u.replace(/"/g, '&quot;')}" id="${safeId}">
+                        <label class="form-check-label" for="${safeId}">${window.escapeHtml(u)}</label>
                     `;
                     container.appendChild(div);
                 }
-                const selectAllCheckbox = document.getElementById('selectAllUsers');
-                if (selectAllCheckbox) {
-                    selectAllCheckbox.addEventListener('change', (e) => {
-                        document.querySelectorAll('.user-checkbox').forEach(cb => cb.checked = e.target.checked);
-                    });
-                }
+                document.getElementById('selectAllUsers').addEventListener('change', (e) => {
+                    document.querySelectorAll('.user-checkbox').forEach(cb => cb.checked = e.target.checked);
+                });
             } catch(err) {
                 console.error(err);
                 document.getElementById('userCheckboxes').innerHTML = '<div class="alert alert-danger">Failed to load users.</div>';
@@ -228,27 +174,11 @@
             return selected;
         }
 
-        // Send to one user with encryption
-        async function sendMessageToUser(targetEmail, messageObj) {
-            const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-            const encUser = encodeURIComponent(targetEmail);
-            const path = `${dataPath}/users/${encUser}/messages.enc`;
-            
-            return fetchWithRetry(async () => {
-                let messages = [], sha = null;
-                let encrypted = null;
-                try {
-                    const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
-                    if (file && file.content) {
-                        encrypted = JSON.parse(file.content);
-                        messages = await decryptMessages(encrypted);
-                        sha = file.sha;
-                    }
-                } catch(e) {}
-                messages.unshift(messageObj);
-                const newEncrypted = await encryptMessages(messages);
-                await GitHubAPI.updateFile(owner, repo, path, newEncrypted, `New message: ${messageObj.subject}`, branch, user.pat, sha);
-                return true;
+        async function sendToUser(email, messageObj) {
+            await window.Messages.send({
+                recipientEmail: email,
+                subject: messageObj.subject,
+                body: messageObj.body
             });
         }
 
@@ -256,24 +186,22 @@
             const results = { success: [], fail: [] };
             let index = 0;
             const concurrency = 5;
-            
+
             async function worker() {
                 while (index < recipients.length) {
                     const i = index++;
-                    const recipient = recipients[i];
+                    const email = recipients[i];
                     try {
-                        await sendMessageToUser(recipient, messageObj);
-                        results.success.push(recipient);
+                        await sendToUser(email, messageObj);
+                        results.success.push(email);
                     } catch (err) {
-                        console.error(`Failed to send to ${recipient}`, err);
-                        results.fail.push(recipient);
+                        console.error(`Failed for ${email}`, err);
+                        results.fail.push(email);
                     }
                     if (onProgress) onProgress(results.success.length, results.fail.length, recipients.length);
                 }
             }
-            
-            const workers = Array(concurrency).fill().map(() => worker());
-            await Promise.all(workers);
+            await Promise.all(Array(concurrency).fill().map(() => worker()));
             return results;
         }
 
@@ -281,41 +209,27 @@
             e.preventDefault();
             const subject = document.getElementById('msgSubject').value.trim();
             const body = document.getElementById('msgBody').value.trim();
-            if (!subject || !body) {
-                alert("Please fill subject and body.");
-                return;
-            }
+            if (!subject || !body) { alert("Please fill subject and body."); return; }
             const recipients = getSelectedUsers();
-            if (recipients.length === 0) {
-                alert("No users selected.");
-                return;
-            }
+            if (!recipients.length) { alert("No users selected."); return; }
             if (!confirm(`Send message to ${recipients.length} user(s)?`)) return;
-
-            const messageObj = {
-                id: Date.now(),
-                from: user.username,
-                subject: subject,
-                body: body,
-                timestamp: new Date().toISOString(),
-                read: false
-            };
 
             const progressDiv = document.getElementById('progressStatus');
             progressDiv.innerHTML = `<div class="alert alert-info">Sending to ${recipients.length} users...</div>`;
-            
+
             const updateProgress = (sent, failed, total) => {
                 progressDiv.innerHTML = `<div class="alert alert-info">Sent: ${sent}, Failed: ${failed}, Remaining: ${total - sent - failed}</div>`;
             };
-            
+
             try {
-                const results = await sendBulkMessages(recipients, messageObj, updateProgress);
+                const results = await sendBulkMessages(recipients, { subject, body }, updateProgress);
                 if (results.fail.length === 0) {
                     progressDiv.innerHTML = `<div class="alert alert-success">✅ Message sent to ${results.success.length} user(s).</div>`;
                     document.getElementById('msgSubject').value = '';
                     document.getElementById('msgBody').value = '';
+                    await window.Logger.logActivity('admin', 'send_message', `Sent "${subject}" to ${results.success.length} users`);
                 } else {
-                    progressDiv.innerHTML = `<div class="alert alert-warning">⚠️ Sent to ${results.success.length}, failed to ${results.fail.length}. Check console for details.</div>`;
+                    progressDiv.innerHTML = `<div class="alert alert-warning">⚠️ Sent to ${results.success.length}, failed for ${results.fail.length}.</div>`;
                 }
             } catch (err) {
                 progressDiv.innerHTML = `<div class="alert alert-danger">Error: ${err.message}</div>`;
