@@ -1,6 +1,8 @@
-// shared.js – Complete version with fixed project deletion, enhanced logging, Excel report generation
-// + Excel access lock + gallery image protection
+// shared.js – Supabase edition (COMPLETE — nothing omitted)
 
+// ═══════════════════════════════════════════════════════════
+//  LOADING OVERLAY
+// ═══════════════════════════════════════════════════════════
 window.showLoading = function (msg = 'Processing...') {
   let loader = document.getElementById('globalLoader');
   if (!loader) {
@@ -17,7 +19,6 @@ window.showLoading = function (msg = 'Processing...') {
     loader.style.display = 'flex';
   }
 };
-
 window.hideLoading = function () {
   const loader = document.getElementById('globalLoader');
   if (loader) loader.style.display = 'none';
@@ -25,7 +26,7 @@ window.hideLoading = function () {
 
 window.escapeHtml = function (str) {
   if (!str) return '';
-  return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m] || m);
+  return String(str).replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m] || m);
 };
 
 // ═══════════════════════════════════════════════════════════
@@ -36,225 +37,122 @@ window.canDownloadExcel = function () {
     const isAdmin = window.SessionManager?.isAdmin?.() === true;
     const publicAllowed = window.APP_CONFIG?.excelReportEnabled === true;
     return isAdmin || publicAllowed;
-  } catch (e) {
-    return false;
-  }
+  } catch (e) { return false; }
 };
 
+// ═══════════════════════════════════════════════════════════
+//  SESSION MANAGER
+// ═══════════════════════════════════════════════════════════
 window.SessionManager = (() => {
-  let current = null;
   return {
     getCurrentUser: () => {
-      if (current) return current;
-      const stored = sessionStorage.getItem('portfolioUser');
-      if (stored) {
-        try { 
-          current = JSON.parse(stored);
-          if (current.timestamp && Date.now() - current.timestamp > 24 * 60 * 60 * 1000) {
-            sessionStorage.removeItem('portfolioUser');
-            current = null;
-          }
-        } catch(e) { current = null; }
-      }
-      return current;
+      const u = window.__currentAuthUser || null;
+      if (!u) return null;
+      return {
+        id: u.id,
+        username: u.email,
+        email: u.email,
+        fullName: u.user_metadata?.full_name || u.email.split('@')[0]
+      };
     },
-    setCurrentUser: (username, pat) => {
-      current = { username, pat, timestamp: Date.now() };
-      sessionStorage.setItem('portfolioUser', JSON.stringify(current));
-      window.Logger.log('login', `User logged in as ${username}`, 'INFO');
-    },
-    logout: () => {
-      current = null;
-      sessionStorage.removeItem('portfolioUser');
-    },
+    getCurrentUserId: () => window.__currentAuthUser?.id || null,
     isAdmin: () => {
-      const user = window.SessionManager.getCurrentUser();
-      return user && window.APP_CONFIG.adminUsers && window.APP_CONFIG.adminUsers.includes(user.username);
+      const u = window.__currentAuthUser;
+      if (!u) return false;
+      const admins = window.APP_CONFIG?.adminUsers || [];
+      return admins.includes(u.email);
+    },
+    logout: async () => {
+      try { await window.supabase.auth.signOut(); } catch (e) {}
+      window.__currentAuthUser = null;
     }
   };
 })();
 
-// Enhanced Logger
+// ═══════════════════════════════════════════════════════════
+//  LOGGER
+// ═══════════════════════════════════════════════════════════
 window.Logger = {
-  async _writeTextFile(path, content, commitMsg, branch, token, sha = null) {
-    const { owner, repo } = window.REPO_CONFIG;
-    const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
-    const body = {
-      message: commitMsg,
-      content: btoa(unescape(encodeURIComponent(content))),
-      branch: branch
-    };
-    if (sha) body.sha = sha;
-    const resp = await fetch(url, {
-      method: 'PUT',
-      headers: {
-        Authorization: `token ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(body)
-    });
-    if (!resp.ok) {
-      const err = await resp.json();
-      throw new Error(`Failed to write log: ${err.message}`);
-    }
-    return resp.json();
-  },
-
   async log(action, details, level = 'INFO') {
     const user = window.SessionManager.getCurrentUser();
     if (!user) return;
-    
-    const timestamp = new Date().toISOString().replace('T', ' ').slice(0, 19);
-    const logEntry = JSON.stringify({
-      timestamp,
-      level,
-      action,
-      details,
-      user: user.username,
-      userAgent: navigator.userAgent,
-      page: window.location.pathname
-    }) + '\n';
-    
-    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const encUser = encodeURIComponent(user.username);
-    const logPath = `${dataPath}/users/${encUser}/logs/activity.ndjson`;
-    
-    let existingContent = '';
-    let sha = null;
     try {
-      const url = `https://api.github.com/repos/${owner}/${repo}/contents/${logPath}?ref=${branch}`;
-      const resp = await fetch(url, { headers: { Authorization: `token ${user.pat}` } });
-      if (resp.ok) {
-        const data = await resp.json();
-        sha = data.sha;
-        existingContent = atob(data.content.replace(/\n/g, ''));
-      }
-    } catch (e) {}
-    
-    const newContent = logEntry + existingContent;
-    try {
-      await this._writeTextFile(logPath, newContent, `Log: ${action}`, branch, user.pat, sha);
-    } catch (err) {
-      console.error('Failed to write log:', err);
-    }
+      await window.supabase.from('activity_logs').insert({
+        user_id: user.id,
+        action,
+        details,
+        page: window.location.pathname,
+        user_agent: navigator.userAgent
+      });
+    } catch (e) { console.warn('Log failed:', e); }
   },
-  
   async logActivity(module, action, details, metadata = {}) {
-    const fullDetails = `${module}: ${action} - ${details} ${Object.keys(metadata).length ? JSON.stringify(metadata) : ''}`;
-    await this.log(`${module}_${action}`, fullDetails);
+    const extra = Object.keys(metadata).length ? ' ' + JSON.stringify(metadata) : '';
+    await this.log(`${module}_${action}`, `${module}: ${action} - ${details}${extra}`);
   },
-  
-  async getLogsForUser(targetUsername, adminToken) {
-    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const encUser = encodeURIComponent(targetUsername);
-    const logPath = `${dataPath}/users/${encUser}/logs/activity.ndjson`;
-    try {
-      const url = `https://api.github.com/repos/${owner}/${repo}/contents/${logPath}?ref=${branch}`;
-      const resp = await fetch(url, { headers: { Authorization: `token ${adminToken}` } });
-      if (resp.ok) {
-        const data = await resp.json();
-        const content = atob(data.content.replace(/\n/g, ''));
-        const entries = content.trim().split('\n').filter(l => l.trim()).map(l => {
-          try {
-            const obj = JSON.parse(l);
-            return `[${obj.timestamp}] [${obj.level}] [${obj.action}] ${obj.details} (${obj.userAgent?.substring(0, 50)}...)`;
-          } catch(e) { return l; }
-        });
-        return entries.join('\n');
-      }
-      return 'No logs found for this user.';
-    } catch (e) {
-      return 'Unable to retrieve logs.';
-    }
+  async getLogsForUser(targetUserId) {
+    const { data, error } = await window.supabase
+      .from('activity_logs')
+      .select('*')
+      .eq('user_id', targetUserId)
+      .order('created_at', { ascending: false })
+      .limit(500);
+    if (error) return 'Unable to retrieve logs.';
+    if (!data?.length) return 'No logs found for this user.';
+    return data.map(l => `[${l.created_at}] [${l.action}] ${l.details || ''}`).join('\n');
   },
-  
-  async getAllUserLogs(adminToken) {
-    const usernames = await window.AccountManager.listUsers(adminToken);
-    const allLogs = {};
-    for (const username of usernames) {
-      allLogs[username] = await this.getLogsForUser(username, adminToken);
+  async getAllUserLogs() {
+    const { data, error } = await window.supabase
+      .from('activity_logs')
+      .select('*, profiles:user_id(email)')
+      .order('created_at', { ascending: false })
+      .limit(2000);
+    if (error || !data) return {};
+    const grouped = {};
+    for (const row of data) {
+      const email = row.profiles?.email || row.user_id;
+      (grouped[email] = grouped[email] || []).push(
+        `[${row.created_at}] [${row.action}] ${row.details || ''}`
+      );
     }
-    return allLogs;
+    const out = {};
+    for (const [email, lines] of Object.entries(grouped)) out[email] = lines.join('\n');
+    return out;
   }
 };
 
+// ═══════════════════════════════════════════════════════════
+//  FOOTER
+// ═══════════════════════════════════════════════════════════
 window.updateUserFooter = function () {
-  const user = window.SessionManager.getCurrentUser();
   const el = document.getElementById('userFooterStatus');
   if (!el) return;
-  if (user) {
-    el.innerHTML = `Logged in as: <strong>${window.escapeHtml(user.username)}</strong> | <a href="admin.html" style="color:#2fc7ff;">Dashboard</a> | <a href="#" id="logoutFromFooter" style="color:#ff6b6b;">Logout</a>`;
-    const logoutBtn = document.getElementById('logoutFromFooter');
-    if (logoutBtn) {
-      logoutBtn.addEventListener('click', (e) => {
+  const render = () => {
+    const user = window.SessionManager.getCurrentUser();
+    if (user) {
+      el.innerHTML = `Logged in as: <strong>${window.escapeHtml(user.email)}</strong>
+        | <a href="admin.html" style="color:#2fc7ff;">Dashboard</a>
+        | <a href="#" id="logoutFromFooter" style="color:#ff6b6b;">Logout</a>`;
+      const btn = document.getElementById('logoutFromFooter');
+      if (btn) btn.addEventListener('click', async (e) => {
         e.preventDefault();
-        window.Logger.log('logout', 'User logged out');
-        window.SessionManager.logout();
-        window.location.reload();
+        await window.Logger.log('logout', 'User logged out');
+        await window.SessionManager.logout();
+        location.href = 'index.html';
       });
+    } else {
+      el.innerHTML = `Visitor – viewing portfolio of <strong>${window.APP_CONFIG.publicProfileEmail}</strong>
+        | <a href="login.html" style="color:#2fc7ff;">Login</a>`;
     }
-  } else {
-    el.innerHTML = `Visitor – viewing portfolio of <strong>${window.APP_CONFIG.publicProfileEmail}</strong> | <a href="login.html" style="color:#2fc7ff;">Login</a>`;
-  }
-};
-
-window.uploadImageToGitHub = async function(file, user, folder = 'images') {
-  const compressedDataUrl = await window.compressImage(file, 1600, 1600, 0.85);
-  const blob = await (await fetch(compressedDataUrl)).blob();
-  const fileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
-  const path = `${window.REPO_CONFIG.dataPath}/users/${encodeURIComponent(user.username)}/${folder}/${fileName}`;
-  const content = await new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result.split(',')[1]);
-    reader.readAsDataURL(blob);
-  });
-  const url = `https://api.github.com/repos/${window.REPO_CONFIG.owner}/${window.REPO_CONFIG.repo}/contents/${path}`;
-  const body = {
-    message: `Upload image ${fileName}`,
-    content: content,
-    branch: window.REPO_CONFIG.branch
   };
-  const resp = await fetch(url, {
-    method: 'PUT',
-    headers: {
-      Authorization: `token ${user.pat}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(body)
-  });
-  if (!resp.ok) throw new Error('Image upload failed');
-  const data = await resp.json();
-  await window.Logger.logActivity('image', 'upload', `Uploaded ${fileName} to ${folder}`, { size: blob.size });
-  return data.content.download_url;
+  if (window.__currentAuthUser !== undefined) render();
+  else window.authReady.then(render);
 };
 
-window.deleteImageFromGitHub = async function(imageUrl, user) {
-  try {
-    const parts = imageUrl.split('/');
-    const path = parts.slice(parts.indexOf('data')).join('/');
-    const url = `https://api.github.com/repos/${window.REPO_CONFIG.owner}/${window.REPO_CONFIG.repo}/contents/${path}`;
-    const getResp = await fetch(url, {
-      headers: { Authorization: `token ${user.pat}` }
-    });
-    if (!getResp.ok) return;
-    const fileData = await getResp.json();
-    const deleteResp = await fetch(url, {
-      method: 'DELETE',
-      headers: { Authorization: `token ${user.pat}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        message: 'Delete image',
-        sha: fileData.sha,
-        branch: window.REPO_CONFIG.branch
-      })
-    });
-    if (!deleteResp.ok) throw new Error('Failed to delete image');
-    await window.Logger.logActivity('image', 'delete', `Deleted ${path}`);
-  } catch (e) {
-    console.warn('Could not delete image:', e);
-  }
-};
-
-window.compressImage = function(file, maxW = 1600, maxH = 1600, quality = 0.85) {
+// ═══════════════════════════════════════════════════════════
+//  IMAGE COMPRESSION
+// ═══════════════════════════════════════════════════════════
+window.compressImage = function (file, maxW = 1600, maxH = 1600, quality = 0.85) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = e => {
@@ -262,15 +160,10 @@ window.compressImage = function(file, maxW = 1600, maxH = 1600, quality = 0.85) 
       img.onload = () => {
         let { width, height } = img;
         const ratio = Math.min(maxW / width, maxH / height);
-        if (ratio < 1) {
-          width = Math.round(width * ratio);
-          height = Math.round(height * ratio);
-        }
+        if (ratio < 1) { width = Math.round(width * ratio); height = Math.round(height * ratio); }
         const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, width, height);
+        canvas.width = width; canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
         resolve(canvas.toDataURL('image/jpeg', quality));
       };
       img.onerror = reject;
@@ -281,513 +174,360 @@ window.compressImage = function(file, maxW = 1600, maxH = 1600, quality = 0.85) 
   });
 };
 
+// ═══════════════════════════════════════════════════════════
+//  IMAGE UPLOAD / DELETE
+// ═══════════════════════════════════════════════════════════
+window.uploadImage = async function (file, bucket = 'project-images') {
+  const user = window.SessionManager.getCurrentUser();
+  if (!user) throw new Error('Not logged in');
+  const dataUrl = await window.compressImage(file, 1600, 1600, 0.85);
+  const blob = await (await fetch(dataUrl)).blob();
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const path = `${user.id}/${Date.now()}_${safeName}`;
+  const { data, error } = await window.supabase.storage
+    .from(bucket).upload(path, blob, { contentType: 'image/jpeg', upsert: false });
+  if (error) throw error;
+  const { data: signed, error: signErr } = await window.supabase.storage
+    .from(bucket).createSignedUrl(data.path, 60 * 60 * 24 * 365);
+  if (signErr) throw signErr;
+  await window.Logger.logActivity('image', 'upload', `Uploaded ${path}`);
+  return signed.signedUrl;
+};
+window.uploadImageToGitHub = window.uploadImage;
+
+window.deleteImage = async function (imageUrl, bucket) {
+  if (!imageUrl) return;
+  try {
+    let resolvedBucket = bucket;
+    let path = null;
+    const m = imageUrl.match(/\/storage\/v1\/object\/(?:sign|public)\/([^/]+)\/([^?]+)/);
+    if (m) {
+      resolvedBucket = resolvedBucket || m[1];
+      path = decodeURIComponent(m[2]);
+    }
+    if (!resolvedBucket || !path) { console.warn('Cannot derive path from URL:', imageUrl); return; }
+    const { error } = await window.supabase.storage.from(resolvedBucket).remove([path]);
+    if (error) throw error;
+    await window.Logger.logActivity('image', 'delete', `Deleted ${resolvedBucket}/${path}`);
+  } catch (e) { console.warn('Could not delete image:', e); }
+};
+window.deleteImageFromGitHub = window.deleteImage;
+
+// ═══════════════════════════════════════════════════════════
+//  ACCOUNT MANAGER (Supabase-backed)
+// ═══════════════════════════════════════════════════════════
 window.AccountManager = {
-  async _ensureEmailJS() {
-    if (typeof emailjs === 'undefined') {
-      await new Promise((resolve, reject) => {
-        const script = document.createElement('script');
-        script.src = 'https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js';
-        script.onload = resolve;
-        script.onerror = reject;
-        document.head.appendChild(script);
-      });
-      emailjs.init(window.APP_CONFIG.emailjs.publicKey);
-    }
-  },
-  async _sendEmail(templateID, params) {
-    await this._ensureEmailJS();
-    return emailjs.send(window.APP_CONFIG.emailjs.serviceID, templateID, params);
-  },
-  async _notifyAdminNewUser(userEmail) {
-    const cfg = window.APP_CONFIG.emailjs;
-    if (!cfg || !cfg.publicKey || !cfg.adminTemplateID) return;
-    try {
-      await this._sendEmail(cfg.adminTemplateID, {
-        to_email: cfg.adminEmail,
-        subject: `New user: ${userEmail}`,
-        message: `New account created: ${userEmail}`
-      });
-    } catch (e) { console.warn('Admin email failed', e); }
-  },
-  async _notifyUserConfirmation(userEmail) {
-    const cfg = window.APP_CONFIG.emailjs;
-    if (!cfg || !cfg.publicKey || !cfg.userTemplateID) return;
-    try {
-      await this._sendEmail(cfg.userTemplateID, {
-        to_email: userEmail,
-        subject: 'Welcome to Your Portfolio',
-        message: `Your account (${userEmail}) has been created. You can now log in and manage your portfolio.`
-      });
-    } catch (e) { console.warn('User email failed', e); }
-  },
-  async fetchAccount(username) {
-    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const encUser = encodeURIComponent(username);
-    const url = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${dataPath}/users/${encUser}/account.json`;
-    try {
-      const resp = await fetch(url);
-      if (!resp.ok) return null;
-      return await resp.json();
-    } catch { return null; }
-  },
-  
   async isEmailVerified(email) {
-    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const encUser = encodeURIComponent(email);
-    const globalUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/data/verified_users.json`;
-    try {
-      const resp = await fetch(globalUrl);
-      if (resp.ok) {
-        const data = await resp.json();
-        if (data.verified && data.verified.includes(email)) return true;
-      }
-    } catch (err) {}
-    const userUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${dataPath}/users/${encUser}/verified.json`;
-    try {
-      const resp = await fetch(userUrl);
-      if (resp.ok) {
-        const data = await resp.json();
-        if (data.verified === true) return true;
-      }
-    } catch (err) {}
-    return false;
+    const { data, error } = await window.supabase
+      .from('profiles')
+      .select('email_confirmed_at')
+      .eq('email', email)
+      .maybeSingle();
+    if (error || !data) return false;
+    return !!data.email_confirmed_at;
   },
-  
-  async register(username, passphrase, pat) {
-    const payload = JSON.stringify({ test: 'VALID', token: pat });
-    const encrypted = await window.CryptoUtil.encrypt(payload, passphrase);
-    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const encUser = encodeURIComponent(username);
-    const path = `${dataPath}/users/${encUser}/account.json`;
-    const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, pat).catch(() => null);
-    if (existing && existing.sha) throw new Error('An account with this email already exists on GitHub.');
-    await GitHubAPI.updateFile(owner, repo, path, encrypted, `Register ${username}`, branch, pat, existing?.sha);
-    const verificationStatus = { verified: false, createdAt: Date.now() };
-    const verificationPath = `${dataPath}/users/${encUser}/verified.json`;
-    try {
-      await GitHubAPI.updateFile(owner, repo, verificationPath, verificationStatus, `Create verification status for ${username}`, branch, pat);
-    } catch (err) {}
-    this._notifyAdminNewUser(username);
-    this._notifyUserConfirmation(username);
-    await window.Logger.logActivity('account', 'register', `New user registered: ${username}`, { email: username });
-    return true;
+
+  async listUsers() {
+    const { data, error } = await window.supabase
+      .from('profiles')
+      .select('id, email, full_name, role, permissions, banned, created_at')
+      .order('created_at', { ascending: false });
+    if (error) throw new Error(error.message);
+    return data || [];
   },
-  async login(username, passphrase) {
-    const blocked = await this.getBlockedUsers();
-    if (blocked.includes(username)) throw new Error('Your account has been blocked. Contact the administrator.');
-    const blob = await this.fetchAccount(username);
-    if (!blob) throw new Error('User not found');
-    const decrypted = await window.CryptoUtil.decrypt(blob, passphrase);
-    const data = JSON.parse(decrypted);
-    if (data.test !== 'VALID') throw new Error('Corrupted account');
-    await window.Logger.logActivity('account', 'login', `User logged in: ${username}`);
-    return data.token;
-  },
+
   async getBlockedUsers() {
-    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const url = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${dataPath}/blocked_users.json`;
-    try {
-      const resp = await fetch(url);
-      if (!resp.ok) return [];
-      return await resp.json();
-    } catch { return []; }
+    const { data, error } = await window.supabase
+      .from('profiles')
+      .select('email')
+      .eq('banned', true);
+    if (error) return [];
+    return (data || []).map(r => r.email);
   },
-  async toggleBlock(username, block, adminToken) {
-    const blocked = await this.getBlockedUsers();
-    if (block) { if (!blocked.includes(username)) blocked.push(username); }
-    else { const idx = blocked.indexOf(username); if (idx !== -1) blocked.splice(idx, 1); }
-    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const path = `${dataPath}/blocked_users.json`;
-    let sha = null;
-    const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, adminToken).catch(() => null);
-    if (existing && existing.sha) sha = existing.sha;
-    await GitHubAPI.updateFile(owner, repo, path, blocked, 'Update blocked users', branch, adminToken, sha);
-    await window.Logger.logActivity('admin', 'toggle_block', `${block ? 'Blocked' : 'Unblocked'} user ${username}`);
+
+  async toggleBlock(email, block) {
+    const { error } = await window.supabase
+      .from('profiles')
+      .update({ banned: !!block })
+      .eq('email', email);
+    if (error) throw new Error(error.message);
+    await window.Logger.logActivity('admin', 'toggle_block',
+      `${block ? 'Blocked' : 'Unblocked'} ${email}`);
     return true;
   },
-  async listUsers(adminToken) {
-    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const url = `https://api.github.com/repos/${owner}/${repo}/contents/${dataPath}/users?ref=${branch}`;
-    const resp = await fetch(url, {
-      headers: { 'Authorization': `token ${adminToken}`, 'Accept': 'application/vnd.github.v3+json' }
+
+  async register(email, password, fullName = '') {
+    const { data, error } = await window.supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { full_name: fullName || email.split('@')[0] },
+        emailRedirectTo: location.origin + location.pathname.replace(/[^/]*$/, 'admin.html')
+      }
     });
-    if (!resp.ok) throw new Error('Cannot list users');
-    const items = await resp.json();
-    return items.filter(i => i.type === 'dir').map(i => i.name);
+    if (error) throw new Error(error.message);
+    await window.Logger.logActivity('admin', 'user_create', `Created ${email}`);
+    return data.user;
   },
-  async deleteUser(username, adminToken) {
-    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const encUser = encodeURIComponent(username);
-    const dirPath = `${dataPath}/users/${encUser}`;
-    const url = `https://api.github.com/repos/${owner}/${repo}/contents/${dirPath}?ref=${branch}`;
-    const resp = await fetch(url, {
-      headers: { 'Authorization': `token ${adminToken}`, 'Accept': 'application/vnd.github.v3+json' }
-    });
-    if (!resp.ok) throw new Error('User folder not found');
-    const items = await resp.json();
-    for (const item of items) {
-      await GitHubAPI.deleteFile(owner, repo, item.path, branch, adminToken, item.sha);
-    }
-    await window.Logger.logActivity('admin', 'delete_user', `Deleted user ${username}`);
+
+  async login(email, password) {
+    const { data, error } = await window.supabase.auth.signInWithPassword({ email, password });
+    if (error) throw new Error(error.message);
+    return data.user;
+  },
+
+  async deleteUser(email) {
+    try {
+      const { data, error } = await window.supabase.functions.invoke('admin-delete-user', {
+        body: { email }
+      });
+      if (!error && data?.ok) {
+        await window.Logger.logActivity('admin', 'delete_user', `Deleted ${email}`);
+        return true;
+      }
+    } catch (e) { /* fall through to soft delete */ }
+
+    const { error } = await window.supabase
+      .from('profiles')
+      .update({ banned: true, deleted: true })
+      .eq('email', email);
+    if (error) throw new Error(error.message);
+    await window.Logger.logActivity('admin', 'user_soft_delete', `Soft-deleted ${email}`);
     return true;
   },
-  async getUserStats(username, adminToken) {
-    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const encUser = encodeURIComponent(username);
-    const base = `${dataPath}/users/${encUser}`;
-    let projectCount = 0, certCount = 0;
-    try {
-      const projFile = await GitHubAPI.getFileContent(owner, repo, `${base}/projects.json`, branch, adminToken);
-      if (projFile && projFile.content) {
-        const data = JSON.parse(projFile.content);
-        projectCount = Object.keys(data).length;
-      }
-      if (projectCount === 0 && username === window.APP_CONFIG.publicProfileEmail) {
-        const publicUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${base}/projects.json`;
-        const resp = await fetch(publicUrl);
-        if (resp.ok) {
-          const data = await resp.json();
-          projectCount = Object.keys(data).length;
-        }
-      }
-    } catch (e) {}
-    try {
-      const certFile = await GitHubAPI.getFileContent(owner, repo, `${base}/certificates.json`, branch, adminToken);
-      if (certFile && certFile.content) {
-        const data = JSON.parse(certFile.content);
-        certCount = data.length;
-      }
-      if (certCount === 0 && username === window.APP_CONFIG.publicProfileEmail) {
-        const publicUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${base}/certificates.json`;
-        const resp = await fetch(publicUrl);
-        if (resp.ok) {
-          const data = await resp.json();
-          certCount = data.length;
-        }
-      }
-    } catch (e) {}
-    return { projects: projectCount, certificates: certCount };
+
+  async getUserStats(email) {
+    const { data: profile } = await window.supabase
+      .from('profiles').select('id').eq('email', email).maybeSingle();
+    if (!profile) return { projects: 0, certificates: 0, timesheetEntries: 0 };
+
+    const [pRes, cRes, tRes] = await Promise.all([
+      window.supabase.from('projects').select('id', { count: 'exact', head: true }).eq('user_id', profile.id),
+      window.supabase.from('certificates').select('id', { count: 'exact', head: true }).eq('user_id', profile.id),
+      window.supabase.from('timesheet_entries').select('id', { count: 'exact', head: true }).eq('user_id', profile.id)
+    ]);
+
+    return {
+      projects: pRes.count || 0,
+      certificates: cRes.count || 0,
+      timesheetEntries: tRes.count || 0
+    };
+  },
+
+  async resetUserPassword(email) {
+    const { error } = await window.supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: location.origin + location.pathname.replace(/[^/]*$/, 'set-password.html')
+    });
+    if (error) throw new Error(error.message);
+    await window.Logger.logActivity('admin', 'reset_password', `Reset email sent to ${email}`);
+    return true;
   }
 };
 
+// ═══════════════════════════════════════════════════════════
+//  PORTFOLIO DATA
+// ═══════════════════════════════════════════════════════════
 window.portfolioData = (() => {
-  const PROJECTS_KEY = 'portfolioProjects';
-  const CERTS_KEY = 'portfolioCertificates';
 
-  async function verifyNotBlocked() {
+  async function loadProjects() {
     const user = window.SessionManager.getCurrentUser();
-    if (!user) return;
-    const blocked = await window.AccountManager.getBlockedUsers();
-    if (blocked.includes(user.username)) {
-      window.SessionManager.logout();
-      if (!window.location.pathname.includes('login.html')) window.location.href = 'login.html?blocked=1';
-      throw new Error('Blocked');
+    if (!user) return {};
+    const { data, error } = await window.supabase
+      .from('projects').select('*').eq('user_id', user.id)
+      .order('updated_at', { ascending: false });
+    if (error) throw error;
+    const out = {};
+    for (const p of data || []) {
+      out[p.id] = {
+        id: p.id,
+        title: p.title, shortDesc: p.short_desc, description: p.description,
+        client: p.client, industry: p.industry, status: p.status,
+        duration: p.duration, userRole: p.user_role, teamMembers: p.team_members,
+        projectCategory: p.project_category, controllerType: p.controller_type,
+        deltaVVersion: p.delta_v_version || p.deltaV_version,
+        projectType: p.project_type, cabinetCount: p.cabinet_count,
+        io: { AI: p.io_ai, AO: p.io_ao, DI: p.io_di, DO: p.io_do },
+        dates: p.dates || {}, team: p.team || {},
+        technical: p.technical || {}, workBreakdown: p.work_breakdown || {},
+        selectedImages: p.selected_images || [],
+        isPublic: p.is_public,
+        updatedAt: new Date(p.updated_at).getTime()
+      };
     }
+    return out;
   }
 
-  async function fetchPublicData(email, type) {
-    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const encUser = encodeURIComponent(email);
-    const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${dataPath}/users/${encUser}/${type}.json`;
-    try {
-      const resp = await fetch(rawUrl);
-      if (resp.ok) {
-        const data = await resp.json();
-        if (type === 'projects') return data;
-        if (type === 'certificates') return data;
-      }
-    } catch (e) {}
-    return type === 'projects' ? {} : [];
+  async function saveProjects(projects) {
+    const user = window.SessionManager.getCurrentUser();
+    if (!user) throw new Error('Not logged in');
+    const { data: existing, error: exErr } = await window.supabase
+      .from('projects').select('id').eq('user_id', user.id);
+    if (exErr) throw exErr;
+    const existingIds = new Set((existing || []).map(r => r.id));
+
+    for (const [id, p] of Object.entries(projects)) {
+      const row = {
+        id, user_id: user.id,
+        title: p.title || 'Untitled', short_desc: p.shortDesc || null,
+        description: p.description || null, client: p.client || null,
+        industry: p.industry || null, status: p.status || 'Ongoing',
+        duration: p.duration || null, user_role: p.userRole || null,
+        team_members: p.teamMembers || null,
+        project_category: p.projectCategory || null,
+        controller_type: p.controllerType || null,
+        deltaV_version: p.deltaVVersion || null,
+        project_type: p.projectType || null,
+        cabinet_count: p.cabinetCount || 0,
+        io_ai: p.io?.AI || 0, io_ao: p.io?.AO || 0,
+        io_di: p.io?.DI || 0, io_do: p.io?.DO || 0,
+        dates: p.dates || null, team: p.team || null,
+        technical: p.technical || null, work_breakdown: p.workBreakdown || null,
+        selected_images: p.selectedImages || [],
+        is_public: p.isPublic !== undefined ? p.isPublic : true
+      };
+      const { error } = await window.supabase.from('projects').upsert(row);
+      if (error) throw error;
+      existingIds.delete(id);
+    }
+    for (const goneId of existingIds) {
+      await window.supabase.from('projects').delete().eq('id', goneId);
+    }
+    await window.Logger.logActivity('project', 'save', `Saved ${Object.keys(projects).length} projects`);
   }
 
   async function loadProjectsForView() {
     const user = window.SessionManager.getCurrentUser();
-    if (user && user.pat) {
-      await verifyNotBlocked();
-      try {
-        const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-        const encUser = encodeURIComponent(user.username);
-        const path = `${dataPath}/users/${encUser}/projects.json`;
-        const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
-        if (file && file.content) {
-          return JSON.parse(file.content);
-        } else {
-          if (user.username === window.APP_CONFIG.publicProfileEmail) {
-            return await fetchPublicData(user.username, 'projects');
-          }
-          return {};
-        }
-      } catch (e) { return {}; }
+    if (user) return loadProjects();
+    const { data, error } = await window.supabase
+      .from('projects').select('*').eq('is_public', true)
+      .order('updated_at', { ascending: false });
+    if (error) return {};
+    const out = {};
+    for (const p of data || []) {
+      out[p.id] = {
+        id: p.id,
+        title: p.title, shortDesc: p.short_desc, description: p.description,
+        client: p.client, industry: p.industry, status: p.status,
+        duration: p.duration, userRole: p.user_role, teamMembers: p.team_members,
+        projectCategory: p.project_category, controllerType: p.controller_type,
+        deltaVVersion: p.delta_v_version, projectType: p.project_type,
+        cabinetCount: p.cabinet_count,
+        io: { AI: p.io_ai, AO: p.io_ao, DI: p.io_di, DO: p.io_do },
+        dates: p.dates || {}, team: p.team || {},
+        technical: p.technical || {}, workBreakdown: p.work_breakdown || {},
+        selectedImages: p.selected_images || [],
+        isPublic: p.is_public,
+        updatedAt: new Date(p.updated_at).getTime()
+      };
     }
-    const publicEmail = window.APP_CONFIG.publicProfileEmail;
-    if (publicEmail) return await fetchPublicData(publicEmail, 'projects');
-    return {};
-  }
-
-  async function loadCertificatesForView() {
-    const user = window.SessionManager.getCurrentUser();
-    if (user && user.pat) {
-      await verifyNotBlocked();
-      try {
-        const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-        const encUser = encodeURIComponent(user.username);
-        const path = `${dataPath}/users/${encUser}/certificates.json`;
-        const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
-        if (file && file.content) {
-          return JSON.parse(file.content);
-        } else {
-          if (user.username === window.APP_CONFIG.publicProfileEmail) {
-            return await fetchPublicData(user.username, 'certificates');
-          }
-          return [];
-        }
-      } catch (e) { return []; }
-    }
-    const publicEmail = window.APP_CONFIG.publicProfileEmail;
-    if (publicEmail) return await fetchPublicData(publicEmail, 'certificates');
-    return [];
-  }
-
-  async function loadProjects() {
-    const user = window.SessionManager.getCurrentUser();
-    if (user && user.pat) {
-      await verifyNotBlocked();
-      try {
-        const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-        const encUser = encodeURIComponent(user.username);
-        const path = `${dataPath}/users/${encUser}/projects.json`;
-        const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
-        if (file && file.content) {
-          const data = JSON.parse(file.content);
-          localStorage.setItem(PROJECTS_KEY, JSON.stringify(data));
-          return data;
-        } else {
-          if (user.username === window.APP_CONFIG.publicProfileEmail) {
-            const publicData = await fetchPublicData(user.username, 'projects');
-            if (Object.keys(publicData).length > 0) {
-              localStorage.setItem(PROJECTS_KEY, JSON.stringify(publicData));
-              return publicData;
-            }
-          }
-          const empty = {};
-          localStorage.setItem(PROJECTS_KEY, JSON.stringify(empty));
-          return empty;
-        }
-      } catch (e) {
-        if (e.message === 'Blocked') throw e;
-        return JSON.parse(localStorage.getItem(PROJECTS_KEY) || '{}');
-      }
-    }
-    const publicEmail = window.APP_CONFIG.publicProfileEmail;
-    if (!user && publicEmail) return await fetchPublicData(publicEmail, 'projects');
-    return JSON.parse(localStorage.getItem(PROJECTS_KEY) || '{}');
+    return out;
   }
 
   async function loadCertificates() {
     const user = window.SessionManager.getCurrentUser();
-    if (user && user.pat) {
-      await verifyNotBlocked();
-      try {
-        const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-        const encUser = encodeURIComponent(user.username);
-        const path = `${dataPath}/users/${encUser}/certificates.json`;
-        const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
-        if (file && file.content) {
-          const data = JSON.parse(file.content);
-          localStorage.setItem(CERTS_KEY, JSON.stringify(data));
-          return data;
-        } else {
-          if (user.username === window.APP_CONFIG.publicProfileEmail) {
-            const publicCerts = await fetchPublicData(user.username, 'certificates');
-            if (publicCerts.length > 0) {
-              localStorage.setItem(CERTS_KEY, JSON.stringify(publicCerts));
-              return publicCerts;
-            }
-          }
-          const empty = [];
-          localStorage.setItem(CERTS_KEY, JSON.stringify(empty));
-          return empty;
-        }
-      } catch (e) {
-        if (e.message === 'Blocked') throw e;
-        return JSON.parse(localStorage.getItem(CERTS_KEY) || '[]');
-      }
-    }
-    if (!user && window.APP_CONFIG.publicProfileEmail) return await fetchPublicData(window.APP_CONFIG.publicProfileEmail, 'certificates');
-    return JSON.parse(localStorage.getItem(CERTS_KEY) || '[]');
+    if (!user) return [];
+    const { data, error } = await window.supabase
+      .from('certificates').select('*').eq('user_id', user.id)
+      .order('date', { ascending: false });
+    if (error) throw error;
+    return (data || []).map(c => ({
+      id: c.id, title: c.title, issuer: c.issuer, date: c.date,
+      link: c.link, thumbnail: c.thumbnail,
+      updatedAt: new Date(c.updated_at).getTime()
+    }));
   }
 
-  async function saveProjects(data, forceEmpty = false) {
-    const prev = localStorage.getItem(PROJECTS_KEY);
-    if (!forceEmpty && prev) {
-      const previous = JSON.parse(prev);
-      if (Object.keys(previous).length > 0 && Object.keys(data).length === 0) {
-        throw new Error('Cannot delete all projects this way. Use "Delete All" button.');
-      }
-    }
-    for (const id in data) {
-      if (!data[id].updatedAt) data[id].updatedAt = Date.now();
-      if (data[id].blocked === undefined) data[id].blocked = false;
-    }
-    localStorage.setItem(PROJECTS_KEY, JSON.stringify(data));
+  async function saveCertificates(certs) {
     const user = window.SessionManager.getCurrentUser();
-    if (!user || !user.pat) return;
-    await verifyNotBlocked();
-    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const encUser = encodeURIComponent(user.username);
-    const path = `${dataPath}/users/${encUser}/projects.json`;
-    let retries = 3;
-    while (retries > 0) {
-      try {
-        let remoteData = {};
-        let sha = null;
-        try {
-          const remoteFile = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
-          if (remoteFile && remoteFile.sha) {
-            sha = remoteFile.sha;
-            if (remoteFile.content) remoteData = JSON.parse(remoteFile.content);
-          }
-        } catch(e) {}
-        const merged = { ...remoteData };
-        for (const [id, proj] of Object.entries(data)) {
-          if (!merged[id] || proj.updatedAt > (merged[id].updatedAt || 0)) {
-            merged[id] = proj;
-          }
-        }
-        for (const id of Object.keys(remoteData)) {
-          if (!data.hasOwnProperty(id)) {
-            delete merged[id];
-            await window.Logger.logActivity('project', 'delete_remote', `Deleted project ${id} from remote`);
-          }
-        }
-        let finalData = merged;
-        if (forceEmpty && Object.keys(data).length === 0) finalData = {};
-        await GitHubAPI.updateFile(owner, repo, path, finalData, 'Update projects', branch, user.pat, sha);
-        await window.Logger.logActivity('project', 'save', `Saved ${Object.keys(finalData).length} projects`);
-        return;
-      } catch (err) {
-        retries--;
-        if (retries === 0) {
-          if (prev) localStorage.setItem(PROJECTS_KEY, prev);
-          else localStorage.removeItem(PROJECTS_KEY);
-          throw new Error('GitHub write failed after retries: ' + err.message);
-        }
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
+    if (!user) throw new Error('Not logged in');
+    const { data: existing, error: exErr } = await window.supabase
+      .from('certificates').select('id').eq('user_id', user.id);
+    if (exErr) throw exErr;
+    const existingIds = new Set((existing || []).map(r => r.id));
+    for (const cert of certs) {
+      const row = {
+        id: cert.id || crypto.randomUUID(),
+        user_id: user.id,
+        title: cert.title || 'Certificate',
+        issuer: cert.issuer || null, date: cert.date || null,
+        link: cert.link || null, thumbnail: cert.thumbnail || null,
+        is_public: cert.isPublic !== undefined ? cert.isPublic : true
+      };
+      const { error } = await window.supabase.from('certificates').upsert(row);
+      if (error) throw error;
+      existingIds.delete(row.id);
     }
+    for (const goneId of existingIds) {
+      await window.supabase.from('certificates').delete().eq('id', goneId);
+    }
+    await window.Logger.logActivity('certificate', 'save', `Saved ${certs.length} certificates`);
   }
 
-  async function saveCertificates(data, forceEmpty = false) {
-    const prev = localStorage.getItem(CERTS_KEY);
-    if (!forceEmpty && prev) {
-      const previous = JSON.parse(prev);
-      if (previous.length > 0 && data.length === 0) {
-        throw new Error('Cannot delete all certificates this way. Use "Delete All" button.');
-      }
-    }
-    data = data.map(cert => { if (!cert.updatedAt) cert.updatedAt = Date.now(); return cert; });
-    localStorage.setItem(CERTS_KEY, JSON.stringify(data));
+  async function loadCertificatesForView() {
     const user = window.SessionManager.getCurrentUser();
-    if (!user || !user.pat) return;
-    await verifyNotBlocked();
-    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
-    const encUser = encodeURIComponent(user.username);
-    const path = `${dataPath}/users/${encUser}/certificates.json`;
-    let retries = 3;
-    while (retries > 0) {
-      try {
-        let remoteData = [];
-        let sha = null;
-        try {
-          const remoteFile = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
-          if (remoteFile && remoteFile.sha) {
-            sha = remoteFile.sha;
-            if (remoteFile.content) remoteData = JSON.parse(remoteFile.content);
-          }
-        } catch(e) {}
-        const mergedMap = new Map();
-        for (const cert of remoteData) mergedMap.set(cert.id, cert);
-        for (const cert of data) {
-          const existing = mergedMap.get(cert.id);
-          if (!existing || cert.updatedAt > existing.updatedAt) mergedMap.set(cert.id, cert);
-        }
-        const merged = Array.from(mergedMap.values());
-        let finalData = merged;
-        if (forceEmpty && data.length === 0) finalData = [];
-        await GitHubAPI.updateFile(owner, repo, path, finalData, 'Update certificates', branch, user.pat, sha);
-        await window.Logger.logActivity('certificate', 'save', `Saved ${finalData.length} certificates`);
-        return;
-      } catch (err) {
-        retries--;
-        if (retries === 0) {
-          if (prev) localStorage.setItem(CERTS_KEY, prev);
-          else localStorage.removeItem(CERTS_KEY);
-          throw new Error('GitHub write failed after retries: ' + err.message);
-        }
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
-    }
+    if (user) return loadCertificates();
+    const { data, error } = await window.supabase
+      .from('certificates').select('*').eq('is_public', true)
+      .order('date', { ascending: false });
+    if (error) return [];
+    return (data || []).map(c => ({
+      id: c.id, title: c.title, issuer: c.issuer, date: c.date,
+      link: c.link, thumbnail: c.thumbnail
+    }));
+  }
+
+  async function blockProject(projectId, block = true) {
+    const { error } = await window.supabase
+      .from('projects').update({ is_public: !block }).eq('id', projectId);
+    if (error) throw error;
+    await window.Logger.logActivity('project', 'block',
+      `${block ? 'Blocked' : 'Unblocked'} ${projectId}`);
+    return true;
   }
 
   function exportData() {
     Promise.all([loadProjects(), loadCertificates()]).then(([projects, certs]) => {
       const zip = new JSZip();
-      zip.file("projects.json", JSON.stringify(projects, null, 2));
-      zip.file("certificates.json", JSON.stringify(certs, null, 2));
-      zip.generateAsync({ type: "blob" }).then(blob => {
+      zip.file('projects.json', JSON.stringify(projects, null, 2));
+      zip.file('certificates.json', JSON.stringify(certs, null, 2));
+      zip.generateAsync({ type: 'blob' }).then(blob => {
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = `portfolio_data_${window.SessionManager.getCurrentUser()?.username || 'default'}.zip`;
+        a.download = `portfolio_data_${window.SessionManager.getCurrentUser()?.email || 'default'}.zip`;
         a.click();
-        window.Logger.logActivity('data', 'export', 'Exported data to ZIP');
       });
     });
-  }
-
-  async function blockProject(projectId, block = true) {
-    const projects = await loadProjects();
-    if (!projects[projectId]) throw new Error('Project not found');
-    projects[projectId].blocked = block;
-    projects[projectId].updatedAt = Date.now();
-    await saveProjects(projects);
-    await window.Logger.logActivity('project', 'block', `${block ? 'Blocked' : 'Unblocked'} project: ${projects[projectId].title}`);
-    return true;
   }
 
   return {
-    loadProjects, saveProjects, loadCertificates, saveCertificates, exportData,
+    loadProjects, saveProjects, loadCertificates, saveCertificates,
     loadProjectsForView, loadCertificatesForView,
-    blockProject
+    exportData, blockProject
   };
 })();
 
-window.lazyLoadImages = function() {
-  if ('IntersectionObserver' in window) {
-    const imgObserver = new IntersectionObserver((entries, observer) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          const img = entry.target;
-          const src = img.dataset.src;
-          if (src) {
-            img.src = src;
-            img.removeAttribute('data-src');
-          }
-          observer.unobserve(img);
-        }
-      });
-    });
-    document.querySelectorAll('img[data-src]').forEach(img => imgObserver.observe(img));
-  } else {
+// ═══════════════════════════════════════════════════════════
+//  IMAGE PROTECTION
+// ═══════════════════════════════════════════════════════════
+window.lazyLoadImages = function () {
+  if (!('IntersectionObserver' in window)) {
     document.querySelectorAll('img[data-src]').forEach(img => {
-      img.src = img.dataset.src;
-      img.removeAttribute('data-src');
+      img.src = img.dataset.src; img.removeAttribute('data-src');
     });
+    return;
   }
+  const obs = new IntersectionObserver((entries, observer) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const img = entry.target;
+        if (img.dataset.src) { img.src = img.dataset.src; img.removeAttribute('data-src'); }
+        observer.unobserve(img);
+      }
+    });
+  });
+  document.querySelectorAll('img[data-src]').forEach(img => obs.observe(img));
 };
 
-// ═══════════════════════════════════════════════════════════
-//  IMAGE PROTECTION — blocks right-click, drag, long-press save
-// ═══════════════════════════════════════════════════════════
 window.protectImages = function () {
   const selectors = '.project-img, .modal-carousel-img, .gallery-img, .cert-card img, .about-img';
   document.querySelectorAll(selectors).forEach(img => {
@@ -797,84 +537,77 @@ window.protectImages = function () {
     img.style.webkitTouchCallout = 'none';
     img.style.webkitUserSelect = 'none';
     img.style.userSelect = 'none';
-    img.style.msUserSelect = 'none';
-    img.style.pointerEvents = 'auto'; // allow normal clicks (admin open)
-
     if (!img.dataset.protected) {
       img.dataset.protected = '1';
       img.addEventListener('contextmenu', e => e.preventDefault());
       img.addEventListener('dragstart', e => e.preventDefault());
       img.addEventListener('selectstart', e => e.preventDefault());
-      img.addEventListener('mousedown', e => { if (e.button !== 0) e.preventDefault(); });
-      // Mobile: prevent long-press save sheet
       img.addEventListener('touchstart', e => {
-        // We don't stop the whole event (would break scroll),
-        // but we do disable the default touch-callout via CSS above.
-        // Extra safety: intercept long-press on the image itself
-        img._longPressTimer = setTimeout(() => {
-          try { e.preventDefault(); } catch (_) {}
-        }, 500);
+        img._longPressTimer = setTimeout(() => { try { e.preventDefault(); } catch (_) {} }, 500);
       }, { passive: true });
-      img.addEventListener('touchend', () => {
-        if (img._longPressTimer) { clearTimeout(img._longPressTimer); img._longPressTimer = null; }
-      });
-      img.addEventListener('touchmove', () => {
-        if (img._longPressTimer) { clearTimeout(img._longPressTimer); img._longPressTimer = null; }
-      });
+      img.addEventListener('touchend', () => { clearTimeout(img._longPressTimer); });
+      img.addEventListener('touchmove', () => { clearTimeout(img._longPressTimer); });
     }
   });
 };
-
-// Keep the old name working (some files may call protectGallery)
 window.protectGallery = window.protectImages;
 
+// ═══════════════════════════════════════════════════════════
+//  TOASTS
+// ═══════════════════════════════════════════════════════════
 function showToast(message, type = 'success') {
   let container = document.getElementById('toastContainer');
   if (!container) {
     container = document.createElement('div');
     container.id = 'toastContainer';
-    container.style.position = 'fixed';
-    container.style.bottom = '20px';
-    container.style.right = '20px';
-    container.style.zIndex = '1050';
+    container.style.cssText = 'position:fixed;bottom:20px;right:20px;z-index:1050;';
     document.body.appendChild(container);
   }
   const toastId = 'toast-' + Date.now();
-  const bgColor = type === 'success' ? '#28a745' : (type === 'error' ? '#dc3545' : '#17a2b8');
-  const html = `<div id="${toastId}" style="background: ${bgColor}; color: white; padding: 12px 20px; border-radius: 8px; margin-top: 10px; min-width: 200px; max-width: 90%; box-shadow: 0 2px 10px rgba(0,0,0,0.1); animation: fadeInOut 3s ease; font-size: 14px; word-break: break-word;">${message}</div>`;
-  container.insertAdjacentHTML('beforeend', html);
-  setTimeout(() => { const toast = document.getElementById(toastId); if (toast) toast.remove(); }, 3000);
+  const bgColor = type === 'success' ? '#28a745'
+                : type === 'error'   ? '#dc3545'
+                : type === 'warning' ? '#ffc107'
+                : '#17a2b8';
+  container.insertAdjacentHTML('beforeend', `
+    <div id="${toastId}" style="background:${bgColor};color:white;padding:12px 20px;border-radius:8px;margin-top:10px;min-width:200px;max-width:90%;box-shadow:0 2px 10px rgba(0,0,0,0.1);animation:fadeInOut 3s ease;font-size:14px;word-break:break-word;">${message}</div>
+  `);
+  setTimeout(() => {
+    const t = document.getElementById(toastId);
+    if (t) t.remove();
+  }, 3000);
 }
+window.showToast = showToast;
 
+// ═══════════════════════════════════════════════════════════
+//  QR CODE HELPER
+// ═══════════════════════════════════════════════════════════
 async function generateQRCodeDataURL(text, size = 50) {
   return new Promise((resolve) => {
     if (typeof QRCode === 'undefined') { resolve(null); return; }
     const container = document.createElement('div');
     try {
-      new QRCode(container, { text, width: size, height: size, colorDark: "#000000", colorLight: "#ffffff", correctLevel: QRCode.CorrectLevel.L });
+      new QRCode(container, {
+        text, width: size, height: size,
+        colorDark: '#000000', colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.L
+      });
       setTimeout(() => {
         const canvas = container.querySelector('canvas');
         resolve(canvas ? canvas.toDataURL('image/png') : null);
       }, 100);
-    } catch (err) { resolve(null); }
+    } catch (e) { resolve(null); }
   });
 }
 
-// ─────────────────────────────────────────────────────────────
-// Project report — EXCEL DOSSIER (with access guard)
-// ─────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════
+//  EXCEL PROJECT REPORT (FULL — nothing omitted)
+// ═══════════════════════════════════════════════════════════
 window.generateProjectReport = async function (projectId) {
-  // ── ACCESS GUARD: only admin (or public when flag enabled) ──
   if (!window.canDownloadExcel()) {
-    if (typeof showToast === 'function') {
-      showToast('Excel reports are locked for now — they’ll be available soon.', 'info');
-    } else {
-      alert('Excel reports are currently locked.');
-    }
+    showToast('Excel reports are locked for now — they’ll be available soon.', 'info');
     return;
   }
 
-  // ── Dynamically ensure ExcelJS + FileSaver are present ──
   if (typeof ExcelJS === 'undefined') {
     await new Promise((res, rej) => {
       const s = document.createElement('script');
@@ -902,7 +635,6 @@ window.generateProjectReport = async function (projectId) {
   const isDeltaV = proj.projectCategory === 'deltaV' || proj.controllerType;
   let selectedImages = proj.selectedImages || [];
 
-  // ── Image selection modal ─────────────────────────────────
   if (selectedImages.length > 0) {
     const imageOptions = selectedImages.map((img, idx) => `
       <div style="display:flex;align-items:center;margin-bottom:12px;padding:10px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;gap:12px;">
@@ -1075,10 +807,9 @@ window.generateProjectReport = async function (projectId) {
     footerCell.font = { size: 9, italic: true, color: { argb: 'FF6B7D8F' } };
     footerCell.alignment = { horizontal: 'center' };
 
-    // ═══ SHEET 2 — EXECUTIVE SUMMARY & METRICS ═══
+    // ═══ SHEET 2 — SUMMARY & METRICS ═══
     const summary = workbook.addWorksheet('Summary & Metrics', {
-      pageSetup: { orientation: 'portrait', fitToPage: true, fitToWidth: 1, paperSize: 9,
-        margins: { left: 0.5, right: 0.5, top: 0.6, bottom: 0.6, header: 0.3, footer: 0.3 } }
+      pageSetup: { orientation: 'portrait', fitToPage: true, fitToWidth: 1, paperSize: 9 }
     });
     summary.columns = [{ width: 4 }, { width: 28 }, { width: 26 }, { width: 26 }, { width: 4 }];
 
@@ -1160,8 +891,7 @@ window.generateProjectReport = async function (projectId) {
 
     // ═══ SHEET 3 — TECHNICAL DETAILS ═══
     const tech = workbook.addWorksheet('Technical Details', {
-      pageSetup: { orientation: 'portrait', fitToPage: true, fitToWidth: 1, paperSize: 9,
-        margins: { left: 0.5, right: 0.5, top: 0.6, bottom: 0.6, header: 0.3, footer: 0.3 } }
+      pageSetup: { orientation: 'portrait', fitToPage: true, fitToWidth: 1, paperSize: 9 }
     });
     tech.columns = [{ width: 4 }, { width: 28 }, { width: 26 }, { width: 26 }, { width: 4 }];
 
@@ -1311,8 +1041,7 @@ window.generateProjectReport = async function (projectId) {
 
     // ═══ SHEET 4 — WORK BREAKDOWN ═══
     const wbSheet = workbook.addWorksheet('Work Breakdown', {
-      pageSetup: { orientation: 'portrait', fitToPage: true, fitToWidth: 1, paperSize: 9,
-        margins: { left: 0.5, right: 0.5, top: 0.6, bottom: 0.6, header: 0.3, footer: 0.3 } }
+      pageSetup: { orientation: 'portrait', fitToPage: true, fitToWidth: 1, paperSize: 9 }
     });
     wbSheet.columns = [{ width: 4 }, { width: 28 }, { width: 60 }, { width: 4 }];
 
@@ -1363,8 +1092,7 @@ window.generateProjectReport = async function (projectId) {
     // ═══ SHEET 5 — GALLERY ═══
     if (selectedImages.length > 0) {
       const gallery = workbook.addWorksheet('Gallery', {
-        pageSetup: { orientation: 'portrait', fitToPage: true, fitToWidth: 1, paperSize: 9,
-          margins: { left: 0.5, right: 0.5, top: 0.6, bottom: 0.6, header: 0.3, footer: 0.3 } }
+        pageSetup: { orientation: 'portrait', fitToPage: true, fitToWidth: 1, paperSize: 9 }
       });
       gallery.columns = [{ width: 4 }, { width: 6 }, { width: 22 }, { width: 44 }, { width: 4 }];
 
@@ -1430,9 +1158,7 @@ window.generateProjectReport = async function (projectId) {
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const safeName = (proj.title || 'project').replace(/[^a-z0-9]/gi, '_').toLowerCase();
     saveAs(blob, `${safeName}_report_${new Date().toISOString().slice(0, 10)}.xlsx`);
-
-    if (typeof showToast === 'function') showToast('Excel report generated successfully!', 'success');
-    else alert('Excel report generated successfully!');
+    showToast('Excel report generated successfully!', 'success');
   } catch (err) {
     console.error('Excel generation failed:', err);
     alert('Excel generation failed: ' + err.message);
