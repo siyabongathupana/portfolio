@@ -9,8 +9,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
  <link rel="stylesheet" href="theme-dark.css" id="theme-dark-css">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="supabase.js"></script>
 <script>
 (function(){
   try {
@@ -32,6 +30,8 @@
 })();
 </script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   <script src="config.js"></script>
   <script src="crypto.js"></script>
@@ -234,7 +234,7 @@
       html += `
         <div class="text-center mb-5">
           <a href="projects.html" class="btn btn-outline-delta"><i class="fa fa-arrow-left"></i> Back to Projects</a>
-          <button class="btn btn-delta ml-2" onclick="window.generateProjectReport('${projectId}')"><i class="fa fa-file-excel-o"></i> Download Excel Report</button>
+          <button class="btn btn-delta ml-2" onclick="generateProjectPDF('${projectId}')"><i class="fa fa-file-pdf-o"></i> Download PDF Report</button>
         </div>
       </div>`;
       
@@ -247,6 +247,10 @@
     } finally {
       window.hideLoading();
     }
+  }
+  
+  async function generateProjectPDF(projectId) {
+    await window.generateProjectReport(projectId);
   }
   
   window.onload = function() {

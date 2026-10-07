@@ -1,20 +1,22 @@
-// shared.js – Supabase edition (clean, no GitHub remnants)
+// shared.js – Complete version with fixed project deletion, enhanced logging, full PDF generation (no analytics, no dark mode)
 
-// ═══════════════════════════════════════════════════════════
-//  LOADING OVERLAY
-// ═══════════════════════════════════════════════════════════
 window.showLoading = function (msg = 'Processing...') {
   let loader = document.getElementById('globalLoader');
   if (!loader) {
     loader = document.createElement('div');
     loader.id = 'globalLoader';
-    loader.innerHTML = `<div class="loader-overlay"><div class="loader-spinner"></div><p class="loader-text">${msg}</p></div>`;
+    loader.innerHTML = `
+      <div class="loader-overlay">
+        <div class="loader-spinner"></div>
+        <p class="loader-text">${msg}</p>
+      </div>`;
     document.body.appendChild(loader);
   } else {
     loader.querySelector('.loader-text').textContent = msg;
     loader.style.display = 'flex';
   }
 };
+
 window.hideLoading = function () {
   const loader = document.getElementById('globalLoader');
   if (loader) loader.style.display = 'none';
@@ -22,122 +24,223 @@ window.hideLoading = function () {
 
 window.escapeHtml = function (str) {
   if (!str) return '';
-  return String(str).replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m] || m);
+  return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m] || m);
 };
 
-// ═══════════════════════════════════════════════════════════
-//  EXCEL ACCESS
-// ═══════════════════════════════════════════════════════════
-window.canDownloadExcel = function () {
-  try {
-    const isAdmin = window.SessionManager?.isAdmin?.() === true;
-    const publicAllowed = window.APP_CONFIG?.excelReportEnabled === true;
-    return isAdmin || publicAllowed;
-  } catch (e) { return false; }
-};
+window.SessionManager = (() => {
+  let current = null;
+  return {
+    getCurrentUser: () => {
+      if (current) return current;
+      const stored = sessionStorage.getItem('portfolioUser');
+      if (stored) {
+        try { 
+          current = JSON.parse(stored);
+          if (current.timestamp && Date.now() - current.timestamp > 24 * 60 * 60 * 1000) {
+            sessionStorage.removeItem('portfolioUser');
+            current = null;
+          }
+        } catch(e) { current = null; }
+      }
+      return current;
+    },
+    setCurrentUser: (username, pat) => {
+      current = { username, pat, timestamp: Date.now() };
+      sessionStorage.setItem('portfolioUser', JSON.stringify(current));
+      window.Logger.log('login', `User logged in as ${username}`, 'INFO');
+    },
+    logout: () => {
+      current = null;
+      sessionStorage.removeItem('portfolioUser');
+    },
+    isAdmin: () => {
+      const user = window.SessionManager.getCurrentUser();
+      return user && window.APP_CONFIG.adminUsers && window.APP_CONFIG.adminUsers.includes(user.username);
+    }
+  };
+})();
 
-// ═══════════════════════════════════════════════════════════
-//  SESSION MANAGER (wraps Supabase Auth)
-// ═══════════════════════════════════════════════════════════
-window.SessionManager = {
-  getCurrentUser: () => {
-    const u = window.__currentAuthUser || null;
-    if (!u) return null;
-    return {
-      id: u.id,
-      username: u.email,
-      email: u.email,
-      fullName: u.user_metadata?.full_name || u.email.split('@')[0]
-    };
-  },
-  getCurrentUserId: () => window.__currentAuthUser?.id || null,
-  isAdmin: () => {
-    const u = window.__currentAuthUser;
-    if (!u) return false;
-    const admins = window.APP_CONFIG?.adminUsers || [];
-    return admins.includes(u.email);
-  },
-  logout: async () => {
-    try { await window.supabase.auth.signOut(); } catch (e) {}
-    window.__currentAuthUser = null;
-  }
-};
-
-// ═══════════════════════════════════════════════════════════
-//  LOGGER (activity_logs table)
-// ═══════════════════════════════════════════════════════════
+// Enhanced Logger
 window.Logger = {
+  async _writeTextFile(path, content, commitMsg, branch, token, sha = null) {
+    const { owner, repo } = window.REPO_CONFIG;
+    const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
+    const body = {
+      message: commitMsg,
+      content: btoa(unescape(encodeURIComponent(content))),
+      branch: branch
+    };
+    if (sha) body.sha = sha;
+    const resp = await fetch(url, {
+      method: 'PUT',
+      headers: {
+        Authorization: `token ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+    if (!resp.ok) {
+      const err = await resp.json();
+      throw new Error(`Failed to write log: ${err.message}`);
+    }
+    return resp.json();
+  },
+
   async log(action, details, level = 'INFO') {
     const user = window.SessionManager.getCurrentUser();
     if (!user) return;
+    
+    const timestamp = new Date().toISOString().replace('T', ' ').slice(0, 19);
+    const logEntry = JSON.stringify({
+      timestamp,
+      level,
+      action,
+      details,
+      user: user.username,
+      userAgent: navigator.userAgent,
+      page: window.location.pathname
+    }) + '\n';
+    
+    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+    const encUser = encodeURIComponent(user.username);
+    const logPath = `${dataPath}/users/${encUser}/logs/activity.ndjson`;
+    
+    let existingContent = '';
+    let sha = null;
     try {
-      await window.supabase.from('activity_logs').insert({
-        user_id: user.id, action, details,
-        page: window.location.pathname,
-        user_agent: navigator.userAgent
-      });
-    } catch (e) { console.warn('Log failed:', e); }
-  },
-  async logActivity(module, action, details, metadata = {}) {
-    const extra = Object.keys(metadata).length ? ' ' + JSON.stringify(metadata) : '';
-    await this.log(`${module}_${action}`, `${module}: ${action} - ${details}${extra}`);
-  },
-  async getLogsForUser(targetUserId) {
-    const { data, error } = await window.supabase
-      .from('activity_logs').select('*').eq('user_id', targetUserId)
-      .order('created_at', { ascending: false }).limit(500);
-    if (error) return 'Unable to retrieve logs.';
-    if (!data?.length) return 'No logs found for this user.';
-    return data.map(l => `[${l.created_at}] [${l.action}] ${l.details || ''}`).join('\n');
-  },
-  async getAllUserLogs() {
-    const { data, error } = await window.supabase
-      .from('activity_logs').select('*, profiles:user_id(email)')
-      .order('created_at', { ascending: false }).limit(2000);
-    if (error || !data) return {};
-    const grouped = {};
-    for (const row of data) {
-      const email = row.profiles?.email || row.user_id;
-      (grouped[email] = grouped[email] || []).push(`[${row.created_at}] [${row.action}] ${row.details || ''}`);
+      const url = `https://api.github.com/repos/${owner}/${repo}/contents/${logPath}?ref=${branch}`;
+      const resp = await fetch(url, { headers: { Authorization: `token ${user.pat}` } });
+      if (resp.ok) {
+        const data = await resp.json();
+        sha = data.sha;
+        existingContent = atob(data.content.replace(/\n/g, ''));
+      }
+    } catch (e) {}
+    
+    const newContent = logEntry + existingContent;
+    try {
+      await this._writeTextFile(logPath, newContent, `Log: ${action}`, branch, user.pat, sha);
+    } catch (err) {
+      console.error('Failed to write log:', err);
     }
-    const out = {};
-    for (const [email, lines] of Object.entries(grouped)) out[email] = lines.join('\n');
-    return out;
+  },
+  
+  async logActivity(module, action, details, metadata = {}) {
+    const fullDetails = `${module}: ${action} - ${details} ${Object.keys(metadata).length ? JSON.stringify(metadata) : ''}`;
+    await this.log(`${module}_${action}`, fullDetails);
+  },
+  
+  async getLogsForUser(targetUsername, adminToken) {
+    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+    const encUser = encodeURIComponent(targetUsername);
+    const logPath = `${dataPath}/users/${encUser}/logs/activity.ndjson`;
+    try {
+      const url = `https://api.github.com/repos/${owner}/${repo}/contents/${logPath}?ref=${branch}`;
+      const resp = await fetch(url, { headers: { Authorization: `token ${adminToken}` } });
+      if (resp.ok) {
+        const data = await resp.json();
+        const content = atob(data.content.replace(/\n/g, ''));
+        const entries = content.trim().split('\n').filter(l => l.trim()).map(l => {
+          try {
+            const obj = JSON.parse(l);
+            return `[${obj.timestamp}] [${obj.level}] [${obj.action}] ${obj.details} (${obj.userAgent?.substring(0, 50)}...)`;
+          } catch(e) { return l; }
+        });
+        return entries.join('\n');
+      }
+      return 'No logs found for this user.';
+    } catch (e) {
+      return 'Unable to retrieve logs.';
+    }
+  },
+  
+  async getAllUserLogs(adminToken) {
+    const usernames = await window.AccountManager.listUsers(adminToken);
+    const allLogs = {};
+    for (const username of usernames) {
+      allLogs[username] = await this.getLogsForUser(username, adminToken);
+    }
+    return allLogs;
   }
 };
 
-// ═══════════════════════════════════════════════════════════
-//  FOOTER
-// ═══════════════════════════════════════════════════════════
 window.updateUserFooter = function () {
+  const user = window.SessionManager.getCurrentUser();
   const el = document.getElementById('userFooterStatus');
   if (!el) return;
-  const render = () => {
-    const user = window.SessionManager.getCurrentUser();
-    if (user) {
-      el.innerHTML = `Logged in as: <strong>${window.escapeHtml(user.email)}</strong>
-        | <a href="admin.html" style="color:#2fc7ff;">Dashboard</a>
-        | <a href="#" id="logoutFromFooter" style="color:#ff6b6b;">Logout</a>`;
-      const btn = document.getElementById('logoutFromFooter');
-      if (btn) btn.addEventListener('click', async (e) => {
+  if (user) {
+    el.innerHTML = `Logged in as: <strong>${window.escapeHtml(user.username)}</strong> | <a href="admin.html" style="color:#2fc7ff;">Dashboard</a> | <a href="#" id="logoutFromFooter" style="color:#ff6b6b;">Logout</a>`;
+    const logoutBtn = document.getElementById('logoutFromFooter');
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        await window.Logger.log('logout', 'User logged out');
-        await window.SessionManager.logout();
-        location.href = 'index.html';
+        window.Logger.log('logout', 'User logged out');
+        window.SessionManager.logout();
+        window.location.reload();
       });
-    } else {
-      el.innerHTML = `Visitor – viewing portfolio of <strong>${window.APP_CONFIG.publicProfileEmail}</strong>
-        | <a href="login.html" style="color:#2fc7ff;">Login</a>`;
     }
-  };
-  if (window.__currentAuthUser !== undefined) render();
-  else window.authReady.then(render);
+  } else {
+    el.innerHTML = `Visitor – viewing portfolio of <strong>${window.APP_CONFIG.publicProfileEmail}</strong> | <a href="login.html" style="color:#2fc7ff;">Login</a>`;
+  }
 };
 
-// ═══════════════════════════════════════════════════════════
-//  IMAGE COMPRESSION
-// ═══════════════════════════════════════════════════════════
-window.compressImage = function (file, maxW = 1600, maxH = 1600, quality = 0.85) {
+window.uploadImageToGitHub = async function(file, user, folder = 'images') {
+  const compressedDataUrl = await window.compressImage(file, 1600, 1600, 0.85);
+  const blob = await (await fetch(compressedDataUrl)).blob();
+  const fileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+  const path = `${window.REPO_CONFIG.dataPath}/users/${encodeURIComponent(user.username)}/${folder}/${fileName}`;
+  const content = await new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1]);
+    reader.readAsDataURL(blob);
+  });
+  const url = `https://api.github.com/repos/${window.REPO_CONFIG.owner}/${window.REPO_CONFIG.repo}/contents/${path}`;
+  const body = {
+    message: `Upload image ${fileName}`,
+    content: content,
+    branch: window.REPO_CONFIG.branch
+  };
+  const resp = await fetch(url, {
+    method: 'PUT',
+    headers: {
+      Authorization: `token ${user.pat}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(body)
+  });
+  if (!resp.ok) throw new Error('Image upload failed');
+  const data = await resp.json();
+  await window.Logger.logActivity('image', 'upload', `Uploaded ${fileName} to ${folder}`, { size: blob.size });
+  return data.content.download_url;
+};
+
+window.deleteImageFromGitHub = async function(imageUrl, user) {
+  try {
+    const parts = imageUrl.split('/');
+    const path = parts.slice(parts.indexOf('data')).join('/');
+    const url = `https://api.github.com/repos/${window.REPO_CONFIG.owner}/${window.REPO_CONFIG.repo}/contents/${path}`;
+    const getResp = await fetch(url, {
+      headers: { Authorization: `token ${user.pat}` }
+    });
+    if (!getResp.ok) return;
+    const fileData = await getResp.json();
+    const deleteResp = await fetch(url, {
+      method: 'DELETE',
+      headers: { Authorization: `token ${user.pat}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: 'Delete image',
+        sha: fileData.sha,
+        branch: window.REPO_CONFIG.branch
+      })
+    });
+    if (!deleteResp.ok) throw new Error('Failed to delete image');
+    await window.Logger.logActivity('image', 'delete', `Deleted ${path}`);
+  } catch (e) {
+    console.warn('Could not delete image:', e);
+  }
+};
+
+window.compressImage = function(file, maxW = 1600, maxH = 1600, quality = 0.85) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = e => {
@@ -145,10 +248,15 @@ window.compressImage = function (file, maxW = 1600, maxH = 1600, quality = 0.85)
       img.onload = () => {
         let { width, height } = img;
         const ratio = Math.min(maxW / width, maxH / height);
-        if (ratio < 1) { width = Math.round(width * ratio); height = Math.round(height * ratio); }
+        if (ratio < 1) {
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
         const canvas = document.createElement('canvas');
-        canvas.width = width; canvas.height = height;
-        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
         resolve(canvas.toDataURL('image/jpeg', quality));
       };
       img.onerror = reject;
@@ -159,990 +267,684 @@ window.compressImage = function (file, maxW = 1600, maxH = 1600, quality = 0.85)
   });
 };
 
-// ═══════════════════════════════════════════════════════════
-//  IMAGE UPLOAD / DELETE (Supabase Storage)
-// ═══════════════════════════════════════════════════════════
-window.uploadImage = async function (file, bucket = 'project-images') {
-  const user = window.SessionManager.getCurrentUser();
-  if (!user) throw new Error('Not logged in');
-  const dataUrl = await window.compressImage(file, 1600, 1600, 0.85);
-  const blob = await (await fetch(dataUrl)).blob();
-  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-  const path = `${user.id}/${Date.now()}_${safeName}`;
-  const { data, error } = await window.supabase.storage
-    .from(bucket).upload(path, blob, { contentType: 'image/jpeg', upsert: false });
-  if (error) throw error;
-  const { data: signed, error: signErr } = await window.supabase.storage
-    .from(bucket).createSignedUrl(data.path, 60 * 60 * 24 * 365);
-  if (signErr) throw signErr;
-  await window.Logger.logActivity('image', 'upload', `Uploaded ${path}`);
-  return signed.signedUrl;
-};
-// Legacy aliases (kept so old pages don't break)
-window.uploadImageToGitHub = window.uploadImage;
-
-window.deleteImage = async function (imageUrl, bucket) {
-  if (!imageUrl) return;
-  try {
-    let resolvedBucket = bucket;
-    let path = null;
-    const m = imageUrl.match(/\/storage\/v1\/object\/(?:sign|public)\/([^/]+)\/([^?]+)/);
-    if (m) { resolvedBucket = resolvedBucket || m[1]; path = decodeURIComponent(m[2]); }
-    if (!resolvedBucket || !path) return;
-    const { error } = await window.supabase.storage.from(resolvedBucket).remove([path]);
-    if (error) throw error;
-    await window.Logger.logActivity('image', 'delete', `Deleted ${resolvedBucket}/${path}`);
-  } catch (e) { console.warn('Could not delete image:', e); }
-};
-window.deleteImageFromGitHub = window.deleteImage;
-
-// ═══════════════════════════════════════════════════════════
-//  ACCOUNT MANAGER (Supabase — no tokens, email-only)
-// ═══════════════════════════════════════════════════════════
 window.AccountManager = {
+  async _ensureEmailJS() {
+    if (typeof emailjs === 'undefined') {
+      await new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js';
+        script.onload = resolve;
+        script.onerror = reject;
+        document.head.appendChild(script);
+      });
+      emailjs.init(window.APP_CONFIG.emailjs.publicKey);
+    }
+  },
+  async _sendEmail(templateID, params) {
+    await this._ensureEmailJS();
+    return emailjs.send(window.APP_CONFIG.emailjs.serviceID, templateID, params);
+  },
+  async _notifyAdminNewUser(userEmail) {
+    const cfg = window.APP_CONFIG.emailjs;
+    if (!cfg || !cfg.publicKey || !cfg.adminTemplateID) return;
+    try {
+      await this._sendEmail(cfg.adminTemplateID, {
+        to_email: cfg.adminEmail,
+        subject: `New user: ${userEmail}`,
+        message: `New account created: ${userEmail}`
+      });
+    } catch (e) { console.warn('Admin email failed', e); }
+  },
+  async _notifyUserConfirmation(userEmail) {
+    const cfg = window.APP_CONFIG.emailjs;
+    if (!cfg || !cfg.publicKey || !cfg.userTemplateID) return;
+    try {
+      await this._sendEmail(cfg.userTemplateID, {
+        to_email: userEmail,
+        subject: 'Welcome to Your Portfolio',
+        message: `Your account (${userEmail}) has been created. You can now log in and manage your portfolio.`
+      });
+    } catch (e) { console.warn('User email failed', e); }
+  },
+  async fetchAccount(username) {
+    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+    const encUser = encodeURIComponent(username);
+    const url = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${dataPath}/users/${encUser}/account.json`;
+    try {
+      const resp = await fetch(url);
+      if (!resp.ok) return null;
+      return await resp.json();
+    } catch { return null; }
+  },
+  
   async isEmailVerified(email) {
-    const { data, error } = await window.supabase
-      .from('profiles').select('id').eq('email', email).maybeSingle();
-    return !error && !!data;
+    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+    const encUser = encodeURIComponent(email);
+    const globalUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/data/verified_users.json`;
+    try {
+      const resp = await fetch(globalUrl);
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data.verified && data.verified.includes(email)) return true;
+      }
+    } catch (err) {}
+    const userUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${dataPath}/users/${encUser}/verified.json`;
+    try {
+      const resp = await fetch(userUrl);
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data.verified === true) return true;
+      }
+    } catch (err) {}
+    return false;
   },
-
-  // No token parameter anymore
-  async listUsers() {
-    const { data, error } = await window.supabase
-      .from('profiles')
-      .select('id, email, full_name, role, permissions, banned, created_at')
-      .order('created_at', { ascending: false });
-    if (error) throw new Error(error.message);
-    return data || [];
+  
+  async register(username, passphrase, pat) {
+    const payload = JSON.stringify({ test: 'VALID', token: pat });
+    const encrypted = await window.CryptoUtil.encrypt(payload, passphrase);
+    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+    const encUser = encodeURIComponent(username);
+    const path = `${dataPath}/users/${encUser}/account.json`;
+    const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, pat).catch(() => null);
+    if (existing && existing.sha) throw new Error('An account with this email already exists on GitHub.');
+    await GitHubAPI.updateFile(owner, repo, path, encrypted, `Register ${username}`, branch, pat, existing?.sha);
+    const verificationStatus = { verified: false, createdAt: Date.now() };
+    const verificationPath = `${dataPath}/users/${encUser}/verified.json`;
+    try {
+      await GitHubAPI.updateFile(owner, repo, verificationPath, verificationStatus, `Create verification status for ${username}`, branch, pat);
+    } catch (err) {}
+    this._notifyAdminNewUser(username);
+    this._notifyUserConfirmation(username);
+    await window.Logger.logActivity('account', 'register', `New user registered: ${username}`, { email: username });
+    return true;
   },
-
+  async login(username, passphrase) {
+    const blocked = await this.getBlockedUsers();
+    if (blocked.includes(username)) throw new Error('Your account has been blocked. Contact the administrator.');
+    const blob = await this.fetchAccount(username);
+    if (!blob) throw new Error('User not found');
+    const decrypted = await window.CryptoUtil.decrypt(blob, passphrase);
+    const data = JSON.parse(decrypted);
+    if (data.test !== 'VALID') throw new Error('Corrupted account');
+    await window.Logger.logActivity('account', 'login', `User logged in: ${username}`);
+    return data.token;
+  },
   async getBlockedUsers() {
-    const { data, error } = await window.supabase
-      .from('profiles').select('email').eq('banned', true);
-    if (error) return [];
-    return (data || []).map(r => r.email);
+    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+    const url = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${dataPath}/blocked_users.json`;
+    try {
+      const resp = await fetch(url);
+      if (!resp.ok) return [];
+      return await resp.json();
+    } catch { return []; }
   },
-
-  async toggleBlock(email, block) {
-    const { error } = await window.supabase
-      .from('profiles').update({ banned: !!block }).eq('email', email);
-    if (error) throw new Error(error.message);
-    await window.Logger.logActivity('admin', 'toggle_block',
-      `${block ? 'Blocked' : 'Unblocked'} ${email}`);
+  async toggleBlock(username, block, adminToken) {
+    const blocked = await this.getBlockedUsers();
+    if (block) { if (!blocked.includes(username)) blocked.push(username); }
+    else { const idx = blocked.indexOf(username); if (idx !== -1) blocked.splice(idx, 1); }
+    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+    const path = `${dataPath}/blocked_users.json`;
+    let sha = null;
+    const existing = await GitHubAPI.getFileContent(owner, repo, path, branch, adminToken).catch(() => null);
+    if (existing && existing.sha) sha = existing.sha;
+    await GitHubAPI.updateFile(owner, repo, path, blocked, 'Update blocked users', branch, adminToken, sha);
+    await window.Logger.logActivity('admin', 'toggle_block', `${block ? 'Blocked' : 'Unblocked'} user ${username}`);
     return true;
   },
-
-  async deleteUser(email) {
-    // Soft delete: mark banned + deleted flag. Real auth deletion requires
-    // an Edge Function with the service_role key.
-    const { error } = await window.supabase
-      .from('profiles').update({ banned: true, deleted: true }).eq('email', email);
-    if (error) throw new Error(error.message);
-    await window.Logger.logActivity('admin', 'user_delete', `Deleted ${email}`);
-    return true;
-  },
-
-  async getUserStats(email) {
-    const { data: profile } = await window.supabase
-      .from('profiles').select('id').eq('email', email).maybeSingle();
-    if (!profile) return { projects: 0, certificates: 0, timesheetEntries: 0 };
-    const [pRes, cRes, tRes] = await Promise.all([
-      window.supabase.from('projects').select('id', { count: 'exact', head: true }).eq('user_id', profile.id),
-      window.supabase.from('certificates').select('id', { count: 'exact', head: true }).eq('user_id', profile.id),
-      window.supabase.from('timesheet_entries').select('id', { count: 'exact', head: true }).eq('user_id', profile.id)
-    ]);
-    return {
-      projects: pRes.count || 0,
-      certificates: cRes.count || 0,
-      timesheetEntries: tRes.count || 0
-    };
-  },
-
-  async resetUserPassword(email) {
-    const { error } = await window.supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: location.origin + location.pathname.replace(/[^/]*$/, 'set-password.html')
+  async listUsers(adminToken) {
+    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+    const url = `https://api.github.com/repos/${owner}/${repo}/contents/${dataPath}/users?ref=${branch}`;
+    const resp = await fetch(url, {
+      headers: { 'Authorization': `token ${adminToken}`, 'Accept': 'application/vnd.github.v3+json' }
     });
-    if (error) throw new Error(error.message);
-    await window.Logger.logActivity('admin', 'reset_password', `Reset email sent to ${email}`);
+    if (!resp.ok) throw new Error('Cannot list users');
+    const items = await resp.json();
+    return items.filter(i => i.type === 'dir').map(i => i.name);
+  },
+  async deleteUser(username, adminToken) {
+    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+    const encUser = encodeURIComponent(username);
+    const dirPath = `${dataPath}/users/${encUser}`;
+    const url = `https://api.github.com/repos/${owner}/${repo}/contents/${dirPath}?ref=${branch}`;
+    const resp = await fetch(url, {
+      headers: { 'Authorization': `token ${adminToken}`, 'Accept': 'application/vnd.github.v3+json' }
+    });
+    if (!resp.ok) throw new Error('User folder not found');
+    const items = await resp.json();
+    for (const item of items) {
+      await GitHubAPI.deleteFile(owner, repo, item.path, branch, adminToken, item.sha);
+    }
+    await window.Logger.logActivity('admin', 'delete_user', `Deleted user ${username}`);
     return true;
+  },
+  async getUserStats(username, adminToken) {
+    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+    const encUser = encodeURIComponent(username);
+    const base = `${dataPath}/users/${encUser}`;
+    let projectCount = 0, certCount = 0;
+    try {
+      const projFile = await GitHubAPI.getFileContent(owner, repo, `${base}/projects.json`, branch, adminToken);
+      if (projFile && projFile.content) {
+        const data = JSON.parse(projFile.content);
+        projectCount = Object.keys(data).length;
+      }
+      if (projectCount === 0 && username === window.APP_CONFIG.publicProfileEmail) {
+        const publicUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${base}/projects.json`;
+        const resp = await fetch(publicUrl);
+        if (resp.ok) {
+          const data = await resp.json();
+          projectCount = Object.keys(data).length;
+        }
+      }
+    } catch (e) {}
+    try {
+      const certFile = await GitHubAPI.getFileContent(owner, repo, `${base}/certificates.json`, branch, adminToken);
+      if (certFile && certFile.content) {
+        const data = JSON.parse(certFile.content);
+        certCount = data.length;
+      }
+      if (certCount === 0 && username === window.APP_CONFIG.publicProfileEmail) {
+        const publicUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${base}/certificates.json`;
+        const resp = await fetch(publicUrl);
+        if (resp.ok) {
+          const data = await resp.json();
+          certCount = data.length;
+        }
+      }
+    } catch (e) {}
+    return { projects: projectCount, certificates: certCount };
   }
 };
 
-// ═══════════════════════════════════════════════════════════
-//  PORTFOLIO DATA (projects + certificates)
-// ═══════════════════════════════════════════════════════════
 window.portfolioData = (() => {
-  function rowToProject(p) {
-    return {
-      id: p.id,
-      title: p.title, shortDesc: p.short_desc, description: p.description,
-      client: p.client, industry: p.industry, status: p.status,
-      duration: p.duration, userRole: p.user_role, teamMembers: p.team_members,
-      projectCategory: p.project_category, controllerType: p.controller_type,
-      deltaVVersion: p.delta_v_version,
-      projectType: p.project_type, cabinetCount: p.cabinet_count,
-      io: { AI: p.io_ai, AO: p.io_ao, DI: p.io_di, DO: p.io_do },
-      dates: p.dates || {}, team: p.team || {},
-      technical: p.technical || {}, workBreakdown: p.work_breakdown || {},
-      selectedImages: p.selected_images || [],
-      isPublic: p.is_public,
-      updatedAt: new Date(p.updated_at).getTime()
-    };
+  const PROJECTS_KEY = 'portfolioProjects';
+  const CERTS_KEY = 'portfolioCertificates';
+
+  async function verifyNotBlocked() {
+    const user = window.SessionManager.getCurrentUser();
+    if (!user) return;
+    const blocked = await window.AccountManager.getBlockedUsers();
+    if (blocked.includes(user.username)) {
+      window.SessionManager.logout();
+      if (!window.location.pathname.includes('login.html')) window.location.href = 'login.html?blocked=1';
+      throw new Error('Blocked');
+    }
   }
 
-  async function loadProjects() {
-    const user = window.SessionManager.getCurrentUser();
-    if (!user) return {};
-    const { data, error } = await window.supabase
-      .from('projects').select('*').eq('user_id', user.id)
-      .order('updated_at', { ascending: false });
-    if (error) throw error;
-    const out = {};
-    for (const p of data || []) out[p.id] = rowToProject(p);
-    return out;
-  }
-
-  async function saveProjects(projects) {
-    const user = window.SessionManager.getCurrentUser();
-    if (!user) throw new Error('Not logged in');
-    const { data: existing, error: exErr } = await window.supabase
-      .from('projects').select('id').eq('user_id', user.id);
-    if (exErr) throw exErr;
-    const existingIds = new Set((existing || []).map(r => r.id));
-
-    for (const [id, p] of Object.entries(projects)) {
-      const row = {
-        id, user_id: user.id,
-        title: p.title || 'Untitled', short_desc: p.shortDesc || null,
-        description: p.description || null, client: p.client || null,
-        industry: p.industry || null, status: p.status || 'Ongoing',
-        duration: p.duration || null, user_role: p.userRole || null,
-        team_members: p.teamMembers || null,
-        project_category: p.projectCategory || null,
-        controller_type: p.controllerType || null,
-        delta_v_version: p.deltaVVersion || null,
-        project_type: p.projectType || null,
-        cabinet_count: p.cabinetCount || 0,
-        io_ai: p.io?.AI || 0, io_ao: p.io?.AO || 0,
-        io_di: p.io?.DI || 0, io_do: p.io?.DO || 0,
-        dates: p.dates || null, team: p.team || null,
-        technical: p.technical || null, work_breakdown: p.workBreakdown || null,
-        selected_images: p.selectedImages || [],
-        is_public: p.isPublic !== undefined ? p.isPublic : true,
-        updated_at: new Date().toISOString()
-      };
-      const { error } = await window.supabase.from('projects').upsert(row);
-      if (error) throw error;
-      existingIds.delete(id);
-    }
-    for (const goneId of existingIds) {
-      await window.supabase.from('projects').delete().eq('id', goneId);
-    }
-    await window.Logger.logActivity('project', 'save', `Saved ${Object.keys(projects).length} projects`);
+  async function fetchPublicData(email, type) {
+    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+    const encUser = encodeURIComponent(email);
+    const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${dataPath}/users/${encUser}/${type}.json`;
+    try {
+      const resp = await fetch(rawUrl);
+      if (resp.ok) {
+        const data = await resp.json();
+        if (type === 'projects') return data;
+        if (type === 'certificates') return data;
+      }
+    } catch (e) {}
+    return type === 'projects' ? {} : [];
   }
 
   async function loadProjectsForView() {
     const user = window.SessionManager.getCurrentUser();
-    if (user) return loadProjects();
-    const { data, error } = await window.supabase
-      .from('projects').select('*').eq('is_public', true)
-      .order('updated_at', { ascending: false });
-    if (error) return {};
-    const out = {};
-    for (const p of data || []) out[p.id] = rowToProject(p);
-    return out;
-  }
-
-  async function loadCertificates() {
-    const user = window.SessionManager.getCurrentUser();
-    if (!user) return [];
-    const { data, error } = await window.supabase
-      .from('certificates').select('*').eq('user_id', user.id)
-      .order('date', { ascending: false });
-    if (error) throw error;
-    return (data || []).map(c => ({
-      id: c.id, title: c.title, issuer: c.issuer, date: c.date,
-      link: c.link, thumbnail: c.thumbnail,
-      updatedAt: new Date(c.updated_at).getTime()
-    }));
-  }
-
-  async function saveCertificates(certs) {
-    const user = window.SessionManager.getCurrentUser();
-    if (!user) throw new Error('Not logged in');
-    const { data: existing, error: exErr } = await window.supabase
-      .from('certificates').select('id').eq('user_id', user.id);
-    if (exErr) throw exErr;
-    const existingIds = new Set((existing || []).map(r => r.id));
-    for (const cert of certs) {
-      const row = {
-        id: cert.id || crypto.randomUUID(),
-        user_id: user.id,
-        title: cert.title || 'Certificate',
-        issuer: cert.issuer || null, date: cert.date || null,
-        link: cert.link || null, thumbnail: cert.thumbnail || null,
-        is_public: cert.isPublic !== undefined ? cert.isPublic : true,
-        updated_at: new Date().toISOString()
-      };
-      const { error } = await window.supabase.from('certificates').upsert(row);
-      if (error) throw error;
-      existingIds.delete(row.id);
+    if (user && user.pat) {
+      await verifyNotBlocked();
+      try {
+        const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+        const encUser = encodeURIComponent(user.username);
+        const path = `${dataPath}/users/${encUser}/projects.json`;
+        const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
+        if (file && file.content) {
+          return JSON.parse(file.content);
+        } else {
+          if (user.username === window.APP_CONFIG.publicProfileEmail) {
+            return await fetchPublicData(user.username, 'projects');
+          }
+          return {};
+        }
+      } catch (e) { return {}; }
     }
-    for (const goneId of existingIds) {
-      await window.supabase.from('certificates').delete().eq('id', goneId);
-    }
-    await window.Logger.logActivity('certificate', 'save', `Saved ${certs.length} certificates`);
+    const publicEmail = window.APP_CONFIG.publicProfileEmail;
+    if (publicEmail) return await fetchPublicData(publicEmail, 'projects');
+    return {};
   }
 
   async function loadCertificatesForView() {
     const user = window.SessionManager.getCurrentUser();
-    if (user) return loadCertificates();
-    const { data, error } = await window.supabase
-      .from('certificates').select('*').eq('is_public', true)
-      .order('date', { ascending: false });
-    if (error) return [];
-    return (data || []).map(c => ({
-      id: c.id, title: c.title, issuer: c.issuer, date: c.date,
-      link: c.link, thumbnail: c.thumbnail
-    }));
+    if (user && user.pat) {
+      await verifyNotBlocked();
+      try {
+        const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+        const encUser = encodeURIComponent(user.username);
+        const path = `${dataPath}/users/${encUser}/certificates.json`;
+        const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
+        if (file && file.content) {
+          return JSON.parse(file.content);
+        } else {
+          if (user.username === window.APP_CONFIG.publicProfileEmail) {
+            return await fetchPublicData(user.username, 'certificates');
+          }
+          return [];
+        }
+      } catch (e) { return []; }
+    }
+    const publicEmail = window.APP_CONFIG.publicProfileEmail;
+    if (publicEmail) return await fetchPublicData(publicEmail, 'certificates');
+    return [];
   }
 
-  async function blockProject(projectId, block = true) {
-    const { error } = await window.supabase
-      .from('projects').update({ is_public: !block }).eq('id', projectId);
-    if (error) throw error;
-    await window.Logger.logActivity('project', 'block',
-      `${block ? 'Blocked' : 'Unblocked'} ${projectId}`);
-    return true;
+  async function loadProjects() {
+    const user = window.SessionManager.getCurrentUser();
+    if (user && user.pat) {
+      await verifyNotBlocked();
+      try {
+        const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+        const encUser = encodeURIComponent(user.username);
+        const path = `${dataPath}/users/${encUser}/projects.json`;
+        const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
+        if (file && file.content) {
+          const data = JSON.parse(file.content);
+          localStorage.setItem(PROJECTS_KEY, JSON.stringify(data));
+          return data;
+        } else {
+          if (user.username === window.APP_CONFIG.publicProfileEmail) {
+            const publicData = await fetchPublicData(user.username, 'projects');
+            if (Object.keys(publicData).length > 0) {
+              localStorage.setItem(PROJECTS_KEY, JSON.stringify(publicData));
+              return publicData;
+            }
+          }
+          const empty = {};
+          localStorage.setItem(PROJECTS_KEY, JSON.stringify(empty));
+          return empty;
+        }
+      } catch (e) {
+        if (e.message === 'Blocked') throw e;
+        return JSON.parse(localStorage.getItem(PROJECTS_KEY) || '{}');
+      }
+    }
+    const publicEmail = window.APP_CONFIG.publicProfileEmail;
+    if (!user && publicEmail) return await fetchPublicData(publicEmail, 'projects');
+    return JSON.parse(localStorage.getItem(PROJECTS_KEY) || '{}');
+  }
+
+  async function loadCertificates() {
+    const user = window.SessionManager.getCurrentUser();
+    if (user && user.pat) {
+      await verifyNotBlocked();
+      try {
+        const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+        const encUser = encodeURIComponent(user.username);
+        const path = `${dataPath}/users/${encUser}/certificates.json`;
+        const file = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
+        if (file && file.content) {
+          const data = JSON.parse(file.content);
+          localStorage.setItem(CERTS_KEY, JSON.stringify(data));
+          return data;
+        } else {
+          if (user.username === window.APP_CONFIG.publicProfileEmail) {
+            const publicCerts = await fetchPublicData(user.username, 'certificates');
+            if (publicCerts.length > 0) {
+              localStorage.setItem(CERTS_KEY, JSON.stringify(publicCerts));
+              return publicCerts;
+            }
+          }
+          const empty = [];
+          localStorage.setItem(CERTS_KEY, JSON.stringify(empty));
+          return empty;
+        }
+      } catch (e) {
+        if (e.message === 'Blocked') throw e;
+        return JSON.parse(localStorage.getItem(CERTS_KEY) || '[]');
+      }
+    }
+    if (!user && window.APP_CONFIG.publicProfileEmail) return await fetchPublicData(window.APP_CONFIG.publicProfileEmail, 'certificates');
+    return JSON.parse(localStorage.getItem(CERTS_KEY) || '[]');
+  }
+
+  // Fixed saveProjects with proper SHA retry
+  async function saveProjects(data, forceEmpty = false) {
+    const prev = localStorage.getItem(PROJECTS_KEY);
+    if (!forceEmpty && prev) {
+      const previous = JSON.parse(prev);
+      if (Object.keys(previous).length > 0 && Object.keys(data).length === 0) {
+        throw new Error('Cannot delete all projects this way. Use "Delete All" button.');
+      }
+    }
+    for (const id in data) {
+      if (!data[id].updatedAt) data[id].updatedAt = Date.now();
+      if (data[id].blocked === undefined) data[id].blocked = false;
+    }
+    localStorage.setItem(PROJECTS_KEY, JSON.stringify(data));
+    const user = window.SessionManager.getCurrentUser();
+    if (!user || !user.pat) return;
+    await verifyNotBlocked();
+    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+    const encUser = encodeURIComponent(user.username);
+    const path = `${dataPath}/users/${encUser}/projects.json`;
+    let retries = 3;
+    while (retries > 0) {
+      try {
+        let remoteData = {};
+        let sha = null;
+        try {
+          const remoteFile = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
+          if (remoteFile && remoteFile.sha) {
+            sha = remoteFile.sha;
+            if (remoteFile.content) remoteData = JSON.parse(remoteFile.content);
+          }
+        } catch(e) {}
+        const merged = { ...remoteData };
+        for (const [id, proj] of Object.entries(data)) {
+          if (!merged[id] || proj.updatedAt > (merged[id].updatedAt || 0)) {
+            merged[id] = proj;
+          }
+        }
+        for (const id of Object.keys(remoteData)) {
+          if (!data.hasOwnProperty(id)) {
+            delete merged[id];
+            await window.Logger.logActivity('project', 'delete_remote', `Deleted project ${id} from remote`);
+          }
+        }
+        let finalData = merged;
+        if (forceEmpty && Object.keys(data).length === 0) finalData = {};
+        await GitHubAPI.updateFile(owner, repo, path, finalData, 'Update projects', branch, user.pat, sha);
+        await window.Logger.logActivity('project', 'save', `Saved ${Object.keys(finalData).length} projects`);
+        return;
+      } catch (err) {
+        retries--;
+        if (retries === 0) {
+          if (prev) localStorage.setItem(PROJECTS_KEY, prev);
+          else localStorage.removeItem(PROJECTS_KEY);
+          throw new Error('GitHub write failed after retries: ' + err.message);
+        }
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
+  }
+
+  async function saveCertificates(data, forceEmpty = false) {
+    const prev = localStorage.getItem(CERTS_KEY);
+    if (!forceEmpty && prev) {
+      const previous = JSON.parse(prev);
+      if (previous.length > 0 && data.length === 0) {
+        throw new Error('Cannot delete all certificates this way. Use "Delete All" button.');
+      }
+    }
+    data = data.map(cert => { if (!cert.updatedAt) cert.updatedAt = Date.now(); return cert; });
+    localStorage.setItem(CERTS_KEY, JSON.stringify(data));
+    const user = window.SessionManager.getCurrentUser();
+    if (!user || !user.pat) return;
+    await verifyNotBlocked();
+    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+    const encUser = encodeURIComponent(user.username);
+    const path = `${dataPath}/users/${encUser}/certificates.json`;
+    let retries = 3;
+    while (retries > 0) {
+      try {
+        let remoteData = [];
+        let sha = null;
+        try {
+          const remoteFile = await GitHubAPI.getFileContent(owner, repo, path, branch, user.pat);
+          if (remoteFile && remoteFile.sha) {
+            sha = remoteFile.sha;
+            if (remoteFile.content) remoteData = JSON.parse(remoteFile.content);
+          }
+        } catch(e) {}
+        const mergedMap = new Map();
+        for (const cert of remoteData) mergedMap.set(cert.id, cert);
+        for (const cert of data) {
+          const existing = mergedMap.get(cert.id);
+          if (!existing || cert.updatedAt > existing.updatedAt) mergedMap.set(cert.id, cert);
+        }
+        const merged = Array.from(mergedMap.values());
+        let finalData = merged;
+        if (forceEmpty && data.length === 0) finalData = [];
+        await GitHubAPI.updateFile(owner, repo, path, finalData, 'Update certificates', branch, user.pat, sha);
+        await window.Logger.logActivity('certificate', 'save', `Saved ${finalData.length} certificates`);
+        return;
+      } catch (err) {
+        retries--;
+        if (retries === 0) {
+          if (prev) localStorage.setItem(CERTS_KEY, prev);
+          else localStorage.removeItem(CERTS_KEY);
+          throw new Error('GitHub write failed after retries: ' + err.message);
+        }
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
   }
 
   function exportData() {
     Promise.all([loadProjects(), loadCertificates()]).then(([projects, certs]) => {
       const zip = new JSZip();
-      zip.file('projects.json', JSON.stringify(projects, null, 2));
-      zip.file('certificates.json', JSON.stringify(certs, null, 2));
-      zip.generateAsync({ type: 'blob' }).then(blob => {
+      zip.file("projects.json", JSON.stringify(projects, null, 2));
+      zip.file("certificates.json", JSON.stringify(certs, null, 2));
+      zip.generateAsync({ type: "blob" }).then(blob => {
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = `portfolio_data_${window.SessionManager.getCurrentUser()?.email || 'default'}.zip`;
+        a.download = `portfolio_data_${window.SessionManager.getCurrentUser()?.username || 'default'}.zip`;
         a.click();
+        window.Logger.logActivity('data', 'export', 'Exported data to ZIP');
       });
     });
   }
 
+  async function blockProject(projectId, block = true) {
+    const projects = await loadProjects();
+    if (!projects[projectId]) throw new Error('Project not found');
+    projects[projectId].blocked = block;
+    projects[projectId].updatedAt = Date.now();
+    await saveProjects(projects);
+    await window.Logger.logActivity('project', 'block', `${block ? 'Blocked' : 'Unblocked'} project: ${projects[projectId].title}`);
+    return true;
+  }
+
   return {
-    loadProjects, saveProjects, loadCertificates, saveCertificates,
+    loadProjects, saveProjects, loadCertificates, saveCertificates, exportData,
     loadProjectsForView, loadCertificatesForView,
-    exportData, blockProject
+    blockProject
   };
 })();
 
-// ═══════════════════════════════════════════════════════════
-//  MESSAGES (Supabase table)
-// ═══════════════════════════════════════════════════════════
-window.Messages = {
-  async list() {
-    const { data, error } = await window.supabase
-      .from('messages').select('*')
-      .order('created_at', { ascending: false })
-      .limit(200);
-    if (error) throw error;
-    return data || [];
-  },
-  async unreadCount() {
-    const { count, error } = await window.supabase
-      .from('messages').select('id', { count: 'exact', head: true })
-      .eq('read', false);
-    if (error) return 0;
-    return count || 0;
-  },
-  async send({ recipientEmail, subject, body }) {
-    // Look up recipient
-    const { data: profile, error: pErr } = await window.supabase
-      .from('profiles').select('id').eq('email', recipientEmail).maybeSingle();
-    if (pErr || !profile) throw new Error('Recipient not found: ' + recipientEmail);
-    const sender = window.SessionManager.getCurrentUser();
-    const { error } = await window.supabase.from('messages').insert({
-      recipient_id: profile.id,
-      sender_id: sender?.id || null,
-      subject, body
+window.lazyLoadImages = function() {
+  if ('IntersectionObserver' in window) {
+    const imgObserver = new IntersectionObserver((entries, observer) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const img = entry.target;
+          const src = img.dataset.src;
+          if (src) {
+            img.src = src;
+            img.removeAttribute('data-src');
+          }
+          observer.unobserve(img);
+        }
+      });
     });
-    if (error) throw error;
-  },
-  async markRead(id) {
-    await window.supabase.from('messages').update({ read: true }).eq('id', id);
-  },
-  async markAllRead() {
-    const user = window.SessionManager.getCurrentUser();
-    if (!user) return;
-    await window.supabase.from('messages').update({ read: true })
-      .eq('recipient_id', user.id).eq('read', false);
-  },
-  async remove(id) {
-    await window.supabase.from('messages').delete().eq('id', id);
-  }
-};
-
-// ═══════════════════════════════════════════════════════════
-//  IMAGE PROTECTION
-// ═══════════════════════════════════════════════════════════
-window.lazyLoadImages = function () {
-  if (!('IntersectionObserver' in window)) {
+    document.querySelectorAll('img[data-src]').forEach(img => imgObserver.observe(img));
+  } else {
     document.querySelectorAll('img[data-src]').forEach(img => {
-      img.src = img.dataset.src; img.removeAttribute('data-src');
+      img.src = img.dataset.src;
+      img.removeAttribute('data-src');
     });
-    return;
   }
-  const obs = new IntersectionObserver((entries, observer) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        const img = entry.target;
-        if (img.dataset.src) { img.src = img.dataset.src; img.removeAttribute('data-src'); }
-        observer.unobserve(img);
-      }
-    });
-  });
-  document.querySelectorAll('img[data-src]').forEach(img => obs.observe(img));
 };
 
 window.protectImages = function () {
-  const selectors = '.project-img, .modal-carousel-img, .gallery-img, .cert-card img, .about-img';
-  document.querySelectorAll(selectors).forEach(img => {
+  document.querySelectorAll('.project-img, .modal-carousel-img').forEach(img => {
     img.setAttribute('draggable', 'false');
-    img.setAttribute('ondragstart', 'return false;');
-    img.style.webkitUserDrag = 'none';
-    img.style.webkitTouchCallout = 'none';
-    img.style.webkitUserSelect = 'none';
-    img.style.userSelect = 'none';
-    if (!img.dataset.protected) {
-      img.dataset.protected = '1';
-      img.addEventListener('contextmenu', e => e.preventDefault());
-      img.addEventListener('dragstart', e => e.preventDefault());
-      img.addEventListener('selectstart', e => e.preventDefault());
-      img.addEventListener('touchstart', e => {
-        img._longPressTimer = setTimeout(() => { try { e.preventDefault(); } catch (_) {} }, 500);
-      }, { passive: true });
-      img.addEventListener('touchend', () => { clearTimeout(img._longPressTimer); });
-      img.addEventListener('touchmove', () => { clearTimeout(img._longPressTimer); });
-    }
+    img.addEventListener('contextmenu', e => e.preventDefault());
+    img.addEventListener('dragstart', e => e.preventDefault());
   });
 };
-window.protectGallery = window.protectImages;
 
-// ═══════════════════════════════════════════════════════════
-//  TOASTS
-// ═══════════════════════════════════════════════════════════
-window.showToast = function (message, type = 'success') {
+function showToast(message, type = 'success') {
   let container = document.getElementById('toastContainer');
   if (!container) {
     container = document.createElement('div');
     container.id = 'toastContainer';
-    container.style.cssText = 'position:fixed;bottom:20px;right:20px;z-index:1050;';
+    container.style.position = 'fixed';
+    container.style.bottom = '20px';
+    container.style.right = '20px';
+    container.style.zIndex = '1050';
     document.body.appendChild(container);
   }
   const toastId = 'toast-' + Date.now();
-  const bgColor = type === 'success' ? '#28a745'
-                : type === 'error'   ? '#dc3545'
-                : type === 'warning' ? '#ffc107'
-                : '#17a2b8';
-  container.insertAdjacentHTML('beforeend', `
-    <div id="${toastId}" style="background:${bgColor};color:white;padding:12px 20px;border-radius:8px;margin-top:10px;min-width:200px;max-width:90%;box-shadow:0 2px 10px rgba(0,0,0,0.1);animation:fadeInOut 3s ease;font-size:14px;word-break:break-word;">${message}</div>
-  `);
-  setTimeout(() => { const t = document.getElementById(toastId); if (t) t.remove(); }, 3000);
-};
-// legacy alias
-window.showToast = window.showToast;
+  const bgColor = type === 'success' ? '#28a745' : (type === 'error' ? '#dc3545' : '#17a2b8');
+  const html = `<div id="${toastId}" style="background: ${bgColor}; color: white; padding: 12px 20px; border-radius: 8px; margin-top: 10px; min-width: 200px; max-width: 90%; box-shadow: 0 2px 10px rgba(0,0,0,0.1); animation: fadeInOut 3s ease; font-size: 14px; word-break: break-word;">${message}</div>`;
+  container.insertAdjacentHTML('beforeend', html);
+  setTimeout(() => { const toast = document.getElementById(toastId); if (toast) toast.remove(); }, 3000);
+}
 
-// ═══════════════════════════════════════════════════════════
-//  QR CODE HELPER (used by Excel report)
-// ═══════════════════════════════════════════════════════════
 async function generateQRCodeDataURL(text, size = 50) {
   return new Promise((resolve) => {
     if (typeof QRCode === 'undefined') { resolve(null); return; }
     const container = document.createElement('div');
     try {
-      new QRCode(container, { text, width: size, height: size, colorDark: '#000000', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.L });
+      new QRCode(container, { text, width: size, height: size, colorDark: "#000000", colorLight: "#ffffff", correctLevel: QRCode.CorrectLevel.L });
       setTimeout(() => {
         const canvas = container.querySelector('canvas');
         resolve(canvas ? canvas.toDataURL('image/png') : null);
       }, 100);
-    } catch (e) { resolve(null); }
+    } catch (err) { resolve(null); }
   });
 }
 
-// ═══════════════════════════════════════════════════════════
-//  EXCEL PROJECT REPORT — unchanged
-//  Paste your existing generateProjectReport() here.
-//  (The version you already have works — it only uses
-//   portfolioData, canDownloadExcel, SessionManager,
-//   escapeHtml, showToast — all still available above.)
-// ═══════════════════════════════════════════════════════════
-// paste generateProjectReport here unchanged
-
-// ═══════════════════════════════════════════════════════════
-//  EXCEL PROJECT REPORT (FULL — nothing omitted)
-// ═══════════════════════════════════════════════════════════
-window.generateProjectReport = async function (projectId) {
-  if (!window.canDownloadExcel()) {
-    showToast('Excel reports are locked for now — they’ll be available soon.', 'info');
-    return;
-  }
-
-  if (typeof ExcelJS === 'undefined') {
-    await new Promise((res, rej) => {
-      const s = document.createElement('script');
-      s.src = 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';
-      s.onload = res; s.onerror = () => rej(new Error('Failed to load ExcelJS'));
-      document.head.appendChild(s);
-    });
-  }
-  if (typeof saveAs === 'undefined') {
-    await new Promise((res, rej) => {
-      const s = document.createElement('script');
-      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js';
-      s.onload = res; s.onerror = () => rej(new Error('Failed to load FileSaver'));
-      document.head.appendChild(s);
-    });
-  }
-
+window.generateProjectReport = async function(projectId) {
   const data = await window.portfolioData.loadProjectsForView();
   const proj = data[projectId];
-  if (!proj) { alert('Project not found!'); return; }
-  if (proj.blocked === true && !window.SessionManager.isAdmin()) {
-    alert('Access denied: This project is blocked.'); return;
-  }
-
+  if (!proj) { alert("Project not found!"); return; }
+  if (proj.blocked === true && !window.SessionManager.isAdmin()) { alert("Access denied: This project is blocked."); return; }
   const isDeltaV = proj.projectCategory === 'deltaV' || proj.controllerType;
   let selectedImages = proj.selectedImages || [];
-
+  
   if (selectedImages.length > 0) {
-    const imageOptions = selectedImages.map((img, idx) => `
-      <div style="display:flex;align-items:center;margin-bottom:12px;padding:10px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;gap:12px;">
-        <input type="checkbox" class="xlsx-image-checkbox" data-idx="${idx}" checked style="width:18px;height:18px;cursor:pointer;">
-        <img src="${img.url}" style="width:56px;height:56px;object-fit:cover;border-radius:8px;">
-        <div style="flex:1;min-width:0;">
-          <div style="font-weight:600;color:#1e2a3e;font-size:0.9rem;">Image ${idx + 1}</div>
-          <div style="font-size:12px;color:#666;">${window.escapeHtml(img.caption || 'No caption')}</div>
-        </div>
+    const imageOptions = selectedImages.map((img, idx) => `<div class="image-select-option" style="display: flex; align-items: center; margin-bottom: 15px; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; background: white; flex-wrap: wrap;">
+        <input type="checkbox" class="pdf-image-checkbox" data-idx="${idx}" checked style="margin-right: 15px; width: 20px; height: 20px;">
+        <img src="${img.url}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 6px; margin-right: 15px;">
+        <div style="flex: 1; min-width: 150px;"><div style="font-weight: 500; margin-bottom: 4px; color: #1e2a3e;">Image ${idx + 1}</div><div style="font-size: 12px; color: #666; word-break: break-word;">${img.caption || 'No caption'}</div></div>
       </div>`).join('');
-
-    const modalHtml = `
-      <div id="xlsxImageModal" style="position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px);">
-        <div style="background:#fff;border-radius:20px;max-width:560px;width:100%;max-height:85vh;overflow:auto;padding:26px;font-family:Inter,sans-serif;">
-          <h3 style="margin-bottom:18px;color:#0b2b3b;">📊 Select Images for Excel Report</h3>
-          <div id="xlsxImageList">${imageOptions}</div>
-          <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:22px;flex-wrap:wrap;">
-            <button id="xlsxSelectAll" style="padding:8px 16px;border:1px solid #cbd5e1;background:#f8fafc;border-radius:8px;cursor:pointer;">Select All</button>
-            <button id="xlsxDeselectAll" style="padding:8px 16px;border:1px solid #cbd5e1;background:#f8fafc;border-radius:8px;cursor:pointer;">Deselect All</button>
-            <button id="xlsxCancel" style="padding:8px 16px;border:1px solid #cbd5e1;background:#fff;border-radius:8px;cursor:pointer;">Cancel</button>
-            <button id="xlsxConfirm" style="padding:8px 22px;background:#28a745;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600;">Generate Excel</button>
+    const modalHtml = `<div id="pdfImageModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 15px;">
+        <div style="background: white; border-radius: 20px; max-width: 550px; width: 100%; max-height: 85vh; overflow: auto; padding: 20px;">
+          <h3>Select Images for PDF Report</h3><div id="pdfImageList">${imageOptions}</div>
+          <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+            <button id="selectAllImagesBtn">Select All</button><button id="deselectAllImagesBtn">Deselect All</button>
+            <button id="confirmPdfImagesBtn">Generate PDF</button><button id="cancelPdfImagesBtn">Cancel</button>
           </div>
         </div>
       </div>`;
     document.body.insertAdjacentHTML('beforeend', modalHtml);
-
     const result = await new Promise((resolve) => {
-      const modal = document.getElementById('xlsxImageModal');
-      document.getElementById('xlsxSelectAll').onclick = () => modal.querySelectorAll('.xlsx-image-checkbox').forEach(cb => cb.checked = true);
-      document.getElementById('xlsxDeselectAll').onclick = () => modal.querySelectorAll('.xlsx-image-checkbox').forEach(cb => cb.checked = false);
-      document.getElementById('xlsxConfirm').onclick = () => {
-        const sel = [];
-        modal.querySelectorAll('.xlsx-image-checkbox:checked').forEach(cb => sel.push(selectedImages[parseInt(cb.dataset.idx)]));
-        modal.remove(); resolve(sel);
+      const modal = document.getElementById('pdfImageModal');
+      document.getElementById('selectAllImagesBtn').onclick = () => document.querySelectorAll('#pdfImageList .pdf-image-checkbox').forEach(cb => cb.checked = true);
+      document.getElementById('deselectAllImagesBtn').onclick = () => document.querySelectorAll('#pdfImageList .pdf-image-checkbox').forEach(cb => cb.checked = false);
+      document.getElementById('confirmPdfImagesBtn').onclick = () => {
+        const selected = []; document.querySelectorAll('#pdfImageList .pdf-image-checkbox:checked').forEach(cb => selected.push(selectedImages[parseInt(cb.dataset.idx)]));
+        modal.remove(); resolve(selected);
       };
-      document.getElementById('xlsxCancel').onclick = () => { modal.remove(); resolve(null); };
+      document.getElementById('cancelPdfImagesBtn').onclick = () => { modal.remove(); resolve(null); };
     });
     if (result === null) return;
     selectedImages = result;
   }
-
-  window.showLoading('Generating Excel report...');
-
+  window.showLoading('Generating PDF...');
   try {
-    const workbook = new ExcelJS.Workbook();
-    workbook.creator = 'Your Portfolio';
-    workbook.created = new Date();
-
-    const NAVY = 'FF0B2B3B';
-    const ACCENT = 'FF2FC7FF';
-    const LIGHT = 'FFEEF3FC';
-    const PURPLE = 'FFA29BFE';
-    const BORDER = {
-      top:    { style: 'thin', color: { argb: 'FFB0BEC5' } },
-      bottom: { style: 'thin', color: { argb: 'FFB0BEC5' } },
-      left:   { style: 'thin', color: { argb: 'FFB0BEC5' } },
-      right:  { style: 'thin', color: { argb: 'FFB0BEC5' } }
-    };
-
-    function styleSectionHeader(cell, text) {
-      cell.value = text;
-      cell.font = { size: 12, bold: true, color: { argb: 'FFFFFFFF' } };
-      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A4D5F' } };
-      cell.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const darkColor = '#0b2b3b';
+    const textColor = '#1e2a3e';
+    const repoOwner = window.REPO_CONFIG.owner;
+    const repoName = window.REPO_CONFIG.repo;
+    const repoUrl = `https://github.com/${repoOwner}/${repoName}`;
+    let logoImage = null;
+    try {
+      const logoResponse = await fetch(`https://raw.githubusercontent.com/${repoOwner}/${repoName}/main/logo.png`);
+      if (logoResponse.ok) { const logoBlob = await logoResponse.blob(); logoImage = await new Promise(resolve => { const reader = new FileReader(); reader.onloadend = () => resolve(reader.result); reader.readAsDataURL(logoBlob); }); }
+    } catch(e) {}
+    // Cover
+    doc.setFillColor(11,43,59); doc.rect(0,0,pageWidth,15,'F');
+    doc.setFillColor(47,199,255); doc.rect(0,15,pageWidth,3,'F');
+    if(logoImage) doc.addImage(logoImage,'PNG',pageWidth/2-20,35,40,40);
+    else { doc.setFillColor(47,199,255); doc.circle(pageWidth/2,55,20,'F'); doc.setFillColor(255,255,255); doc.setFontSize(24); doc.setFont(undefined,'bold'); doc.text('YP',pageWidth/2,62,{align:'center'}); }
+    doc.setTextColor(11,43,59); doc.setFontSize(32); doc.setFont(undefined,'bold'); doc.text('PROJECT REPORT',pageWidth/2,95,{align:'center'});
+    doc.setFontSize(14); doc.setFont(undefined,'normal'); doc.setTextColor(100,100,100); doc.text('Professional Engineering Documentation',pageWidth/2,110,{align:'center'});
+    doc.setDrawColor(47,199,255); doc.setLineWidth(1); doc.line(pageWidth/2-50,118,pageWidth/2+50,118);
+    doc.setFontSize(22); doc.setFont(undefined,'bold'); doc.setTextColor(darkColor); const titleLines = doc.splitTextToSize(proj.title,140); doc.text(titleLines,pageWidth/2,145,{align:'center'});
+    const projectTypeText = isDeltaV ? 'DELTAV PROJECT' : 'GENERAL ENGINEERING PROJECT';
+    doc.setFillColor(47,199,255); doc.roundedRect(pageWidth/2-45,165,90,10,5,5,'F'); doc.setTextColor(255,255,255); doc.setFontSize(9); doc.setFont(undefined,'bold'); doc.text(projectTypeText,pageWidth/2,172,{align:'center'});
+    const status = proj.status||'Planned'; let statusColor; if(status==='Completed')statusColor=[40,167,69]; else if(status==='Ongoing')statusColor=[47,199,255]; else if(status==='Paused')statusColor=[255,193,7]; else statusColor=[108,117,125];
+    doc.setFillColor(statusColor[0],statusColor[1],statusColor[2]); doc.roundedRect(pageWidth/2-35,182,70,9,5,5,'F'); doc.setTextColor(255,255,255); doc.setFontSize(9); doc.text(status,pageWidth/2,188,{align:'center'});
+    doc.setFontSize(8); doc.setFont(undefined,'italic'); doc.setTextColor(150,150,150); doc.text(`Generated: ${new Date().toLocaleString()}`,pageWidth/2,pageHeight-25,{align:'center'}); doc.text('Your Portfolio System',pageWidth/2,pageHeight-18,{align:'center'});
+    const qrDataURL = await generateQRCodeDataURL(repoUrl,50); if(qrDataURL) doc.addImage(qrDataURL,'PNG',pageWidth-25,pageHeight-28,15,15);
+    doc.addPage();
+    let yPos=20;
+    doc.setFillColor(11,43,59); doc.rect(0,yPos,pageWidth,10,'F'); doc.setFillColor(47,199,255); doc.rect(0,yPos+10,pageWidth,3,'F'); yPos+=20;
+    doc.setFontSize(20); doc.setFont(undefined,'bold'); doc.setTextColor(darkColor); doc.text('Project Overview',20,yPos); yPos+=15;
+    const infoItems = [{label:'Project Title',value:proj.title},{label:'Industry/Category',value:proj.industry||'N/A'},{label:'Company/Client',value:proj.client||'N/A'},{label:'Project Duration',value:proj.duration||'N/A'},{label:'Status',value:proj.status||'N/A'},{label:'User Role',value:proj.userRole||'N/A'},{label:'Team Members',value:proj.teamMembers||'N/A'}];
+    let leftX=20,rightX=110,leftY=yPos,rightY=yPos,boxHeight=22;
+    for(let i=0;i<infoItems.length;i++){ const item=infoItems[i]; const isLeft=i<Math.ceil(infoItems.length/2); const x=isLeft?leftX:rightX; const y=isLeft?leftY:rightY;
+      doc.setFillColor(248,250,252); doc.roundedRect(x-3,y-5,85,boxHeight,4,4,'F');
+      doc.setFontSize(8); doc.setFont(undefined,'bold'); doc.setTextColor(100,100,100); doc.text(item.label,x,y);
+      doc.setFontSize(10); doc.setFont(undefined,'normal'); doc.setTextColor(textColor); const valueLines=doc.splitTextToSize(item.value||'N/A',78); doc.text(valueLines,x,y+6);
+      if(isLeft) leftY+=boxHeight+3; else rightY+=boxHeight+3;
     }
-    function styleLabel(cell, text) {
-      cell.value = text;
-      cell.font = { size: 10, bold: true, color: { argb: NAVY } };
-      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: LIGHT } };
-      cell.alignment = { horizontal: 'left', vertical: 'middle', indent: 1, wrapText: true };
-      cell.border = BORDER;
+    yPos = Math.max(leftY,rightY)+10;
+    if(proj.description||proj.shortDesc){
+      doc.setFillColor(240,248,252); doc.roundedRect(15,yPos-3,pageWidth-30,8,4,4,'F');
+      doc.setFontSize(14); doc.setFont(undefined,'bold'); doc.setTextColor(darkColor); doc.text('Project Description',20,yPos); yPos+=10;
+      doc.setFontSize(10); doc.setFont(undefined,'normal'); doc.setTextColor(textColor); const descText=proj.description||proj.shortDesc||'No description provided'; const descLines=doc.splitTextToSize(descText,pageWidth-40); doc.text(descLines,20,yPos); yPos+=(descLines.length*5)+15;
     }
-    function styleValue(cell, text) {
-      cell.value = (text != null && text !== '') ? text : '—';
-      cell.font = { size: 10 };
-      cell.alignment = { horizontal: 'left', vertical: 'middle', indent: 1, wrapText: true };
-      cell.border = BORDER;
-    }
-    async function embedImage(imageUrl) {
-      const resp = await fetch(imageUrl);
-      if (!resp.ok) throw new Error('fetch failed');
-      return await resp.arrayBuffer();
-    }
-    function guessExt(url) {
-      const u = (url || '').toLowerCase();
-      if (u.includes('.png')) return 'png';
-      if (u.includes('.gif')) return 'gif';
-      return 'jpeg';
-    }
-
-    // ═══ SHEET 1 — OVERVIEW ═══
-    const cover = workbook.addWorksheet('Overview', {
-      pageSetup: { orientation: 'portrait', fitToPage: true, fitToWidth: 1, paperSize: 9,
-        margins: { left: 0.5, right: 0.5, top: 0.6, bottom: 0.6, header: 0.3, footer: 0.3 } }
-    });
-    cover.columns = [{ width: 4 }, { width: 24 }, { width: 32 }, { width: 32 }, { width: 24 }, { width: 4 }];
-
-    cover.mergeCells('B2:E2');
-    const titleCell = cover.getCell('B2');
-    titleCell.value = 'ENGINEERING PROJECT REPORT';
-    titleCell.font = { size: 22, bold: true, color: { argb: 'FFFFFFFF' } };
-    titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
-    titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
-    cover.getRow(2).height = 48;
-
-    cover.mergeCells('B3:E3');
-    cover.getCell('B3').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: ACCENT } };
-    cover.getRow(3).height = 6;
-
-    cover.mergeCells('B5:E6');
-    const projTitleCell = cover.getCell('B5');
-    projTitleCell.value = proj.title || 'Untitled Project';
-    projTitleCell.font = { size: 18, bold: true, color: { argb: NAVY } };
-    projTitleCell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
-    cover.getRow(5).height = 28; cover.getRow(6).height = 28;
-
-    cover.mergeCells('B7:E7');
-    const typeCell = cover.getCell('B7');
-    typeCell.value = isDeltaV ? '◆  DELTAV PROJECT' : '◆  GENERAL ENGINEERING PROJECT';
-    typeCell.font = { size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
-    typeCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: isDeltaV ? ACCENT : PURPLE } };
-    typeCell.alignment = { horizontal: 'center', vertical: 'middle' };
-    cover.getRow(7).height = 24;
-
-    let coverImageRow = 9;
-    if (selectedImages.length > 0 && selectedImages[0].url) {
-      try {
-        const buf = await embedImage(selectedImages[0].url);
-        const imgId = workbook.addImage({ buffer: buf, extension: guessExt(selectedImages[0].url) });
-        cover.addImage(imgId, { tl: { col: 1, row: 8 }, ext: { width: 480, height: 300 }, editAs: 'oneCell' });
-        for (let i = 9; i < 25; i++) cover.getRow(i).height = 18;
-        coverImageRow = 25;
-      } catch (e) { console.warn('Cover image embed failed:', e); coverImageRow = 10; }
-    }
-
-    let r = coverImageRow;
-    cover.mergeCells(`B${r}:E${r}`);
-    styleSectionHeader(cover.getCell(`B${r}`), '📋   PROJECT SNAPSHOT');
-    cover.getRow(r).height = 24; r++;
-
-    const infoPairs = [
-      ['Client / Company', proj.client],
-      ['Industry', proj.industry],
-      ['Project Type', proj.projectType || (isDeltaV ? 'DCS' : 'General Engineering')],
-      ['Status', proj.status],
-      ['Duration', proj.duration],
-      ['My Role', proj.userRole],
-      ['Team', proj.teamMembers || (proj.team
-        ? [proj.team.lead && 'Lead: ' + proj.team.lead,
-           proj.team.engineer && 'Engineer: ' + proj.team.engineer,
-           proj.team.technician && 'Tech: ' + proj.team.technician].filter(Boolean).join(' · ')
-        : '')]
-    ];
-    if (isDeltaV && proj.dates) {
-      infoPairs.push(['Start Date', proj.dates.start]);
-      infoPairs.push(['Finish Date', proj.dates.finish]);
-    }
-    for (const [label, value] of infoPairs) {
-      if (!value) continue;
-      styleLabel(cover.getCell(`B${r}`), label);
-      cover.mergeCells(`C${r}:E${r}`);
-      styleValue(cover.getCell(`C${r}`), value);
-      cover.getRow(r).height = 22; r++;
-    }
-
-    r += 2;
-    cover.mergeCells(`B${r}:E${r}`);
-    const footerCell = cover.getCell(`B${r}`);
-    footerCell.value = `Generated: ${new Date().toLocaleString()}  ·  Your Portfolio System`;
-    footerCell.font = { size: 9, italic: true, color: { argb: 'FF6B7D8F' } };
-    footerCell.alignment = { horizontal: 'center' };
-
-    // ═══ SHEET 2 — SUMMARY & METRICS ═══
-    const summary = workbook.addWorksheet('Summary & Metrics', {
-      pageSetup: { orientation: 'portrait', fitToPage: true, fitToWidth: 1, paperSize: 9 }
-    });
-    summary.columns = [{ width: 4 }, { width: 28 }, { width: 26 }, { width: 26 }, { width: 4 }];
-
-    summary.mergeCells('B2:D2');
-    const sumTitle = summary.getCell('B2');
-    sumTitle.value = 'EXECUTIVE SUMMARY & KEY METRICS';
-    sumTitle.font = { size: 16, bold: true, color: { argb: 'FFFFFFFF' } };
-    sumTitle.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
-    sumTitle.alignment = { horizontal: 'center', vertical: 'middle' };
-    summary.getRow(2).height = 38;
-
-    let sr = 4;
-    summary.mergeCells(`B${sr}:D${sr}`);
-    styleSectionHeader(summary.getCell(`B${sr}`), '📝   PROJECT DESCRIPTION');
-    summary.getRow(sr).height = 24; sr++;
-
-    const descText = proj.shortDesc || proj.description || 'No description provided.';
-    summary.mergeCells(`B${sr}:D${sr}`);
-    const descCell = summary.getCell(`B${sr}`);
-    descCell.value = descText;
-    descCell.font = { size: 10 };
-    descCell.alignment = { horizontal: 'left', vertical: 'top', wrapText: true, indent: 1 };
-    descCell.border = BORDER;
-    summary.getRow(sr).height = Math.max(60, Math.ceil(descText.length / 110) * 14);
-    sr += 2;
-
-    summary.mergeCells(`B${sr}:D${sr}`);
-    styleSectionHeader(summary.getCell(`B${sr}`), '📊   KEY METRICS');
-    summary.getRow(sr).height = 24; sr++;
-
-    const mh = summary.getRow(sr);
-    mh.getCell(2).value = 'Metric';
-    mh.getCell(2).font = { size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
-    mh.getCell(2).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
-    mh.getCell(2).alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
-    mh.getCell(2).border = BORDER;
-    summary.mergeCells(`C${sr}:D${sr}`);
-    mh.getCell(3).value = 'Value';
-    mh.getCell(3).font = { size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
-    mh.getCell(3).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
-    mh.getCell(3).alignment = { horizontal: 'center', vertical: 'middle' };
-    mh.getCell(3).border = BORDER;
-    summary.getRow(sr).height = 22; sr++;
-
-    const metrics = [['Status', proj.status || 'N/A']];
-    if (isDeltaV) {
-      metrics.push(['Controller Type', proj.controllerType || 'N/A']);
-      metrics.push(['DeltaV Version', proj.deltaVVersion || 'N/A']);
-      metrics.push(['Cabinets', proj.cabinetCount || 0]);
-      const io = proj.io || { AI: 0, AO: 0, DI: 0, DO: 0 };
-      metrics.push(['Total I/O', (io.AI || 0) + (io.AO || 0) + (io.DI || 0) + (io.DO || 0)]);
+    if(isDeltaV){
+      doc.setFillColor(11,43,59); doc.rect(0,yPos,pageWidth,10,'F'); doc.setFillColor(47,199,255); doc.rect(0,yPos+10,pageWidth,3,'F'); yPos+=20;
+      doc.setFontSize(18); doc.setFont(undefined,'bold'); doc.setTextColor(darkColor); doc.text('DeltaV Configuration',20,yPos); yPos+=15;
+      const deltaVItems=[{label:'Controller Type',value:proj.controllerType||'N/A'},{label:'DeltaV Version',value:proj.deltaVVersion||'N/A'},{label:'Project Type',value:proj.projectType||'N/A'},{label:'Cabinets',value:proj.cabinetCount?.toString()||'0'}];
+      for(const item of deltaVItems){
+        doc.setFillColor(245,247,250); doc.roundedRect(18,yPos-3,pageWidth-36,10,3,3,'F');
+        doc.setFontSize(9); doc.setFont(undefined,'bold'); doc.setTextColor(100,100,100); doc.text(item.label,25,yPos);
+        doc.setFontSize(10); doc.setFont(undefined,'normal'); doc.setTextColor(textColor); doc.text(item.value,75,yPos); yPos+=12;
+      }
+      yPos+=10; doc.setFontSize(14); doc.setFont(undefined,'bold'); doc.setTextColor(darkColor); doc.text('I/O Configuration',20,yPos); yPos+=12;
+      const io=proj.io||{AI:0,AO:0,DI:0,DO:0}; const ioData=[{label:'AI',value:io.AI},{label:'AO',value:io.AO},{label:'DI',value:io.DI},{label:'DO',value:io.DO}];
+      const maxIo=Math.max(io.AI,io.AO,io.DI,io.DO,1); const startX=20; const barWidth=35;
+      for(let i=0;i<ioData.length;i++){ const item=ioData[i]; const barX=startX+(i*42); doc.setFillColor(230,240,250); doc.rect(barX,yPos+5,barWidth,30,'F'); const barHeight=(item.value/maxIo)*28; doc.setFillColor(47,199,255); doc.rect(barX,yPos+35-barHeight,barWidth,barHeight,'F'); doc.setFontSize(9); doc.setFont(undefined,'bold'); doc.setTextColor(100,100,100); doc.text(item.label,barX+barWidth/2,yPos+42,{align:'center'}); doc.setFontSize(11); doc.setFont(undefined,'bold'); doc.setTextColor(darkColor); doc.text(item.value.toString(),barX+barWidth/2,yPos+50,{align:'center'}); }
+      yPos+=60;
+      if(proj.dates?.start){ const dateParts=[]; if(proj.dates.start) dateParts.push(`Start: ${proj.dates.start}`); if(proj.dates.finish) dateParts.push(`Finish: ${proj.dates.finish}`); if(proj.dates.ifat) dateParts.push(`IFAT: ${proj.dates.ifat}`); if(proj.dates.cfat) dateParts.push(`CFAT: ${proj.dates.cfat}`); if(dateParts.length){ doc.setFillColor(240,248,252); doc.roundedRect(15,yPos-5,pageWidth-30,12,4,4,'F'); doc.setFontSize(9); doc.setFont(undefined,'normal'); doc.setTextColor(textColor); doc.text(dateParts.join('  |  '),20,yPos); yPos+=15; } }
+      if(proj.team?.lead||proj.team?.engineer||proj.team?.technician){ doc.setFontSize(9); doc.setTextColor(100,100,100); doc.text(`Team: Lead: ${proj.team.lead||'N/A'}  |  Engineer: ${proj.team.engineer||'N/A'}  |  Technician: ${proj.team.technician||'N/A'}`,20,yPos); yPos+=12; }
     } else {
-      metrics.push(['Duration', proj.duration || 'N/A']);
-      metrics.push(['Role', proj.userRole || 'N/A']);
-    }
-    metrics.push(['Images', selectedImages.length]);
-
-    for (const [label, value] of metrics) {
-      styleLabel(summary.getCell(`B${sr}`), label);
-      summary.mergeCells(`C${sr}:D${sr}`);
-      styleValue(summary.getCell(`C${sr}`), String(value));
-      summary.getRow(sr).height = 20; sr++;
-    }
-    sr++;
-
-    summary.mergeCells(`B${sr}:D${sr}`);
-    styleSectionHeader(summary.getCell(`B${sr}`), '🎯   MY RESPONSIBILITIES');
-    summary.getRow(sr).height = 24; sr++;
-
-    summary.mergeCells(`B${sr}:D${sr}`);
-    const respCell = summary.getCell(`B${sr}`);
-    respCell.value = proj.userRole
-      ? `${proj.userRole}\n\n${proj.shortDesc || proj.description || ''}`
-      : (proj.shortDesc || proj.description || 'See project description.');
-    respCell.font = { size: 10 };
-    respCell.alignment = { horizontal: 'left', vertical: 'top', wrapText: true, indent: 1 };
-    respCell.border = BORDER;
-    summary.getRow(sr).height = Math.max(60, Math.ceil((respCell.value || '').length / 100) * 14);
-
-    // ═══ SHEET 3 — TECHNICAL DETAILS ═══
-    const tech = workbook.addWorksheet('Technical Details', {
-      pageSetup: { orientation: 'portrait', fitToPage: true, fitToWidth: 1, paperSize: 9 }
-    });
-    tech.columns = [{ width: 4 }, { width: 28 }, { width: 26 }, { width: 26 }, { width: 4 }];
-
-    tech.mergeCells('B2:D2');
-    const techTitle = tech.getCell('B2');
-    techTitle.value = 'TECHNICAL DETAILS';
-    techTitle.font = { size: 16, bold: true, color: { argb: 'FFFFFFFF' } };
-    techTitle.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
-    techTitle.alignment = { horizontal: 'center', vertical: 'middle' };
-    tech.getRow(2).height = 38;
-
-    let tr = 4;
-    if (isDeltaV) {
-      tech.mergeCells(`B${tr}:D${tr}`);
-      styleSectionHeader(tech.getCell(`B${tr}`), '⚙️   DELTAV CONFIGURATION');
-      tech.getRow(tr).height = 24; tr++;
-
-      const dvItems = [
-        ['Controller Type', proj.controllerType],
-        ['DeltaV Version', proj.deltaVVersion],
-        ['Project Type', proj.projectType],
-        ['Cabinet Count', proj.cabinetCount]
-      ];
-      for (const [label, value] of dvItems) {
-        if (value == null || value === '') continue;
-        styleLabel(tech.getCell(`B${tr}`), label);
-        tech.mergeCells(`C${tr}:D${tr}`);
-        styleValue(tech.getCell(`C${tr}`), String(value));
-        tech.getRow(tr).height = 20; tr++;
+      if(proj.technical){
+        doc.setFillColor(11,43,59); doc.rect(0,yPos,pageWidth,10,'F'); doc.setFillColor(47,199,255); doc.rect(0,yPos+10,pageWidth,3,'F'); yPos+=20;
+        doc.setFontSize(18); doc.setFont(undefined,'bold'); doc.setTextColor(darkColor); doc.text('Technical Details',20,yPos); yPos+=15;
+        const techItems=[{label:'Technologies',value:proj.technical.technologies},{label:'Hardware',value:proj.technical.hardware},{label:'Software',value:proj.technical.software},{label:'Protocols',value:proj.technical.protocols},{label:'Languages',value:proj.technical.languages}];
+        for(const item of techItems){ if(item.value){ doc.setFillColor(245,247,250); doc.roundedRect(18,yPos-3,pageWidth-36,10,3,3,'F'); doc.setFontSize(9); doc.setFont(undefined,'bold'); doc.setTextColor(100,100,100); doc.text(item.label,25,yPos); doc.setFontSize(9); doc.setFont(undefined,'normal'); doc.setTextColor(textColor); const lines=doc.splitTextToSize(item.value,pageWidth-80); doc.text(lines,70,yPos); yPos+=12+(lines.length*4); } }
+        yPos+=5;
       }
-      tr++;
-
-      tech.mergeCells(`B${tr}:D${tr}`);
-      styleSectionHeader(tech.getCell(`B${tr}`), '🔌   I/O SUMMARY');
-      tech.getRow(tr).height = 24; tr++;
-
-      const io = proj.io || { AI: 0, AO: 0, DI: 0, DO: 0 };
-      const maxIO = Math.max(io.AI || 0, io.AO || 0, io.DI || 0, io.DO || 0, 1);
-
-      ['Type', 'Count', 'Visual'].forEach((h, i) => {
-        const cell = tech.getRow(tr).getCell(2 + i);
-        cell.value = h;
-        cell.font = { size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
-        cell.alignment = { horizontal: i === 2 ? 'left' : 'center', vertical: 'middle', indent: i === 2 ? 1 : 0 };
-        cell.border = BORDER;
-      });
-      tech.getRow(tr).height = 22; tr++;
-
-      const ioRows = [
-        ['AI (Analog Input)',  io.AI || 0],
-        ['AO (Analog Output)', io.AO || 0],
-        ['DI (Digital Input)', io.DI || 0],
-        ['DO (Digital Output)',io.DO || 0]
-      ];
-      for (const [label, count] of ioRows) {
-        styleLabel(tech.getCell(`B${tr}`), label);
-        const cCell = tech.getCell(`C${tr}`);
-        cCell.value = count;
-        cCell.font = { size: 11, bold: true };
-        cCell.alignment = { horizontal: 'center', vertical: 'middle' };
-        cCell.border = BORDER;
-        const barLen = Math.round((count / maxIO) * 30);
-        const vCell = tech.getCell(`D${tr}`);
-        vCell.value = barLen > 0 ? '█'.repeat(barLen) : '—';
-        vCell.font = { size: 10, color: { argb: ACCENT } };
-        vCell.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
-        vCell.border = BORDER;
-        tech.getRow(tr).height = 20; tr++;
+      if(proj.workBreakdown){
+        const wb=proj.workBreakdown; const wbSections=[{title:'Work Breakdown Structure',content:wb.workBreakdown},{title:'Problems Encountered',content:wb.problems},{title:'Root Causes',content:wb.rootCauses},{title:'Solutions Implemented',content:wb.solutions},{title:'Improvements Made',content:wb.improvements},{title:'Lessons Learned',content:wb.lessons},{title:'Risks Identified',content:wb.risks},{title:'Testing Procedure',content:wb.testing}];
+        for(const section of wbSections){ if(section.content){ if(yPos>pageHeight-60){ doc.addPage(); yPos=20; doc.setFillColor(11,43,59); doc.rect(0,yPos,pageWidth,10,'F'); doc.setFillColor(47,199,255); doc.rect(0,yPos+10,pageWidth,3,'F'); yPos+=20; doc.setFontSize(18); doc.setFont(undefined,'bold'); doc.setTextColor(darkColor); doc.text('Work Breakdown & Analysis',20,yPos); yPos+=15; }
+            doc.setFillColor(240,248,252); doc.roundedRect(15,yPos-3,pageWidth-30,8,4,4,'F'); doc.setFontSize(12); doc.setFont(undefined,'bold'); doc.setTextColor(darkColor); doc.text(section.title,20,yPos); yPos+=10; doc.setFontSize(9); doc.setFont(undefined,'normal'); doc.setTextColor(textColor); const contentLines=doc.splitTextToSize(section.content,pageWidth-40); doc.text(contentLines,20,yPos); yPos+=(contentLines.length*5)+10; } }
       }
-
-      const totalIO = (io.AI || 0) + (io.AO || 0) + (io.DI || 0) + (io.DO || 0);
-      tech.getCell(`B${tr}`).value = 'TOTAL I/O';
-      tech.getCell(`B${tr}`).font = { size: 10, bold: true, color: { argb: NAVY } };
-      tech.getCell(`B${tr}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: ACCENT } };
-      tech.getCell(`B${tr}`).alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
-      tech.getCell(`B${tr}`).border = BORDER;
-      tech.getCell(`C${tr}`).value = totalIO;
-      tech.getCell(`C${tr}`).font = { size: 12, bold: true, color: { argb: NAVY } };
-      tech.getCell(`C${tr}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: ACCENT } };
-      tech.getCell(`C${tr}`).alignment = { horizontal: 'center', vertical: 'middle' };
-      tech.getCell(`C${tr}`).border = BORDER;
-      tech.getCell(`D${tr}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: ACCENT } };
-      tech.getCell(`D${tr}`).border = BORDER;
-      tech.getRow(tr).height = 24; tr += 2;
-
-      if (proj.dates && (proj.dates.start || proj.dates.finish || proj.dates.ifat || proj.dates.cfat)) {
-        tech.mergeCells(`B${tr}:D${tr}`);
-        styleSectionHeader(tech.getCell(`B${tr}`), '📅   PROJECT DATES');
-        tech.getRow(tr).height = 24; tr++;
-        for (const [label, value] of [
-          ['Start Date', proj.dates.start],
-          ['Finish Date', proj.dates.finish],
-          ['IFAT', proj.dates.ifat],
-          ['CFAT', proj.dates.cfat]
-        ]) {
-          if (!value) continue;
-          styleLabel(tech.getCell(`B${tr}`), label);
-          tech.mergeCells(`C${tr}:D${tr}`);
-          styleValue(tech.getCell(`C${tr}`), value);
-          tech.getRow(tr).height = 20; tr++;
+    }
+    if(selectedImages.length>0){
+      if(yPos>pageHeight-60){ doc.addPage(); yPos=20; }
+      doc.setFillColor(11,43,59); doc.rect(0,yPos,pageWidth,10,'F'); doc.setFillColor(47,199,255); doc.rect(0,yPos+10,pageWidth,3,'F'); yPos+=20;
+      doc.setFontSize(18); doc.setFont(undefined,'bold'); doc.setTextColor(darkColor); doc.text('Project Gallery',20,yPos); yPos+=15;
+      let imgCount=0;
+      for(const img of selectedImages){
+        if(imgCount%2===0){ if(yPos>pageHeight-80){ doc.addPage(); yPos=20; doc.setFillColor(11,43,59); doc.rect(0,yPos,pageWidth,10,'F'); doc.setFillColor(47,199,255); doc.rect(0,yPos+10,pageWidth,3,'F'); yPos+=20; doc.setFontSize(18); doc.setFont(undefined,'bold'); doc.setTextColor(darkColor); doc.text('Project Gallery (continued)',20,yPos); yPos+=15; }
+          const imgX=15,imgY=yPos; doc.setDrawColor(200,200,200); doc.setFillColor(250,250,250); doc.roundedRect(imgX,imgY,85,70,5,5,'FD');
+          try{ const imgResponse=await fetch(img.url); if(imgResponse.ok){ const imgBlob=await imgResponse.blob(); const imgDataUrl=await new Promise(resolve=>{const reader=new FileReader(); reader.onloadend=()=>resolve(reader.result); reader.readAsDataURL(imgBlob);}); doc.addImage(imgDataUrl,'JPEG',imgX+2,imgY+2,81,50); } }catch(err){ doc.setFontSize(8); doc.setFont(undefined,'italic'); doc.setTextColor(150,150,150); doc.text('Image preview',imgX+42,imgY+30,{align:'center'}); }
+          if(img.caption){ doc.setFontSize(7); doc.setFont(undefined,'normal'); doc.setTextColor(100,100,100); const captionLines=doc.splitTextToSize(img.caption,80); doc.text(captionLines,imgX+2,imgY+60); }
         }
-        tr++;
-      }
-
-      if (proj.team && (proj.team.lead || proj.team.engineer || proj.team.technician)) {
-        tech.mergeCells(`B${tr}:D${tr}`);
-        styleSectionHeader(tech.getCell(`B${tr}`), '👥   PROJECT TEAM');
-        tech.getRow(tr).height = 24; tr++;
-        for (const [label, value] of [
-          ['Lead Engineer', proj.team.lead],
-          ['Project Engineer', proj.team.engineer],
-          ['Technician', proj.team.technician]
-        ]) {
-          if (!value) continue;
-          styleLabel(tech.getCell(`B${tr}`), label);
-          tech.mergeCells(`C${tr}:D${tr}`);
-          styleValue(tech.getCell(`C${tr}`), value);
-          tech.getRow(tr).height = 20; tr++;
-        }
-      }
-    } else if (proj.technical) {
-      tech.mergeCells(`B${tr}:D${tr}`);
-      styleSectionHeader(tech.getCell(`B${tr}`), '⚙️   TECHNICAL DETAILS');
-      tech.getRow(tr).height = 24; tr++;
-      for (const [label, value] of [
-        ['Technologies', proj.technical.technologies],
-        ['Hardware',     proj.technical.hardware],
-        ['Software',     proj.technical.software],
-        ['Protocols',    proj.technical.protocols],
-        ['Languages',    proj.technical.languages]
-      ]) {
-        if (!value) continue;
-        styleLabel(tech.getCell(`B${tr}`), label);
-        tech.mergeCells(`C${tr}:D${tr}`);
-        styleValue(tech.getCell(`C${tr}`), value);
-        tech.getRow(tr).height = 22; tr++;
-      }
-    } else {
-      tech.mergeCells(`B${tr}:D${tr}`);
-      const empty = tech.getCell(`B${tr}`);
-      empty.value = 'No technical details provided.';
-      empty.font = { size: 10, italic: true, color: { argb: 'FF6B7D8F' } };
-      empty.alignment = { horizontal: 'center', vertical: 'middle' };
-      tech.getRow(tr).height = 40;
-    }
-
-    // ═══ SHEET 4 — WORK BREAKDOWN ═══
-    const wbSheet = workbook.addWorksheet('Work Breakdown', {
-      pageSetup: { orientation: 'portrait', fitToPage: true, fitToWidth: 1, paperSize: 9 }
-    });
-    wbSheet.columns = [{ width: 4 }, { width: 28 }, { width: 60 }, { width: 4 }];
-
-    wbSheet.mergeCells('B2:C2');
-    const wbTitle = wbSheet.getCell('B2');
-    wbTitle.value = 'WORK BREAKDOWN & ANALYSIS';
-    wbTitle.font = { size: 16, bold: true, color: { argb: 'FFFFFFFF' } };
-    wbTitle.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
-    wbTitle.alignment = { horizontal: 'center', vertical: 'middle' };
-    wbSheet.getRow(2).height = 38;
-
-    let wr = 4;
-    const hasWB = proj.workBreakdown && Object.values(proj.workBreakdown).some(v => v && String(v).trim());
-    if (hasWB) {
-      const sections = [
-        ['Work Breakdown Structure', proj.workBreakdown.workBreakdown],
-        ['Problems Encountered',    proj.workBreakdown.problems],
-        ['Root Causes',             proj.workBreakdown.rootCauses],
-        ['Solutions Implemented',   proj.workBreakdown.solutions],
-        ['Improvements Made',       proj.workBreakdown.improvements],
-        ['Lessons Learned',         proj.workBreakdown.lessons],
-        ['Risks Identified',        proj.workBreakdown.risks],
-        ['Testing Procedure',       proj.workBreakdown.testing]
-      ];
-      for (const [label, content] of sections) {
-        if (!content || !String(content).trim()) continue;
-        const lCell = wbSheet.getCell(`B${wr}`);
-        styleLabel(lCell, label);
-        lCell.alignment = { horizontal: 'left', vertical: 'top', wrapText: true, indent: 1 };
-        const cCell = wbSheet.getCell(`C${wr}`);
-        cCell.value = String(content);
-        cCell.font = { size: 10 };
-        cCell.alignment = { horizontal: 'left', vertical: 'top', wrapText: true, indent: 1 };
-        cCell.border = BORDER;
-        const lines = String(content).split('\n').reduce((s, line) => s + Math.max(1, Math.ceil(line.length / 75)), 0);
-        wbSheet.getRow(wr).height = Math.max(28, lines * 14);
-        wr++;
-      }
-    } else {
-      wbSheet.mergeCells(`B${wr}:C${wr}`);
-      const empty = wbSheet.getCell(`B${wr}`);
-      empty.value = 'No work breakdown information provided for this project.';
-      empty.font = { size: 10, italic: true, color: { argb: 'FF6B7D8F' } };
-      empty.alignment = { horizontal: 'center', vertical: 'middle' };
-      wbSheet.getRow(wr).height = 40;
-    }
-
-    // ═══ SHEET 5 — GALLERY ═══
-    if (selectedImages.length > 0) {
-      const gallery = workbook.addWorksheet('Gallery', {
-        pageSetup: { orientation: 'portrait', fitToPage: true, fitToWidth: 1, paperSize: 9 }
-      });
-      gallery.columns = [{ width: 4 }, { width: 6 }, { width: 22 }, { width: 44 }, { width: 4 }];
-
-      gallery.mergeCells('B2:D2');
-      const galTitle = gallery.getCell('B2');
-      galTitle.value = 'PROJECT GALLERY';
-      galTitle.font = { size: 16, bold: true, color: { argb: 'FFFFFFFF' } };
-      galTitle.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
-      galTitle.alignment = { horizontal: 'center', vertical: 'middle' };
-      gallery.getRow(2).height = 38;
-
-      const gh = gallery.getRow(4);
-      ['#', 'Image', 'Caption'].forEach((h, i) => {
-        const cell = gh.getCell(2 + i);
-        cell.value = h;
-        cell.font = { size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
-        cell.alignment = { horizontal: 'center', vertical: 'middle' };
-        cell.border = BORDER;
-      });
-      gh.height = 22;
-
-      let gr = 5;
-      for (let i = 0; i < selectedImages.length; i++) {
-        const img = selectedImages[i];
-        gallery.getCell(`B${gr}`).value = i + 1;
-        gallery.getCell(`B${gr}`).alignment = { horizontal: 'center', vertical: 'middle' };
-        gallery.getCell(`B${gr}`).font = { size: 10, bold: true };
-        gallery.getCell(`B${gr}`).border = BORDER;
-
-        let embedded = false;
-        try {
-          const buf = await embedImage(img.url);
-          const imgId = workbook.addImage({ buffer: buf, extension: guessExt(img.url) });
-          gallery.addImage(imgId, {
-            tl: { col: 2, row: gr - 1 },
-            ext: { width: 130, height: 90 },
-            editAs: 'oneCell'
-          });
-          embedded = true;
-        } catch (e) { console.warn('Gallery image embed failed:', e); }
-
-        const imgCell = gallery.getCell(`C${gr}`);
-        if (!embedded) {
-          imgCell.value = img.url;
-          imgCell.font = { size: 8, color: { argb: 'FF2FC7FF' } };
-          imgCell.alignment = { horizontal: 'left', vertical: 'middle', wrapText: true };
-        }
-        imgCell.border = BORDER;
-
-        const capCell = gallery.getCell(`D${gr}`);
-        capCell.value = img.caption || '(No caption)';
-        capCell.font = { size: 9 };
-        capCell.alignment = { horizontal: 'left', vertical: 'middle', wrapText: true };
-        capCell.border = BORDER;
-
-        gallery.getRow(gr).height = 96;
-        gr++;
+        imgCount++; if(imgCount%2===0) yPos+=78;
       }
     }
-
-    const buffer = await workbook.xlsx.writeBuffer();
-    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    const safeName = (proj.title || 'project').replace(/[^a-z0-9]/gi, '_').toLowerCase();
-    saveAs(blob, `${safeName}_report_${new Date().toISOString().slice(0, 10)}.xlsx`);
-    showToast('Excel report generated successfully!', 'success');
-  } catch (err) {
-    console.error('Excel generation failed:', err);
-    alert('Excel generation failed: ' + err.message);
-  } finally {
-    window.hideLoading();
-  }
+    const pageCount=doc.internal.getNumberOfPages();
+    for(let i=1;i<=pageCount;i++){ doc.setPage(i); doc.setDrawColor(200,200,200); doc.setLineWidth(0.5); doc.line(15,pageHeight-15,pageWidth-15,pageHeight-15); doc.setFontSize(8); doc.setFont(undefined,'normal'); doc.setTextColor(120,120,120); doc.text(`Your Portfolio - ${proj.title.substring(0,40)}`,20,pageHeight-8); doc.text(`Page ${i} of ${pageCount}`,pageWidth/2,pageHeight-8,{align:'center'}); const pageQrDataURL=await generateQRCodeDataURL(repoUrl,25); if(pageQrDataURL) doc.addImage(pageQrDataURL,'PNG',pageWidth-22,pageHeight-20,12,12); doc.setFontSize(35); doc.setTextColor(240,240,240); doc.setGState(new doc.GState({opacity:0.08})); doc.text('CONFIDENTIAL',pageWidth/2,pageHeight/2,{align:'center',angle:45}); doc.setGState(new doc.GState({opacity:1})); }
+    const safeFileName=proj.title.replace(/[^a-z0-9]/gi,'_').toLowerCase(); doc.save(`${safeFileName}_report.pdf`);
+    showToast('PDF generated successfully!','success');
+  } catch(err){ console.error(err); showToast('PDF generation failed: '+err.message,'error'); } finally{ window.hideLoading(); }
 };

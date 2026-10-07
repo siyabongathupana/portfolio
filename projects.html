@@ -10,8 +10,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 <link rel="stylesheet" href="theme-dark.css" id="theme-dark-css">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="supabase.js"></script>
 <script>
 (function(){
   try {
@@ -38,6 +36,8 @@
   <script src="shared.js"></script>
   <script src="messaging.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     .project-type-badge {
       position: absolute;
@@ -78,16 +78,6 @@
     .status-ongoing { background: #2fc7ff; color: white; }
     .status-paused { background: #ffc107; color: #333; }
     .status-planned { background: #6c757d; color: white; }
-    /* Image protection */
-    .project-img {
-      -webkit-touch-callout: none;
-      -webkit-user-drag: none;
-      -khtml-user-drag: none;
-      -moz-user-drag: none;
-      -o-user-drag: none;
-      user-select: none;
-      -webkit-user-select: none;
-    }
   </style>
 </head>
 <body>
@@ -156,7 +146,6 @@
       const noMsg = document.getElementById('noProjectsMsg');
       const subtext = document.getElementById('projectsSubtext');
       const user = window.SessionManager.getCurrentUser();
-      const canExcel = window.canDownloadExcel();
       
       if (user) {
         subtext.innerHTML = `Showing YOUR projects (${projects.length} total) | <a href="admin.html" style="color:#2fc7ff;">Add more</a>`;
@@ -180,19 +169,13 @@
         const statusText = proj.status || 'Planned';
         const projectTypeBadge = getProjectTypeBadge(proj);
         
+        // Determine display text based on project type
         let techInfo = '';
         if (isDeltaV) {
           techInfo = `${proj.projectType || 'DCS'} · DeltaV ${proj.deltaVVersion || 'N/A'} · ${proj.controllerType || 'MD'} controller`;
         } else {
           techInfo = `${proj.industry || 'General Engineering'} · ${proj.duration || 'Variable duration'}`;
         }
-        
-        // Excel button — only if allowed (admin OR public flag enabled)
-        const excelBtn = canExcel
-          ? `<button class="btn btn-sm btn-delta" onclick="event.stopPropagation(); window.generateProjectReport('${proj.id}')">
-               <i class="fa fa-file-excel-o"></i> Excel Report
-             </button>`
-          : '';
         
         const card = `
           <div class="col-lg-4 col-md-6 mb-4">
@@ -209,7 +192,9 @@
                 <button class="btn btn-sm btn-outline-delta" onclick="event.stopPropagation(); window.location.href='project-details.html?id=${proj.id}'">
                   <i class="fa fa-info-circle"></i> View Details
                 </button>
-                ${excelBtn}
+                <button class="btn btn-sm btn-delta" onclick="event.stopPropagation(); window.generateProjectReport('${proj.id}')">
+                  <i class="fa fa-file-pdf-o"></i> PDF Report
+                </button>
               </div>
               <div class="mt-2 text-muted" style="font-size:0.7rem;">${techInfo}</div>
             </div>
@@ -228,7 +213,6 @@
   window.onload = function() {
     window.updateUserFooter();
     renderAllProjects();
-    window.protectImages();
     
     // Theme toggle functionality
     const themeToggleBtn = document.getElementById('themeToggleBtn');

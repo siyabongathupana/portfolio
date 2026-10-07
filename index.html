@@ -10,8 +10,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="theme-dark.css" id="theme-dark-css">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="supabase.js"></script>
 <script>
 (function(){
   try {
@@ -33,6 +31,8 @@
 })();
 </script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   <script src="config.js"></script>
   <script src="crypto.js"></script>
@@ -77,16 +77,6 @@
     .badge-general {
       background: #2fc7ff;
       color: #0b2b3b;
-    }
-    /* Image protection */
-    .project-img, .about-img {
-      -webkit-touch-callout: none;
-      -webkit-user-drag: none;
-      -khtml-user-drag: none;
-      -moz-user-drag: none;
-      -o-user-drag: none;
-      user-select: none;
-      -webkit-user-select: none;
     }
   </style>
 </head>
@@ -211,7 +201,6 @@
       const grid = document.getElementById('featuredGrid');
       const noMsg = document.getElementById('noProjectsMsg');
       const user = window.SessionManager.getCurrentUser();
-      const canExcel = window.canDownloadExcel();
       
       const subtext = document.getElementById('featuredSubtext');
       if (user) {
@@ -244,13 +233,6 @@
           techInfo = `${proj.industry || 'General Engineering'} · ${proj.duration || 'Variable'}`;
         }
         
-        // Excel button — only if allowed (admin OR public flag enabled)
-        const excelBtn = canExcel
-          ? `<button class="btn btn-sm btn-delta" onclick="event.stopPropagation(); window.generateProjectReport('${proj.id}')">
-               <i class="fa fa-file-excel-o"></i> Excel
-             </button>`
-          : '';
-        
         const card = `
           <div class="col-lg-4 col-md-6 mb-4">
             <div class="project-card" onclick="window.location.href='project-details.html?id=${proj.id}'">
@@ -266,7 +248,9 @@
                 <button class="btn btn-sm btn-outline-delta" onclick="event.stopPropagation(); window.location.href='project-details.html?id=${proj.id}'">
                   <i class="fa fa-info-circle"></i> Details
                 </button>
-                ${excelBtn}
+                <button class="btn btn-sm btn-delta" onclick="event.stopPropagation(); window.generateProjectReport('${proj.id}')">
+                  <i class="fa fa-file-pdf-o"></i> PDF
+                </button>
               </div>
               <div class="mt-2 text-muted" style="font-size:0.7rem;">${techInfo}</div>
             </div>
@@ -326,7 +310,6 @@
   window.onload = function() {
     window.updateUserFooter();
     renderFeatured();
-    window.protectImages();
   };
 </script>
 <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
