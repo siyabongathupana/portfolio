@@ -274,10 +274,11 @@
                     {
                       "name": "Weekly Quiz 8",
                       "due": null,
-                      "status": "not-started",
+                      "status": "submitted",
                       "marks": "",
                       "weight": 1,
-                      "notes": ""
+                      "notes": "",
+                      "submittedDate": "2026-10-08"
                     }
                   ]
                 },
