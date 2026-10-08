@@ -43,7 +43,6 @@
     .btn-grade { background: rgba(162,155,254,0.2); color: #c9c3ff; }
     .btn-grade:hover { background: rgba(162,155,254,0.32); color: #dcd7ff; }
 
-    /* ─── Scope selector — improved positioning ─── */
     .scope-selector { position: relative; }
     .scope-btn {
       background: rgba(255,255,255,0.08);
@@ -80,7 +79,6 @@
       padding: 8px;
       display: none;
       overflow-y: auto;
-      /* top/bottom/left/right/max-height all set by JS */
     }
     .scope-panel.open { display: block; }
     .scope-panel .sp-label { font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; padding: 8px 12px 4px; }
@@ -101,7 +99,6 @@
     .scope-banner .scope-reset { margin-left: auto; background: transparent; border: 1px solid var(--border-subtle); border-radius: 40px; padding: 5px 14px; font-size: 0.72rem; color: var(--text-primary); cursor: pointer; transition: 0.15s; font-weight: 600; }
     .scope-banner .scope-reset:hover { border-color: var(--accent); color: var(--accent); }
 
-    /* ─── Command palette ─── */
     .cmd-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.72); backdrop-filter: blur(6px); z-index: 2000; align-items: flex-start; justify-content: center; padding: 10vh 20px 20px; }
     .cmd-modal.open { display: flex; }
     .cmd-box { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 18px; width: 100%; max-width: 620px; overflow: hidden; box-shadow: 0 30px 80px rgba(0,0,0,0.7); animation: cmdIn 0.2s ease; max-height: 78vh; display: flex; flex-direction: column; }
@@ -336,6 +333,7 @@
       .grade-assign-list .gal-header, .grade-assign-list .gal-row { grid-template-columns: 1fr 50px 70px 70px; font-size: 0.7rem; }
       .sync-conflict-modal .conflict-actions { grid-template-columns: 1fr; }
       .sync-conflict-modal .conflict-visual { flex-direction: column; }
+      .workload-header { flex-direction: column; align-items: flex-start !important; }
     }
     @media (max-width: 480px) { .stats-bar { grid-template-columns: repeat(2, 1fr); } }
 
@@ -441,8 +439,15 @@
     .priority-item .prio-info .days { font-size: 0.75rem; color: var(--text-secondary); }
 
     .workload-chart { background: var(--bg-card); border-radius: 16px; padding: 16px 20px; border: 1px solid var(--border-subtle); margin-bottom: 30px; }
-    .workload-chart h4 { font-size: 1rem; font-weight: 600; color: var(--text-primary); margin-bottom: 12px; }
-    .workload-chart .chart-container { height: 140px; position: relative; }
+    .workload-chart .workload-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+    .workload-chart h4 { font-size: 1rem; font-weight: 600; color: var(--text-primary); margin: 0; }
+    .workload-chart .chart-container { height: 150px; position: relative; }
+    .workload-summary { display: flex; gap: 6px; flex-wrap: wrap; }
+    .wl-pill { font-size: 0.7rem; font-weight: 600; padding: 4px 12px; border-radius: 40px; white-space: nowrap; border: 1px solid transparent; }
+    .wl-pill-overdue { background: rgba(225,112,85,0.18); color: #ff9b85; border-color: rgba(225,112,85,0.3); }
+    .wl-pill-today { background: rgba(253,203,110,0.18); color: var(--orange); border-color: rgba(253,203,110,0.3); }
+    .wl-pill-soon { background: rgba(47,199,255,0.15); color: var(--accent); border-color: rgba(47,199,255,0.25); }
+    .wl-pill-clear { background: rgba(0,184,148,0.15); color: #4ae4b8; border-color: rgba(0,184,148,0.25); }
 
     .study-streak { background: var(--bg-card); border-radius: 16px; padding: 16px 20px; border: 1px solid var(--border-subtle); margin: 20px 0 30px; display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
     .study-streak .streak-number { font-size: 2.2rem; font-weight: 800; color: var(--orange); }
@@ -466,6 +471,7 @@
     .all-assignments-tab .quick-pills .pill:hover { background: rgba(255,255,255,0.09); }
     .all-assignments-tab .quick-pills .pill.active { background: rgba(47,199,255,0.2); border-color: rgba(47,199,255,0.5); color: var(--accent); }
     .all-assignments-tab .quick-pills .pill.active.overdue { background: rgba(225,112,85,0.22); border-color: rgba(225,112,85,0.55); color: #ff9b85; }
+    .all-assignments-tab .quick-pills .pill.active.today { background: rgba(253,203,110,0.22); border-color: rgba(253,203,110,0.55); color: var(--orange); }
     .all-assignments-tab .quick-pills .pill.active.due-soon { background: rgba(253,203,110,0.22); border-color: rgba(253,203,110,0.55); color: var(--orange); }
     .all-assignments-tab .quick-pills .pill.active.submitted { background: rgba(0,184,148,0.22); border-color: rgba(0,184,148,0.55); color: #4ae4b8; }
     .all-assignments-tab .quick-pills .pill.active.graded { background: rgba(162,155,254,0.22); border-color: rgba(162,155,254,0.55); color: #c9c3ff; }
@@ -478,6 +484,7 @@
     .all-assignments-tab .quick-stats { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
     .all-assignments-tab .qstat { font-size: 0.72rem; font-weight: 600; padding: 4px 12px; border-radius: 40px; background: rgba(255,255,255,0.05); color: var(--text-secondary); border: 1px solid var(--border-subtle); }
     .all-assignments-tab .qstat.overdue { background: rgba(225,112,85,0.15); color: #ff9b85; border-color: rgba(225,112,85,0.25); }
+    .all-assignments-tab .qstat.today { background: rgba(253,203,110,0.15); color: var(--orange); border-color: rgba(253,203,110,0.25); }
     .all-assignments-tab .qstat.due-soon { background: rgba(253,203,110,0.15); color: var(--orange); border-color: rgba(253,203,110,0.25); }
     .all-assignments-tab .qstat.in-progress { background: rgba(47,199,255,0.15); color: var(--accent); border-color: rgba(47,199,255,0.25); }
     .all-assignments-tab .qstat.submitted { background: rgba(0,184,148,0.15); color: #4ae4b8; border-color: rgba(0,184,148,0.25); }
@@ -741,7 +748,6 @@
     return;
   }
 
-  // ─── DEFAULT DATA ───
   function getDefaultData() {
     function topic(name, subtopics) { return { name, subtopics: subtopics || [], completed: false, subCompleted: [] }; }
     function makeWeekly(name, due, weight) {
@@ -856,7 +862,8 @@
   const DEBOUNCE_DELAY = 1000, MAX_SAVE_DELAY = 5000;
   let isOffline = false;
 
-  // ─── SCOPE ───
+  let lastSaveCompletedAt = 0;
+
   const SCOPE_KEY = 'studies_scope_v1';
   let scope = { mode: 'auto', yearName: null, semesterName: null };
 
@@ -1000,13 +1007,11 @@
     });
   }
 
-  // ★ SMART PANEL POSITIONING — fixes cropping on smaller screens
   function positionScopePanel() {
     const panel = document.getElementById('scopePanel');
     const btn = document.getElementById('scopeBtn');
     if (!panel || !btn) return;
 
-    // Reset first to get natural size
     panel.style.top = '';
     panel.style.bottom = '';
     panel.style.left = '';
@@ -1021,8 +1026,6 @@
       const vh = window.innerHeight;
       const margin = 12;
 
-      // ── Horizontal ──
-      // Prefer aligning the panel's left edge with the button's left edge
       const spaceRight = vw - btnRect.left - margin;
       const spaceLeft = btnRect.right - margin;
       if (panelWidth <= spaceRight) {
@@ -1032,13 +1035,11 @@
         panel.style.left = 'auto';
         panel.style.right = '0';
       } else {
-        // Neither side fits — clamp to viewport (rare)
         panel.style.left = '0';
         panel.style.right = 'auto';
         panel.style.width = Math.min(panelWidth, vw - margin * 2) + 'px';
       }
 
-      // ── Vertical ──
       const spaceBelow = vh - btnRect.bottom - 6 - margin;
       const spaceAbove = btnRect.top - 6 - margin;
       const preferredHeight = Math.min(panelHeight, 460);
@@ -1068,7 +1069,6 @@
     if (!panel) return;
     buildScopePanel();
     panel.classList.add('open');
-    // Position after rendering
     positionScopePanel();
   }
   function closeScopePanel() {
@@ -1076,13 +1076,11 @@
     if (panel) panel.classList.remove('open');
   }
 
-  // Re-position on resize & scroll
   window.addEventListener('resize', () => {
     const panel = document.getElementById('scopePanel');
     if (panel && panel.classList.contains('open')) positionScopePanel();
   });
 
-  // ─── SAVE / SYNC ───
   window.addEventListener('online', () => { isOffline = false; updateSaveStatusUI('saved'); if (savedVersion !== saveVersion) scheduleSave(); });
   window.addEventListener('offline', () => { isOffline = true; updateSaveStatusUI('offline'); });
 
@@ -1111,8 +1109,15 @@
   async function loadFromGitHub() {
     const { owner, repo, branch } = window.REPO_CONFIG;
     const path = getStudyPath();
-    const resp = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`, { headers: { Authorization: `token ${user.pat}` } });
-    if (!resp.ok) { if (resp.status === 404) return null; throw new Error(`GitHub error: ${resp.status}`); }
+    const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}&_t=${Date.now()}_${Math.random()}`;
+    const resp = await fetch(url, {
+      headers: { Authorization: `token ${user.pat}` },
+      cache: 'no-store'
+    });
+    if (!resp.ok) {
+      if (resp.status === 404) return null;
+      throw new Error(`GitHub error: ${resp.status}`);
+    }
     const data = await resp.json();
     const parsed = JSON.parse(atob(data.content.replace(/\n/g, '')));
     if (parsed && parsed.years) return { data: parsed, sha: data.sha };
@@ -1175,8 +1180,9 @@
         const remoteSha = remote?.sha || null;
         const remoteContent = remote?.content || null;
         const hasRemoteChanged = remoteSha && lastSyncedSha && remoteSha !== lastSyncedSha;
+        const justSavedRecently = (Date.now() - lastSaveCompletedAt) < 5000;
 
-        if (hasRemoteChanged) {
+        if (hasRemoteChanged && !justSavedRecently) {
           const resolution = await showSyncConflictDialog(dataToSave, remoteContent, remoteSha);
           if (resolution === 'cancel') { isSaving = false; return; }
           if (resolution === 'remote') {
@@ -1196,6 +1202,9 @@
             dataToSave.years = merged.years;
             showToast('🔀 Merged local + GitHub', 'info');
           }
+        } else if (hasRemoteChanged && justSavedRecently) {
+          lastSyncedSha = remoteSha;
+          currentFileSha = remoteSha;
         }
 
         try {
@@ -1203,6 +1212,7 @@
           currentFileSha = pushedSha || currentFileSha;
           lastSyncedSha = currentFileSha;
           savedVersion = versionToSave;
+          lastSaveCompletedAt = Date.now();
           updateSaveStatusUI('saved');
         } catch (err) {
           if (err.status === 409) {
@@ -1233,7 +1243,11 @@
 
   async function fetchRemoteStudyData() {
     const { owner, repo, branch } = window.REPO_CONFIG;
-    const resp = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${getStudyPath()}?ref=${branch}`, { headers: { Authorization: `token ${user.pat}` } });
+    const url = `https://api.github.com/repos/${owner}/${repo}/contents/${getStudyPath()}?ref=${branch}&_t=${Date.now()}_${Math.random()}`;
+    const resp = await fetch(url, {
+      headers: { Authorization: `token ${user.pat}` },
+      cache: 'no-store'
+    });
     if (resp.status === 404) return null;
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const data = await resp.json();
@@ -1311,8 +1325,11 @@
     modal.classList.add('open');
     try {
       const { owner, repo, branch } = window.REPO_CONFIG;
-      const url = `https://api.github.com/repos/${owner}/${repo}/commits?path=${encodeURIComponent(getStudyPath())}&sha=${branch}&per_page=15`;
-      const resp = await fetch(url, { headers: { Authorization: `token ${user.pat}` } });
+      const url = `https://api.github.com/repos/${owner}/${repo}/commits?path=${encodeURIComponent(getStudyPath())}&sha=${branch}&per_page=15&_t=${Date.now()}`;
+      const resp = await fetch(url, {
+        headers: { Authorization: `token ${user.pat}` },
+        cache: 'no-store'
+      });
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const commits = await resp.json();
       if (!commits.length) { list.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-secondary);">No version history yet.</div>'; return; }
@@ -1331,7 +1348,10 @@
           if (!confirm('Replace your current in-editor data with this version?')) return;
           try {
             const { owner, repo } = window.REPO_CONFIG;
-            const resp = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${getStudyPath()}?ref=${sha}`, { headers: { Authorization: `token ${user.pat}` } });
+            const resp = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${getStudyPath()}?ref=${sha}&_t=${Date.now()}`, {
+              headers: { Authorization: `token ${user.pat}` },
+              cache: 'no-store'
+            });
             if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
             const data = await resp.json();
             saveToCache(studyData);
@@ -1365,10 +1385,16 @@
 
   async function refreshSHAFromGitHub() {
     try {
-      const file = await GitHubAPI.getFileContent(window.REPO_CONFIG.owner, window.REPO_CONFIG.repo, getStudyPath(), window.REPO_CONFIG.branch, user.pat);
-      if (file && file.sha) return { sha: file.sha, content: file.content };
-    } catch(e) {}
-    return null;
+      const { owner, repo, branch } = window.REPO_CONFIG;
+      const url = `https://api.github.com/repos/${owner}/${repo}/contents/${getStudyPath()}?ref=${branch}&_t=${Date.now()}_${Math.random()}`;
+      const resp = await fetch(url, {
+        headers: { Authorization: `token ${user.pat}` },
+        cache: 'no-store'
+      });
+      if (!resp.ok) return null;
+      const data = await resp.json();
+      return { sha: data.sha, content: data.content };
+    } catch(e) { return null; }
   }
 
   function escapeHtml(str) { if (!str) return ''; return String(str).replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m] || m); }
@@ -1653,27 +1679,161 @@
     container.innerHTML = html;
   }
 
+  // ═══════════════════════════════════════════════════════════════
+  //  UPGRADED WORKLOAD CHART
+  //  • Overdue bucket (red) at the start, capped at 15 for readability
+  //  • Today (amber) and Tomorrow explicitly labeled
+  //  • Future days (cyan)
+  //  • Summary pills above the chart
+  //  • Clicking a bar jumps to All Assignments with the right filter
+  //  • Today click → 'today' filter (only items due today)
+  // ═══════════════════════════════════════════════════════════════
   function renderWorkload() {
     const container = document.getElementById('workloadChart');
     if (!container) return;
     const all = getAllAssignments();
     const today = new Date(); today.setHours(0,0,0,0);
-    const next7 = [], next7Keys = [];
-    for (let i = 0; i < 7; i++) { const d = new Date(today); d.setDate(today.getDate() + i); next7.push(d); next7Keys.push(formatLocalYMD(d)); }
-    const counts = next7Keys.map(key => all.filter(a => { const s = getAssignmentState(a); return a.due === key && s !== 'submitted' && s !== 'graded'; }).length);
-    const labels = next7.map(d => d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }));
-    container.innerHTML = `<div class="workload-chart"><h4>📅 Workload – Next 7 Days</h4><div class="chart-container"><canvas id="workloadCanvas"></canvas></div></div>`;
+    const todayKey = formatLocalYMD(today);
+
+    // Buckets: [overdue, today, tomorrow, +2, +3, +4, +5, +6]
+    const counts = [0, 0, 0, 0, 0, 0, 0, 0];
+    const labels = ['Overdue'];
+
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(today); d.setDate(today.getDate() + i);
+      if (i === 0) labels.push('Today');
+      else if (i === 1) labels.push('Tomorrow');
+      else labels.push(d.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric' }));
+    }
+
+    all.forEach(a => {
+      const s = getAssignmentState(a);
+      if (s === 'submitted' || s === 'graded') return;
+      if (!a.due) return;
+      if (a.due < todayKey) { counts[0]++; return; }
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(today); d.setDate(today.getDate() + i);
+        if (a.due === formatLocalYMD(d)) { counts[i + 1]++; return; }
+      }
+    });
+
+    // ─── Cap the Overdue bar for display so big piles don't dwarf the chart ───
+    const OVERDUE_DISPLAY_CAP = 15;
+    const overdueIsCapped = counts[0] > OVERDUE_DISPLAY_CAP;
+    const displayCounts = counts.map((c, i) => i === 0 ? Math.min(c, OVERDUE_DISPLAY_CAP) : c);
+    if (overdueIsCapped) labels[0] = `Overdue (${counts[0]})`;
+
+    const totalOverdue = counts[0];
+    const totalToday = counts[1];
+    const totalUpcoming = counts.slice(2).reduce((s, c) => s + c, 0);
+
+    let summaryHtml = '';
+    if (totalOverdue > 0) summaryHtml += `<span class="wl-pill wl-pill-overdue">🔴 ${totalOverdue} overdue</span>`;
+    if (totalToday > 0) summaryHtml += `<span class="wl-pill wl-pill-today">🟠 ${totalToday} due today</span>`;
+    if (totalUpcoming > 0) summaryHtml += `<span class="wl-pill wl-pill-soon">🔵 ${totalUpcoming} upcoming</span>`;
+    if (totalOverdue === 0 && totalToday === 0 && totalUpcoming === 0) {
+      summaryHtml = `<span class="wl-pill wl-pill-clear">🎉 Nothing due in the next 7 days</span>`;
+    }
+
+    container.innerHTML = `
+      <div class="workload-chart">
+        <div class="workload-header">
+          <h4>📅 Workload – Overdue + Next 7 Days</h4>
+          <div class="workload-summary">${summaryHtml}</div>
+        </div>
+        <div class="chart-container"><canvas id="workloadCanvas"></canvas></div>
+      </div>`;
+
     setTimeout(() => {
       const canvas = document.getElementById('workloadCanvas');
       if (!canvas) return;
       if (window.workloadChart) window.workloadChart.destroy();
+
+      const backgroundColor = displayCounts.map((c, i) => {
+        if (c === 0) {
+          if (i === 0) return 'rgba(225,112,85,0.12)';
+          if (i === 1) return 'rgba(253,203,110,0.12)';
+          return 'rgba(47,199,255,0.15)';
+        }
+        if (i === 0) return 'rgba(225,112,85,0.85)';
+        if (i === 1) return 'rgba(253,203,110,0.85)';
+        return 'rgba(47,199,255,0.7)';
+      });
+      const borderColor = displayCounts.map((c, i) => {
+        if (i === 0) return '#e17055';
+        if (i === 1) return '#fdcb6e';
+        return '#2fc7ff';
+      });
+
       window.workloadChart = new Chart(canvas, {
         type: 'bar',
-        data: { labels, datasets: [{ label: 'Assignments due', data: counts, backgroundColor: counts.map(c => c > 0 ? 'rgba(47,199,255,0.65)' : 'rgba(47,199,255,0.15)'), borderColor: '#2fc7ff', borderWidth: 1, borderRadius: 6 }] },
+        data: {
+          labels,
+          datasets: [{
+            label: 'Assignments due',
+            data: displayCounts,
+            backgroundColor,
+            borderColor,
+            borderWidth: 1.5,
+            borderRadius: 6
+          }]
+        },
         options: {
-          responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => `${ctx.parsed.y} assignment${ctx.parsed.y === 1 ? '' : 's'}` } } },
-          scales: { y: { beginAtZero: true, ticks: { color: '#8a9fb0', font: { size: 9 }, precision: 0 }, grid: { color: 'rgba(255,255,255,0.05)' } }, x: { ticks: { color: '#8a9fb0', font: { size: 9 } }, grid: { display: false } } }
+          responsive: true,
+          maintainAspectRatio: false,
+          onClick: (evt, elements) => {
+            if (!elements.length) return;
+            const idx = elements[0].index;
+            if (counts[idx] === 0) return;
+            if (idx === 0) assignmentsStatusFilter = 'overdue';
+            else if (idx === 1) assignmentsStatusFilter = 'today';
+            else assignmentsStatusFilter = 'active';
+            renderAllAssignmentsTab();
+            const tab = document.getElementById('allAssignmentsTab');
+            if (tab) tab.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          },
+          onHover: (evt, elements) => {
+            try {
+              evt.native.target.style.cursor = (elements.length && counts[elements[0].index] > 0) ? 'pointer' : 'default';
+            } catch(e) {}
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#111927',
+              titleColor: '#e0e8ee',
+              bodyColor: '#8a9fb0',
+              borderColor: 'rgba(47,199,255,0.3)',
+              borderWidth: 1,
+              padding: 12,
+              displayColors: false,
+              callbacks: {
+                title: (items) => labels[items[0].dataIndex],
+                label: (ctx) => {
+                  const real = counts[ctx.dataIndex];
+                  if (real === 0) return 'No assignments';
+                  const hint = ctx.dataIndex === 0 ? ' — click to view overdue'
+                            : ctx.dataIndex === 1 ? ' — click to view today'
+                            : ' — click to filter active';
+                  if (ctx.dataIndex === 0 && overdueIsCapped) {
+                    return `${real} assignment${real === 1 ? '' : 's'} (bar capped at ${OVERDUE_DISPLAY_CAP})${hint}`;
+                  }
+                  return `${real} assignment${real === 1 ? '' : 's'}${hint}`;
+                }
+              }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: { color: '#8a9fb0', font: { size: 9 }, precision: 0, stepSize: 1 },
+              grid: { color: 'rgba(255,255,255,0.05)' }
+            },
+            x: {
+              ticks: { color: '#8a9fb0', font: { size: 9 }, maxRotation: 0 },
+              grid: { display: false }
+            }
+          }
         }
       });
     }, 80);
@@ -1690,7 +1850,10 @@
     </div>`;
   }
 
-  // ─── ALL ASSIGNMENTS TAB ───
+  // ═══════════════════════════════════════════════════════════════
+  //  ALL ASSIGNMENTS TAB
+  //  Filters: active / today / overdue / due-soon / submitted / graded / all
+  // ═══════════════════════════════════════════════════════════════
   function renderAllAssignmentsTab() {
     const container = document.getElementById('allAssignmentsTab');
     if (!container) return;
@@ -1700,12 +1863,18 @@
     const statusFilter = assignmentsStatusFilter;
     const all = getAllAssignments();
     const units = getUnits();
+    const todayKey = formatLocalYMD(new Date());
 
     let filtered = all;
     if (filterUnit !== 'all') filtered = filtered.filter(a => a.unitCode === filterUnit);
     if (statusFilter !== 'all') {
-      if (statusFilter === 'active') filtered = filtered.filter(a => { const s = getAssignmentState(a); return s !== 'submitted' && s !== 'graded'; });
-      else filtered = filtered.filter(a => getAssignmentState(a) === statusFilter);
+      if (statusFilter === 'active') {
+        filtered = filtered.filter(a => { const s = getAssignmentState(a); return s !== 'submitted' && s !== 'graded'; });
+      } else if (statusFilter === 'today') {
+        filtered = filtered.filter(a => a.due === todayKey && a.status !== 'submitted' && a.status !== 'graded');
+      } else {
+        filtered = filtered.filter(a => getAssignmentState(a) === statusFilter);
+      }
     }
     if (search) filtered = filtered.filter(a => a.name.toLowerCase().includes(search) || a.unitCode.toLowerCase().includes(search) || (a.notes || '').toLowerCase().includes(search));
 
@@ -1714,6 +1883,9 @@
     const statCounts = { overdue: 0, 'due-soon': 0, 'in-progress': 0, 'not-started': 0, submitted: 0, graded: 0 };
     filtered.forEach(a => { statCounts[getAssignmentState(a)]++; });
 
+    // Scope-wide today count (independent of current filter) so the pill is always informative
+    const todayCount = all.filter(a => a.due === todayKey && a.status !== 'submitted' && a.status !== 'graded').length;
+
     let html = `<div class="all-assignments-tab">
       <div class="tab-heading">
         <h4><i class="fa fa-tasks"></i> All Assignments</h4>
@@ -1721,6 +1893,7 @@
       </div>
       <div class="quick-pills">
         <div class="pill ${statusFilter === 'active' ? 'active' : ''}" data-status="active">Active</div>
+        <div class="pill ${statusFilter === 'today' ? 'active today' : ''}" data-status="today">Today${todayCount ? ' · ' + todayCount : ''}</div>
         <div class="pill ${statusFilter === 'overdue' ? 'active overdue' : ''}" data-status="overdue">Overdue${statCounts.overdue ? ' · ' + statCounts.overdue : ''}</div>
         <div class="pill ${statusFilter === 'due-soon' ? 'active due-soon' : ''}" data-status="due-soon">Due Soon${statCounts['due-soon'] ? ' · ' + statCounts['due-soon'] : ''}</div>
         <div class="pill ${statusFilter === 'submitted' ? 'active submitted' : ''}" data-status="submitted">Submitted</div>
@@ -1755,7 +1928,7 @@
         items.forEach(a => { const s = getAssignmentState(a); if (s === 'overdue') us.overdue++; else if (s === 'due-soon') us['due-soon']++; else if (s === 'submitted') us.submitted++; else if (s === 'graded') us.graded++; else us.pending++; });
         const key = `assignments_${unitCode}`;
         const userToggled = expanded[key];
-        const autoExpand = (statusFilter === 'overdue' || statusFilter === 'due-soon') || (statusFilter === 'active' && (us.overdue > 0 || us['due-soon'] > 0));
+        const autoExpand = (statusFilter === 'overdue' || statusFilter === 'due-soon' || statusFilter === 'today') || (statusFilter === 'active' && (us.overdue > 0 || us['due-soon'] > 0));
         const isExpanded = userToggled !== undefined ? userToggled : autoExpand;
         const isUrgent = us.overdue > 0 || us['due-soon'] > 0;
         html += `<div class="assign-group ${isExpanded ? 'open' : ''} ${isUrgent ? 'urgent' : ''}" data-unit="${escapeHtml(unitCode)}">
@@ -1816,7 +1989,6 @@
     }
   };
 
-  // ─── TREE RENDER ───
   function renderTree() {
     const container = document.getElementById('treeContainer');
     if (!container) return;
@@ -2023,9 +2195,6 @@
     safeRender(renderTree);
   }
 
-  // ─────────────────────────────────────────────
-  //  COMMAND PALETTE
-  // ─────────────────────────────────────────────
   let cmdCommands = [];
   let cmdFiltered = [];
   let cmdFocusedIdx = 0;
@@ -2033,7 +2202,6 @@
   function buildCommands() {
     const commands = [];
 
-    // Actions
     const actions = [
       { id: 'add-year', label: 'Add Year', icon: '📅', hint: 'Create a new academic year', run: () => window.addYear() },
       { id: 'toggle-compact', label: 'Toggle Compact Mode', icon: '📐', hint: 'Show/hide subtopics in tree', run: () => window.toggleCompact() },
@@ -2051,7 +2219,6 @@
     ];
     actions.forEach(a => commands.push({ type: 'action', id: a.id, label: a.label, icon: a.icon, sub: a.hint, run: a.run }));
 
-    // Scope for each year + sem
     studyData.years.forEach(year => {
       commands.push({ type: 'scope', id: `scope-year-${year.name}`, label: `Scope → ${year.name} (all semesters)`, icon: '📅', sub: 'Filter to this year', run: () => setScope({ mode: 'year-only', yearName: year.name, semesterName: null }) });
       year.semesters.forEach(sem => {
@@ -2059,7 +2226,6 @@
       });
     });
 
-    // Navigation — units
     studyData.years.forEach((year, yi) => {
       year.semesters.forEach((sem, si) => {
         sem.units.forEach((unit, ui) => {
@@ -2069,7 +2235,6 @@
             sub: `${year.name} · ${sem.name}`,
             run: () => jumpToUnit(yi, si, ui)
           });
-          // Add assignment action per unit
           if (unit.weeks.length) {
             commands.push({
               type: 'action', id: `add-ass-${yi}-${si}-${ui}`,
@@ -2078,7 +2243,6 @@
               run: () => addAssignment(yi, si, ui, 0)
             });
           }
-          // Navigation — topics
           unit.weeks.forEach((week, wi) => {
             week.topics.forEach((topic, ti) => {
               commands.push({
@@ -2183,14 +2347,12 @@
 
     let matched;
     if (!query) {
-      // Show only actions by default (nav is too many)
       matched = cmdCommands.filter(c => c.type === 'action' || c.type === 'scope').slice(0, 14);
     } else {
       const scored = cmdCommands.map(c => {
         const hay = (c.label + ' ' + (c.sub || '')).toLowerCase();
         const m = fuzzyMatch(hay, query);
         if (!m.match) return null;
-        // Bonus if query appears directly in label
         const labelBoost = c.label.toLowerCase().includes(query.toLowerCase()) ? -50 : 0;
         return { cmd: c, score: m.score + labelBoost };
       }).filter(Boolean);
@@ -2256,9 +2418,6 @@
     if (modal) modal.classList.remove('open');
   }
 
-  // ─────────────────────────────────────────────
-  //  GLOBAL HANDLERS
-  // ─────────────────────────────────────────────
   window.toggleExpand = function(key) { expanded[key] = !expanded[key]; render(); };
 
   window.toggleTopicComplete = function(el, yi, si, ui, wi, ti) {
@@ -2536,7 +2695,6 @@
     render(); markDirty();
   };
 
-  // ─── Grade calculator ───
   function categorizeAssessment(ass) {
     const name = (ass.name || '').toLowerCase().trim();
     const weight = parseFloat(ass.weight) || 0;
@@ -2763,7 +2921,6 @@
     }
   };
 
-  // ─── Excel exports ───
   window.exportToExcel = async function() {
     if (!studyData.years.length) { showToast('No data to export.', 'error'); return; }
     window.showLoading('Generating academic report...');
@@ -2910,7 +3067,6 @@
     finally { window.hideLoading(); }
   };
 
-  // ─── Import ───
   function validateImportData(data) {
     const errors = [];
     if (!data || typeof data !== 'object') { errors.push('Root must be an object.'); return { valid: false, errors, summary: null }; }
@@ -3091,9 +3247,6 @@
     if (mode === 'replace') showToast('✅ Data replaced with imported JSON', 'success');
   }
 
-  // ─────────────────────────────────────────────
-  //  MODAL HELPERS
-  // ─────────────────────────────────────────────
   function openModal(title, bodyHTML, onSave) {
     const modal = document.getElementById('genericModal');
     document.getElementById('modalTitle').textContent = title;
@@ -3132,9 +3285,6 @@
     render();
   };
 
-  // ─────────────────────────────────────────────
-  //  INIT
-  // ─────────────────────────────────────────────
   async function init() {
     console.log('📦 Study Manager initializing...');
     scope = loadScopeFromStorage();
@@ -3216,7 +3366,6 @@
       </div>
     `;
 
-    // Scope selector wiring
     document.getElementById('scopeBtn').addEventListener('click', function(e) {
       e.stopPropagation();
       const panel = document.getElementById('scopePanel');
@@ -3228,7 +3377,6 @@
       if (sel && !sel.contains(e.target)) closeScopePanel();
     });
 
-    // Command palette wiring
     document.getElementById('cmdPaletteBtn').addEventListener('click', openCmdPalette);
     document.getElementById('cmdPalette').addEventListener('click', (e) => {
       if (e.target.id === 'cmdPalette') closeCmdPalette();
@@ -3260,7 +3408,6 @@
       }
     });
 
-    // Search setup
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
       const searchBar = searchInput.closest('.search-bar');
@@ -3451,7 +3598,6 @@
     document.getElementById('versionHistoryClose').addEventListener('click', () => document.getElementById('versionHistoryModal').classList.remove('open'));
 
     document.addEventListener('keydown', (e) => {
-      // Ctrl+K or Ctrl+P for command palette
       if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K' || e.key === 'p' || e.key === 'P')) {
         e.preventDefault();
         if (document.getElementById('cmdPalette').classList.contains('open')) closeCmdPalette();
