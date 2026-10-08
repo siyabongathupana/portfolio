@@ -1772,35 +1772,6 @@
               ]
             }
           ]
-        },
-        {
-          "name": "Semester 1",
-          "units": [
-            {
-              "code": "BSC101",
-              "name": "Engineering Mathematics 1",
-              "color": "#2cc7fe",
-              "weeks": []
-            },
-            {
-              "code": "BSC102",
-              "name": "Electrical Circuit Theory and Analysis",
-              "color": "#2fc7ff",
-              "weeks": []
-            },
-            {
-              "code": "BSC103",
-              "name": "Engineering Physics and Materials",
-              "color": "#1fc7ff",
-              "weeks": []
-            },
-            {
-              "code": "BSC105",
-              "name": "Engineering Ethics and Professional Practice",
-              "color": "#2fc7ff",
-              "weeks": []
-            }
-          ]
         }
       ]
     },
