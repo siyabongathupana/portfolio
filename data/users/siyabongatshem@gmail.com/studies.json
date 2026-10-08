@@ -3165,8 +3165,8 @@
                       "subtopics": [
                         "Need for control schemes",
                         "Symbols used in control circuits",
-                        "Motor controls â unidirectional",
-                        "Motor control â reversing",
+                        "Motor controls Ã¢ÂÂ unidirectional",
+                        "Motor control Ã¢ÂÂ reversing",
                         "Interlocks for control/safety"
                       ],
                       "completed": false,
@@ -4303,7 +4303,7 @@
                   "number": 9,
                   "topics": [
                     {
-                      "name": "Modelling, control, design and analysis of SISO systems using Matlabâ¢",
+                      "name": "Modelling, control, design and analysis of SISO systems using MatlabÃ¢ÂÂ¢",
                       "subtopics": [
                         "Case studies and exercises with Matlab to model, tune, and analyze 1st and 2nd order systems",
                         "Verify stability and response of controllers"
