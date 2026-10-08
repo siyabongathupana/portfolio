@@ -122,9 +122,9 @@
         "caption": ""
       }
     ],
-    "updatedAt": 1791291691391,
-    "controllerType": "MD",
-    "deltaVVersion": "",
+    "updatedAt": 1791466911231,
+    "controllerType": "PK",
+    "deltaVVersion": "v15",
     "projectType": "DCS",
     "cabinetCount": 0,
     "io": {
