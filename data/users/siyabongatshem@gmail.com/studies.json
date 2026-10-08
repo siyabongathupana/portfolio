@@ -274,11 +274,12 @@
                     {
                       "name": "Weekly Quiz 8",
                       "due": "2026-10-08",
-                      "status": "submitted",
+                      "status": "graded",
                       "marks": "100",
                       "weight": 1,
                       "notes": "",
-                      "submittedDate": "2026-10-08"
+                      "submittedDate": "2026-10-08",
+                      "gradedDate": "2026-10-08"
                     }
                   ]
                 },
