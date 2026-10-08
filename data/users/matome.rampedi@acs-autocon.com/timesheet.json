@@ -1,5 +1,29 @@
 [
   {
+    "id": 1791435283346,
+    "date": "2026-10-05",
+    "start": "12:30",
+    "end": "15:35",
+    "hours": 3.08,
+    "project": "Steam station 2",
+    "category": "Graphics",
+    "billable": "yes",
+    "notes": "",
+    "updatedAt": 1791435316867
+  },
+  {
+    "id": 1791435244278,
+    "date": "2026-10-05",
+    "start": "11:30",
+    "end": "12:00",
+    "hours": 0.5,
+    "project": "Admin",
+    "category": "Other",
+    "billable": "no",
+    "notes": "",
+    "updatedAt": 1791435244278
+  },
+  {
     "id": 1791435229758,
     "date": "2026-10-05",
     "start": "07:00",
