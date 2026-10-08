@@ -1759,7 +1759,7 @@
                   "assignments": [
                     {
                       "name": "Final Exam",
-                      "due": null,
+                      "due": "2026-10-19",
                       "status": "not-started",
                       "marks": "",
                       "weight": 40,
@@ -3163,8 +3163,8 @@
                       "subtopics": [
                         "Need for control schemes",
                         "Symbols used in control circuits",
-                        "Motor controls – unidirectional",
-                        "Motor control – reversing",
+                        "Motor controls â unidirectional",
+                        "Motor control â reversing",
                         "Interlocks for control/safety"
                       ],
                       "completed": false,
@@ -4301,7 +4301,7 @@
                   "number": 9,
                   "topics": [
                     {
-                      "name": "Modelling, control, design and analysis of SISO systems using Matlab™",
+                      "name": "Modelling, control, design and analysis of SISO systems using Matlabâ¢",
                       "subtopics": [
                         "Case studies and exercises with Matlab to model, tune, and analyze 1st and 2nd order systems",
                         "Verify stability and response of controllers"
