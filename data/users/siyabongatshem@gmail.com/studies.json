@@ -1879,11 +1879,11 @@
                       "id": "ass_bsc101_quiz_w3",
                       "name": "Weekly Quiz Week 3",
                       "due": "2026-02-27",
-                      "status": "not-started",
+                      "status": "graded",
                       "marks": "0",
                       "weight": 1,
                       "submittedDate": null,
-                      "gradedDate": null,
+                      "gradedDate": "2026-10-08",
                       "notes": "Missed Due Date",
                       "priority": "normal"
                     }
