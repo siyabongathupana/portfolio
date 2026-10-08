@@ -95,8 +95,6 @@
 
 `DCS`
 
-`DeltaV MD`
-
 `DeltaV PK`
 
 `DeltaV SZ`
@@ -104,6 +102,8 @@
 `DeltaV v13`
 
 `DeltaV v14`
+
+`DeltaV v15`
 
 `HTML`
 
@@ -130,6 +130,6 @@
 
 <div align="center">
 
-*Last updated: October 08, 2026 at 05:03:01 UTC*
+*Last updated: October 08, 2026 at 13:42:13 UTC*
 
 </div>
