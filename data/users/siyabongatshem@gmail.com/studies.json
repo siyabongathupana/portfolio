@@ -1772,6 +1772,1877 @@
               ]
             }
           ]
+        },
+        {
+          "name": "Semester 1",
+          "units": [
+            {
+              "code": "BSC101",
+              "name": "Engineering Mathematics I",
+              "color": "#2fc7ff",
+              "weeks": [
+                {
+                  "number": 1,
+                  "topics": [
+                    {
+                      "name": "Trigonometric Functions and Formulae",
+                      "subtopics": [
+                        "Trigonometric graphs",
+                        "Period, amplitude, cycle, frequency",
+                        "Lag and lead (phase displacement)",
+                        "Trigonometric identities and formulae",
+                        "Cartesian and polar coordinates"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": []
+                },
+                {
+                  "number": 2,
+                  "topics": [
+                    {
+                      "name": "Vectors",
+                      "subtopics": [
+                        "Vectors and Scalars",
+                        "Vector notation",
+                        "Resolving vectors",
+                        "Relative velocity",
+                        "Vector Definitions and Components",
+                        "Operations with Vectors",
+                        "Vector Applications",
+                        "Laws of Sines and Cosines"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc101_quiz_w2",
+                      "name": "Weekly Quiz Week 2",
+                      "due": "2026-02-20",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 3,
+                  "topics": [
+                    {
+                      "name": "Complex numbers",
+                      "subtopics": [
+                        "Imaginary numbers",
+                        "Arithmetic of complex numbers",
+                        "The Argand diagram and polar form of a complex number",
+                        "The exponential form of a complex number",
+                        "De Moivre's theorem",
+                        "Solving equations and finding roots of complex numbers",
+                        "Phasors"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc101_quiz_w3",
+                      "name": "Weekly Quiz Week 3",
+                      "due": "2026-02-27",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 4,
+                  "topics": [
+                    {
+                      "name": "Differentiation (Part 1)",
+                      "subtopics": [
+                        "Domain and range, Limits and Continuity, Derivatives by Definition, Derivatives of Powers of x",
+                        "Sketching curves, Gradient and Tangent to a Curve",
+                        "Maxima, Minima and Points of Inflection, Mean Value Theorem"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc101_quiz_w4",
+                      "name": "Weekly Quiz Week 4",
+                      "due": "2026-03-06",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    },
+                    {
+                      "id": "ass_bsc101_test1",
+                      "name": "Test 1 (Invigilated)",
+                      "due": "2026-03-06",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 25,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "Topics 1 to 4. Short and/or long answer questions and/or numerical problems.",
+                      "priority": "high"
+                    }
+                  ]
+                },
+                {
+                  "number": 5,
+                  "topics": [
+                    {
+                      "name": "Differentiation (Part 2)",
+                      "subtopics": [
+                        "Functions from Derivatives",
+                        "The Product Rule, The Chain Rule, The Quotient Rule",
+                        "Parametric equations",
+                        "Derivatives of Other Functions, Higher Derivatives and Graphs of Derivatives"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc101_quiz_w5",
+                      "name": "Weekly Quiz Week 5",
+                      "due": "2026-03-13",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 6,
+                  "topics": [
+                    {
+                      "name": "Integration",
+                      "subtopics": [
+                        "Integration process and Estimation, Substitution Method, Riemann Sums",
+                        "The Fundamental Theorem of Calculus, Definite Integrals, Standard Integrals"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc101_quiz_w6",
+                      "name": "Weekly Quiz Week 6",
+                      "due": "2026-03-20",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 7,
+                  "topics": [
+                    {
+                      "name": "Sequences and Series",
+                      "subtopics": [
+                        "Sequences and Series, Sums vs sequences, Simple series (progression), Arithmetic progression",
+                        "Geometric progression, Pascal's triangle, Permutation and combination",
+                        "Binomial theorem, Graphing progressions, Power series"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc101_quiz_w7",
+                      "name": "Weekly Quiz Week 7",
+                      "due": "2026-03-27",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 8,
+                  "topics": [
+                    {
+                      "name": "Sets",
+                      "subtopics": [
+                        "Sets and subsets, Union, Intersection, Differences, Product",
+                        "Algebra, Power set"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc101_quiz_w8",
+                      "name": "Weekly Quiz Week 8",
+                      "due": "2026-04-03",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    },
+                    {
+                      "id": "ass_bsc101_test2",
+                      "name": "Test 2 (Invigilated)",
+                      "due": "2026-04-03",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 25,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "Topics 5 to 8. Short and/or long answer questions and/or numerical problems.",
+                      "priority": "high"
+                    }
+                  ]
+                },
+                {
+                  "number": 9,
+                  "topics": [
+                    {
+                      "name": "Logarithms and exponentials",
+                      "subtopics": [
+                        "Logarithmic expression, Laws of logarithms, Natural (Naperian, hyperbolic) logarithms",
+                        "Exponential functions, Graphing exponential functions, Logarithmic Equations",
+                        "Application of Logarithms and exponential functions, Change of base"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc101_quiz_w9",
+                      "name": "Weekly Quiz Week 9",
+                      "due": "2026-04-10",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 10,
+                  "topics": [
+                    {
+                      "name": "Theory of Matrices",
+                      "subtopics": [
+                        "Definitions",
+                        "Matrix operations (Addition, Multiplication and Transpose)",
+                        "Determinants",
+                        "Submatrices and minors",
+                        "Inverse of a square matrix",
+                        "Rank of a matrix",
+                        "Linear Combination"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc101_quiz_w10",
+                      "name": "Weekly Quiz Week 10",
+                      "due": "2026-04-17",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 11,
+                  "topics": [
+                    {
+                      "name": "Probability and Statistics (Part 1)",
+                      "subtopics": [
+                        "Descriptive Statistics (Frequency distributions, mean, median, variance, standard deviation)",
+                        "Probability Concepts (probability rules, Conditional probability, Permutations and combinations)",
+                        "Discrete Random Variables (CDF and common distribution)"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc101_quiz_w11",
+                      "name": "Weekly Quiz Week 11",
+                      "due": "2026-04-24",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 12,
+                  "topics": [
+                    {
+                      "name": "Probability and Statistics (Part 2)",
+                      "subtopics": [
+                        "Continuous Random Variables (PDF and common distributions)"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc101_final",
+                      "name": "Final Exam (Invigilated)",
+                      "due": "2026-05-15",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 40,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "Topics 1 to 12. Short and/or long answer questions and/or numerical problems. Must achieve 50%+ in exam.",
+                      "priority": "high"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "code": "BSC102",
+              "name": "Electrical Circuit Theory and Analysis",
+              "color": "#fdcb6e",
+              "weeks": [
+                {
+                  "number": 1,
+                  "topics": [
+                    {
+                      "name": "Electrical quantities, resistance in DC circuits",
+                      "subtopics": [
+                        "Units of electrical measurements",
+                        "Introduction to circuits",
+                        "Electric current and Ohm's law",
+                        "Conductors and insulators",
+                        "Resistance and its variation with temperature",
+                        "Different types of resistances and their comparison",
+                        "Solving combinations of series and parallel circuits",
+                        "Voltage and current division in series/parallel circuits"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": []
+                },
+                {
+                  "number": 2,
+                  "topics": [
+                    {
+                      "name": "Electromagnetism and Inductance",
+                      "subtopics": [
+                        "Magnetic fields, flux and flux density",
+                        "Magnetomotive force and magnetic field strength",
+                        "Permeability and B-H curves",
+                        "Reluctance in a magnetic core",
+                        "Hysteresis and Hysteresis Loss",
+                        "The relation between current, flux, and force on a conductor",
+                        "The principle of flux linkage inducing a voltage in a coil",
+                        "Inductance of a coil",
+                        "Construction of an inductor",
+                        "Mutual Inductance",
+                        "Behaviour of inductances for step variations in DC voltage",
+                        "Energy storage in inductive components",
+                        "Fleming's rules",
+                        "Application in electrical machines and transformers"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": []
+                },
+                {
+                  "number": 3,
+                  "topics": [
+                    {
+                      "name": "Capacitance and capacitors",
+                      "subtopics": [
+                        "Electrostatic field and field strength",
+                        "Capacitance",
+                        "Electric flux density",
+                        "Permittivity",
+                        "Parallel plate capacitor",
+                        "Series and parallel connection of capacitors",
+                        "Dielectric strength",
+                        "Energy stored in capacitive components",
+                        "Construction of a practical capacitor and capacitance marking",
+                        "Charging and discharging of capacitors"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc102_mcq",
+                      "name": "Multi-choice Test (Invigilated)",
+                      "due": "2026-02-27",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 15,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "Topics 1 to 3. Multiple-choice quiz.",
+                      "priority": "high"
+                    }
+                  ]
+                },
+                {
+                  "number": 4,
+                  "topics": [
+                    {
+                      "name": "AC Voltages and Currents",
+                      "subtopics": [
+                        "The AC generator",
+                        "AC waveform characteristics and mathematical expression (amplitude/time relationship)",
+                        "Combination of waveforms",
+                        "Peak and RMS values and calculation of crest (peak) factor and form factor for pure sine waves",
+                        "Pure resistive circuits: voltage/current relationships",
+                        "Pure inductive circuits: voltage/current relationships and reactance",
+                        "Pure capacitive circuits: voltage/current relationships and reactance",
+                        "Introduction to phasors, Cartesian and polar coordinates",
+                        "Use of Cartesian and polar coordinates to express voltage and current in AC circuits",
+                        "Introduction to complex algebra and the operator 'j'"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": []
+                },
+                {
+                  "number": 5,
+                  "topics": [
+                    {
+                      "name": "Single Phase Series AC circuits",
+                      "subtopics": [
+                        "Impedance",
+                        "R-L series ac circuits",
+                        "R-C series ac circuits",
+                        "R-L-C series ac circuits",
+                        "Series resonance",
+                        "Q-factor",
+                        "Bandwidth and selectivity",
+                        "Voltage magnification",
+                        "Power in AC circuits and the concept of power factor to calculate useful power",
+                        "Power Triangle"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": []
+                },
+                {
+                  "number": 6,
+                  "topics": [
+                    {
+                      "name": "Single Phase Parallel AC circuits",
+                      "subtopics": [
+                        "Admittance, conductance and susceptance",
+                        "R-L parallel ac circuits",
+                        "R-C parallel ac circuits",
+                        "L-C parallel ac circuits",
+                        "LR-C parallel ac circuits",
+                        "Dielectric loss and loss angle in a capacitor",
+                        "Parallel resonance",
+                        "Q-factor",
+                        "Current magnification",
+                        "Power factor improvement"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc102_test1",
+                      "name": "Test - Short Answer (Invigilated)",
+                      "due": "2026-03-20",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 20,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "Topics 1 to 6. Short answer questions and simple problems.",
+                      "priority": "high"
+                    }
+                  ]
+                },
+                {
+                  "number": 7,
+                  "topics": [
+                    {
+                      "name": "Circuit theorems applied to AC and DC circuits - I",
+                      "subtopics": [
+                        "Kirchhoff's Laws",
+                        "The Superposition Theorem",
+                        "Constant voltage source",
+                        "Constant current source"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": []
+                },
+                {
+                  "number": 8,
+                  "topics": [
+                    {
+                      "name": "Circuit theorems applied to AC and DC circuits - II",
+                      "subtopics": [
+                        "Thevenin's Theorem",
+                        "Norton's Theorem",
+                        "Thevenin and Norton equivalent networks",
+                        "Maximum Power Transfer Theorem",
+                        "Impedance matching"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": []
+                },
+                {
+                  "number": 9,
+                  "topics": [
+                    {
+                      "name": "Electrical measurements",
+                      "subtopics": [
+                        "Measurement using instruments",
+                        "Basic galvanometer principle",
+                        "Analogue instruments using moving coil/moving iron principle",
+                        "Use of shunts and multipliers",
+                        "Ohm meters and power meters",
+                        "Digital instruments and their principle",
+                        "Loading effect of instruments and errors introduced",
+                        "Potentiometers",
+                        "Oscilloscope as measuring device",
+                        "Bridges and their use in measurements"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc102_practical",
+                      "name": "Practical Assessment (Simulation Software)",
+                      "due": "2026-04-10",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 20,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "Topics 1 to 9. Complete practical project.",
+                      "priority": "high"
+                    }
+                  ]
+                },
+                {
+                  "number": 10,
+                  "topics": [
+                    {
+                      "name": "Circuit theorems applied to AC and DC circuits - III",
+                      "subtopics": [
+                        "Delta-star transformation for circuit reduction",
+                        "Mesh current analysis in AC circuits",
+                        "Nodal analysis"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc102_homework",
+                      "name": "Homework - Multi-choice Test",
+                      "due": "2026-04-17",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 5,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "Topics 1 to 10. Multiple choice questions.",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 11,
+                  "topics": [
+                    {
+                      "name": "Complex waveforms and harmonics",
+                      "subtopics": [
+                        "General equation for a complex waveform",
+                        "Harmonic synthesis",
+                        "Fourier Series of periodic and non-periodic function",
+                        "RMS, Mean and form factor for complex waveforms",
+                        "Power associated with harmonic components",
+                        "Sources of harmonics",
+                        "Resonance due to harmonics"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": []
+                },
+                {
+                  "number": 12,
+                  "topics": [
+                    {
+                      "name": "Unit Review",
+                      "subtopics": [
+                        "Review of contents covered so far",
+                        "Student work review and clarification of outstanding issues"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc102_final",
+                      "name": "Examination",
+                      "due": "2026-05-15",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 40,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "All topics. Mix of descriptive questions and numerical problems. Must achieve 50%+ in exam.",
+                      "priority": "high"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "code": "BSC103",
+              "name": "Engineering Physics & Materials",
+              "color": "#4ae4b8",
+              "weeks": [
+                {
+                  "number": 1,
+                  "topics": [
+                    {
+                      "name": "Motion",
+                      "subtopics": [
+                        "Distance, time and mass measurements",
+                        "Fundamental constants and dimensional analysis",
+                        "Linear Motion: Position, displacement, velocity, speed, acceleration and SUVAT",
+                        "Angular Motion: The Radian, Velocity, Acceleration",
+                        "Scalars and vectors",
+                        "Velocity and acceleration in two dimensions",
+                        "Projectile motion and uniform circular motion",
+                        "Motion on a flat and inclined plane"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": []
+                },
+                {
+                  "number": 2,
+                  "topics": [
+                    {
+                      "name": "Forces",
+                      "subtopics": [
+                        "Laws of mechanics",
+                        "Newton's First Law",
+                        "Newton's Second Law",
+                        "Reaction Forces",
+                        "Newton's Third Law",
+                        "Force and mass",
+                        "Torque",
+                        "Pressure",
+                        "Buoyancy"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc103_quiz_w2",
+                      "name": "Weekly Quiz Week 2",
+                      "due": "2026-02-20",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 3,
+                  "topics": [
+                    {
+                      "name": "Friction and Rigid Body",
+                      "subtopics": [
+                        "Friction force",
+                        "Laws of sliding friction",
+                        "Wedge friction",
+                        "Rolling resistance",
+                        "Drag",
+                        "Centripetal force",
+                        "Translation and rotation of rigid bodies",
+                        "General plane motion of simple rigid bodies"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc103_quiz_w3",
+                      "name": "Weekly Quiz Week 3",
+                      "due": "2026-02-27",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 4,
+                  "topics": [
+                    {
+                      "name": "Work and Energy",
+                      "subtopics": [
+                        "The work of a force",
+                        "Principle of work and energy",
+                        "Power and Efficiency",
+                        "Conservative Forces and Potential Energy",
+                        "Conservation of Energy",
+                        "Linear Impulse and Momentum",
+                        "Conservation of Linear Momentum",
+                        "Impact",
+                        "Angular momentum"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc103_quiz_w4",
+                      "name": "Weekly Quiz Week 4",
+                      "due": "2026-03-06",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    },
+                    {
+                      "id": "ass_bsc103_test",
+                      "name": "Test (Invigilated)",
+                      "due": "2026-03-06",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 25,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "Topics 1 to 4. Short and/or long answer questions and/or simple numerical problems.",
+                      "priority": "high"
+                    }
+                  ]
+                },
+                {
+                  "number": 5,
+                  "topics": [
+                    {
+                      "name": "Mechanical properties of materials",
+                      "subtopics": [
+                        "Concepts of stress and strain",
+                        "Stress-strain relationship - Young's modulus",
+                        "Young's Modulus of different materials",
+                        "Poisson's ratio",
+                        "Compressibility",
+                        "Ductility",
+                        "Resilience",
+                        "Toughness",
+                        "Hardness"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc103_quiz_w5",
+                      "name": "Weekly Quiz Week 5",
+                      "due": "2026-03-13",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 6,
+                  "topics": [
+                    {
+                      "name": "Thermal properties of materials",
+                      "subtopics": [
+                        "Fundamentals of Thermodynamics",
+                        "Heat capacity",
+                        "Thermal expansion",
+                        "Thermal conductivity",
+                        "Thermal stress",
+                        "Vapour pressure",
+                        "Gas Laws"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc103_quiz_w6",
+                      "name": "Weekly Quiz Week 6",
+                      "due": "2026-03-20",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 7,
+                  "topics": [
+                    {
+                      "name": "Optical properties of materials",
+                      "subtopics": [
+                        "Electromagnetic radiation and photon",
+                        "Light interactions with solids",
+                        "Atomic and electronic interactions",
+                        "Optical properties of metals and non-metals",
+                        "Applications of optical phenomena",
+                        "Fiber optics in communication"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc103_quiz_w7",
+                      "name": "Weekly Quiz Week 7",
+                      "due": "2026-03-27",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 8,
+                  "topics": [
+                    {
+                      "name": "Electrical and magnetic properties of materials",
+                      "subtopics": [
+                        "Electrical conduction and conductivity",
+                        "Electron mobility",
+                        "Electrical resistivity of metals",
+                        "Intrinsic and Extrinsic semiconductivity",
+                        "Magnetic dipoles and field vectors",
+                        "Magnetic moments",
+                        "Diamagnetism, ferromagnetism and para-magnetism"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc103_quiz_w8",
+                      "name": "Weekly Quiz Week 8",
+                      "due": "2026-04-03",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 9,
+                  "topics": [
+                    {
+                      "name": "Material Selection and Applications",
+                      "subtopics": [
+                        "Metal and alloys",
+                        "Polymers",
+                        "Ceramics",
+                        "Composite material",
+                        "Material Selection"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc103_quiz_w9",
+                      "name": "Weekly Quiz Week 9",
+                      "due": "2026-04-10",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    },
+                    {
+                      "id": "ass_bsc103_practical",
+                      "name": "Practical Project (Report)",
+                      "due": "2026-04-10",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 25,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "Topics 5 to 9. Practical project using software or hand calculations and drawings.",
+                      "priority": "high"
+                    }
+                  ]
+                },
+                {
+                  "number": 10,
+                  "topics": [
+                    {
+                      "name": "Modern physics Part 1 (Relativity)",
+                      "subtopics": [
+                        "Introduction to Galilean relativity",
+                        "Introduction to Einstein's relativity",
+                        "Time Dilation",
+                        "Length Contraction",
+                        "Relativistic momentum and energy",
+                        "Lorentz velocity transformation",
+                        "The general theory of relativity"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc103_quiz_w10",
+                      "name": "Weekly Quiz Week 10",
+                      "due": "2026-04-17",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 11,
+                  "topics": [
+                    {
+                      "name": "Modern Physics Part 2 (Quantum Mechanics)",
+                      "subtopics": [
+                        "Principles of Quantum Physics",
+                        "Black Body Radiation and Planck's Hypothesis",
+                        "Principle of Uncertainty",
+                        "Wave Functions",
+                        "Potential Well and Tunneling",
+                        "Simple Harmonic Oscillator"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc103_quiz_w11",
+                      "name": "Weekly Quiz Week 11",
+                      "due": "2026-04-24",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 1,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 12,
+                  "topics": [
+                    {
+                      "name": "Modern physics Part 3 (Nuclear Physics)",
+                      "subtopics": [
+                        "Principle of Nuclei",
+                        "Radioactivity",
+                        "Nuclear fission",
+                        "Nuclear reactors",
+                        "Nuclear fusion",
+                        "Radiation damage",
+                        "Application of radiation"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc103_final",
+                      "name": "Examination (Invigilated)",
+                      "due": "2026-05-15",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 40,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "All topics. Theoretical short/detailed answer questions and some engineering problems. Must achieve 50%+ in exam.",
+                      "priority": "high"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "code": "BSC105",
+              "name": "Engineering Ethics and Professional Practice",
+              "color": "#a29bfe",
+              "weeks": [
+                {
+                  "number": 1,
+                  "topics": [
+                    {
+                      "name": "The role of an engineer",
+                      "subtopics": [
+                        "The role of an engineer",
+                        "Core skills and attributes of an engineer",
+                        "Impacts of engineering on society",
+                        "Professionalism, certification, and registration for professional practice",
+                        "Key engineering professional bodies"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": []
+                },
+                {
+                  "number": 2,
+                  "topics": [
+                    {
+                      "name": "Engineering in the society",
+                      "subtopics": [
+                        "What are the Sustainable Development Goals (SDG)?",
+                        "Role of engineers in SDG",
+                        "Strategies for practicing sustainable engineering",
+                        "Environmentally sustainable engineering",
+                        "Socially sustainable engineering",
+                        "Intergenerational and intragenerational equity",
+                        "Community consultation and communication",
+                        "Climate change and engineering"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc105_quiz_w2",
+                      "name": "Weekly Quiz Week 2",
+                      "due": "2026-02-20",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 2.5,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 3,
+                  "topics": [
+                    {
+                      "name": "Professional responsibility and ethics",
+                      "subtopics": [
+                        "Professional responsibility: standards and professional liability",
+                        "Work health and safety (WHS) and personal liability",
+                        "Engineering ethics",
+                        "Professional accountability"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc105_quiz_w3",
+                      "name": "Weekly Quiz Week 3",
+                      "due": "2026-02-27",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 2.5,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 4,
+                  "topics": [
+                    {
+                      "name": "Professional Skills",
+                      "subtopics": [
+                        "Self-management and professionalism",
+                        "Engineer's personality and attitudes",
+                        "Sources of inspiration",
+                        "Developing an inquiring mind",
+                        "Developing goals and strategies",
+                        "Lifelong learning and reflective practice",
+                        "Knowledge frameworks"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc105_quiz_w4",
+                      "name": "Weekly Quiz Week 4",
+                      "due": "2026-03-06",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 2.5,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 5,
+                  "topics": [
+                    {
+                      "name": "Collaborating with others",
+                      "subtopics": [
+                        "Understanding different personality styles",
+                        "Emotional intelligence",
+                        "Working in groups",
+                        "Cross functional and cross discipline teams",
+                        "Fundamentals of an effective group",
+                        "The lifecycle of a team",
+                        "Benefits of working with others",
+                        "Virtual and distributed teams",
+                        "Role of technology in collaboration"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc105_quiz_w5",
+                      "name": "Weekly Quiz Week 5",
+                      "due": "2026-03-13",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 2.5,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 6,
+                  "topics": [
+                    {
+                      "name": "Communication skills for engineers",
+                      "subtopics": [
+                        "Understanding communication",
+                        "Communication theories and models",
+                        "Characteristics of communicators",
+                        "Digital communications",
+                        "Communication methods and roles",
+                        "Verbal and written communication skills",
+                        "Visual communications"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc105_quiz_w6",
+                      "name": "Weekly Quiz Week 6",
+                      "due": "2026-03-20",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 2.5,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 7,
+                  "topics": [
+                    {
+                      "name": "Applying the engineering methods",
+                      "subtopics": [
+                        "Data, information, and knowledge",
+                        "Identifying information needs",
+                        "Idea Generation and Systems Thinking",
+                        "Investigative questioning",
+                        "Locating and retrieving information",
+                        "Evaluating information and information sources"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc105_quiz_w7",
+                      "name": "Weekly Quiz Week 7",
+                      "due": "2026-03-27",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 2.5,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    },
+                    {
+                      "id": "ass_bsc105_presentation",
+                      "name": "Presentation (10 min recorded)",
+                      "due": "2026-03-27",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 30,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "Covers Topics 1 to 6. 10-minute recorded presentation.",
+                      "priority": "high"
+                    }
+                  ]
+                },
+                {
+                  "number": 8,
+                  "topics": [
+                    {
+                      "name": "Engineering design process",
+                      "subtopics": [
+                        "Key ideas in the design process",
+                        "Socio-ecological thinking",
+                        "Whole system design goals",
+                        "Generating alternative solutions",
+                        "Lateral and parallel thinking",
+                        "Six thinking hats",
+                        "Transforming design through biomimetic thinking and design"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc105_quiz_w8",
+                      "name": "Weekly Quiz Week 8",
+                      "due": "2026-04-03",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 2.5,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 9,
+                  "topics": [
+                    {
+                      "name": "Evaluating engineering solutions and decision making",
+                      "subtopics": [
+                        "Economical evaluation of solutions",
+                        "Technical feasibility",
+                        "Mathematical modelling in design",
+                        "Engineering decision making",
+                        "Team-based decision making",
+                        "Decision support systems, tools, and techniques"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc105_quiz_w9",
+                      "name": "Weekly Quiz Week 9",
+                      "due": "2026-04-10",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 2.5,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 10,
+                  "topics": [
+                    {
+                      "name": "Information management",
+                      "subtopics": [
+                        "Understanding authentic and reliable sources of information",
+                        "Locating and utilizing information",
+                        "Awareness of discipline-specific engineering standards",
+                        "Document identification, tracking, and version control",
+                        "Cyber security and data management"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc105_quiz_w10",
+                      "name": "Weekly Quiz Week 10",
+                      "due": "2026-04-17",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 2.5,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 11,
+                  "topics": [
+                    {
+                      "name": "Communicating and writing information",
+                      "subtopics": [
+                        "Using the PCR model to create an effective communication",
+                        "Developing a communication plan for an engineering project",
+                        "Writing in the engineering workplace",
+                        "Risk management documentation",
+                        "Technical presentations",
+                        "Drawings, plans, and sketches",
+                        "Using virtual techniques to communicate the complex operations"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc105_quiz_w11",
+                      "name": "Weekly Quiz Week 11",
+                      "due": "2026-04-24",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 2.5,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "",
+                      "priority": "normal"
+                    }
+                  ]
+                },
+                {
+                  "number": 12,
+                  "topics": [
+                    {
+                      "name": "Your engineering future",
+                      "subtopics": [
+                        "Engineering to meet future global challenges",
+                        "Engineering and globalization",
+                        "Futuristic engineering: emerging fields",
+                        "Different types of organizations",
+                        "Efficiency and respect in the workplace",
+                        "Continuing professional development (CPD)"
+                      ],
+                      "completed": false,
+                      "subCompleted": [
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false
+                      ]
+                    }
+                  ],
+                  "assignments": [
+                    {
+                      "id": "ass_bsc105_casestudy",
+                      "name": "Case Study Project (Turnitin)",
+                      "due": "2026-05-15",
+                      "status": "not-started",
+                      "marks": "",
+                      "weight": 45,
+                      "submittedDate": null,
+                      "gradedDate": null,
+                      "notes": "All topics. Maximum 10 pages. Submit via Turnitin.",
+                      "priority": "high"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
