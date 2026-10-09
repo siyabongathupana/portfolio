@@ -333,7 +333,6 @@
       .grade-assign-list .gal-header, .grade-assign-list .gal-row { grid-template-columns: 1fr 50px 70px 70px; font-size: 0.7rem; }
       .sync-conflict-modal .conflict-actions { grid-template-columns: 1fr; }
       .sync-conflict-modal .conflict-visual { flex-direction: column; }
-      .workload-header { flex-direction: column; align-items: flex-start !important; }
     }
     @media (max-width: 480px) { .stats-bar { grid-template-columns: repeat(2, 1fr); } }
 
@@ -438,17 +437,6 @@
     .priority-item .prio-info .unit { font-size: 0.75rem; color: var(--text-secondary); }
     .priority-item .prio-info .days { font-size: 0.75rem; color: var(--text-secondary); }
 
-    .workload-chart { background: var(--bg-card); border-radius: 16px; padding: 16px 20px; border: 1px solid var(--border-subtle); margin-bottom: 30px; }
-    .workload-chart .workload-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
-    .workload-chart h4 { font-size: 1rem; font-weight: 600; color: var(--text-primary); margin: 0; }
-    .workload-chart .chart-container { height: 150px; position: relative; }
-    .workload-summary { display: flex; gap: 6px; flex-wrap: wrap; }
-    .wl-pill { font-size: 0.7rem; font-weight: 600; padding: 4px 12px; border-radius: 40px; white-space: nowrap; border: 1px solid transparent; }
-    .wl-pill-overdue { background: rgba(225,112,85,0.18); color: #ff9b85; border-color: rgba(225,112,85,0.3); }
-    .wl-pill-today { background: rgba(253,203,110,0.18); color: var(--orange); border-color: rgba(253,203,110,0.3); }
-    .wl-pill-soon { background: rgba(47,199,255,0.15); color: var(--accent); border-color: rgba(47,199,255,0.25); }
-    .wl-pill-clear { background: rgba(0,184,148,0.15); color: #4ae4b8; border-color: rgba(0,184,148,0.25); }
-
     .study-streak { background: var(--bg-card); border-radius: 16px; padding: 16px 20px; border: 1px solid var(--border-subtle); margin: 20px 0 30px; display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
     .study-streak .streak-number { font-size: 2.2rem; font-weight: 800; color: var(--orange); }
     .study-streak .streak-label { color: var(--text-secondary); font-size: 0.8rem; }
@@ -541,6 +529,9 @@
     .json-preview .preview-line strong { color: var(--text-primary); }
     .json-preview .preview-heading { font-weight: 700; color: var(--accent); margin-top: 8px; margin-bottom: 4px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; }
 
+    .grade-export-scope-preview { background: rgba(47,199,255,0.08); border-left: 3px solid var(--accent); border-radius: 8px; padding: 10px 14px; font-size: 0.82rem; color: var(--text-secondary); margin-top: 8px; }
+    .grade-export-scope-preview strong { color: var(--accent); }
+
     @media (max-width: 900px) {
       .assign-row { grid-template-columns: 24px 1fr auto; grid-template-rows: auto auto; gap: 6px 12px; }
       .assign-row .ar-status { grid-row: 1 / 3; align-self: flex-start; padding-top: 2px; }
@@ -630,6 +621,42 @@
     <div class="modal-actions">
       <button class="btn btn-secondary" id="submitModalCancel">Cancel</button>
       <button class="btn btn-primary" id="submitModalConfirm">Mark Submitted</button>
+    </div>
+  </div>
+</div>
+
+<!-- Grade Export Scope Modal -->
+<div class="modal-custom" id="gradeExportModal">
+  <div class="modal-box" style="max-width:620px;">
+    <h3>🎓 Export Grade Report</h3>
+    <p style="color:var(--text-secondary);font-size:0.85rem;margin-bottom:14px;">
+      Choose what to include in the Excel report. Each scope produces a beautifully formatted multi-sheet workbook.
+    </p>
+
+    <div class="form-group">
+      <label>Scope</label>
+      <select id="gradeExportScope">
+        <option value="year">📅 Full Year — all semesters & units</option>
+        <option value="semester">📘 Single Semester — all units in one semester</option>
+        <option value="unit">📗 Single Unit — one unit's detailed grade report</option>
+      </select>
+    </div>
+
+    <div class="form-group" id="gradeExportSemesterGroup" style="display:none;">
+      <label>Which semester?</label>
+      <select id="gradeExportSemester"></select>
+    </div>
+
+    <div class="form-group" id="gradeExportUnitGroup" style="display:none;">
+      <label>Which unit?</label>
+      <select id="gradeExportUnit"></select>
+    </div>
+
+    <div class="grade-export-scope-preview" id="gradeExportPreview">—</div>
+
+    <div class="modal-actions">
+      <button class="btn btn-secondary" id="gradeExportCancel">Cancel</button>
+      <button class="btn btn-primary" id="gradeExportConfirm"><i class="fa fa-file-excel-o"></i> Generate Excel</button>
     </div>
   </div>
 </div>
@@ -1679,166 +1706,6 @@
     container.innerHTML = html;
   }
 
-  // ═══════════════════════════════════════════════════════════════
-  //  UPGRADED WORKLOAD CHART
-  //  • Overdue bucket (red) at the start, capped at 15 for readability
-  //  • Today (amber) and Tomorrow explicitly labeled
-  //  • Future days (cyan)
-  //  • Summary pills above the chart
-  //  • Clicking a bar jumps to All Assignments with the right filter
-  //  • Today click → 'today' filter (only items due today)
-  // ═══════════════════════════════════════════════════════════════
-  function renderWorkload() {
-    const container = document.getElementById('workloadChart');
-    if (!container) return;
-    const all = getAllAssignments();
-    const today = new Date(); today.setHours(0,0,0,0);
-    const todayKey = formatLocalYMD(today);
-
-    // Buckets: [overdue, today, tomorrow, +2, +3, +4, +5, +6]
-    const counts = [0, 0, 0, 0, 0, 0, 0, 0];
-    const labels = ['Overdue'];
-
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(today); d.setDate(today.getDate() + i);
-      if (i === 0) labels.push('Today');
-      else if (i === 1) labels.push('Tomorrow');
-      else labels.push(d.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric' }));
-    }
-
-    all.forEach(a => {
-      const s = getAssignmentState(a);
-      if (s === 'submitted' || s === 'graded') return;
-      if (!a.due) return;
-      if (a.due < todayKey) { counts[0]++; return; }
-      for (let i = 0; i < 7; i++) {
-        const d = new Date(today); d.setDate(today.getDate() + i);
-        if (a.due === formatLocalYMD(d)) { counts[i + 1]++; return; }
-      }
-    });
-
-    // ─── Cap the Overdue bar for display so big piles don't dwarf the chart ───
-    const OVERDUE_DISPLAY_CAP = 15;
-    const overdueIsCapped = counts[0] > OVERDUE_DISPLAY_CAP;
-    const displayCounts = counts.map((c, i) => i === 0 ? Math.min(c, OVERDUE_DISPLAY_CAP) : c);
-    if (overdueIsCapped) labels[0] = `Overdue (${counts[0]})`;
-
-    const totalOverdue = counts[0];
-    const totalToday = counts[1];
-    const totalUpcoming = counts.slice(2).reduce((s, c) => s + c, 0);
-
-    let summaryHtml = '';
-    if (totalOverdue > 0) summaryHtml += `<span class="wl-pill wl-pill-overdue">🔴 ${totalOverdue} overdue</span>`;
-    if (totalToday > 0) summaryHtml += `<span class="wl-pill wl-pill-today">🟠 ${totalToday} due today</span>`;
-    if (totalUpcoming > 0) summaryHtml += `<span class="wl-pill wl-pill-soon">🔵 ${totalUpcoming} upcoming</span>`;
-    if (totalOverdue === 0 && totalToday === 0 && totalUpcoming === 0) {
-      summaryHtml = `<span class="wl-pill wl-pill-clear">🎉 Nothing due in the next 7 days</span>`;
-    }
-
-    container.innerHTML = `
-      <div class="workload-chart">
-        <div class="workload-header">
-          <h4>📅 Workload – Overdue + Next 7 Days</h4>
-          <div class="workload-summary">${summaryHtml}</div>
-        </div>
-        <div class="chart-container"><canvas id="workloadCanvas"></canvas></div>
-      </div>`;
-
-    setTimeout(() => {
-      const canvas = document.getElementById('workloadCanvas');
-      if (!canvas) return;
-      if (window.workloadChart) window.workloadChart.destroy();
-
-      const backgroundColor = displayCounts.map((c, i) => {
-        if (c === 0) {
-          if (i === 0) return 'rgba(225,112,85,0.12)';
-          if (i === 1) return 'rgba(253,203,110,0.12)';
-          return 'rgba(47,199,255,0.15)';
-        }
-        if (i === 0) return 'rgba(225,112,85,0.85)';
-        if (i === 1) return 'rgba(253,203,110,0.85)';
-        return 'rgba(47,199,255,0.7)';
-      });
-      const borderColor = displayCounts.map((c, i) => {
-        if (i === 0) return '#e17055';
-        if (i === 1) return '#fdcb6e';
-        return '#2fc7ff';
-      });
-
-      window.workloadChart = new Chart(canvas, {
-        type: 'bar',
-        data: {
-          labels,
-          datasets: [{
-            label: 'Assignments due',
-            data: displayCounts,
-            backgroundColor,
-            borderColor,
-            borderWidth: 1.5,
-            borderRadius: 6
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          onClick: (evt, elements) => {
-            if (!elements.length) return;
-            const idx = elements[0].index;
-            if (counts[idx] === 0) return;
-            if (idx === 0) assignmentsStatusFilter = 'overdue';
-            else if (idx === 1) assignmentsStatusFilter = 'today';
-            else assignmentsStatusFilter = 'active';
-            renderAllAssignmentsTab();
-            const tab = document.getElementById('allAssignmentsTab');
-            if (tab) tab.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          },
-          onHover: (evt, elements) => {
-            try {
-              evt.native.target.style.cursor = (elements.length && counts[elements[0].index] > 0) ? 'pointer' : 'default';
-            } catch(e) {}
-          },
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              backgroundColor: '#111927',
-              titleColor: '#e0e8ee',
-              bodyColor: '#8a9fb0',
-              borderColor: 'rgba(47,199,255,0.3)',
-              borderWidth: 1,
-              padding: 12,
-              displayColors: false,
-              callbacks: {
-                title: (items) => labels[items[0].dataIndex],
-                label: (ctx) => {
-                  const real = counts[ctx.dataIndex];
-                  if (real === 0) return 'No assignments';
-                  const hint = ctx.dataIndex === 0 ? ' — click to view overdue'
-                            : ctx.dataIndex === 1 ? ' — click to view today'
-                            : ' — click to filter active';
-                  if (ctx.dataIndex === 0 && overdueIsCapped) {
-                    return `${real} assignment${real === 1 ? '' : 's'} (bar capped at ${OVERDUE_DISPLAY_CAP})${hint}`;
-                  }
-                  return `${real} assignment${real === 1 ? '' : 's'}${hint}`;
-                }
-              }
-            }
-          },
-          scales: {
-            y: {
-              beginAtZero: true,
-              ticks: { color: '#8a9fb0', font: { size: 9 }, precision: 0, stepSize: 1 },
-              grid: { color: 'rgba(255,255,255,0.05)' }
-            },
-            x: {
-              ticks: { color: '#8a9fb0', font: { size: 9 }, maxRotation: 0 },
-              grid: { display: false }
-            }
-          }
-        }
-      });
-    }, 80);
-  }
-
   function renderStreak() {
     const container = document.getElementById('studyStreak');
     if (!container) return;
@@ -1850,10 +1717,6 @@
     </div>`;
   }
 
-  // ═══════════════════════════════════════════════════════════════
-  //  ALL ASSIGNMENTS TAB
-  //  Filters: active / today / overdue / due-soon / submitted / graded / all
-  // ═══════════════════════════════════════════════════════════════
   function renderAllAssignmentsTab() {
     const container = document.getElementById('allAssignmentsTab');
     if (!container) return;
@@ -1882,8 +1745,6 @@
     filtered.forEach(a => { if (!grouped[a.unitCode]) grouped[a.unitCode] = []; grouped[a.unitCode].push(a); });
     const statCounts = { overdue: 0, 'due-soon': 0, 'in-progress': 0, 'not-started': 0, submitted: 0, graded: 0 };
     filtered.forEach(a => { statCounts[getAssignmentState(a)]++; });
-
-    // Scope-wide today count (independent of current filter) so the pill is always informative
     const todayCount = all.filter(a => a.due === todayKey && a.status !== 'submitted' && a.status !== 'graded').length;
 
     let html = `<div class="all-assignments-tab">
@@ -2188,7 +2049,6 @@
     safeRender(renderKPI);
     safeRender(renderDeadlines);
     safeRender(renderPriorityQueue);
-    safeRender(renderWorkload);
     safeRender(renderStreak);
     safeRender(renderAnalytics);
     safeRender(renderAllAssignmentsTab);
@@ -2208,8 +2068,8 @@
       { id: 'expand-all', label: 'Expand All', icon: '⬇️', hint: 'Open every level in the tree', run: () => window.expandAll() },
       { id: 'collapse-all', label: 'Collapse All', icon: '⬆️', hint: 'Close every level in the tree', run: () => window.collapseAll() },
       { id: 'sync', label: 'Sync from GitHub', icon: '☁️', hint: 'Reload data from remote', run: () => document.getElementById('syncBtn')?.click() },
-      { id: 'export-excel', label: 'Export Excel Report', icon: '📊', hint: 'Academic report (Overview + Assignments)', run: () => window.exportToExcel() },
-      { id: 'export-grade', label: 'Export Grade Report', icon: '🎓', hint: 'Per-module weighted grades', run: () => window.exportGradeReport() },
+      { id: 'export-excel', label: 'Export Academic Excel', icon: '📊', hint: 'Overview + Assignments report', run: () => window.exportToExcel() },
+      { id: 'export-grade', label: 'Export Grade Excel (detailed)', icon: '🎓', hint: 'Per-module weighted grades', run: () => openGradeExportModal() },
       { id: 'export-json', label: 'Export JSON', icon: '💾', hint: 'Download full study data', run: () => document.getElementById('exportJsonBtn')?.click() },
       { id: 'import-json', label: 'Import JSON', icon: '📥', hint: 'Load data from file', run: () => document.getElementById('importJsonBtn')?.click() },
       { id: 'history', label: 'Version History', icon: '📜', hint: 'Browse & restore past saves', run: () => window.showVersionHistory() },
@@ -2985,86 +2845,974 @@
     finally { window.hideLoading(); }
   };
 
-  window.exportGradeReport = async function (unitCodeFilter = null) {
-    if (!studyData.years.length) { showToast('No data to export.', 'error'); return; }
-    window.showLoading('Generating grade report...');
+  // ═══════════════════════════════════════════════════════════════
+  //  ADVANCED GRADE EXPORT — Year / Semester / Unit scopes
+  //  Per-unit theming, safe row heights, progress bars, all borders
+  // ═══════════════════════════════════════════════════════════════
+
+  function openGradeExportModal() {
+    if (!studyData.years || !studyData.years.length) {
+      showToast('No study data to export.', 'error');
+      return;
+    }
+    const modal = document.getElementById('gradeExportModal');
+    const scopeSel = document.getElementById('gradeExportScope');
+    const semSel = document.getElementById('gradeExportSemester');
+    const unitSel = document.getElementById('gradeExportUnit');
+
+    semSel.innerHTML = '';
+    studyData.years.forEach((y, yi) => {
+      y.semesters.forEach((s, si) => {
+        const opt = document.createElement('option');
+        opt.value = `${yi}|${si}`;
+        opt.textContent = `${y.name} · ${s.name}  (${s.units.length} units)`;
+        semSel.appendChild(opt);
+      });
+    });
+
+    function updateUnitOptions() {
+      const semVal = semSel.value;
+      if (!semVal) { unitSel.innerHTML = ''; return; }
+      const [yi, si] = semVal.split('|').map(Number);
+      const year = studyData.years[yi];
+      const sem = year?.semesters[si];
+      unitSel.innerHTML = '';
+      if (!sem) return;
+      sem.units.forEach((u, ui) => {
+        const opt = document.createElement('option');
+        opt.value = `${yi}|${si}|${ui}`;
+        opt.textContent = `${u.code} — ${u.name}`;
+        unitSel.appendChild(opt);
+      });
+    }
+
+    function updateVisibility() {
+      const v = scopeSel.value;
+      document.getElementById('gradeExportSemesterGroup').style.display = (v === 'semester' || v === 'unit') ? 'block' : 'none';
+      document.getElementById('gradeExportUnitGroup').style.display = (v === 'unit') ? 'block' : 'none';
+      updatePreview();
+    }
+
+    function updatePreview() {
+      const v = scopeSel.value;
+      const preview = document.getElementById('gradeExportPreview');
+      if (v === 'year') {
+        let totalUnits = 0;
+        studyData.years.forEach(yr => yr.semesters.forEach(s => totalUnits += s.units.length));
+        preview.innerHTML = `<strong>📅 Full Year</strong> · ${studyData.years.length} year(s) · ${totalUnits} unit(s) · Cover + Overview + per-unit detail sheets`;
+      } else if (v === 'semester') {
+        const semVal = semSel.value;
+        if (!semVal) { preview.innerHTML = '—'; return; }
+        const [yi, si] = semVal.split('|').map(Number);
+        const y = studyData.years[yi];
+        const s = y?.semesters[si];
+        if (!s) { preview.innerHTML = '—'; return; }
+        preview.innerHTML = `<strong>📘 ${escapeHtml(y.name)} · ${escapeHtml(s.name)}</strong> · ${s.units.length} unit(s) · Cover + Overview + per-unit detail sheets`;
+      } else {
+        const unitVal = unitSel.value;
+        if (!unitVal) { preview.innerHTML = '—'; return; }
+        const [yi, si, ui] = unitVal.split('|').map(Number);
+        const u = studyData.years[yi]?.semesters[si]?.units[ui];
+        if (!u) { preview.innerHTML = '—'; return; }
+        preview.innerHTML = `<strong>📗 ${escapeHtml(u.code)} — ${escapeHtml(u.name)}</strong> · Cover + Overview + detailed grade sheet`;
+      }
+    }
+
+    scopeSel.onchange = updateVisibility;
+    semSel.onchange = () => { updateUnitOptions(); updatePreview(); };
+    unitSel.onchange = updatePreview;
+
+    scopeSel.value = 'year';
+    updateUnitOptions();
+    updateVisibility();
+
+    modal.classList.add('open');
+  }
+  window.openGradeExportModal = openGradeExportModal;
+
+  function safeSheetName(name, fallback) {
+    let s = String(name || fallback || 'Sheet');
+    s = s.replace(/[:\\\/\?\*\[\]]/g, '_').trim();
+    if (s.length > 31) s = s.substring(0, 28) + '...';
+    if (!s) s = fallback || 'Sheet';
+    return s;
+  }
+
+  function uniqueSheetName(wb, name) {
+    let base = safeSheetName(name, 'Sheet');
+    if (!wb.getWorksheet(base)) return base;
+    let i = 2;
+    while (wb.getWorksheet(`${base}_${i}`) && i < 100) i++;
+    return `${base}_${i}`;
+  }
+
+  // ─── Color palette helpers ───
+  function hexToPalette(hex) {
+    const fallback = '#2fc7ff';
+    let clean = String(hex || fallback).replace('#', '').toUpperCase();
+    if (clean.length !== 6) clean = fallback.replace('#', '').toUpperCase();
+    const r = parseInt(clean.substr(0,2), 16);
+    const g = parseInt(clean.substr(2,2), 16);
+    const b = parseInt(clean.substr(4,2), 16);
+    function h2(n) { return Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2,'0').toUpperCase(); }
+    const luminance = 0.299*r + 0.587*g + 0.114*b;
+    // Dark variant — multiply 0.55 for a rich deep shade
+    const dr = r * 0.55, dg = g * 0.55, db = b * 0.55;
+    // Light tint — blend 12% color + 88% white
+    const lr = r * 0.12 + 255 * 0.88;
+    const lg = g * 0.12 + 255 * 0.88;
+    const lb = b * 0.12 + 255 * 0.88;
+    // Very pale accent — blend 18% color + 82% white
+    const ar = r * 0.18 + 255 * 0.82;
+    const ag = g * 0.18 + 255 * 0.82;
+    const ab = b * 0.18 + 255 * 0.82;
+    return {
+      main: 'FF' + h2(r) + h2(g) + h2(b),
+      dark: 'FF' + h2(dr) + h2(dg) + h2(db),
+      light: 'FF' + h2(lr) + h2(lg) + h2(lb),
+      pale: 'FF' + h2(ar) + h2(ag) + h2(ab),
+      textOnMain: luminance > 150 ? 'FF111111' : 'FFFFFFFF',
+      textOnDark: 'FFFFFFFF',
+      textOnLight: 'FF111111'
+    };
+  }
+
+  // ─── Border helpers ───
+  const BORDER_THIN = { style: 'thin', color: { argb: 'FFB0BEC5' } };
+  const BORDER_MED = { style: 'medium', color: { argb: 'FF5A6E7A' } };
+
+  function allBorders(border = BORDER_THIN) {
+    return { top: border, bottom: border, left: border, right: border };
+  }
+  function medBorders() { return allBorders(BORDER_MED); }
+
+  function fillSolid(cell, argb) {
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb } };
+  }
+
+  // ─── Auto row height — conservative with safety margin ───
+  function autoRowHeight(sheet, rowNum, values, widths, opts) {
+    opts = opts || {};
+    const minH = opts.minHeight || 22;
+    const lineHeight = opts.lineHeight || 16;
+    const safety = opts.safety || 1.2;
+    let maxLines = 1;
+    values.forEach((val, i) => {
+      if (val === null || val === undefined) return;
+      const w = widths[i] || 10;
+      const charsPerLine = Math.max(6, Math.floor(w * 0.9));
+      const lines = String(val).split('\n').reduce((sum, line) => {
+        return sum + Math.max(1, Math.ceil(line.length / charsPerLine));
+      }, 0);
+      if (lines > maxLines) maxLines = lines;
+    });
+    sheet.getRow(rowNum).height = Math.max(minH, Math.ceil(maxLines * lineHeight * safety) + 8);
+  }
+
+  // ─── Progress bar as text ───
+  function makeProgressBar(pct, width) {
+    if (pct === null || pct === undefined || isNaN(pct)) return '—';
+    const p = Math.max(0, Math.min(100, pct));
+    const w = width || 12;
+    const filled = Math.round(p / 100 * w);
+    return '█'.repeat(filled) + '░'.repeat(w - filled) + '  ' + p.toFixed(0) + '%';
+  }
+
+  // ─── Grade cell styling ───
+  function styleGradeCell(cell, pct) {
+    cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 };
+    if (pct === null || pct === undefined || isNaN(pct)) {
+      fillSolid(cell, 'FF6C757D');
+      return;
+    }
+    if (pct >= 75) fillSolid(cell, 'FF1E7A34');
+    else if (pct >= 70) fillSolid(cell, 'FF138496');
+    else if (pct >= 60) fillSolid(cell, 'FF0984E3');
+    else if (pct >= 50) fillSolid(cell, 'FFB8860B');
+    else fillSolid(cell, 'FFC0392B');
+  }
+
+  function styleStatusCell(cell, status) {
+    cell.font = { bold: true, size: 10 };
+    cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+    if (status === 'graded') { fillSolid(cell, 'FFD4EDDA'); cell.font.color = { argb: 'FF1E7A34' }; }
+    else if (status === 'submitted') { fillSolid(cell, 'FFD1ECF1'); cell.font.color = { argb: 'FF0B5A7A' }; }
+    else if (status === 'overdue') { fillSolid(cell, 'FFF8D7DA'); cell.font.color = { argb: 'FFA71D2A' }; }
+    else if (status === 'due-soon') { fillSolid(cell, 'FFFFF3CD'); cell.font.color = { argb: 'FF856404' }; }
+    else if (status === 'in-progress') { fillSolid(cell, 'FFE6F4FA'); cell.font.color = { argb: 'FF0B5A7A' }; }
+    else { fillSolid(cell, 'FFF0F0F0'); cell.font.color = { argb: 'FF555555' }; }
+  }
+
+  // ─── Set cell with full options ───
+  function setCell(sheet, row, col, value, opts) {
+    opts = opts || {};
+    const cell = sheet.getCell(row, col);
+    cell.value = value === undefined || value === null ? '' : value;
+    cell.border = opts.border || allBorders();
+    cell.alignment = {
+      horizontal: opts.h || 'left',
+      vertical: opts.v || 'middle',
+      wrapText: opts.wrap !== false
+    };
+    if (opts.bold || opts.size || opts.color) {
+      cell.font = Object.assign({}, cell.font || {}, {
+        bold: opts.bold || false,
+        size: opts.size || 10,
+        color: opts.color ? { argb: opts.color } : undefined
+      });
+      if (!opts.color) delete cell.font.color;
+    }
+    if (opts.fill) fillSolid(cell, opts.fill);
+    return cell;
+  }
+
+  // ─── Build the cover sheet ───
+  function buildCoverSheet(wb, meta) {
+    const sheet = wb.addWorksheet('Cover', {
+      pageSetup: { orientation: 'portrait', fitToPage: true, fitToWidth: 1, fitToHeight: 1, paperSize: 9, horizontalCentered: true },
+      properties: { tabColor: { argb: 'FF0B2B3B' } }
+    });
+
+    sheet.columns = [
+      { width: 4 }, { width: 32 }, { width: 32 }, { width: 32 }, { width: 32 }, { width: 4 }
+    ];
+
+    // Title rows
+    sheet.mergeCells('A2:F4');
+    const title = sheet.getCell('A2');
+    title.value = 'ACADEMIC GRADE REPORT';
+    title.font = { bold: true, size: 30, color: { argb: 'FFFFFFFF' } };
+    fillSolid(title, 'FF0B2B3B');
+    title.alignment = { horizontal: 'center', vertical: 'middle' };
+    sheet.getRow(2).height = 32;
+    sheet.getRow(3).height = 32;
+    sheet.getRow(4).height = 32;
+
+    // Accent bar
+    sheet.mergeCells('A5:F5');
+    const accent = sheet.getCell('A5');
+    fillSolid(accent, 'FF2FC7FF');
+    sheet.getRow(5).height = 6;
+
+    // Scope title
+    sheet.mergeCells('B7:E9');
+    const scopeTitle = sheet.getCell('B7');
+    scopeTitle.value = meta.title;
+    scopeTitle.font = { bold: true, size: 20, color: { argb: 'FF0B2B3B' } };
+    scopeTitle.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+    sheet.getRow(7).height = 28;
+    sheet.getRow(8).height = 28;
+    sheet.getRow(9).height = 28;
+
+    // Subtitle
+    sheet.mergeCells('B11:E11');
+    const subtitle = sheet.getCell('B11');
+    subtitle.value = meta.subtitle || '';
+    subtitle.font = { size: 12, italic: true, color: { argb: 'FF5A6E7A' } };
+    subtitle.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+    sheet.getRow(11).height = 24;
+
+    // Generated
+    sheet.mergeCells('B13:E13');
+    const gen = sheet.getCell('B13');
+    gen.value = `Generated: ${new Date().toLocaleString()}`;
+    gen.font = { size: 10, color: { argb: 'FF888888' } };
+    gen.alignment = { horizontal: 'center', vertical: 'middle' };
+
+    // Owner
+    sheet.mergeCells('B14:E14');
+    const owner = sheet.getCell('B14');
+    owner.value = `Prepared by: ${user.username}`;
+    owner.font = { size: 10, color: { argb: 'FF888888' } };
+    owner.alignment = { horizontal: 'center', vertical: 'middle' };
+
+    // Section header
+    sheet.mergeCells('B17:E17');
+    const sec = sheet.getCell('B17');
+    sec.value = 'SCOPE SUMMARY';
+    sec.font = { bold: true, size: 12, color: { argb: 'FFFFFFFF' } };
+    fillSolid(sec, 'FF1A4D5F');
+    sec.alignment = { horizontal: 'center', vertical: 'middle' };
+    sheet.getRow(17).height = 26;
+
+    // KPI pairs — 2 columns each
+    const kpis = meta.kpis || [];
+    let r = 18;
+    for (let i = 0; i < kpis.length; i += 2) {
+      const left = kpis[i];
+      const right = kpis[i + 1];
+
+      // Label row — merge B:C for left, D:E for right
+      sheet.mergeCells(r, 2, r, 3);
+      sheet.mergeCells(r, 4, r, 5);
+      const labL = sheet.getCell(r, 2);
+      labL.value = left ? left.label : '';
+      labL.font = { bold: true, size: 10, color: { argb: 'FF5A6E7A' } };
+      labL.alignment = { horizontal: 'center', vertical: 'middle' };
+      labL.border = allBorders();
+      fillSolid(labL, 'FFE6F4FA');
+
+      const labR = sheet.getCell(r, 4);
+      labR.value = right ? right.label : '';
+      labR.font = { bold: true, size: 10, color: { argb: 'FF5A6E7A' } };
+      labR.alignment = { horizontal: 'center', vertical: 'middle' };
+      labR.border = allBorders();
+      fillSolid(labR, 'FFE6F4FA');
+
+      // Value row
+      sheet.mergeCells(r + 1, 2, r + 1, 3);
+      sheet.mergeCells(r + 1, 4, r + 1, 5);
+      const valL = sheet.getCell(r + 1, 2);
+      valL.value = left ? left.value : '';
+      valL.font = { bold: true, size: 15, color: { argb: 'FF0B2B3B' } };
+      valL.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+      valL.border = allBorders();
+
+      const valR = sheet.getCell(r + 1, 4);
+      valR.value = right ? right.value : '';
+      valR.font = { bold: true, size: 15, color: { argb: 'FF0B2B3B' } };
+      valR.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+      valR.border = allBorders();
+
+      sheet.getRow(r).height = 24;
+      sheet.getRow(r + 1).height = 34;
+      r += 2;
+    }
+
+    // Footer
+    sheet.mergeCells('B' + (r + 2) + ':E' + (r + 2));
+    const footer = sheet.getCell(r + 2, 2);
+    footer.value = 'Generated by Your Portfolio · Study Manager';
+    footer.font = { italic: true, size: 9, color: { argb: 'FFAAAAAA' } };
+    footer.alignment = { horizontal: 'center', vertical: 'middle' };
+
+    sheet.pageSetup.printArea = `A1:F${r + 3}`;
+    return sheet;
+  }
+
+  // ─── Build the overview sheet ───
+  function buildOverviewSheet(wb, unitsData) {
+    const sheet = wb.addWorksheet('Overview', {
+      pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0, paperSize: 9, horizontalCentered: true },
+      properties: { tabColor: { argb: 'FF0B2B3B' } },
+      views: [{ state: 'frozen', ySplit: 4 }]
+    });
+
+    const colWidths = [5, 12, 42, 8, 14, 11, 11, 11, 16, 14];
+    sheet.columns = colWidths.map(w => ({ width: w }));
+
+    // Title
+    sheet.mergeCells('A1:J1');
+    const t = sheet.getCell('A1');
+    t.value = '📊 MODULE PERFORMANCE OVERVIEW';
+    t.font = { bold: true, size: 18, color: { argb: 'FFFFFFFF' } };
+    fillSolid(t, 'FF0B2B3B');
+    t.alignment = { horizontal: 'center', vertical: 'middle' };
+    sheet.getRow(1).height = 38;
+
+    // Subtitle
+    sheet.mergeCells('A2:J2');
+    const s = sheet.getCell('A2');
+    s.value = `Generated ${new Date().toLocaleString()} · ${unitsData.length} module(s)`;
+    s.font = { size: 10, italic: true, color: { argb: 'FF5A6E7A' } };
+    fillSolid(s, 'FFE6F4FA');
+    s.alignment = { horizontal: 'center', vertical: 'middle' };
+    sheet.getRow(2).height = 22;
+
+    // Spacer
+    sheet.getRow(3).height = 8;
+
+    // Header
+    const headers = ['#', 'Code', 'Module Name', 'Year', 'Semester', 'Assessed', 'Pending', 'Current %', 'Grade', 'Status'];
+    const hr = sheet.getRow(4);
+    headers.forEach((h, i) => {
+      const cell = hr.getCell(i + 1);
+      cell.value = h;
+      cell.font = { bold: true, size: 10, color: { argb: 'FFFFFFFF' } };
+      fillSolid(cell, 'FF1A4D5F');
+      cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+      cell.border = allBorders();
+    });
+    sheet.getRow(4).height = 30;
+
+    let r = 5;
+    unitsData.forEach((item, idx) => {
+      const calc = calculateUnitGrade(item.unit);
+      const grade = calc && calc.grade !== null ? calc.grade : null;
+      const totalW = calc ? calc.totalWeight : 0;
+      const assessedW = calc ? (calc.totalWeight - calc.missingWeight) : 0;
+      const assessedPct = totalW > 0 ? (assessedW / totalW) * 100 : 0;
+      const pendingPct = totalW > 0 ? (calc.missingWeight / totalW) * 100 : 0;
+      const alt = idx % 2 === 1;
+      const rowFill = alt ? 'FFEFF5F9' : 'FFF8FAFC';
+
+      setCell(sheet, r, 1, idx + 1, { h: 'center', fill: rowFill });
+      setCell(sheet, r, 2, item.unit.code || '—', { h: 'center', fill: rowFill, bold: true });
+      setCell(sheet, r, 3, item.unit.name || '—', { h: 'left', fill: rowFill });
+      setCell(sheet, r, 4, item.yearName, { h: 'center', fill: rowFill });
+      setCell(sheet, r, 5, item.semName, { h: 'center', fill: rowFill });
+      setCell(sheet, r, 6, assessedPct.toFixed(1) + '%', { h: 'center', fill: rowFill });
+      setCell(sheet, r, 7, pendingPct.toFixed(1) + '%', { h: 'center', fill: rowFill });
+
+      // Current grade — colored
+      const gradeCell = sheet.getCell(r, 8);
+      gradeCell.value = grade !== null ? grade.toFixed(1) + '%' : '—';
+      gradeCell.alignment = { horizontal: 'center', vertical: 'middle' };
+      gradeCell.border = allBorders();
+      styleGradeCell(gradeCell, grade);
+
+      const gradeLabel = grade !== null ? (grade >= 75 ? 'Distinction' : grade >= 70 ? 'Merit' : grade >= 60 ? 'Credit' : grade >= 50 ? 'Pass' : 'Fail') : '—';
+      setCell(sheet, r, 9, gradeLabel, { h: 'center', fill: rowFill, bold: true });
+      const statusText = calc ? (calc.missingWeight === 0 ? '✅ Complete' : `⏳ ${calc.missingWeight.toFixed(0)}% pending`) : 'No data';
+      setCell(sheet, r, 10, statusText, { h: 'center', fill: rowFill });
+
+      // Auto row height
+      autoRowHeight(sheet, r, [item.unit.name || ''], [colWidths[2]], { minHeight: 24 });
+      r++;
+    });
+
+    // Totals
+    if (unitsData.length) {
+      sheet.mergeCells(r, 1, r, 5);
+      const totalLabel = sheet.getCell(r, 1);
+      totalLabel.value = 'AVERAGE / TOTAL';
+      totalLabel.font = { bold: true, size: 11, color: { argb: 'FFFFFFFF' } };
+      fillSolid(totalLabel, 'FF1A4D5F');
+      totalLabel.alignment = { horizontal: 'right', vertical: 'middle', indent: 1 };
+      totalLabel.border = medBorders();
+
+      const allGrades = unitsData.map(it => { const c = calculateUnitGrade(it.unit); return c && c.grade !== null ? c.grade : null; }).filter(g => g !== null);
+      const avg = allGrades.length ? (allGrades.reduce((s, v) => s + v, 0) / allGrades.length) : null;
+
+      // Empty cells 6,7
+      [6, 7].forEach(c => {
+        const cc = sheet.getCell(r, c);
+        cc.value = '';
+        fillSolid(cc, 'FFD6E9F4');
+        cc.border = medBorders();
+      });
+
+      const avgCell = sheet.getCell(r, 8);
+      avgCell.value = avg !== null ? avg.toFixed(1) + '%' : '—';
+      avgCell.alignment = { horizontal: 'center', vertical: 'middle' };
+      avgCell.border = medBorders();
+      styleGradeCell(avgCell, avg);
+
+      sheet.mergeCells(r, 9, r, 10);
+      const cntCell = sheet.getCell(r, 9);
+      cntCell.value = `${unitsData.length} modules`;
+      cntCell.font = { bold: true, size: 10 };
+      cntCell.alignment = { horizontal: 'center', vertical: 'middle' };
+      cntCell.border = medBorders();
+      fillSolid(cntCell, 'FFD6E9F4');
+      sheet.getRow(r).height = 26;
+    }
+
+    sheet.pageSetup.printArea = `A1:J${r}`;
+    return sheet;
+  }
+
+  // ─── Build a themed unit sheet ───
+  function buildUnitSheet(wb, item, sheetName) {
+    const unit = item.unit;
+    const palette = hexToPalette(unit.color);
+    const calc = calculateUnitGrade(unit);
+    const grade = calc && calc.grade !== null ? calc.grade : null;
+    const allAssignments = calc ? calc.allAssignments : [];
+    const groups = calc ? calc.groups : null;
+
+    const sheet = wb.addWorksheet(sheetName, {
+      pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0, paperSize: 9, horizontalCentered: true },
+      properties: { tabColor: { argb: palette.main } }
+    });
+
+    const colWidths = [5, 40, 14, 12, 12, 10, 10, 12, 30];
+    sheet.columns = colWidths.map(w => ({ width: w }));
+    const totalWidth = colWidths.reduce((a, b) => a + b, 0);
+
+    let r = 1;
+
+    // ── Title bar (unit main color) ──
+    sheet.mergeCells(`A${r}:I${r}`);
+    const title = sheet.getCell(`A${r}`);
+    title.value = `${unit.code || '—'} — ${unit.name || 'Unnamed Unit'}`;
+    title.font = { bold: true, size: 18, color: { argb: palette.textOnMain } };
+    fillSolid(title, palette.main);
+    title.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+    // Row height based on title length
+    const titleLines = Math.max(1, Math.ceil((title.value.length) / (totalWidth * 0.85)));
+    sheet.getRow(r).height = Math.max(32, titleLines * 24 + 8);
+    r++;
+
+    // ── Subtitle bar (unit dark) ──
+    sheet.mergeCells(`A${r}:I${r}`);
+    const sub = sheet.getCell(`A${r}`);
+    sub.value = `${item.yearName} · ${item.semName}`;
+    sub.font = { size: 11, italic: true, color: { argb: palette.textOnDark } };
+    fillSolid(sub, palette.dark);
+    sub.alignment = { horizontal: 'center', vertical: 'middle' };
+    sheet.getRow(r).height = 24;
+    r++;
+
+    // ── Accent strip ──
+    sheet.mergeCells(`A${r}:I${r}`);
+    const acc = sheet.getCell(`A${r}`);
+    fillSolid(acc, palette.pale);
+    sheet.getRow(r).height = 6;
+    r += 2;
+
+    // ── GRADE SUMMARY section ──
+    sheet.mergeCells(`A${r}:I${r}`);
+    const kpiHdr = sheet.getCell(`A${r}`);
+    kpiHdr.value = '📊  GRADE SUMMARY';
+    kpiHdr.font = { bold: true, size: 12, color: { argb: palette.textOnMain } };
+    fillSolid(kpiHdr, palette.main);
+    kpiHdr.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
+    sheet.getRow(r).height = 26;
+    r++;
+
+    // KPI layout: 4 cards across
+    // Layout: B-C  | D-E | F-G | H-I
+    const kpiCols = [
+      { start: 1, end: 2 }, // A-B
+      { start: 3, end: 4 }, // C-D
+      { start: 5, end: 6 }, // E-F
+      { start: 7, end: 9 }  // G-I
+    ];
+    const kpiLabels = ['Current Grade', 'Assessed Weight', 'Pending Weight', 'Assessments'];
+    kpiCols.forEach((col, i) => {
+      sheet.mergeCells(r, col.start, r, col.end);
+      const c = sheet.getCell(r, col.start);
+      c.value = kpiLabels[i];
+      c.font = { bold: true, size: 9, color: { argb: 'FF5A6E7A' } };
+      fillSolid(c, palette.light);
+      c.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+      c.border = allBorders();
+    });
+    sheet.getRow(r).height = 22;
+    r++;
+
+    kpiCols.forEach((col, i) => {
+      sheet.mergeCells(r, col.start, r, col.end);
+      const c = sheet.getCell(r, col.start);
+      c.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+      c.border = allBorders();
+
+      if (i === 0) {
+        // Current grade
+        c.value = grade !== null ? grade.toFixed(1) + '%' : '—';
+        styleGradeCell(c, grade);
+        c.font.size = 18;
+      } else if (i === 1) {
+        const totalW = calc ? calc.totalWeight : 0;
+        const assessedW = calc ? (calc.totalWeight - calc.missingWeight) : 0;
+        c.value = totalW > 0 ? assessedW.toFixed(1) + ' / ' + totalW.toFixed(1) : '—';
+        c.font = { bold: true, size: 14, color: { argb: 'FF0B2B3B' } };
+      } else if (i === 2) {
+        const pending = calc ? calc.missingWeight : 0;
+        c.value = calc ? pending.toFixed(1) + '%' : '—';
+        c.font = { bold: true, size: 14, color: { argb: pending > 0 ? 'FFB8860B' : 'FF1E7A34' } };
+      } else {
+        const graded = allAssignments.filter(a => a.status === 'graded').length;
+        const submitted = allAssignments.filter(a => a.status === 'submitted').length;
+        c.value = `${allAssignments.length} total · ${graded} graded · ${submitted} submitted`;
+        c.font = { bold: true, size: 11, color: { argb: 'FF0B2B3B' } };
+      }
+    });
+    sheet.getRow(r).height = 36;
+    r += 2;
+
+    // ── CATEGORY BREAKDOWN ──
+    sheet.mergeCells(`A${r}:I${r}`);
+    const catHdr = sheet.getCell(`A${r}`);
+    catHdr.value = '📚  CATEGORY BREAKDOWN';
+    catHdr.font = { bold: true, size: 12, color: { argb: palette.textOnMain } };
+    fillSolid(catHdr, palette.main);
+    catHdr.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
+    sheet.getRow(r).height = 26;
+    r++;
+
+    // Header row for category breakdown
+    // Col mapping: 1+2=Category, 3=Items, 4=Marked, 5=Weight, 6=Earned, 7=Pending, 8=Progress, 9=Status
+    sheet.mergeCells(r, 1, r, 2);
+    const catHeaders = [
+      { ref: [r, 1], val: 'Category' },
+      { ref: [r, 3], val: 'Items' },
+      { ref: [r, 4], val: 'Marked' },
+      { ref: [r, 5], val: 'Weight %' },
+      { ref: [r, 6], val: 'Earned' },
+      { ref: [r, 7], val: 'Pending' },
+      { ref: [r, 8], val: 'Progress' },
+      { ref: [r, 9], val: 'Status' }
+    ];
+    catHeaders.forEach(({ ref, val }) => {
+      const c = sheet.getCell(ref[0], ref[1]);
+      c.value = val;
+      c.font = { bold: true, size: 10, color: { argb: palette.textOnMain } };
+      fillSolid(c, palette.main);
+      c.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+      c.border = allBorders();
+    });
+    sheet.getRow(r).height = 26;
+    r++;
+
+    const catOrder = ['weekly', 'assignment', 'project', 'final', 'other'];
+    let catTotalWeight = 0, catTotalEarned = 0, catTotalMissing = 0, catTotalItems = 0, catTotalMarked = 0;
+    catOrder.forEach(key => {
+      const g = groups ? groups[key] : null;
+      if (!g || !g.items.length) return;
+
+      catTotalWeight += g.totalWeight;
+      catTotalEarned += g.earnedWeighted;
+      catTotalMissing += g.missingWeight;
+      catTotalItems += g.items.length;
+      const markedItems = g.items.filter(a => { const m = parseFloat(a.marks); return !isNaN(m) && m >= 0; }).length;
+      catTotalMarked += markedItems;
+
+      const progressPct = g.totalWeight > 0 ? Math.min(100, (g.earnedWeighted / g.totalWeight) * 100) : 0;
+      const progressText = makeProgressBar(progressPct, 10);
+      const statusText = g.missingWeight > 0 ? `${g.missingWeight.toFixed(1)}% pending` : '✅ Complete';
+
+      sheet.mergeCells(r, 1, r, 2);
+      const c1 = sheet.getCell(r, 1);
+      c1.value = g.label;
+      c1.font = { bold: true, size: 10, color: { argb: 'FF0B2B3B' } };
+      c1.alignment = { horizontal: 'left', vertical: 'middle', indent: 1, wrapText: true };
+      c1.border = allBorders();
+      fillSolid(c1, palette.light);
+
+      setCell(sheet, r, 3, g.items.length, { h: 'center' });
+      setCell(sheet, r, 4, `${markedItems} / ${g.items.length}`, { h: 'center' });
+      setCell(sheet, r, 5, g.totalWeight.toFixed(1) + '%', { h: 'center' });
+      setCell(sheet, r, 6, g.earnedWeighted.toFixed(2), { h: 'center' });
+      setCell(sheet, r, 7, g.missingWeight.toFixed(2), { h: 'center' });
+      setCell(sheet, r, 8, progressText, { h: 'center', bold: true, color: palette.dark });
+      const stCell = sheet.getCell(r, 9);
+      stCell.value = statusText;
+      stCell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+      stCell.border = allBorders();
+      if (g.missingWeight > 0) {
+        fillSolid(stCell, 'FFFFF3CD');
+        stCell.font = { bold: true, size: 9, color: { argb: 'FF856404' } };
+      } else {
+        fillSolid(stCell, 'FFD4EDDA');
+        stCell.font = { bold: true, size: 9, color: { argb: 'FF1E7A34' } };
+      }
+      sheet.getRow(r).height = 24;
+      r++;
+    });
+
+    // Category totals
+    sheet.mergeCells(r, 1, r, 2);
+    const totLabel = sheet.getCell(r, 1);
+    totLabel.value = 'TOTAL';
+    totLabel.font = { bold: true, size: 11, color: { argb: palette.textOnMain } };
+    fillSolid(totLabel, palette.main);
+    totLabel.alignment = { horizontal: 'right', vertical: 'middle', indent: 1 };
+    totLabel.border = medBorders();
+
+    const totVals = [
+      { col: 3, val: catTotalItems },
+      { col: 4, val: `${catTotalMarked} / ${catTotalItems}` },
+      { col: 5, val: catTotalWeight.toFixed(1) + '%' },
+      { col: 6, val: catTotalEarned.toFixed(2) },
+      { col: 7, val: catTotalMissing.toFixed(2) },
+      { col: 8, val: catTotalWeight > 0 ? ((catTotalEarned / catTotalWeight) * 100).toFixed(0) + '%' : '—' },
+      { col: 9, val: catTotalMissing > 0 ? `${catTotalMissing.toFixed(1)}% pending` : '✅ Complete' }
+    ];
+    totVals.forEach(({ col, val }) => {
+      const c = sheet.getCell(r, col);
+      c.value = val;
+      c.font = { bold: true, size: 10, color: { argb: 'FF0B2B3B' } };
+      fillSolid(c, palette.light);
+      c.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+      c.border = medBorders();
+    });
+    sheet.getRow(r).height = 26;
+    r += 2;
+
+    // ── SCENARIO ANALYSIS ──
+    if (calc && calc.missingWeight > 0) {
+      sheet.mergeCells(`A${r}:I${r}`);
+      const scenHdr = sheet.getCell(`A${r}`);
+      scenHdr.value = '🎯  SCENARIO ANALYSIS';
+      scenHdr.font = { bold: true, size: 12, color: { argb: palette.textOnMain } };
+      fillSolid(scenHdr, palette.main);
+      scenHdr.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
+      sheet.getRow(r).height = 26;
+      r++;
+
+      const achieved = calc.achievedWeight;
+      const currentPct = calc.grade || 0;
+      const missingW = calc.missingWeight;
+      const totalW2 = calc.totalWeight;
+      const minPossible = (currentPct * achieved / 100) / totalW2 * 100;
+      const expected = currentPct;
+      const maxPossible = ((currentPct * achieved / 100) + missingW) / totalW2 * 100;
+
+      const scenarioRows = [
+        { label: 'If you fail all remaining', value: minPossible },
+        { label: 'If you keep current pace', value: expected },
+        { label: 'If you ace all remaining', value: maxPossible }
+      ];
+
+      scenarioRows.forEach(sc => {
+        sheet.mergeCells(r, 1, r, 6);
+        const lab = sheet.getCell(r, 1);
+        lab.value = sc.label;
+        lab.font = { bold: true, size: 10, color: { argb: 'FF5A6E7A' } };
+        lab.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
+        lab.border = allBorders();
+        fillSolid(lab, palette.light);
+
+        sheet.mergeCells(r, 7, r, 9);
+        const val = sheet.getCell(r, 7);
+        val.value = sc.value.toFixed(1) + '%';
+        val.alignment = { horizontal: 'center', vertical: 'middle' };
+        val.border = allBorders();
+        styleGradeCell(val, sc.value);
+        val.font.size = 13;
+
+        sheet.getRow(r).height = 26;
+        r++;
+      });
+      r++;
+    }
+
+    // ── ASSESSMENT DETAIL ──
+    sheet.mergeCells(`A${r}:I${r}`);
+    const assHdr = sheet.getCell(`A${r}`);
+    assHdr.value = '📝  ASSESSMENT DETAIL';
+    assHdr.font = { bold: true, size: 12, color: { argb: palette.textOnMain } };
+    fillSolid(assHdr, palette.main);
+    assHdr.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
+    sheet.getRow(r).height = 26;
+    r++;
+
+    const assHeaders = ['#', 'Assessment', 'Category', 'Due Date', 'Status', 'Weight', 'Marks', 'Weighted', 'Notes'];
+    const assHdrRow = sheet.getRow(r);
+    assHeaders.forEach((h, i) => {
+      const c = assHdrRow.getCell(i + 1);
+      c.value = h;
+      c.font = { bold: true, size: 10, color: { argb: palette.textOnMain } };
+      fillSolid(c, palette.main);
+      c.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+      c.border = allBorders();
+    });
+    sheet.getRow(r).height = 28;
+    r++;
+
+    if (!allAssignments.length) {
+      sheet.mergeCells(r, 1, r, 9);
+      const noData = sheet.getCell(r, 1);
+      noData.value = 'No assessments recorded for this unit.';
+      noData.font = { italic: true, size: 11, color: { argb: 'FF888888' } };
+      noData.alignment = { horizontal: 'center', vertical: 'middle' };
+      noData.border = allBorders();
+      sheet.getRow(r).height = 32;
+      r++;
+    } else {
+      const sorted = [...allAssignments].sort((a, b) => {
+        if (!a.due && !b.due) return 0;
+        if (!a.due) return 1;
+        if (!b.due) return -1;
+        return a.due < b.due ? -1 : 1;
+      });
+
+      sorted.forEach((a, idx) => {
+        const cat = categorizeAssessment(a);
+        const w = parseFloat(a.weight) || 0;
+        const marks = parseFloat(a.marks);
+        const hasMarks = !isNaN(marks) && marks >= 0;
+        const weighted = hasMarks ? (marks * w / 100) : null;
+        const state = getAssignmentState(a);
+        const stateLabel = { 'not-started': 'Not Started','in-progress': 'In Progress','due-soon': 'Due Soon','overdue': 'Overdue','submitted': 'Submitted','graded': 'Graded' }[state] || state;
+
+        const alt = idx % 2 === 1;
+        const rowFill = alt ? 'FFEFF5F9' : 'FFF8FAFC';
+
+        setCell(sheet, r, 1, idx + 1, { h: 'center', fill: rowFill });
+        setCell(sheet, r, 2, a.name || '—', { h: 'left', fill: rowFill, bold: true });
+        setCell(sheet, r, 3, cat.label, { h: 'center', fill: rowFill, color: 'FF4A627A' });
+        setCell(sheet, r, 4, a.due || '—', { h: 'center', fill: rowFill });
+        const stC = sheet.getCell(r, 5);
+        stC.value = stateLabel;
+        stC.border = allBorders();
+        styleStatusCell(stC, state);
+        setCell(sheet, r, 6, w.toFixed(1) + '%', { h: 'center', fill: rowFill });
+        setCell(sheet, r, 7, hasMarks ? marks.toFixed(1) : '—', { h: 'center', fill: rowFill, bold: hasMarks });
+        const wCell = sheet.getCell(r, 8);
+        wCell.value = weighted !== null ? weighted.toFixed(3) : '—';
+        wCell.alignment = { horizontal: 'center', vertical: 'middle' };
+        wCell.border = allBorders();
+        wCell.font = { bold: true, color: { argb: weighted !== null ? 'FF1E7A34' : 'FF999999' } };
+        fillSolid(wCell, rowFill);
+        setCell(sheet, r, 9, a.notes || '', { h: 'left', fill: rowFill, wrap: true });
+
+        // Auto row height based on name and notes
+        autoRowHeight(sheet, r, [
+          a.name || '',
+          null, null, null, null, null, null, null,
+          a.notes || ''
+        ], colWidths, { minHeight: 26 });
+        r++;
+      });
+
+      // Totals row
+      sheet.mergeCells(r, 1, r, 5);
+      const assTotLabel = sheet.getCell(r, 1);
+      assTotLabel.value = 'TOTALS';
+      assTotLabel.font = { bold: true, size: 11, color: { argb: palette.textOnMain } };
+      fillSolid(assTotLabel, palette.main);
+      assTotLabel.alignment = { horizontal: 'right', vertical: 'middle', indent: 1 };
+      assTotLabel.border = medBorders();
+
+      const totalWeightSum = sorted.reduce((s, a) => s + (parseFloat(a.weight) || 0), 0);
+      const totalWeighted = sorted.reduce((s, a) => {
+        const m = parseFloat(a.marks); const ww = parseFloat(a.weight) || 0;
+        return s + (!isNaN(m) && m >= 0 ? (m * ww / 100) : 0);
+      }, 0);
+
+      const wCol = sheet.getCell(r, 6);
+      wCol.value = totalWeightSum.toFixed(1) + '%';
+      wCol.font = { bold: true, size: 11, color: { argb: 'FF0B2B3B' } };
+      fillSolid(wCol, palette.light);
+      wCol.alignment = { horizontal: 'center', vertical: 'middle' };
+      wCol.border = medBorders();
+
+      const mCol = sheet.getCell(r, 7);
+      mCol.value = '';
+      fillSolid(mCol, palette.light);
+      mCol.border = medBorders();
+
+      const wtCol = sheet.getCell(r, 8);
+      wtCol.value = totalWeighted.toFixed(3);
+      wtCol.font = { bold: true, size: 11, color: { argb: 'FF0B2B3B' } };
+      fillSolid(wtCol, palette.light);
+      wtCol.alignment = { horizontal: 'center', vertical: 'middle' };
+      wtCol.border = medBorders();
+
+      const nCol = sheet.getCell(r, 9);
+      nCol.value = '';
+      fillSolid(nCol, palette.light);
+      nCol.border = medBorders();
+
+      sheet.getRow(r).height = 28;
+      r++;
+    }
+
+    sheet.pageSetup.printArea = `A1:I${r}`;
+    return sheet;
+  }
+
+  // ─── Main export function ───
+  async function exportGradeReportAdvanced(scope) {
+    if (!window.ExcelJS) { showToast('Excel library not loaded.', 'error'); return; }
+    window.showLoading('Generating grade report…');
+
     try {
-      const ExcelJS = window.ExcelJS;
-      const workbook = new ExcelJS.Workbook();
-      workbook.creator = user.username;
-      workbook.created = new Date();
-      const saGrade = (pct) => {
-        if (pct >= 75) return { grade: 'Distinction', symbol: 'A', color: 'FF28A745' };
-        if (pct >= 70) return { grade: 'Merit',       symbol: 'B', color: 'FF17A2B8' };
-        if (pct >= 60) return { grade: 'Credit',      symbol: 'C', color: 'FF2FC7FF' };
-        if (pct >= 50) return { grade: 'Pass',        symbol: 'D', color: 'FFFFC107' };
-        return              { grade: 'Fail',        symbol: 'F', color: 'FFDC3545' };
-      };
-      const units = [];
-      studyData.years.forEach(y => y.semesters.forEach(s => s.units.forEach(u => { if (unitCodeFilter && u.code !== unitCodeFilter) return; units.push({ unit: u, year: y.name, semester: s.name }); })));
-      if (!units.length) { showToast('No units match filter.', 'error'); return; }
-      const summary = workbook.addWorksheet('Grade Summary', { pageSetup: { orientation: 'portrait', fitToPage: true } });
-      summary.columns = [{ width: 5 }, { width: 14 }, { width: 36 }, { width: 14 }, { width: 14 }, { width: 14 }, { width: 8 }, { width: 12 }];
-      summary.mergeCells('A1:H1');
-      const t = summary.getCell('A1');
-      t.value = 'ACADEMIC GRADE REPORT';
-      t.font = { size: 24, bold: true, color: { argb: 'FFFFFFFF' } };
-      t.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
-      t.alignment = { horizontal: 'center', vertical: 'middle' };
-      summary.getRow(1).height = 46;
-      const hdrRowIdx = 4;
-      summary.mergeCells(`A${hdrRowIdx}:H${hdrRowIdx}`);
-      const mh = summary.getCell(`A${hdrRowIdx}`);
-      mh.value = 'MODULE PERFORMANCE SUMMARY';
-      mh.font = { bold: true, size: 12, color: { argb: 'FFFFFFFF' } };
-      mh.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2C3E50' } };
-      mh.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
-      const sHeaders = ['#', 'Module Code', 'Module Name', 'Assessments', 'Weighted %', 'Grade', 'Sym', 'Progress'];
-      const sHeadRow = summary.getRow(hdrRowIdx + 1);
-      sHeaders.forEach((h, i) => {
-        const c = sHeadRow.getCell(i + 1);
-        c.value = h;
-        c.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10 };
-        c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B3B' } };
-        c.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
-        c.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+      const wb = new window.ExcelJS.Workbook();
+      wb.creator = user.username || 'Study Manager';
+      wb.created = new Date();
+      wb.lastModifiedBy = user.username || 'Study Manager';
+
+      const unitsData = [];
+      let coverTitle = '';
+      let coverSubtitle = '';
+
+      if (scope.type === 'unit') {
+        const year = studyData.years[scope.yi];
+        const sem = year?.semesters[scope.si];
+        const unit = sem?.units[scope.ui];
+        if (!unit) { showToast('Unit not found.', 'error'); window.hideLoading(); return; }
+        unitsData.push({ unit, yearName: year.name, semName: sem.name });
+        coverTitle = `${unit.code} — ${unit.name}`;
+        coverSubtitle = `Detailed Grade Report · ${year.name} · ${sem.name}`;
+      } else if (scope.type === 'semester') {
+        const year = studyData.years[scope.yi];
+        const sem = year?.semesters[scope.si];
+        if (!sem) { showToast('Semester not found.', 'error'); window.hideLoading(); return; }
+        sem.units.forEach(u => unitsData.push({ unit: u, yearName: year.name, semName: sem.name }));
+        coverTitle = `${year.name} · ${sem.name}`;
+        coverSubtitle = `Semester Grade Report · ${unitsData.length} modules`;
+      } else {
+        studyData.years.forEach(year => {
+          year.semesters.forEach(sem => {
+            sem.units.forEach(u => unitsData.push({ unit: u, yearName: year.name, semName: sem.name }));
+          });
+        });
+        coverTitle = studyData.years.length === 1 ? studyData.years[0].name : 'Full Academic Year';
+        coverSubtitle = `Year Grade Report · ${unitsData.length} modules across ${studyData.years.length} year(s)`;
+      }
+
+      if (!unitsData.length) {
+        showToast('No units found in this scope.', 'error');
+        window.hideLoading();
+        return;
+      }
+
+      let totalAssessments = 0, totalGraded = 0, totalSubmitted = 0, totalPending = 0;
+      const gradesList = [];
+      unitsData.forEach(({ unit }) => {
+        const calc = calculateUnitGrade(unit);
+        if (!calc) return;
+        totalAssessments += calc.allAssignments.length;
+        calc.allAssignments.forEach(a => {
+          if (a.status === 'graded') totalGraded++;
+          else if (a.status === 'submitted') totalSubmitted++;
+          else totalPending++;
+        });
+        if (calc.grade !== null) gradesList.push(calc.grade);
       });
-      units.forEach((item, idx) => {
-        const u = item.unit;
-        const calc = calculateUnitGrade(u);
-        const avg = calc && calc.grade !== null ? calc.grade : null;
-        const g = avg !== null ? saGrade(avg) : { grade: 'N/A', symbol: '—', color: 'FF999999' };
-        const allAss = calc ? calc.allAssignments : [];
-        const graded = allAss.filter(a => a.status === 'graded').length;
-        const submitted = allAss.filter(a => a.status === 'submitted').length;
-        const progress = allAss.length ? Math.round(((graded + submitted) / allAss.length) * 100) : 0;
-        const r = hdrRowIdx + 2 + idx;
-        const row = summary.getRow(r);
-        row.getCell(1).value = idx + 1;
-        row.getCell(2).value = u.code;
-        row.getCell(3).value = u.name;
-        row.getCell(4).value = `${graded}/${allAss.length}`;
-        row.getCell(5).value = avg !== null ? avg.toFixed(1) + '%' : '—';
-        row.getCell(6).value = g.grade;
-        row.getCell(7).value = g.symbol;
-        row.getCell(8).value = progress + '%';
-        for (let c = 1; c <= 8; c++) {
-          const cell = row.getCell(c);
-          cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
-          cell.alignment = { vertical: 'middle', horizontal: (c === 3) ? 'left' : 'center', wrapText: c === 3 };
+      const avgGrade = gradesList.length ? (gradesList.reduce((s, v) => s + v, 0) / gradesList.length) : null;
+
+      // Cover
+      buildCoverSheet(wb, {
+        title: coverTitle,
+        subtitle: coverSubtitle,
+        kpis: [
+          { label: 'Modules', value: unitsData.length.toString() },
+          { label: 'Assessments', value: totalAssessments.toString() },
+          { label: 'Graded', value: totalGraded.toString() },
+          { label: 'Submitted', value: totalSubmitted.toString() },
+          { label: 'Pending', value: totalPending.toString() },
+          { label: 'Average Grade', value: avgGrade !== null ? avgGrade.toFixed(1) + '%' : '—' }
+        ]
+      });
+
+      // Overview
+      buildOverviewSheet(wb, unitsData);
+
+      // Per-unit sheets
+      unitsData.forEach((item, idx) => {
+        let baseName = item.unit.code || item.unit.name || ('Unit_' + (idx + 1));
+        if (scope.type === 'year' && studyData.years.length > 1) {
+          baseName = `${item.unit.code || 'Unit'}_${item.yearName}_${item.semName}`;
         }
-        row.getCell(5).font = { bold: true, color: { argb: g.color } };
-        row.getCell(6).font = { bold: true, color: { argb: g.color } };
-        row.getCell(7).font = { bold: true, size: 12, color: { argb: g.color } };
+        const sheetName = uniqueSheetName(wb, baseName);
+        buildUnitSheet(wb, item, sheetName);
       });
-      const buffer = await workbook.xlsx.writeBuffer();
+
+      const buffer = await wb.xlsx.writeBuffer();
       const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-      const stamp = formatLocalYMD(new Date());
-      const fname = unitCodeFilter ? `Grade_Report_${unitCodeFilter}_${stamp}.xlsx` : `Grade_Report_All_Modules_${stamp}.xlsx`;
-      saveAs(blob, fname);
-      showToast('✅ Grade report exported!', 'success');
-    } catch (err) { console.error(err); showToast('Export failed: ' + err.message, 'error'); }
-    finally { window.hideLoading(); }
+
+      const safeTitle = coverTitle.replace(/[^a-z0-9]/gi, '_').replace(/_+/g, '_').substring(0, 40);
+      const filename = `Grade_Report_${safeTitle}_${formatLocalYMD(new Date())}.xlsx`;
+      saveAs(blob, filename);
+
+      showToast(`✅ Grade report exported (${unitsData.length} module(s))`, 'success');
+    } catch (err) {
+      console.error('Grade export failed:', err);
+      showToast('Export failed: ' + err.message, 'error');
+    } finally {
+      window.hideLoading();
+    }
+  }
+
+  window.exportGradeReportAdvanced = exportGradeReportAdvanced;
+
+  window.exportGradeReport = async function() {
+    openGradeExportModal();
   };
 
   function validateImportData(data) {
@@ -3317,7 +4065,7 @@
           </div>
           <button type="button" class="btn btn-sync" id="syncBtn" title="Ctrl+S to save"><i class="fa fa-cloud-download"></i> Sync</button>
           <button type="button" class="btn btn-excel" id="exportBtn"><i class="fa fa-file-excel-o"></i> Excel</button>
-          <button type="button" class="btn btn-grade" id="gradeReportBtn" title="Excel grade report"><i class="fa fa-graduation-cap"></i> Grade Excel</button>
+          <button type="button" class="btn btn-grade" id="gradeReportBtn" title="Detailed grade report (Year / Semester / Unit)"><i class="fa fa-graduation-cap"></i> Grade Excel</button>
           <button type="button" class="btn btn-outline-secondary" id="exportJsonBtn" style="border:1px solid var(--border-subtle);color:var(--text-primary);"><i class="fa fa-download"></i> JSON</button>
           <button type="button" class="btn btn-outline-secondary" id="importJsonBtn" style="border:1px solid var(--border-subtle);color:var(--text-primary);"><i class="fa fa-upload"></i> Import</button>
           <button type="button" class="btn btn-success-glow" id="addYearBtn"><i class="fa fa-plus"></i> Add Year</button>
@@ -3340,7 +4088,6 @@
 
       <div id="deadlinesContainer"></div>
       <div id="priorityQueue"></div>
-      <div id="workloadChart"></div>
       <div id="studyStreak"></div>
       <div id="analyticsContainer"></div>
 
@@ -3548,7 +4295,7 @@
     document.getElementById('historyBtn').addEventListener('click', () => window.showVersionHistory());
     document.getElementById('addYearBtn').addEventListener('click', window.addYear);
     document.getElementById('exportBtn').addEventListener('click', window.exportToExcel);
-    document.getElementById('gradeReportBtn').addEventListener('click', () => window.exportGradeReport());
+    document.getElementById('gradeReportBtn').addEventListener('click', openGradeExportModal);
     document.getElementById('exportJsonBtn').addEventListener('click', function() {
       const blob = new Blob([JSON.stringify(studyData, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -3563,6 +4310,34 @@
     document.getElementById('downloadSampleBtn').addEventListener('click', (e) => { e.preventDefault(); downloadSampleJson(); });
     document.getElementById('importFileInput').addEventListener('change', function() { handleImportFile(this.files[0]); });
     document.getElementById('importConfirm').addEventListener('click', performImport);
+
+    document.getElementById('gradeExportCancel').addEventListener('click', () => document.getElementById('gradeExportModal').classList.remove('open'));
+    document.getElementById('gradeExportConfirm').addEventListener('click', () => {
+      const scopeType = document.getElementById('gradeExportScope').value;
+      const semVal = document.getElementById('gradeExportSemester').value;
+      const unitVal = document.getElementById('gradeExportUnit').value;
+      document.getElementById('gradeExportModal').classList.remove('open');
+
+      let scopeObj;
+      if (scopeType === 'unit') {
+        if (!unitVal) { showToast('Please select a unit.', 'error'); return; }
+        const [yi, si, ui] = unitVal.split('|').map(Number);
+        scopeObj = { type: 'unit', yi, si, ui };
+      } else if (scopeType === 'semester') {
+        if (!semVal) { showToast('Please select a semester.', 'error'); return; }
+        const [yi, si] = semVal.split('|').map(Number);
+        scopeObj = { type: 'semester', yi, si };
+      } else {
+        const resolved = resolveScope();
+        let yi = 0;
+        if (resolved.yearName) {
+          const idx = studyData.years.findIndex(y => y.name === resolved.yearName);
+          if (idx >= 0) yi = idx;
+        }
+        scopeObj = { type: 'year', yi };
+      }
+      exportGradeReportAdvanced(scopeObj);
+    });
 
     document.getElementById('submitModalCancel').addEventListener('click', function() { document.getElementById('submitModal').classList.remove('open'); submitModalContext = null; });
     document.getElementById('submitModalConfirm').addEventListener('click', async function() {
