@@ -1978,10 +1978,10 @@
                         "Integration process and Estimation, Substitution Method, Riemann Sums",
                         "The Fundamental Theorem of Calculus, Definite Integrals, Standard Integrals"
                       ],
-                      "completed": false,
+                      "completed": true,
                       "subCompleted": [
-                        false,
-                        false
+                        true,
+                        true
                       ]
                     }
                   ],
