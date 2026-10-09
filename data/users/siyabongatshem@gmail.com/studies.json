@@ -3025,11 +3025,11 @@
                       "id": "ass_bsc103_practical",
                       "name": "Practical Project (Report)",
                       "due": "2026-04-10",
-                      "status": "not-started",
-                      "marks": "",
+                      "status": "graded",
+                      "marks": "79",
                       "weight": 25,
                       "submittedDate": null,
-                      "gradedDate": null,
+                      "gradedDate": "2026-10-09",
                       "notes": "Topics 5 to 9. Practical project using software or hand calculations and drawings.",
                       "priority": "high"
                     }
