@@ -1,0 +1,2206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Report Centre · Study Manager</title>
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <script src="config.js"></script>
+  <script src="crypto.js"></script>
+  <script src="api.js"></script>
+  <script src="shared.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+  <style>
+    :root {
+      --bg-0:#050810; --bg-1:#0a0e17; --bg-2:#111927; --bg-glass:rgba(17,25,39,0.72);
+      --border:rgba(47,199,255,0.08); --border-strong:rgba(47,199,255,0.22);
+      --text-0:#e0e8ee; --text-1:#8a9fb0; --text-2:#566b7d;
+      --accent:#2fc7ff; --accent-2:#a29bfe; --green:#4ae4b8; --amber:#fdcb6e;
+      --red:#ff6b6b; --purple:#c9c3ff;
+    }
+    * { box-sizing: border-box; }
+    body { background:var(--bg-0); color:var(--text-0); font-family:'Inter',sans-serif; min-height:100vh; }
+    body::before {
+      content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
+      background:
+        radial-gradient(ellipse 800px 500px at 15% -10%, rgba(47,199,255,0.14), transparent 60%),
+        radial-gradient(ellipse 700px 400px at 100% 5%, rgba(162,155,254,0.10), transparent 60%);
+    }
+    .navbar { background:rgba(10,14,23,0.85)!important; backdrop-filter:blur(16px); border-bottom:1px solid var(--border); padding:8px 0; z-index:100; }
+    .navbar-brand { font-weight:900; font-size:1.3rem; letter-spacing:-0.5px; }
+    .navbar-brand span { color:var(--accent); }
+    .nav-link { color:rgba(255,255,255,0.55)!important; font-size:0.8rem; transition:0.2s; }
+    .nav-link:hover { color:var(--accent)!important; }
+    .nav-link.active { color:var(--accent)!important; }
+
+    .rc-container { max-width:1600px; margin:20px auto; padding:0 20px 80px; position:relative; z-index:1; }
+    .rc-header { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; padding:20px 0 26px; border-bottom:1px solid var(--border); margin-bottom:26px; }
+    .rc-header h1 { font-weight:800; font-size:1.9rem; margin:0; background:linear-gradient(135deg,#fff,var(--accent)); background-clip:text; -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+    .rc-header .subtitle { color:var(--text-1); font-size:0.88rem; }
+    .rc-actions { display:flex; gap:10px; flex-wrap:wrap; }
+    .rc-btn {
+      border-radius:40px; font-weight:600; font-size:0.8rem; padding:10px 20px;
+      border:none; min-height:44px; cursor:pointer; transition:0.2s;
+      display:inline-flex; align-items:center; gap:8px; text-decoration:none;
+    }
+    .rc-btn:hover { text-decoration:none; transform:translateY(-1px); }
+    .rc-btn-ghost { background:rgba(255,255,255,0.06); color:var(--text-0); border:1px solid var(--border); }
+    .rc-btn-ghost:hover { background:rgba(47,199,255,0.14); color:var(--accent); }
+    .rc-btn-primary { background:linear-gradient(135deg,var(--accent),#0984e3); color:#0a0e17; }
+    .rc-btn-primary:hover { box-shadow:0 6px 26px rgba(47,199,255,0.4); color:#0a0e17; }
+    .rc-btn-pdf { background:rgba(225,112,85,0.2); color:#ff9b85; border:1px solid rgba(225,112,85,0.4); }
+    .rc-btn-pdf:hover { background:rgba(225,112,85,0.3); }
+    .rc-btn-excel { background:rgba(74,228,184,0.2); color:#4ae4b8; border:1px solid rgba(74,228,184,0.4); }
+    .rc-btn-excel:hover { background:rgba(74,228,184,0.3); }
+
+    .rc-layout { display:grid; grid-template-columns:260px 1fr; gap:24px; }
+    @media (max-width:900px) { .rc-layout { grid-template-columns:1fr; } }
+
+    .rc-sidebar { background:var(--bg-glass); backdrop-filter:blur(14px); border:1px solid var(--border); border-radius:20px; padding:14px; height:fit-content; position:sticky; top:20px; }
+    @media (max-width:900px) { .rc-sidebar { position:static; } }
+    .rc-sidebar-label { font-size:0.65rem; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-2); font-weight:700; padding:8px 12px 4px; }
+    .rc-nav { display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:12px; cursor:pointer; font-size:0.85rem; color:var(--text-0); transition:0.15s; border:1px solid transparent; margin-bottom:4px; }
+    .rc-nav:hover { background:rgba(255,255,255,0.04); }
+    .rc-nav.active { background:linear-gradient(135deg,rgba(47,199,255,0.15),rgba(162,155,254,0.08)); border-color:rgba(47,199,255,0.3); color:var(--accent); font-weight:600; }
+    .rc-nav .icon { font-size:1rem; width:22px; text-align:center; flex-shrink:0; }
+    .rc-sidebar-check { display:flex; align-items:center; gap:8px; padding:10px 12px; font-size:0.82rem; color:var(--text-1); cursor:pointer; border-radius:10px; }
+    .rc-sidebar-check:hover { background:rgba(255,255,255,0.04); }
+
+    .rc-main { background:var(--bg-glass); backdrop-filter:blur(14px); border:1px solid var(--border); border-radius:20px; padding:24px 28px; min-height:500px; }
+    .rc-main-header { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap; margin-bottom:20px; padding-bottom:16px; border-bottom:1px solid var(--border); }
+    .rc-main-header h2 { font-size:1.35rem; font-weight:700; margin:0 0 4px; color:var(--text-0); }
+    .rc-main-header .desc { font-size:0.85rem; color:var(--text-1); max-width:640px; }
+    .rc-config { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; margin-bottom:20px; padding:16px; background:rgba(255,255,255,0.02); border-radius:14px; border:1px solid var(--border); }
+    .rc-config-item label { font-size:0.7rem; color:var(--text-1); text-transform:uppercase; font-weight:600; display:block; margin-bottom:6px; letter-spacing:0.04em; }
+    .rc-config-item select, .rc-config-item input { background:rgba(255,255,255,0.05); border:1px solid var(--border); border-radius:10px; padding:8px 12px; color:var(--text-0); font-size:0.85rem; width:100%; outline:none; }
+    .rc-config-item select option { background:#1a2233; }
+    .rc-config-item select:focus, .rc-config-item input:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(47,199,255,0.12); }
+
+    .rc-report-section { margin-bottom:22px; padding:18px 20px; border:1px solid var(--border); border-radius:14px; background:rgba(255,255,255,0.015); }
+    .rc-report-section h3 { font-size:1rem; font-weight:700; color:var(--text-0); margin:0 0 14px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+    .rc-report-section h3 i { color:var(--accent); }
+    .rc-report-section .sub { font-size:0.75rem; color:var(--text-2); font-weight:400; }
+
+    .rc-kpi-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:12px; }
+    .rc-kpi { background:var(--bg-2); border:1px solid var(--border); border-radius:12px; padding:14px 16px; text-align:center; position:relative; }
+    .rc-kpi .v { font-size:1.7rem; font-weight:800; color:var(--text-0); line-height:1.1; }
+    .rc-kpi .v.green { color:var(--green); } .rc-kpi .v.amber { color:var(--amber); }
+    .rc-kpi .v.red { color:var(--red); } .rc-kpi .v.accent { color:var(--accent); } .rc-kpi .v.purple { color:var(--purple); }
+    .rc-kpi .l { font-size:0.68rem; color:var(--text-1); text-transform:uppercase; letter-spacing:0.05em; margin-top:4px; font-weight:600; }
+    .rc-kpi .s { font-size:0.65rem; color:var(--text-2); margin-top:2px; }
+
+    .rc-table { width:100%; border-collapse:collapse; font-size:0.82rem; }
+    .rc-table th { background:rgba(11,43,59,0.7); color:var(--text-1); font-weight:700; font-size:0.7rem; text-transform:uppercase; letter-spacing:0.05em; padding:10px 12px; text-align:left; border-bottom:1px solid var(--border); }
+    .rc-table td { padding:10px 12px; border-bottom:1px solid rgba(255,255,255,0.03); color:var(--text-0); vertical-align:middle; }
+    .rc-table tr:hover td { background:rgba(255,255,255,0.02); }
+    .rc-table .num { text-align:right; font-variant-numeric:tabular-nums; }
+    .rc-table .center { text-align:center; }
+    .rc-table a.module-link { color:var(--accent); text-decoration:none; border-bottom:1px dashed rgba(47,199,255,0.4); cursor:pointer; }
+    .rc-table a.module-link:hover { color:#fff; border-bottom-color:#fff; }
+
+    .rc-badge { display:inline-block; font-size:0.68rem; font-weight:700; padding:3px 10px; border-radius:40px; text-transform:uppercase; letter-spacing:0.03em; }
+    .rc-badge.good { background:rgba(74,228,184,0.2); color:var(--green); }
+    .rc-badge.ok { background:rgba(47,199,255,0.2); color:var(--accent); }
+    .rc-badge.warn { background:rgba(253,203,110,0.2); color:var(--amber); }
+    .rc-badge.bad { background:rgba(255,107,107,0.2); color:var(--red); }
+    .rc-badge.neutral { background:rgba(255,255,255,0.08); color:var(--text-1); }
+    .rc-badge.purple { background:rgba(162,155,254,0.2); color:var(--purple); }
+    .rc-badge.accuracy { font-size:0.6rem; padding:2px 8px; }
+    .rc-badge.accuracy.provisional { background:rgba(253,203,110,0.15); color:var(--amber); }
+    .rc-badge.accuracy.confirmed { background:rgba(74,228,184,0.15); color:var(--green); }
+    .rc-badge.accuracy.estimate { background:rgba(162,155,254,0.15); color:var(--purple); }
+
+    .grade-cell { font-weight:700; text-align:center; border-radius:6px; padding:4px 8px; display:inline-block; min-width:60px; color:#fff; }
+    .grade-cell.dist { background:#1E7A34; } .grade-cell.merit { background:#138496; }
+    .grade-cell.credit { background:#0984E3; } .grade-cell.pass { background:#B8860B; }
+    .grade-cell.fail { background:#C0392B; } .grade-cell.none { background:#6C757D; }
+
+    .rc-rec { padding:12px 16px; border-left:3px solid var(--accent); background:rgba(47,199,255,0.05); border-radius:8px; margin-bottom:10px; font-size:0.85rem; }
+    .rc-rec.warn { border-color:var(--amber); background:rgba(253,203,110,0.06); }
+    .rc-rec.bad { border-color:var(--red); background:rgba(255,107,107,0.06); }
+    .rc-rec.good { border-color:var(--green); background:rgba(74,228,184,0.06); }
+    .rc-rec strong { color:var(--text-0); }
+
+    .tt-wrap { overflow-x:auto; }
+    .tt-grid { width:100%; border-collapse:collapse; font-size:0.8rem; }
+    .tt-grid th { background:rgba(11,43,59,0.7); color:var(--text-1); font-size:0.7rem; text-transform:uppercase; padding:10px; border:1px solid var(--border); }
+    .tt-grid td { border:1px solid var(--border); padding:8px; vertical-align:top; min-width:100px; }
+    .tt-slot { background:rgba(47,199,255,0.06); border-radius:8px; padding:8px 10px; margin-bottom:6px; border-left:3px solid var(--accent); font-size:0.78rem; }
+    .tt-slot.high { border-left-color:var(--red); background:rgba(255,107,107,0.06); }
+    .tt-slot.med { border-left-color:var(--amber); background:rgba(253,203,110,0.06); }
+    .tt-slot.partial { opacity:0.7; }
+    .tt-slot .title { font-weight:600; color:var(--text-0); }
+    .tt-slot .meta { font-size:0.68rem; color:var(--text-2); margin-top:2px; }
+    .tt-empty { color:var(--text-2); font-size:0.75rem; text-align:center; padding:20px 6px; font-style:italic; }
+
+    .rc-empty { text-align:center; padding:60px 20px; color:var(--text-1); }
+    .rc-empty i { font-size:3rem; display:block; margin-bottom:14px; opacity:0.3; }
+
+    .toast-container { position:fixed; bottom:24px; right:24px; z-index:1050; display:flex; flex-direction:column; gap:8px; }
+    .toast-item { background:var(--bg-2); border:1px solid var(--border); border-radius:14px; padding:12px 20px; color:var(--text-0); font-size:0.85rem; min-width:240px; box-shadow:0 8px 30px rgba(0,0,0,0.4); animation:toastIn 0.3s; }
+    .toast-item.success { border-left:3px solid var(--green); } .toast-item.error { border-left:3px solid var(--red); } .toast-item.info { border-left:3px solid var(--accent); }
+    @keyframes toastIn { from { opacity:0; transform:translateX(20px); } to { opacity:1; transform:translateX(0); } }
+
+    .rc-scenario-row { display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:12px; align-items:center; padding:10px 12px; border-bottom:1px solid rgba(255,255,255,0.03); }
+    .rc-scenario-row:last-child { border-bottom:none; }
+    .rc-scenario-row .name { font-weight:500; font-size:0.85rem; }
+    .rc-scenario-row .name .cat { font-size:0.7rem; color:var(--text-2); display:block; }
+    .rc-scenario-row input[type="number"] { background:rgba(255,255,255,0.05); border:1px solid var(--border); border-radius:8px; padding:6px 10px; color:var(--text-0); font-size:0.85rem; width:100%; text-align:right; }
+    .rc-scenario-row input:focus { border-color:var(--accent); outline:none; }
+
+    .pbar { background:rgba(255,255,255,0.06); border-radius:4px; height:6px; overflow:hidden; margin-top:4px; }
+    .pbar .fill { height:100%; border-radius:4px; transition:width 0.4s; }
+
+    .rc-recovery-controls { display:flex; gap:14px; flex-wrap:wrap; padding:12px 16px; background:rgba(47,199,255,0.05); border:1px solid rgba(47,199,255,0.2); border-radius:12px; margin-bottom:14px; align-items:center; }
+    .rc-recovery-controls label { font-size:0.78rem; color:var(--text-1); font-weight:600; text-transform:uppercase; letter-spacing:0.04em; }
+    .rc-recovery-controls input[type="number"] { width:90px; background:rgba(255,255,255,0.05); border:1px solid var(--border); border-radius:8px; padding:6px 10px; color:var(--text-0); font-size:0.9rem; text-align:right; }
+    .rc-recovery-controls input:focus { border-color:var(--accent); outline:none; }
+
+    .section-label-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+
+    @media (max-width:768px) {
+      .rc-container { padding:0 12px 60px; }
+      .rc-main { padding:16px; }
+      .rc-config { grid-template-columns:1fr; }
+      .rc-scenario-row { grid-template-columns:1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!--
+  ═══════════════════════════════════════════════════════════════════════════
+  ⚠️  SECURITY NOTICE
+  ───────────────────────────────────────────────────────────────────────────
+  This page enforces an owner-only check in the browser and reuses the
+  user's GitHub Personal Access Token from sessionStorage. This is NOT a
+  security boundary — any user with the token (or who edits the browser
+  JS) can access this page. To make this a real security boundary, move
+  the GitHub API calls behind a server (Cloudflare Worker / Netlify
+  Function / your own backend) that:
+    1. Holds the PAT as a server-side secret
+    2. Authenticates the user via a signed session cookie
+    3. Enforces "owner-only" server-side before proxying any read/write
+  Until that exists, treat this page as "owner-only by convention".
+  ═══════════════════════════════════════════════════════════════════════════
+-->
+
+<nav class="navbar navbar-expand-lg">
+  <div class="container-fluid px-3 px-md-4">
+    <a class="navbar-brand" href="index.html"><span>✦</span> Your<span style="color:#e0e8ee;">Portfolio</span></a>
+    <button class="navbar-toggler border-0" type="button" data-toggle="collapse" data-target="#navReports">
+      <span class="fa fa-bars text-white"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navReports">
+      <ul class="navbar-nav ml-auto">
+        <li class="nav-item"><a class="nav-link" href="index.html">Home</a></li>
+        <li class="nav-item"><a class="nav-link" href="timesheet.html">Timesheet</a></li>
+        <li class="nav-item"><a class="nav-link" href="analytics.html">Analytics</a></li>
+        <li class="nav-item"><a class="nav-link" href="studies.html">Studies</a></li>
+        <li class="nav-item"><a class="nav-link active" href="study-reports.html">Reports</a></li>
+        <li class="nav-item"><a class="nav-link" href="admin.html">Manage</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div class="rc-container">
+  <div class="rc-header">
+    <div>
+      <h1><i class="fa fa-line-chart"></i> Report Centre</h1>
+      <div class="subtitle">Deep academic intelligence · Custom scopes · PDF & Excel export</div>
+    </div>
+    <div class="rc-actions">
+      <a href="studies.html" class="rc-btn rc-btn-ghost"><i class="fa fa-arrow-left"></i> Back to Studies</a>
+      <button class="rc-btn rc-btn-ghost" id="syncBtn"><i class="fa fa-refresh"></i> Reload Data</button>
+      <button class="rc-btn rc-btn-pdf" id="exportPdfBtn"><i class="fa fa-file-pdf-o"></i> Export PDF</button>
+      <button class="rc-btn rc-btn-excel" id="exportExcelBtn"><i class="fa fa-file-excel-o"></i> Export Excel</button>
+    </div>
+  </div>
+
+  <div class="rc-layout">
+    <aside class="rc-sidebar">
+      <div class="rc-sidebar-label">Analysis Reports</div>
+      <div class="rc-nav active" data-report="intelligence"><span class="icon">🎯</span> Academic Intelligence</div>
+      <div class="rc-nav" data-report="recovery"><span class="icon">🎓</span> Grade Recovery</div>
+      <div class="rc-nav" data-report="weekly"><span class="icon">📅</span> Weekly Review</div>
+      <div class="rc-nav" data-report="syllabus"><span class="icon">📚</span> Syllabus Coverage</div>
+      <div class="rc-nav" data-report="semester"><span class="icon">📊</span> Semester Trends</div>
+      <div class="rc-nav" data-report="audit"><span class="icon">🔍</span> Assessment Audit</div>
+      <div class="rc-sidebar-label" style="margin-top:12px;">Planning Tools</div>
+      <div class="rc-nav" data-report="timetable"><span class="icon">🗓️</span> Study Timetable</div>
+      <div class="rc-sidebar-label" style="margin-top:12px;">Export Options</div>
+      <label class="rc-sidebar-check">
+        <input type="checkbox" id="exportCompleteCheck"> Include all reports in export
+      </label>
+    </aside>
+
+    <main class="rc-main">
+      <div id="reportContent">
+        <div class="rc-empty">
+          <i class="fa fa-spinner fa-spin"></i>
+          <div>Loading your study data…</div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+<script>
+(function() {
+  'use strict';
+
+  // ═══════════════════════════════════════════════════════════════════
+  //  CONFIG & AUTH  (see security notice above — client-side only)
+  // ═══════════════════════════════════════════════════════════════════
+  const ALLOWED_USER = 'siyabongatshem@gmail.com';
+
+  function getCurrentUser() {
+    try {
+      if (window.SessionManager?.getCurrentUser) return window.SessionManager.getCurrentUser();
+      const stored = sessionStorage.getItem('portfolioUser');
+      if (stored) {
+        const d = JSON.parse(stored);
+        if (d.timestamp && Date.now() - d.timestamp < 24*60*60*1000) return d;
+        sessionStorage.removeItem('portfolioUser');
+      }
+    } catch(e) {}
+    return null;
+  }
+
+  const user = getCurrentUser();
+  if (!user) { window.location.href = 'login.html?redirect=study-reports'; return; }
+  if (user.username !== ALLOWED_USER) {
+    document.getElementById('reportContent').innerHTML = `<div class="rc-empty"><i class="fa fa-lock"></i><h3>Access Restricted</h3><p>Owner only.</p></div>`;
+    return;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  //  STATE
+  // ═══════════════════════════════════════════════════════════════════
+  let studyData = { years: [] };
+  let currentReport = 'intelligence';
+  let reportScope = { yearName: null, semesterName: null, unitCode: null };
+  let exportComplete = false;
+  let recoveryControls = {
+    targetIncrement: 5,    // target = ceil(current/5)*5 + increment
+    hypotheticalMark: 80   // what-if mark for all scenarios
+  };
+  let timetableConfig = {
+    hours: { Mon: 2, Tue: 2, Wed: 2, Thu: 2, Fri: 2, Sat: 4, Sun: 3 },
+    preferWeak: true
+  };
+
+  // ═══════════════════════════════════════════════════════════════════
+  //  UTILITIES
+  // ═══════════════════════════════════════════════════════════════════
+  function escapeHtml(s) { if (!s) return ''; return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function showToast(msg, type = 'info') {
+    const c = document.getElementById('toastContainer');
+    const el = document.createElement('div');
+    el.className = `toast-item ${type}`;
+    el.textContent = msg;
+    c.appendChild(el);
+    setTimeout(() => { el.style.opacity = '0'; el.style.transform = 'translateX(20px)'; setTimeout(() => el.remove(), 400); }, 3200);
+  }
+  function formatLocalYMD(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+  function dateOnly(s) { if (!s) return null; const p = s.split('-').map(Number); return new Date(p[0], p[1]-1, p[2]); }
+  function daysUntil(due) { if (!due) return null; const d = dateOnly(due); const t = new Date(); t.setHours(0,0,0,0); return Math.ceil((d - t) / 86400000); }
+  function stripEmoji(str) {
+    // Remove emoji/symbols that jsPDF's standard fonts can't render
+    return String(str || '').replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u{1F300}-\u{1F9FF}\u{FE0F}\u{200D}]/gu, '').trim();
+  }
+  function parseMark(v) {
+    if (v === null || v === undefined || v === '') return NaN;
+    const n = parseFloat(v);
+    return isNaN(n) ? NaN : n;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  //  DATA LOADING
+  // ═══════════════════════════════════════════════════════════════════
+  async function loadStudyData() {
+    const { owner, repo, branch, dataPath } = window.REPO_CONFIG;
+    const path = `${dataPath}/users/${encodeURIComponent(user.username)}/studies.json`;
+    const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}&_t=${Date.now()}`;
+    try {
+      const r = await fetch(url, { headers: { Authorization: `token ${user.pat}` }, cache: 'no-store' });
+      if (!r.ok) {
+        if (r.status === 404) { studyData = { years: [] }; return; }
+        throw new Error(`HTTP ${r.status}`);
+      }
+      const j = await r.json();
+      const parsed = JSON.parse(atob(j.content.replace(/\n/g, '')));
+      if (parsed && parsed.years) studyData = parsed;
+      else studyData = { years: [] };
+    } catch(e) {
+      console.warn('Load failed, checking cache', e);
+      try {
+        const cached = localStorage.getItem('studies_data_cache');
+        if (cached) { const p = JSON.parse(cached); if (p?.data?.years) studyData = p.data; }
+      } catch(_) {}
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  //  ASSESSMENT TYPE — explicit field first, then name-guess fallback
+  // ═══════════════════════════════════════════════════════════════════
+  function getAssessmentType(ass) {
+    if (ass.assessmentType) return ass.assessmentType;
+    const n = (ass.name || '').toLowerCase();
+    if (/\bfinal\b|\bfinal exam\b/.test(n)) return 'final';
+    if (/\bproject\b|practical/.test(n)) return 'project';
+    if (/\btest\b|\bmidterm\b|\bclass test\b|\bassignment 1\b|\bassignment 2\b/.test(n)) return 'test';
+    if (/\bweekly\b|\bquiz\b|\bportfolio\b/.test(n)) return 'weekly';
+    if (/\bassignment\b/.test(n)) return 'assignment';
+    return 'other';
+  }
+
+  function getCategoryLabel(type) {
+    return ({ weekly:'Weekly Work', test:'Test', assignment:'Assignment', project:'Project', final:'Final Exam', other:'Other' })[type] || 'Other';
+  }
+  function getCategoryIcon(type) {
+    return ({ weekly:'📚', test:'📝', assignment:'📋', project:'🔧', final:'🎯', other:'📌' })[type] || '📌';
+  }
+
+  // Default category weights per module — overridable via unit.gradingRules
+  const DEFAULT_CATEGORY_WEIGHTS = { weekly: 10, test: 25, assignment: 25, project: 25, final: 40, other: 0 };
+
+  function getGradingRules(unit) {
+    if (unit.gradingRules && typeof unit.gradingRules === 'object') {
+      const merged = {};
+      Object.keys(DEFAULT_CATEGORY_WEIGHTS).forEach(k => {
+        merged[k] = Object.assign({ weight: DEFAULT_CATEGORY_WEIGHTS[k], capAt: null }, unit.gradingRules[k] || {});
+      });
+      return merged;
+    }
+    // No explicit rules → return null so calculateUnitGrade knows to use legacy mode
+    return null;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  //  GRADE ENGINE — dual mode (rules-driven when unit.gradingRules exists)
+  // ═══════════════════════════════════════════════════════════════════
+  function calculateUnitGrade(unit) {
+    const explicitRules = getGradingRules(unit);
+    const hasRules = !!explicitRules;
+
+    const all = [];
+    (unit.weeks || []).forEach(w => (w.assignments || []).forEach(a => all.push(a)));
+
+    // Group assessments by category
+    const groups = {};
+    const keysToUse = hasRules ? Object.keys(explicitRules) : ['weekly','test','assignment','project','final','other'];
+    keysToUse.forEach(k => {
+      groups[k] = {
+        key: k, label: getCategoryLabel(k), icon: getCategoryIcon(k),
+        items: [],
+        rule: hasRules ? explicitRules[k] : { weight: null, capAt: null }
+      };
+    });
+    all.forEach(a => {
+      const t = getAssessmentType(a);
+      if (!groups[t]) groups[t] = { key: t, label: getCategoryLabel(t), icon: getCategoryIcon(t), items: [], rule: { weight: null, capAt: null } };
+      groups[t].items.push(a);
+    });
+
+    if (hasRules) {
+      // ── RULES-DRIVEN MODE ──
+      // Each category's weight is fixed by gradingRules[k].weight.
+      // Within a category, individual assessment weights determine the category score.
+      let totalWeight = 0, achievedWeight = 0, missingWeight = 0, earnedPoints = 0;
+
+      Object.values(groups).forEach(g => {
+        if (!g.items.length) return;
+        const targetW = parseFloat(g.rule.weight) || 0;
+
+        // Category's internal weighted average
+        let markedWeight = 0, totalRawWeight = 0, weightedMarks = 0;
+        g.items.forEach(a => {
+          const w = parseFloat(a.weight) || 0;
+          totalRawWeight += w;
+          const m = parseMark(a.marks);
+          if (!isNaN(m)) { markedWeight += w; weightedMarks += m * w; }
+        });
+
+        // Fraction of this category that has been marked
+        const fractionMarked = totalRawWeight > 0 ? (markedWeight / totalRawWeight) : 0;
+        const categoryScore = markedWeight > 0 ? (weightedMarks / markedWeight) : 0;
+
+        const catAchieved = targetW * fractionMarked;
+        const catMissing = targetW * (1 - fractionMarked);
+        const catEarnedPoints = catAchieved * categoryScore / 100;
+
+        g.targetWeight = targetW;
+        g.markedWeight = markedWeight;
+        g.rawWeightSum = totalRawWeight;
+        g.fractionMarked = fractionMarked;
+        g.categoryScore = categoryScore;
+        g.totalWeight = targetW;
+        g.earnedWeighted = catEarnedPoints;
+        g.missingWeight = catMissing;
+        g.capped = false;
+
+        totalWeight += targetW;
+        achievedWeight += catAchieved;
+        missingWeight += catMissing;
+        earnedPoints += catEarnedPoints;
+      });
+
+      if (!all.length || totalWeight === 0) {
+        return {
+          grade: null, totalWeight: 0, totalEarnedWeighted: 0, missingWeight: 0,
+          achievedWeight: 0, allAssignments: all, groups, rules: explicitRules,
+          mode: 'rules-driven',
+          weightCheck: { actual: 0, expected: 100, warning: false }
+        };
+      }
+
+      const finalGrade = achievedWeight > 0 ? (earnedPoints / achievedWeight) * 100 : null;
+      return {
+        grade: finalGrade,
+        totalWeight,
+        totalEarnedWeighted: earnedPoints,
+        missingWeight,
+        achievedWeight,
+        allAssignments: all,
+        groups,
+        rules: explicitRules,
+        mode: 'rules-driven',
+        weightCheck: { actual: totalWeight, expected: 100, warning: Math.abs(totalWeight - 100) > 1 }
+      };
+
+    } else {
+      // ── LEGACY MODE ──
+      // Individual weights drive everything. Categories are just a display grouping.
+      let totalWeight = 0, totalEarnedWeighted = 0, missingWeight = 0;
+
+      Object.values(groups).forEach(g => {
+        if (!g.items.length) return;
+        let sumW = 0, sumE = 0, sumM = 0;
+        g.items.forEach(a => {
+          const w = parseFloat(a.weight) || 0;
+          sumW += w;
+          const m = parseMark(a.marks);
+          if (!isNaN(m)) sumE += m * (w / 100);
+          else sumM += w;
+        });
+        g.totalWeight = sumW;
+        g.earnedWeighted = sumE;
+        g.missingWeight = sumM;
+        g.rawWeightSum = sumW;
+        g.fractionMarked = sumW > 0 ? (sumW - sumM) / sumW : 0;
+        g.categoryScore = (sumW - sumM) > 0 ? (sumE / ((sumW - sumM) / 100)) : 0;
+        g.capped = false;
+        totalWeight += sumW;
+        totalEarnedWeighted += sumE;
+        missingWeight += sumM;
+      });
+
+      if (!all.length || totalWeight === 0) {
+        return {
+          grade: null, totalWeight: 0, totalEarnedWeighted: 0, missingWeight: 0,
+          achievedWeight: 0, allAssignments: all, groups, rules: null,
+          mode: 'legacy',
+          weightCheck: { actual: 0, expected: 100, warning: false }
+        };
+      }
+
+      const achievedWeight = totalWeight - missingWeight;
+      const grade = achievedWeight > 0 ? (totalEarnedWeighted / achievedWeight) * 100 : null;
+      return {
+        grade, totalWeight, totalEarnedWeighted, missingWeight, achievedWeight,
+        allAssignments: all, groups, rules: null, mode: 'legacy',
+        weightCheck: { actual: totalWeight, expected: 100, warning: Math.abs(totalWeight - 100) > 1 }
+      };
+    }
+  }
+
+  // Compute grade with hypothetical marks — used by recovery scenarios
+  function computeHypotheticalGrade(unit, overrides) {
+    const clone = {
+      ...unit,
+      weeks: (unit.weeks || []).map(w => ({
+        ...w,
+        assignments: (w.assignments || []).map(a => ({
+          ...a,
+          marks: overrides[a.id] !== undefined ? String(overrides[a.id]) : a.marks
+        }))
+      }))
+    };
+    return calculateUnitGrade(clone);
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  //  ASSIGNMENT STATE
+  // ═══════════════════════════════════════════════════════════════════
+  function getAssignmentState(a) {
+    if (a.status === 'graded') return 'graded';
+    if (a.status === 'submitted') {
+      // If submitted but no marks recorded, it's still awaiting grading
+      const m = parseMark(a.marks);
+      return isNaN(m) ? 'awaiting-grade' : 'graded';
+    }
+    if (!a.due) return a.status || 'not-started';
+    const d = daysUntil(a.due);
+    if (d === null) return a.status || 'not-started';
+    if (d < 0) return 'overdue';
+    if (d <= 3) return 'due-soon';
+    return a.status || 'not-started';
+  }
+
+  function gradeLabel(pct) {
+    if (pct === null || pct === undefined || isNaN(pct)) return { label: '—', cls: 'none' };
+    if (pct >= 75) return { label: 'Distinction', cls: 'dist' };
+    if (pct >= 70) return { label: 'Merit', cls: 'merit' };
+    if (pct >= 60) return { label: 'Credit', cls: 'credit' };
+    if (pct >= 50) return { label: 'Pass', cls: 'pass' };
+    return { label: 'Fail', cls: 'fail' };
+  }
+
+  function gradeCellHtml(pct, opts) {
+    opts = opts || {};
+    if (pct === null || pct === undefined || isNaN(pct)) return `<span class="grade-cell none">—</span>`;
+    const gl = gradeLabel(pct);
+    const accuracyBadge = opts.provisional
+      ? `<span class="rc-badge accuracy provisional" title="Some assessments still missing marks">Provisional</span>`
+      : opts.confirmed ? `<span class="rc-badge accuracy confirmed">Confirmed</span>` : '';
+    return `<span class="grade-cell ${gl.cls}">${pct.toFixed(1)}%</span>${accuracyBadge ? ' ' + accuracyBadge : ''}`;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  //  SCOPE
+  // ═══════════════════════════════════════════════════════════════════
+  function getScopedUnits() {
+    const out = [];
+    studyData.years.forEach(year => {
+      if (reportScope.yearName && year.name !== reportScope.yearName) return;
+      year.semesters.forEach(sem => {
+        if (reportScope.semesterName && sem.name !== reportScope.semesterName) return;
+        sem.units.forEach(unit => {
+          if (reportScope.unitCode && unit.code !== reportScope.unitCode) return;
+          out.push({ unit, year: year.name, sem: sem.name, creditHours: parseFloat(unit.creditHours) || 1 });
+        });
+      });
+    });
+    return out;
+  }
+
+  function computeAggregate(unitsData) {
+    let totalWeightedScore = 0, totalWeight = 0, gradedUnits = 0, unitsWithData = 0;
+    let totalAssign = 0, graded = 0, awaitingGrade = 0, notSubmitted = 0, overdue = 0, dueSoon = 0;
+    const creditWeighted = [];
+
+    unitsData.forEach(({ unit, creditHours }) => {
+      const calc = calculateUnitGrade(unit);
+      if (!calc) return;
+      unitsWithData++;
+      if (calc.grade !== null) {
+        gradedUnits++;
+        totalWeightedScore += calc.grade * creditHours;
+        totalWeight += creditHours;
+        creditWeighted.push({ unit, grade: calc.grade, creditHours });
+      }
+      calc.allAssignments.forEach(a => {
+        totalAssign++;
+        const st = getAssignmentState(a);
+        if (st === 'graded') graded++;
+        else if (st === 'awaiting-grade') awaitingGrade++;
+        else if (st === 'overdue') overdue++;
+        else if (st === 'due-soon') dueSoon++;
+        else notSubmitted++;
+      });
+    });
+
+    const avg = totalWeight > 0 ? (totalWeightedScore / totalWeight) : null;
+    const simpleAvg = creditWeighted.length > 0
+      ? creditWeighted.reduce((s, x) => s + x.grade, 0) / creditWeighted.length : null;
+
+    return { avgGrade: avg, simpleAvgGrade: simpleAvg, gradedUnits, unitsWithData, totalAssign, graded, awaitingGrade, notSubmitted, overdue, dueSoon, creditWeighted };
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  //  REPORT: ACADEMIC INTELLIGENCE
+  // ═══════════════════════════════════════════════════════════════════
+  function buildIntelligenceReport() {
+    const units = getScopedUnits();
+    if (!units.length) return { empty: true };
+    const ag = computeAggregate(units);
+
+    const unitGrades = units.map(({ unit, creditHours, year, sem }) => {
+      const calc = calculateUnitGrade(unit);
+      const missingMarks = (calc?.missingWeight || 0) > 0.01;
+      return {
+        code: unit.code, name: unit.name, year, sem, creditHours,
+        grade: calc?.grade ?? null,
+        achieved: calc ? calc.achievedWeight : 0,
+        totalW: calc?.totalWeight || 0,
+        pending: calc?.missingWeight || 0,
+        count: calc?.allAssignments.length || 0,
+        mode: calc?.mode || 'legacy',
+        provisional: missingMarks,
+        confirmed: !missingMarks && calc?.grade !== null
+      };
+    });
+
+    const ranked = [...unitGrades].filter(u => u.grade !== null).sort((a, b) => b.grade - a.grade);
+    const strongest = ranked[0] || null;
+    const weakest = ranked[ranked.length - 1] || null;
+
+    // Contributions
+    const contributions = [];
+    units.forEach(({ unit }) => {
+      const calc = calculateUnitGrade(unit);
+      if (!calc) return;
+      calc.allAssignments.forEach(a => {
+        const w = parseFloat(a.weight) || 0;
+        const m = parseMark(a.marks);
+        if (!isNaN(m)) contributions.push({ unitCode: unit.code, name: a.name, weight: w, marks: m, weighted: m * w / 100, type: getAssessmentType(a) });
+      });
+    });
+
+    const topContributors = [...contributions].sort((a, b) => b.weighted - a.weighted).slice(0, 5);
+    const bottomContributors = [...contributions].sort((a, b) => a.weighted - b.weighted).slice(0, 5);
+
+    const risks = [];
+    unitGrades.forEach(u => {
+      if (u.grade !== null && u.grade < 50) risks.push({ severity: 'high', text: `<strong>${escapeHtml(u.code)}</strong> is at ${u.grade.toFixed(1)}% — below pass.` });
+      else if (u.grade !== null && u.grade < 60) risks.push({ severity: 'medium', text: `<strong>${escapeHtml(u.code)}</strong> at ${u.grade.toFixed(1)}% — needs improvement.` });
+      if (u.pending > 15) risks.push({ severity: 'medium', text: `<strong>${escapeHtml(u.code)}</strong> has ${u.pending.toFixed(1)}% of assessment weight pending.` });
+    });
+    if (ag.overdue > 0) risks.push({ severity: 'high', text: `<strong>${ag.overdue}</strong> overdue assignment${ag.overdue > 1 ? 's' : ''}.` });
+    if (ag.awaitingGrade > 0) risks.push({ severity: 'medium', text: `<strong>${ag.awaitingGrade}</strong> assignment${ag.awaitingGrade > 1 ? 's' : ''} submitted but awaiting grading.` });
+
+    const recs = [];
+    if (ag.overdue > 0) recs.push({ level: 'bad', text: `Clear ${ag.overdue} overdue assignment${ag.overdue > 1 ? 's' : ''} first.` });
+    if (weakest && weakest.grade !== null && weakest.grade < 60) recs.push({ level: 'warn', text: `Focus on ${escapeHtml(weakest.code)} — weakest at ${weakest.grade.toFixed(1)}%. Even +10% here moves your average.` });
+    if (strongest && strongest.grade !== null && strongest.grade >= 75) recs.push({ level: 'good', text: `You're excelling in ${escapeHtml(strongest.code)} (${strongest.grade.toFixed(1)}%).` });
+    if (ag.avgGrade !== null && ag.avgGrade >= 70) recs.push({ level: 'good', text: `Overall average of ${ag.avgGrade.toFixed(1)}% is on track for Merit/Distinction.` });
+    if (ag.awaitingGrade > 0) recs.push({ level: 'warn', text: `${ag.awaitingGrade} submission${ag.awaitingGrade > 1 ? 's' : ''} still without marks — chase feedback or verify with your lecturer.` });
+    if (!recs.length) recs.push({ level: 'good', text: 'All metrics look healthy.' });
+
+    return {
+      empty: false,
+      kpis: {
+        avgGrade: ag.avgGrade, simpleAvg: ag.simpleAvgGrade,
+        units: units.length, gradedUnits: ag.gradedUnits,
+        totalAssign: ag.totalAssign, graded: ag.graded,
+        awaitingGrade: ag.awaitingGrade, notSubmitted: ag.notSubmitted,
+        overdue: ag.overdue, dueSoon: ag.dueSoon
+      },
+      unitGrades, strongest, weakest, topContributors, bottomContributors, risks, recs
+    };
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  //  REPORT: GRADE RECOVERY — fixed to include submitted-awaiting work
+  // ═══════════════════════════════════════════════════════════════════
+  function buildRecoveryReport() {
+    const units = getScopedUnits();
+    if (!units.length) return { empty: true };
+
+    const result = units.map(({ unit }) => {
+      const calc = calculateUnitGrade(unit);
+      if (!calc || calc.grade === null) return null;
+
+      const currentGrade = calc.grade;
+      const achieved = calc.achievedWeight;
+      const missing = calc.missingWeight;
+      const totalW = calc.totalWeight;
+      const target = Math.min(100, Math.max(50, Math.ceil(currentGrade / 5) * 5 + recoveryControls.targetIncrement));
+      const hypoMark = recoveryControls.hypotheticalMark;
+
+      // REMAINING = assessments with NO MARKS recorded (status-agnostic)
+      const remaining = calc.allAssignments.filter(a => {
+        const m = parseMark(a.marks);
+        return isNaN(m);
+      });
+
+      const awaiting = remaining.filter(a => a.status === 'submitted');
+      const notSubmittedYet = remaining.filter(a => a.status !== 'submitted');
+
+      // Needed on remaining = (target × totalW − currentPoints) / missing
+      const currentPoints = currentGrade * achieved / 100;
+      const neededForTarget = missing > 0
+        ? (target * totalW / 100 - currentPoints) / (missing / 100)
+        : null;
+
+      // Scenarios: use real recompute with each assessment set to hypoMark
+      const scenarios = remaining.map(a => {
+        const overrides = {};
+        overrides[a.id] = hypoMark;
+        const hypoResult = computeHypotheticalGrade(unit, overrides);
+        const newGrade = hypoResult?.grade ?? currentGrade;
+        const w = parseFloat(a.weight) || 0;
+        // In rules-driven mode, weight is a per-category internal weight; still show it
+        return {
+          id: a.id, name: a.name, weight: w, type: getAssessmentType(a),
+          status: a.status || 'not-started',
+          currentGrade, newGrade,
+          delta: newGrade - currentGrade,
+          hypoMark
+        };
+      }).sort((x, y) => y.delta - x.delta);
+
+      // Bounds via real recompute
+      const failAll = computeHypotheticalGrade(unit, Object.fromEntries(remaining.map(a => [a.id, 0])));
+      const aceAll = computeHypotheticalGrade(unit, Object.fromEntries(remaining.map(a => [a.id, 100])));
+
+      return {
+        code: unit.code, name: unit.name,
+        currentGrade, target,
+        achieved, missing, totalW,
+        neededForTarget,
+        remaining, awaiting, notSubmittedYet,
+        remainingCount: remaining.length,
+        scenarios,
+        bestCase: aceAll?.grade ?? currentGrade,
+        worstCase: failAll?.grade ?? currentGrade,
+        gradeMode: calc.mode
+      };
+    }).filter(Boolean);
+
+    return { empty: false, units: result };
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  //  REPORT: WEEKLY REVIEW — fixed overdue KPI
+  // ═══════════════════════════════════════════════════════════════════
+  function buildWeeklyReport() {
+    const units = getScopedUnits();
+    if (!units.length) return { empty: true };
+
+    const today = new Date(); today.setHours(0,0,0,0);
+    const thisMonday = new Date(today);
+    const dow = today.getDay();
+    thisMonday.setDate(today.getDate() - (dow === 0 ? 6 : dow - 1));
+    const thisSunday = new Date(thisMonday); thisSunday.setDate(thisMonday.getDate() + 6);
+    const lastMonday = new Date(thisMonday); lastMonday.setDate(thisMonday.getDate() - 7);
+    const lastSunday = new Date(thisMonday); lastSunday.setDate(thisMonday.getDate() - 1);
+
+    const thisMon = formatLocalYMD(thisMonday), thisSun = formatLocalYMD(thisSunday);
+    const lastMon = formatLocalYMD(lastMonday), lastSun = formatLocalYMD(lastSunday);
+
+    let thisSubmitted = 0, thisGraded = 0, lastSubmitted = 0, lastGraded = 0;
+    const upcoming = [], overdueList = [], thisWeekMarks = [];
+
+    units.forEach(({ unit }) => {
+      (unit.weeks || []).forEach(w => (w.assignments || []).forEach(a => {
+        const sd = a.submittedDate || '', gd = a.gradedDate || '';
+        if (sd >= thisMon && sd <= thisSun) thisSubmitted++;
+        if (gd >= thisMon && gd <= thisSun) { thisGraded++; thisWeekMarks.push({ unit: unit.code, name: a.name, marks: a.marks }); }
+        if (sd >= lastMon && sd <= lastSun) lastSubmitted++;
+        if (gd >= lastMon && gd <= lastSun) lastGraded++;
+
+        const st = getAssignmentState(a);
+        if (st === 'overdue') overdueList.push({ unit: unit.code, ...a, days: Math.abs(daysUntil(a.due)) });
+        if (a.due && a.due >= thisMon) {
+          const horizon = formatLocalYMD(new Date(thisMonday.getTime() + 7*86400000));
+          if (a.due <= horizon && st !== 'graded' && st !== 'submitted') upcoming.push({ unit: unit.code, ...a });
+        }
+      }));
+    });
+
+    // ✅ FIX: overdue is the actual length of the collection
+    const thisOverdue = overdueList.length;
+
+    upcoming.sort((a, b) => (a.due || '').localeCompare(b.due || ''));
+    overdueList.sort((a, b) => b.days - a.days);
+
+    let topicsDoneTotal = 0;
+    units.forEach(({ unit }) => {
+      (unit.weeks || []).forEach(w => (w.topics || []).forEach(t => { if (t.completed) topicsDoneTotal++; }));
+    });
+
+    return {
+      empty: false,
+      period: { thisMon, thisSun, lastMon, lastSun },
+      stats: { thisSubmitted, thisGraded, thisOverdue, lastSubmitted, lastGraded, topicsTotalDone: topicsDoneTotal },
+      upcoming: upcoming.slice(0, 10),
+      overdueList: overdueList.slice(0, 10),
+      thisWeekMarks
+    };
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  //  REPORT: SYLLABUS COVERAGE
+  // ═══════════════════════════════════════════════════════════════════
+  function buildSyllabusReport() {
+    const units = getScopedUnits();
+    if (!units.length) return { empty: true };
+    const unitCoverage = units.map(({ unit }) => {
+      let totalSub = 0, doneSub = 0, totalTopics = 0, doneTopics = 0;
+      const weakTopics = [];
+      (unit.weeks || []).forEach(w => {
+        (w.topics || []).forEach(t => {
+          const subs = t.subtopics || [];
+          const subDone = (t.subCompleted || []).filter(Boolean).length;
+          totalSub += subs.length; doneSub += subDone; totalTopics++;
+          if (t.completed) doneTopics++;
+          if (subs.length > 0 && subDone < subs.length) {
+            weakTopics.push({ name: t.name, week: w.number, done: subDone, total: subs.length, pct: Math.round((subDone / subs.length) * 100) });
+          }
+        });
+      });
+      return { code: unit.code, name: unit.name, coverage: totalSub > 0 ? (doneSub / totalSub) * 100 : 0, totalTopics, doneTopics, totalSub, doneSub, weakTopics };
+    });
+    return { empty: false, units: unitCoverage };
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  //  REPORT: SEMESTER TRENDS — now respects scope
+  // ═══════════════════════════════════════════════════════════════════
+  function buildSemesterReport() {
+    const semesters = [];
+    studyData.years.forEach(year => {
+      // ✅ FIX: respect year scope
+      if (reportScope.yearName && year.name !== reportScope.yearName) return;
+      year.semesters.forEach(sem => {
+        // ✅ FIX: respect semester scope
+        if (reportScope.semesterName && sem.name !== reportScope.semesterName) return;
+        const units = sem.units.map(u => ({ unit: u, creditHours: parseFloat(u.creditHours) || 1 }));
+        const ag = computeAggregate(units);
+        let totalSub = 0, doneSub = 0;
+        units.forEach(({ unit }) => {
+          (unit.weeks || []).forEach(w => (w.topics || []).forEach(t => {
+            totalSub += (t.subtopics || []).length;
+            doneSub += (t.subCompleted || []).filter(Boolean).length;
+          }));
+        });
+        semesters.push({
+          year: year.name, name: sem.name, label: `${year.name} · ${sem.name}`,
+          avgGrade: ag.avgGrade, units: ag.unitsWithData,
+          totalAssign: ag.totalAssign, submitted: ag.submitted + ag.graded,
+          overdue: ag.overdue,
+          coverage: totalSub > 0 ? (doneSub / totalSub) * 100 : 0
+        });
+      });
+    });
+    return { empty: semesters.length === 0, semesters };
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  //  REPORT: ASSESSMENT AUDIT
+  // ═══════════════════════════════════════════════════════════════════
+  function buildAuditReport() {
+    const units = getScopedUnits();
+    if (!units.length) return { empty: true };
+    const issues = {
+      missingDueDate: [], missingMarksSubmitted: [], duplicateIds: [],
+      pastDueNotSubmitted: [], weightMismatch: [], categoryGuess: [],
+      zeroWeight: [], outOfRangeMarks: []
+    };
+    const idSeen = new Set();
+
+    units.forEach(({ unit }) => {
+      const calc = calculateUnitGrade(unit);
+      if (!calc) return;
+      if (calc.weightCheck.warning) {
+        issues.weightMismatch.push({ unit: unit.code, actual: calc.totalWeight, expected: 100, delta: calc.totalWeight - 100 });
+      }
+      calc.allAssignments.forEach(a => {
+        if (!a.due) issues.missingDueDate.push({ unit: unit.code, name: a.name, id: a.id });
+        if (a.status === 'submitted' && (a.marks === '' || a.marks === null || a.marks === undefined)) {
+          issues.missingMarksSubmitted.push({ unit: unit.code, name: a.name });
+        }
+        if (a.id) { if (idSeen.has(a.id)) issues.duplicateIds.push({ id: a.id, name: a.name, unit: unit.code }); else idSeen.add(a.id); }
+        const st = getAssignmentState(a);
+        if (st === 'overdue') issues.pastDueNotSubmitted.push({ unit: unit.code, name: a.name, due: a.due, days: Math.abs(daysUntil(a.due)) });
+        const w = parseFloat(a.weight) || 0;
+        if (w === 0 && st !== 'graded') issues.zeroWeight.push({ unit: unit.code, name: a.name });
+        const m = parseMark(a.marks);
+        if (!isNaN(m) && (m < 0 || m > 100)) issues.outOfRangeMarks.push({ unit: unit.code, name: a.name, marks: m });
+        if (!a.assessmentType) issues.categoryGuess.push({ unit: unit.code, name: a.name, guessed: getCategoryLabel(getAssessmentType(a)) });
+      });
+    });
+
+    const totalIssues =
+      issues.missingDueDate.length + issues.missingMarksSubmitted.length +
+      issues.duplicateIds.length + issues.pastDueNotSubmitted.length +
+      issues.weightMismatch.length + issues.zeroWeight.length + issues.outOfRangeMarks.length;
+    const reliability = Math.max(0, 100 - Math.min(100, totalIssues * 5));
+    return { empty: false, issues, totalIssues, reliability, categoryGuessCount: issues.categoryGuess.length };
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  //  TIMETABLE — carry partial minutes forward
+  // ═══════════════════════════════════════════════════════════════════
+  function buildTimetable(config) {
+    const units = getScopedUnits();
+    if (!units.length) return { empty: true, timetable: null };
+
+    const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+    const availableHours = config.hours;
+    const preferWeak = config.preferWeak !== false;
+
+    const tasks = [];
+    units.forEach(({ unit }) => {
+      const calc = calculateUnitGrade(unit);
+      if (!calc) return;
+      calc.allAssignments.forEach(a => {
+        const st = getAssignmentState(a);
+        if (st === 'overdue') tasks.push({ priority: 100, unit: unit.code, unitName: unit.name, title: a.name, type: 'overdue', duration: 90 });
+        else if (st === 'due-soon') tasks.push({ priority: 80, unit: unit.code, unitName: unit.name, title: a.name, type: 'due-soon', duration: 60 });
+      });
+      (unit.weeks || []).forEach(w => {
+        (w.topics || []).forEach(t => {
+          const subs = t.subtopics || [];
+          const subDone = (t.subCompleted || []).filter(Boolean).length;
+          if (subs.length > 0 && subDone < subs.length) {
+            const weakness = 1 - subDone / subs.length;
+            const unitPriority = (100 - (calc.grade ?? 50)) / 100;
+            const priority = preferWeak ? (40 + weakness * 30 + unitPriority * 20) : (30 + weakness * 15);
+            tasks.push({ priority, unit: unit.code, unitName: unit.name, title: t.name, type: 'topic', duration: 45 });
+          }
+        });
+      });
+    });
+
+    tasks.sort((a, b) => b.priority - a.priority);
+    if (!tasks.length) return { empty: true, timetable: null, tasks: [] };
+
+    // Deep clone with remainingMinutes
+    const taskQueue = tasks.map(t => ({ ...t, remainingMinutes: t.duration }));
+    const timetable = {};
+    days.forEach(d => timetable[d] = []);
+
+    days.forEach(day => {
+      const hours = availableHours[day] || 0;
+      if (hours <= 0) return;
+      let remainingMinutes = hours * 60;
+      while (remainingMinutes >= 15 && taskQueue.length) {
+        const t = taskQueue[0];
+        const needed = t.remainingMinutes;
+        if (needed <= remainingMinutes) {
+          timetable[day].push({ ...t, scheduledMinutes: needed, partial: false });
+          remainingMinutes -= needed;
+          taskQueue.shift();
+        } else {
+          // Partial schedule — keep remainder in queue
+          timetable[day].push({ ...t, scheduledMinutes: remainingMinutes, partial: true });
+          t.remainingMinutes = needed - remainingMinutes;
+          remainingMinutes = 0;
+        }
+      }
+    });
+
+    let totalScheduled = 0;
+    days.forEach(d => timetable[d].forEach(t => totalScheduled += t.scheduledMinutes));
+    const totalNeeded = tasks.reduce((s, t) => s + t.duration, 0);
+    const coverage = totalNeeded > 0 ? (totalScheduled / totalNeeded) * 100 : 0;
+
+    return {
+      empty: false, timetable, days, tasks,
+      totalTasks: tasks.length,
+      scheduled: tasks.length - taskQueue.length,
+      coverage,
+      unscheduled: taskQueue.slice(0, 10),
+      totalScheduled, totalNeeded
+    };
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  //  RENDERERS
+  // ═══════════════════════════════════════════════════════════════════
+  function moduleLink(code) {
+    return `<a class="module-link" onclick="openInStudies('${escapeHtml(code)}')">${escapeHtml(code)}</a>`;
+  }
+
+  window.openInStudies = function(code) {
+    window.location.href = `studies.html?highlight=${encodeURIComponent(code)}`;
+  };
+
+  function renderIntelligence() {
+    const data = buildIntelligenceReport();
+    if (data.empty) return emptyHtml('No modules in scope.');
+
+    const k = data.kpis;
+    return `
+      <div class="rc-main-header">
+        <div>
+          <h2>🎯 Academic Performance Intelligence</h2>
+          <div class="desc">Executive summary — strongest and weakest modules, key risks, next actions.</div>
+        </div>
+      </div>
+
+      <div class="rc-report-section">
+        <h3><i class="fa fa-dashboard"></i> Executive Summary</h3>
+        <div class="rc-kpi-grid">
+          <div class="rc-kpi"><div class="v ${k.avgGrade !== null && k.avgGrade >= 70 ? 'green' : k.avgGrade !== null && k.avgGrade >= 50 ? 'accent' : 'red'}">${k.avgGrade !== null ? k.avgGrade.toFixed(1) + '%' : '—'}</div><div class="l">Weighted Avg</div><div class="s">${k.gradedUnits}/${k.units} graded</div></div>
+          <div class="rc-kpi"><div class="v">${k.units}</div><div class="l">Modules</div></div>
+          <div class="rc-kpi"><div class="v red">${k.overdue}</div><div class="l">Overdue</div><div class="s">${k.dueSoon} due soon</div></div>
+          <div class="rc-kpi"><div class="v amber">${k.awaitingGrade}</div><div class="l">Awaiting Grade</div><div class="s">submitted, no mark</div></div>
+          <div class="rc-kpi"><div class="v accent">${k.graded}</div><div class="l">Graded</div><div class="s">${k.totalAssign} total</div></div>
+          <div class="rc-kpi"><div class="v purple">${k.notSubmitted}</div><div class="l">Not Submitted</div><div class="s">no marks</div></div>
+        </div>
+      </div>
+
+      <div class="rc-report-section">
+        <h3><i class="fa fa-trophy"></i> Module Ranking</h3>
+        <table class="rc-table">
+          <thead><tr>
+            <th>#</th><th>Code</th><th>Module</th><th>Year · Sem</th><th class="num">Credits</th>
+            <th class="center">Grade</th><th class="center">Level</th><th class="num">Assessed %</th><th class="num">Pending %</th><th class="center">Accuracy</th>
+          </tr></thead>
+          <tbody>
+            ${[...data.unitGrades].sort((a, b) => (b.grade ?? -1) - (a.grade ?? -1)).map((u, i) => `
+              <tr>
+                <td>${i+1}</td>
+                <td>${moduleLink(u.code)}</td>
+                <td>${escapeHtml(u.name)}</td>
+                <td style="color:var(--text-1); font-size:0.78rem;">${escapeHtml(u.year)} · ${escapeHtml(u.sem)}</td>
+                <td class="num">${u.creditHours}</td>
+                <td class="center">${gradeCellHtml(u.grade)}</td>
+                <td class="center">${u.grade !== null ? `<span class="rc-badge ${['dist','merit'].includes(gradeLabel(u.grade).cls) ? 'good' : gradeLabel(u.grade).cls === 'credit' ? 'ok' : gradeLabel(u.grade).cls === 'pass' ? 'warn' : 'bad'}">${gradeLabel(u.grade).label}</span>` : '<span class="rc-badge neutral">—</span>'}</td>
+                <td class="num">${u.totalW.toFixed(1)}</td>
+                <td class="num" style="color:${u.pending > 15 ? 'var(--amber)' : 'var(--text-1)'};">${u.pending.toFixed(1)}</td>
+                <td class="center">${u.confirmed ? '<span class="rc-badge accuracy confirmed">Confirmed</span>' : u.provisional ? '<span class="rc-badge accuracy provisional">Provisional</span>' : '—'}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="rc-report-section">
+        <h3><i class="fa fa-line-chart"></i> Performance Insights</h3>
+        ${data.strongest ? `<div class="rc-rec good"><strong>Strongest:</strong> ${moduleLink(data.strongest.code)} — ${escapeHtml(data.strongest.name)} at <strong>${data.strongest.grade.toFixed(1)}%</strong></div>` : ''}
+        ${data.weakest && data.weakest !== data.strongest ? `<div class="rc-rec warn"><strong>Weakest:</strong> ${moduleLink(data.weakest.code)} — ${escapeHtml(data.weakest.name)} at <strong>${data.weakest.grade?.toFixed(1) || '—'}%</strong> <span style="color:var(--text-2);font-size:0.78rem;">(click module code to open)</span></div>` : ''}
+        <div class="rc-rec"><strong>Top contributors:</strong> ${data.topContributors.slice(0, 3).map(c => `<em>${escapeHtml(c.name)} (${c.weighted.toFixed(2)} pts)</em>`).join(', ')}</div>
+        ${data.bottomContributors.length ? `<div class="rc-rec warn"><strong>Lowest contributions:</strong> ${data.bottomContributors.slice(0, 3).map(c => `<em>${escapeHtml(c.name)} (${c.weighted.toFixed(2)} pts)</em>`).join(', ')}</div>` : ''}
+      </div>
+
+      <div class="rc-report-section">
+        <h3><i class="fa fa-exclamation-triangle"></i> Risks &amp; Recommendations</h3>
+        ${data.risks.length ? data.risks.map(r => `<div class="rc-rec ${r.severity === 'high' ? 'bad' : 'warn'}">${r.text}</div>`).join('') : '<div class="rc-rec good">No significant risks detected. ✅</div>'}
+        <div style="margin-top:14px;"></div>
+        ${data.recs.map(r => `<div class="rc-rec ${r.level}">${r.text}</div>`).join('')}
+      </div>
+    `;
+  }
+
+  function renderRecovery() {
+    const data = buildRecoveryReport();
+    if (data.empty) return emptyHtml('No modules with graded assessments in scope.');
+
+    return `
+      <div class="rc-main-header">
+        <div>
+          <h2>🎓 Grade Recovery &amp; Target</h2>
+          <div class="desc">Every remaining assessment (including submitted-awaiting-grade) affects your final mark. Adjust the controls to see instant what-if scenarios.</div>
+        </div>
+      </div>
+
+      <div class="rc-recovery-controls">
+        <label>Target increment</label>
+        <input type="number" id="targetIncrement" value="${recoveryControls.targetIncrement}" min="1" max="20" step="1">
+        <label>Hypothetical mark per assessment</label>
+        <input type="number" id="hypoMark" value="${recoveryControls.hypotheticalMark}" min="0" max="100" step="1">
+        <span style="font-size:0.78rem;color:var(--text-2);">% · Scenarios assume this mark for each remaining assessment</span>
+      </div>
+
+      ${data.units.map(u => `
+        <div class="rc-report-section">
+          <h3>
+            <i class="fa fa-graduation-cap"></i> ${moduleLink(u.code)} — ${escapeHtml(u.name)}
+            <span class="sub">· currently ${u.currentGrade.toFixed(1)}% · ${u.remainingCount} remaining (${u.awaiting.length} awaiting grade, ${u.notSubmittedYet.length} not submitted)</span>
+          </h3>
+          <div class="rc-kpi-grid" style="margin-bottom:14px;">
+            <div class="rc-kpi"><div class="v ${u.currentGrade >= 60 ? 'accent' : 'red'}">${u.currentGrade.toFixed(1)}%</div><div class="l">Current</div></div>
+            <div class="rc-kpi"><div class="v ${u.neededForTarget !== null && u.neededForTarget <= 70 ? 'green' : u.neededForTarget !== null && u.neededForTarget <= 100 ? 'amber' : 'red'}">${u.neededForTarget !== null ? u.neededForTarget.toFixed(1) + '%' : '—'}</div><div class="l">Needed on Remaining</div><div class="s">to hit ${u.target}%</div></div>
+            <div class="rc-kpi"><div class="v red">${u.worstCase.toFixed(1)}%</div><div class="l">Floor</div><div class="s">fail remaining</div></div>
+            <div class="rc-kpi"><div class="v green">${u.bestCase.toFixed(1)}%</div><div class="l">Ceiling</div><div class="s">ace remaining</div></div>
+          </div>
+          ${u.scenarios.length ? `
+            <div class="section-label-row">
+              <div style="font-size:0.82rem; color:var(--text-1); font-weight:600;">SCENARIOS — score ${recoveryControls.hypotheticalMark}% on each remaining assessment</div>
+            </div>
+            <table class="rc-table">
+              <thead><tr>
+                <th>Assessment</th><th class="center">Status</th><th class="center">Weight</th>
+                <th class="center">New Grade</th><th class="center">Impact</th>
+              </tr></thead>
+              <tbody>
+                ${u.scenarios.slice(0, 10).map(s => `
+                  <tr>
+                    <td>${escapeHtml(s.name)}</td>
+                    <td class="center"><span class="rc-badge ${s.status === 'submitted' ? 'warn' : 'neutral'}">${s.status === 'submitted' ? 'Awaiting grade' : s.status}</span></td>
+                    <td class="center">${s.weight}%</td>
+                    <td class="center">${s.newGrade.toFixed(1)}%</td>
+                    <td class="center" style="font-weight:700; color:${s.delta >= 3 ? 'var(--green)' : s.delta >= 1 ? 'var(--amber)' : 'var(--text-1)'};">${s.delta >= 0 ? '+' : ''}${s.delta.toFixed(2)} pts</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          ` : `<div class="rc-rec good">All assessments graded. Final mark: <strong>${u.currentGrade.toFixed(1)}%</strong>.</div>`}
+        </div>
+      `).join('')}
+    `;
+  }
+
+  function renderWeekly() {
+    const data = buildWeeklyReport();
+    if (data.empty) return emptyHtml('No modules in scope.');
+    const s = data.stats;
+    const deltaSubmitted = s.thisSubmitted - s.lastSubmitted;
+    const deltaGraded = s.thisGraded - s.lastGraded;
+    const fmt = (d) => d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+
+    return `
+      <div class="rc-main-header">
+        <div>
+          <h2>📅 Weekly Academic Review</h2>
+          <div class="desc">${fmt(data.period.thisMon)} – ${fmt(data.period.thisSun)} · compared with ${fmt(data.period.lastMon)} – ${fmt(data.period.lastSun)}</div>
+        </div>
+      </div>
+
+      <div class="rc-report-section">
+        <h3><i class="fa fa-chart-bar"></i> Week at a glance</h3>
+        <div class="rc-kpi-grid">
+          <div class="rc-kpi"><div class="v accent">${s.thisSubmitted}</div><div class="l">Submitted</div><div class="s">${deltaSubmitted >= 0 ? '▲' : '▼'} ${Math.abs(deltaSubmitted)} vs last</div></div>
+          <div class="rc-kpi"><div class="v green">${s.thisGraded}</div><div class="l">Graded</div><div class="s">${deltaGraded >= 0 ? '▲' : '▼'} ${Math.abs(deltaGraded)} vs last</div></div>
+          <div class="rc-kpi"><div class="v red">${s.thisOverdue}</div><div class="l">Overdue</div><div class="s">currently outstanding</div></div>
+          <div class="rc-kpi"><div class="v purple">${s.topicsTotalDone}</div><div class="l">Topics Done</div></div>
+        </div>
+      </div>
+
+      ${data.thisWeekMarks.length ? `
+        <div class="rc-report-section">
+          <h3><i class="fa fa-star"></i> New marks this week</h3>
+          <table class="rc-table"><thead><tr><th>Module</th><th>Assessment</th><th class="center">Mark</th></tr></thead>
+            <tbody>${data.thisWeekMarks.map(m => `<tr><td>${moduleLink(m.unit)}</td><td>${escapeHtml(m.name)}</td><td class="center">${escapeHtml(m.marks)}</td></tr>`).join('')}</tbody>
+          </table>
+        </div>
+      ` : ''}
+
+      ${data.overdueList.length ? `
+        <div class="rc-report-section">
+          <h3><i class="fa fa-exclamation-circle" style="color:var(--red);"></i> Overdue (${data.overdueList.length})</h3>
+          <table class="rc-table">
+            <thead><tr><th>Module</th><th>Assessment</th><th class="center">Due</th><th class="center">Days Late</th></tr></thead>
+            <tbody>${data.overdueList.map(o => `<tr><td>${moduleLink(o.unit)}</td><td>${escapeHtml(o.name)}</td><td class="center">${o.due}</td><td class="center" style="color:var(--red);font-weight:700;">${o.days}</td></tr>`).join('')}</tbody>
+          </table>
+        </div>
+      ` : '<div class="rc-report-section"><h3><i class="fa fa-check-circle" style="color:var(--green);"></i> No overdue work</h3></div>'}
+
+      ${data.upcoming.length ? `
+        <div class="rc-report-section">
+          <h3><i class="fa fa-clock-o" style="color:var(--amber);"></i> Next 7 days</h3>
+          <table class="rc-table">
+            <thead><tr><th>Module</th><th>Assessment</th><th class="center">Due</th><th class="center">In</th></tr></thead>
+            <tbody>${data.upcoming.map(u => {
+              const d = daysUntil(u.due);
+              return `<tr><td>${moduleLink(u.unit)}</td><td>${escapeHtml(u.name)}</td><td class="center">${u.due}</td><td class="center">${d === 0 ? 'Today' : d + 'd'}</td></tr>`;
+            }).join('')}</tbody>
+          </table>
+        </div>
+      ` : ''}
+    `;
+  }
+
+  function renderSyllabus() {
+    const data = buildSyllabusReport();
+    if (data.empty) return emptyHtml('No modules in scope.');
+    return `
+      <div class="rc-main-header"><div><h2>📚 Syllabus Coverage &amp; Revision</h2><div class="desc">What's covered, what's weak, what to revise.</div></div></div>
+      ${data.units.map(u => `
+        <div class="rc-report-section">
+          <h3><i class="fa fa-book"></i> ${moduleLink(u.code)} — ${escapeHtml(u.name)} <span class="sub">· ${u.doneSub}/${u.totalSub} subtopics · ${u.doneTopics}/${u.totalTopics} topics</span></h3>
+          <div class="rc-kpi-grid" style="margin-bottom:14px;">
+            <div class="rc-kpi"><div class="v ${u.coverage >= 75 ? 'green' : u.coverage >= 50 ? 'amber' : 'red'}">${u.coverage.toFixed(0)}%</div><div class="l">Coverage</div></div>
+            <div class="rc-kpi"><div class="v accent">${u.doneTopics}</div><div class="l">Topics Done</div><div class="s">of ${u.totalTopics}</div></div>
+            <div class="rc-kpi"><div class="v amber">${u.weakTopics.length}</div><div class="l">Weak Topics</div></div>
+          </div>
+          ${u.weakTopics.length ? `
+            <table class="rc-table">
+              <thead><tr><th>Week</th><th>Topic</th><th class="center">Progress</th></tr></thead>
+              <tbody>${u.weakTopics.slice(0, 12).map(t => `
+                <tr><td>W${t.week}</td><td>${escapeHtml(t.name)}</td>
+                  <td class="center"><div style="min-width:120px;"><div style="font-weight:600;">${t.pct}% (${t.done}/${t.total})</div><div class="pbar"><div class="fill" style="width:${t.pct}%;background:${t.pct >= 75 ? 'var(--green)' : t.pct >= 40 ? 'var(--amber)' : 'var(--red)'};"></div></div></div></td>
+                </tr>`).join('')}
+              </tbody>
+            </table>
+          ` : '<div class="rc-rec good">✅ Full coverage.</div>'}
+        </div>
+      `).join('')}
+    `;
+  }
+
+  function renderSemester() {
+    const data = buildSemesterReport();
+    if (data.empty || !data.semesters.length) return emptyHtml('No semesters in current scope.');
+
+    return `
+      <div class="rc-main-header"><div><h2>📊 Semester Comparison &amp; Trend</h2><div class="desc">Scope-aware comparison across semesters.</div></div></div>
+
+      <div class="rc-report-section">
+        <h3><i class="fa fa-table"></i> Semester Overview</h3>
+        <table class="rc-table">
+          <thead><tr>
+            <th>Semester</th><th class="num">Modules</th><th class="center">Avg Grade</th><th class="center">Level</th>
+            <th class="num">Submitted</th><th class="num">Overdue</th><th class="num">Coverage</th>
+          </tr></thead>
+          <tbody>${data.semesters.map(s => `
+            <tr>
+              <td><strong>${escapeHtml(s.label)}</strong></td>
+              <td class="num">${s.units}</td>
+              <td class="center">${gradeCellHtml(s.avgGrade)}</td>
+              <td class="center">${s.avgGrade !== null ? `<span class="rc-badge ${['dist','merit'].includes(gradeLabel(s.avgGrade).cls) ? 'good' : gradeLabel(s.avgGrade).cls === 'credit' ? 'ok' : gradeLabel(s.avgGrade).cls === 'pass' ? 'warn' : 'bad'}">${gradeLabel(s.avgGrade).label}</span>` : '<span class="rc-badge neutral">—</span>'}</td>
+              <td class="num">${s.submitted}/${s.totalAssign}</td>
+              <td class="num" style="color:${s.overdue > 0 ? 'var(--red)' : 'var(--text-1)'};">${s.overdue}</td>
+              <td class="num">${s.coverage.toFixed(0)}%</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+
+      ${data.semesters.length > 1 ? `
+        <div class="rc-report-section">
+          <h3><i class="fa fa-arrow-right"></i> Trends</h3>
+          ${(() => {
+            const first = data.semesters[0], last = data.semesters[data.semesters.length - 1];
+            const gd = (last.avgGrade !== null && first.avgGrade !== null) ? last.avgGrade - first.avgGrade : null;
+            const cd = last.coverage - first.coverage;
+            return `
+              <div class="rc-rec ${gd !== null && gd > 0 ? 'good' : gd !== null && gd < 0 ? 'bad' : ''}"><strong>Grade trend:</strong> ${gd !== null ? `${gd >= 0 ? '▲' : '▼'} ${Math.abs(gd).toFixed(1)} pts from ${escapeHtml(first.label)} to ${escapeHtml(last.label)}` : 'Insufficient graded data.'}</div>
+              <div class="rc-rec ${cd > 0 ? 'good' : cd < 0 ? 'warn' : ''}"><strong>Coverage trend:</strong> ${cd >= 0 ? '▲' : '▼'} ${Math.abs(cd).toFixed(1)}%.</div>
+            `;
+          })()}
+        </div>
+      ` : ''}
+    `;
+  }
+
+  function renderAudit() {
+    const data = buildAuditReport();
+    if (data.empty) return emptyHtml('No modules in scope.');
+    const i = data.issues;
+    const rc = data.reliability >= 85 ? 'green' : data.reliability >= 60 ? 'amber' : 'red';
+
+    return `
+      <div class="rc-main-header"><div><h2>🔍 Assessment Audit</h2><div class="desc">Data integrity — missing info, duplicate IDs, category guesses.</div></div></div>
+
+      <div class="rc-report-section">
+        <h3><i class="fa fa-shield"></i> Data Integrity Score</h3>
+        <div class="rc-kpi-grid">
+          <div class="rc-kpi"><div class="v ${rc}">${data.reliability.toFixed(0)}%</div><div class="l">Reliability</div></div>
+          <div class="rc-kpi"><div class="v red">${data.totalIssues}</div><div class="l">Issues</div></div>
+          <div class="rc-kpi"><div class="v amber">${data.categoryGuessCount}</div><div class="l">Category Guesses</div></div>
+        </div>
+      </div>
+
+      ${[
+        { key: 'pastDueNotSubmitted', title: 'Past-Due Not Submitted', icon: 'fa-clock-o', cls: 'bad' },
+        { key: 'missingMarksSubmitted', title: 'Submitted Without Marks', icon: 'fa-question-circle', cls: 'warn' },
+        { key: 'weightMismatch', title: 'Weights Don\'t Sum to 100%', icon: 'fa-balance-scale', cls: 'warn' },
+        { key: 'missingDueDate', title: 'Missing Due Dates', icon: 'fa-calendar-times-o', cls: 'neutral' },
+        { key: 'duplicateIds', title: 'Duplicate IDs', icon: 'fa-copy', cls: 'bad' },
+        { key: 'outOfRangeMarks', title: 'Marks Out of Range', icon: 'fa-exclamation-circle', cls: 'bad' },
+        { key: 'zeroWeight', title: 'Zero Weight (Not Graded)', icon: 'fa-info-circle', cls: 'neutral' }
+      ].map(({ key, title, icon, cls }) => {
+        const items = i[key];
+        if (!items.length) return '';
+        return `
+          <div class="rc-report-section">
+            <h3><i class="fa ${icon}" style="color:${cls === 'bad' ? 'var(--red)' : cls === 'warn' ? 'var(--amber)' : 'var(--text-1)'};"></i> ${title} <span class="sub">· ${items.length} item${items.length === 1 ? '' : 's'}</span></h3>
+            <table class="rc-table">
+              <thead><tr><th>Module</th><th>Assessment</th>${items[0].due !== undefined ? '<th class="center">Info</th>' : ''}${items[0].actual !== undefined ? '<th class="center">Actual %</th>' : ''}</tr></thead>
+              <tbody>${items.slice(0, 15).map(it => `
+                <tr><td>${moduleLink(it.unit)}</td><td>${escapeHtml(it.name || it.id || '—')}</td>
+                ${it.due !== undefined ? `<td class="center">${it.due} ${it.days ? `(${it.days}d late)` : ''}</td>` : ''}
+                ${it.actual !== undefined ? `<td class="center">${it.actual.toFixed(1)}%</td>` : ''}
+                </tr>`).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+      }).join('')}
+
+      ${data.totalIssues === 0 ? '<div class="rc-report-section"><div class="rc-rec good"><strong>✅ Your data is clean.</strong></div></div>' : ''}
+
+      <div class="rc-report-section">
+        <h3><i class="fa fa-lightbulb-o"></i> How to improve</h3>
+        <div class="rc-rec"><strong>Set explicit assessment types:</strong> Use the "Assessment type" dropdown in Studies instead of relying on name-based guessing.</div>
+        <div class="rc-rec"><strong>Add credit hours:</strong> Edit each module in Studies and set its credit hours for accurate weighted averages.</div>
+        <div class="rc-rec"><strong>Keep IDs unique:</strong> Duplicates break merge logic during conflict resolution.</div>
+      </div>
+    `;
+  }
+
+  function renderTimetable() {
+    const data = buildTimetable({ hours: timetableConfig.hours, preferWeak: timetableConfig.preferWeak });
+    if (data.empty) return emptyHtml('No tasks to schedule.');
+    const dayLabels = { Mon:'Monday', Tue:'Tuesday', Wed:'Wednesday', Thu:'Thursday', Fri:'Friday', Sat:'Saturday', Sun:'Sunday' };
+
+    return `
+      <div class="rc-main-header"><div><h2>🗓️ Automatic Study Timetable</h2><div class="desc">Prioritises overdue → due-soon → weak topics. Partial tasks carry forward to the next available slot.</div></div></div>
+
+      <div class="rc-config" style="margin-bottom:16px;">
+        ${data.days.map(d => `
+          <div class="rc-config-item">
+            <label>${dayLabels[d]} (hours)</label>
+            <input type="number" min="0" max="12" step="0.5" value="${timetableConfig.hours[d] || 0}" data-day="${d}" class="tt-hours-input">
+          </div>
+        `).join('')}
+      </div>
+
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center;">
+        <button class="rc-btn rc-btn-primary" id="regenTimetableBtn"><i class="fa fa-magic"></i> Regenerate</button>
+        <label style="display:flex;align-items:center;gap:8px;font-size:0.85rem;color:var(--text-1);padding:0 12px;">
+          <input type="checkbox" id="preferWeakCheck" ${timetableConfig.preferWeak ? 'checked' : ''}> Prioritise weak modules
+        </label>
+      </div>
+
+      <div class="rc-report-section">
+        <h3><i class="fa fa-info-circle"></i> Coverage <span class="sub">· ${data.scheduled}/${data.totalTasks} tasks · ${data.coverage.toFixed(0)}% workload</span></h3>
+        <div class="rc-kpi-grid">
+          <div class="rc-kpi"><div class="v ${data.coverage >= 75 ? 'green' : 'amber'}">${data.coverage.toFixed(0)}%</div><div class="l">Coverage</div></div>
+          <div class="rc-kpi"><div class="v accent">${data.scheduled}</div><div class="l">Tasks Done</div></div>
+          <div class="rc-kpi"><div class="v ${data.unscheduled.length > 0 ? 'red' : 'green'}">${data.unscheduled.length}</div><div class="l">Unfinished</div></div>
+          <div class="rc-kpi"><div class="v purple">${Math.round(data.totalScheduled / 60)}h</div><div class="l">Scheduled</div><div class="s">of ${Math.round(data.totalNeeded / 60)}h needed</div></div>
+        </div>
+      </div>
+
+      <div class="rc-report-section">
+        <h3><i class="fa fa-calendar"></i> Weekly Plan</h3>
+        <div class="tt-wrap">
+          <table class="tt-grid">
+            <thead><tr>${data.days.map(d => `<th>${dayLabels[d]}</th>`).join('')}</tr></thead>
+            <tbody><tr>
+              ${data.days.map(d => {
+                const slots = data.timetable[d] || [];
+                if (!slots.length) return `<td><div class="tt-empty">— no time allocated —</div></td>`;
+                return `<td>${slots.map(s => {
+                  const cls = (s.type === 'overdue' ? 'high' : s.type === 'due-soon' ? 'med' : '') + (s.partial ? ' partial' : '');
+                  return `<div class="tt-slot ${cls}">
+                    <div class="title">${escapeHtml(s.title)}</div>
+                    <div class="meta">${escapeHtml(s.unit)} · ${s.scheduledMinutes}min${s.partial ? ' (partial)' : ''} · ${s.type}</div>
+                  </div>`;
+                }).join('')}</td>`;
+              }).join('')}
+            </tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      ${data.unscheduled.length ? `
+        <div class="rc-report-section">
+          <h3><i class="fa fa-exclamation-triangle" style="color:var(--amber);"></i> Unfinished — need more time</h3>
+          <ul style="font-size:0.85rem;color:var(--text-1);padding-left:20px;">
+            ${data.unscheduled.map(t => `<li><strong>${escapeHtml(t.unit)}</strong>: ${escapeHtml(t.title)} <span style="color:var(--text-2);">(${t.type}, ${t.remainingMinutes}min left)</span></li>`).join('')}
+          </ul>
+        </div>
+      ` : ''}
+    `;
+  }
+
+  function emptyHtml(msg) {
+    return `<div class="rc-empty"><i class="fa fa-inbox"></i><div>${escapeHtml(msg)}</div></div>`;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  //  SCOPE PICKER
+  // ═══════════════════════════════════════════════════════════════════
+  function renderScopePicker() {
+    const years = studyData.years.map(y => y.name);
+    const semesters = [];
+    studyData.years.forEach(y => {
+      if (reportScope.yearName && y.name !== reportScope.yearName) return;
+      y.semesters.forEach(s => semesters.push(`${y.name}|${s.name}`));
+    });
+    const units = [];
+    studyData.years.forEach(y => {
+      if (reportScope.yearName && y.name !== reportScope.yearName) return;
+      y.semesters.forEach(s => {
+        if (reportScope.semesterName && s.name !== reportScope.semesterName) return;
+        s.units.forEach(u => units.push({ key: u.code, label: `${u.code} — ${u.name}` }));
+      });
+    });
+
+    return `
+      <div class="rc-config">
+        <div class="rc-config-item">
+          <label>Year</label>
+          <select id="scopeYear">
+            <option value="">All Years</option>
+            ${years.map(y => `<option value="${y}" ${reportScope.yearName === y ? 'selected' : ''}>${y}</option>`).join('')}
+          </select>
+        </div>
+        <div class="rc-config-item">
+          <label>Semester</label>
+          <select id="scopeSemester">
+            <option value="">All Semesters</option>
+            ${semesters.map(key => {
+              const [y, sem] = key.split('|');
+              return `<option value="${sem}" ${reportScope.semesterName === sem ? 'selected' : ''}>${y} · ${sem}</option>`;
+            }).join('')}
+          </select>
+        </div>
+        <div class="rc-config-item">
+          <label>Module (optional)</label>
+          <select id="scopeUnit">
+            <option value="">All Modules</option>
+            ${units.map(u => `<option value="${u.key}" ${reportScope.unitCode === u.key ? 'selected' : ''}>${u.label}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+    `;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  //  RENDER CURRENT REPORT
+  // ═══════════════════════════════════════════════════════════════════
+  function renderCurrentReport() {
+    const content = document.getElementById('reportContent');
+    const scopePicker = renderScopePicker();
+
+    let reportHtml = '';
+    switch (currentReport) {
+      case 'intelligence': reportHtml = renderIntelligence(); break;
+      case 'recovery': reportHtml = renderRecovery(); break;
+      case 'weekly': reportHtml = renderWeekly(); break;
+      case 'syllabus': reportHtml = renderSyllabus(); break;
+      case 'semester': reportHtml = renderSemester(); break;
+      case 'audit': reportHtml = renderAudit(); break;
+      case 'timetable': reportHtml = renderTimetable(); break;
+      default: reportHtml = emptyHtml('Select a report');
+    }
+
+    content.innerHTML = scopePicker + reportHtml;
+    attachScopeListeners();
+    if (currentReport === 'timetable') attachTimetableListeners();
+    if (currentReport === 'recovery') attachRecoveryListeners();
+  }
+
+  function attachScopeListeners() {
+    document.getElementById('scopeYear')?.addEventListener('change', (e) => {
+      reportScope.yearName = e.target.value || null;
+      reportScope.semesterName = null;
+      reportScope.unitCode = null;
+      renderCurrentReport();
+    });
+    document.getElementById('scopeSemester')?.addEventListener('change', (e) => {
+      reportScope.semesterName = e.target.value || null;
+      reportScope.unitCode = null;
+      renderCurrentReport();
+    });
+    document.getElementById('scopeUnit')?.addEventListener('change', (e) => {
+      reportScope.unitCode = e.target.value || null;
+      renderCurrentReport();
+    });
+  }
+
+  function attachTimetableListeners() {
+    document.querySelectorAll('.tt-hours-input').forEach(inp => {
+      inp.addEventListener('change', () => {
+        const d = inp.dataset.day;
+        timetableConfig.hours[d] = Math.max(0, Math.min(12, parseFloat(inp.value) || 0));
+      });
+    });
+    document.getElementById('regenTimetableBtn')?.addEventListener('click', () => {
+      document.querySelectorAll('.tt-hours-input').forEach(inp => {
+        timetableConfig.hours[inp.dataset.day] = Math.max(0, Math.min(12, parseFloat(inp.value) || 0));
+      });
+      const chk = document.getElementById('preferWeakCheck');
+      if (chk) timetableConfig.preferWeak = chk.checked;
+      renderCurrentReport();
+      showToast('Timetable regenerated', 'success');
+    });
+    document.getElementById('preferWeakCheck')?.addEventListener('change', (e) => {
+      timetableConfig.preferWeak = e.target.checked;
+    });
+  }
+
+  function attachRecoveryListeners() {
+    const targetInp = document.getElementById('targetIncrement');
+    const hypoInp = document.getElementById('hypoMark');
+    if (targetInp) targetInp.addEventListener('change', () => {
+      recoveryControls.targetIncrement = Math.max(1, Math.min(20, parseFloat(targetInp.value) || 5));
+      renderCurrentReport();
+    });
+    if (hypoInp) hypoInp.addEventListener('change', () => {
+      recoveryControls.hypotheticalMark = Math.max(0, Math.min(100, parseFloat(hypoInp.value) || 80));
+      renderCurrentReport();
+    });
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  //  NAV
+  // ═══════════════════════════════════════════════════════════════════
+  document.querySelectorAll('.rc-nav').forEach(nav => {
+    nav.addEventListener('click', () => {
+      document.querySelectorAll('.rc-nav').forEach(n => n.classList.remove('active'));
+      nav.classList.add('active');
+      currentReport = nav.dataset.report;
+      renderCurrentReport();
+    });
+  });
+
+  document.getElementById('exportCompleteCheck').addEventListener('change', (e) => {
+    exportComplete = e.target.checked;
+  });
+
+  document.getElementById('syncBtn').addEventListener('click', async () => {
+    showToast('Reloading data…', 'info');
+    await loadStudyData();
+    renderCurrentReport();
+    showToast('Data reloaded', 'success');
+  });
+
+  // ═══════════════════════════════════════════════════════════════════
+  //  PDF EXPORT — professional layout with TOC, headers, footers, page #
+  // ═══════════════════════════════════════════════════════════════════
+  async function exportPDF() {
+    if (!window.jspdf) { showToast('PDF library not loaded', 'error'); return; }
+    showToast('Generating PDF…', 'info');
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
+    const margin = 15;
+
+    // Track sections for TOC
+    const toc = [];
+    let y = 20;
+
+    // ── COVER PAGE ──
+    doc.setFillColor(11,43,59); doc.rect(0, 0, pageW, 60, 'F');
+    doc.setFillColor(47,199,255); doc.rect(0, 60, pageW, 4, 'F');
+    doc.setTextColor(255); doc.setFont('helvetica','bold'); doc.setFontSize(28);
+    doc.text('ACADEMIC REPORT', pageW/2, 30, { align: 'center' });
+    doc.setFontSize(14); doc.setFont('helvetica','normal');
+    const scopeLine = `${reportScope.yearName || 'All Years'} · ${reportScope.semesterName || 'All Semesters'}${reportScope.unitCode ? ' · ' + reportScope.unitCode : ''}`;
+    doc.text(scopeLine, pageW/2, 48, { align: 'center' });
+
+    doc.setTextColor(50); doc.setFontSize(11); doc.setFont('helvetica','normal');
+    y = 85;
+    doc.text('Prepared for', pageW/2, y, { align: 'center' }); y += 6;
+    doc.setFont('helvetica','bold'); doc.setFontSize(13);
+    doc.text(stripEmoji(user.username), pageW/2, y, { align: 'center' }); y += 10;
+    doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(100);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, pageW/2, y, { align: 'center' }); y += 6;
+    doc.text(`Reports included: ${exportComplete ? 'All' : reportTitle()}`, pageW/2, y, { align: 'center' }); y += 20;
+
+    // ── TOC placeholder ──
+    const tocPageNum = doc.internal.getNumberOfPages() + 1;
+    doc.addPage();
+    doc.setFont('helvetica','bold'); doc.setFontSize(18); doc.setTextColor(11,43,59);
+    doc.text('Contents', margin, 25);
+    doc.setDrawColor(47,199,255); doc.setLineWidth(0.6);
+    doc.line(margin, 28, pageW - margin, 28);
+
+    // We'll fill TOC after we know page numbers
+    const tocYStart = 38;
+    let tocY = tocYStart;
+
+    // ── Section builder ──
+    const addSectionHeader = (num, title) => {
+      if (y > pageH - 40) { doc.addPage(); y = 25; }
+      const pageNum = doc.internal.getNumberOfPages();
+      toc.push({ num, title, page: pageNum });
+
+      doc.setFillColor(11,43,59); doc.rect(margin, y, pageW - margin*2, 10, 'F');
+      doc.setFillColor(47,199,255); doc.rect(margin, y + 10, pageW - margin*2, 1.5, 'F');
+      doc.setTextColor(255); doc.setFont('helvetica','bold'); doc.setFontSize(13);
+      doc.text(`${num}. ${stripEmoji(title)}`, margin + 4, y + 7);
+      y += 16;
+      doc.setTextColor(50);
+    };
+
+    const addSubHeader = (title) => {
+      if (y > pageH - 30) { doc.addPage(); y = 25; }
+      doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(26, 77, 95);
+      doc.text(stripEmoji(title), margin, y); y += 6;
+      doc.setTextColor(50); doc.setFont('helvetica','normal');
+    };
+
+    // ── Section 1: Intelligence ──
+    const intel = buildIntelligenceReport();
+    if (!intel.empty) {
+      addSectionHeader(1, 'Academic Performance Intelligence');
+      const k = intel.kpis;
+      doc.autoTable({
+        startY: y,
+        head: [['Metric', 'Value']],
+        body: [
+          ['Weighted Average', k.avgGrade !== null ? k.avgGrade.toFixed(1) + '%' : '—'],
+          ['Modules', `${k.units} (${k.gradedUnits} graded)`],
+          ['Total Assessments', String(k.totalAssign)],
+          ['Graded / Awaiting / Not Submitted', `${k.graded} / ${k.awaitingGrade} / ${k.notSubmitted}`],
+          ['Overdue / Due Soon', `${k.overdue} / ${k.dueSoon}`]
+        ],
+        theme: 'grid',
+        styles: { fontSize: 9, cellPadding: 2.5 },
+        headStyles: { fillColor: [26,77,95], textColor: 255, fontStyle: 'bold' },
+        margin: { left: margin, right: margin },
+        tableWidth: 'wrap'
+      });
+      y = doc.lastAutoTable.finalY + 8;
+
+      addSubHeader('Module Ranking');
+      doc.autoTable({
+        startY: y,
+        head: [['#', 'Code', 'Module', 'Grade', 'Level', 'Accuracy']],
+        body: [...intel.unitGrades].sort((a,b) => (b.grade ?? -1) - (a.grade ?? -1)).map((u, i) => [
+          String(i+1), u.code, u.name,
+          u.grade !== null ? u.grade.toFixed(1) + '%' : '—',
+          u.grade !== null ? gradeLabel(u.grade).label : '—',
+          u.confirmed ? 'Confirmed' : u.provisional ? 'Provisional' : '—'
+        ]),
+        theme: 'grid',
+        styles: { fontSize: 8, cellPadding: 2 },
+        headStyles: { fillColor: [26,77,95], textColor: 255 },
+        columnStyles: { 0:{cellWidth:8,halign:'center'}, 1:{cellWidth:18}, 3:{halign:'center',cellWidth:18}, 4:{halign:'center',cellWidth:22}, 5:{halign:'center',cellWidth:22} },
+        margin: { left: margin, right: margin }
+      });
+      y = doc.lastAutoTable.finalY + 8;
+
+      addSubHeader('Risks & Recommendations');
+      const allNotes = [
+        ...intel.risks.map(r => ({ t: `[!] ${stripEmoji(r.text.replace(/<[^>]+>/g, ''))}`, c: [192, 57, 43] })),
+        ...intel.recs.map(r => ({ t: `• ${stripEmoji(r.text.replace(/<[^>]+>/g, ''))}`, c: [50, 50, 50] }))
+      ];
+      doc.setFontSize(9);
+      allNotes.forEach(({ t, c }) => {
+        if (y > pageH - 20) { doc.addPage(); y = 25; }
+        doc.setTextColor(c[0], c[1], c[2]);
+        const lines = doc.splitTextToSize(t, pageW - margin*2);
+        doc.text(lines, margin, y);
+        y += lines.length * 5 + 2;
+      });
+    }
+
+    // ── Section 2: Grade Recovery (if complete or current) ──
+    if (exportComplete || currentReport === 'recovery') {
+      const rec = buildRecoveryReport();
+      if (!rec.empty) {
+        doc.addPage(); y = 25;
+        addSectionHeader(2, 'Grade Recovery & Target');
+        rec.units.forEach(u => {
+          if (y > pageH - 60) { doc.addPage(); y = 25; }
+          doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(20);
+          doc.text(`${u.code} — ${stripEmoji(u.name)}`, margin, y); y += 6;
+          doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(60);
+          doc.text(`Current: ${u.currentGrade.toFixed(1)}%  |  Target: ${u.target}%  |  Needed on remaining: ${u.neededForTarget !== null ? u.neededForTarget.toFixed(1) + '%' : '—'}`, margin, y); y += 5;
+          doc.text(`Floor: ${u.worstCase.toFixed(1)}%  |  Ceiling: ${u.bestCase.toFixed(1)}%  |  ${u.remainingCount} remaining`, margin, y); y += 5;
+          doc.text(`(Awaiting grade: ${u.awaiting.length}, Not submitted: ${u.notSubmittedYet.length})`, margin, y); y += 6;
+
+          if (u.scenarios.length) {
+            doc.autoTable({
+              startY: y,
+              head: [['Assessment', 'Status', 'Weight', 'New Grade', 'Impact']],
+              body: u.scenarios.slice(0, 8).map(s => [
+                s.name,
+                s.status === 'submitted' ? 'Awaiting' : s.status,
+                s.weight + '%',
+                s.newGrade.toFixed(1) + '%',
+                (s.delta >= 0 ? '+' : '') + s.delta.toFixed(2)
+              ]),
+              theme: 'grid',
+              styles: { fontSize: 8, cellPadding: 2 },
+              headStyles: { fillColor: [19,132,150], textColor: 255 },
+              columnStyles: { 2:{halign:'center'}, 3:{halign:'center'}, 4:{halign:'center'} },
+              margin: { left: margin, right: margin }
+            });
+            y = doc.lastAutoTable.finalY + 8;
+          }
+        });
+      }
+    }
+
+    // ── Section 3: Weekly Review (if complete or current) ──
+    if (exportComplete || currentReport === 'weekly') {
+      const wk = buildWeeklyReport();
+      if (!wk.empty) {
+        doc.addPage(); y = 25;
+        addSectionHeader(3, 'Weekly Academic Review');
+        const s = wk.stats;
+        doc.autoTable({
+          startY: y,
+          head: [['Metric', 'This Week', 'Last Week', 'Delta']],
+          body: [
+            ['Submitted', s.thisSubmitted, s.lastSubmitted, (s.thisSubmitted - s.lastSubmitted).toString()],
+            ['Graded', s.thisGraded, s.lastGraded, (s.thisGraded - s.lastGraded).toString()],
+            ['Overdue', s.thisOverdue, '-', '-']
+          ],
+          theme: 'grid',
+          styles: { fontSize: 9, cellPadding: 2.5 },
+          headStyles: { fillColor: [26,77,95], textColor: 255 },
+          margin: { left: margin, right: margin }
+        });
+        y = doc.lastAutoTable.finalY + 8;
+
+        if (wk.overdueList.length) {
+          addSubHeader(`Overdue (${wk.overdueList.length})`);
+          doc.autoTable({
+            startY: y,
+            head: [['Module', 'Assessment', 'Due', 'Days Late']],
+            body: wk.overdueList.map(o => [o.unit, o.name, o.due || '—', String(o.days)]),
+            theme: 'grid',
+            styles: { fontSize: 8, cellPadding: 2 },
+            headStyles: { fillColor: [192,57,43], textColor: 255 },
+            margin: { left: margin, right: margin }
+          });
+          y = doc.lastAutoTable.finalY + 8;
+        }
+
+        if (wk.upcoming.length) {
+          addSubHeader('Next 7 Days');
+          doc.autoTable({
+            startY: y,
+            head: [['Module', 'Assessment', 'Due', 'In']],
+            body: wk.upcoming.map(u => [u.unit, u.name, u.due || '—', (daysUntil(u.due) === 0 ? 'Today' : daysUntil(u.due) + 'd')]),
+            theme: 'grid',
+            styles: { fontSize: 8, cellPadding: 2 },
+            headStyles: { fillColor: [184,134,11], textColor: 255 },
+            margin: { left: margin, right: margin }
+          });
+          y = doc.lastAutoTable.finalY + 8;
+        }
+      }
+    }
+
+    // ── Section 4: Audit (if complete or current) ──
+    if (exportComplete || currentReport === 'audit') {
+      const aud = buildAuditReport();
+      if (!aud.empty) {
+        doc.addPage(); y = 25;
+        addSectionHeader(4, 'Assessment Audit');
+        doc.setFontSize(10); doc.setTextColor(50);
+        doc.text(`Reliability Score: ${aud.reliability.toFixed(0)}%`, margin, y); y += 6;
+        doc.text(`Total issues found: ${aud.totalIssues}`, margin, y); y += 10;
+        Object.entries(aud.issues).forEach(([key, arr]) => {
+          if (!arr.length) return;
+          if (y > pageH - 40) { doc.addPage(); y = 25; }
+          addSubHeader(`${key} (${arr.length})`);
+          doc.autoTable({
+            startY: y,
+            head: [['Module', 'Assessment', 'Detail']],
+            body: arr.slice(0, 12).map(it => [it.unit, it.name || it.id || '—', it.due || (it.actual !== undefined ? it.actual.toFixed(1) + '%' : '')]),
+            theme: 'grid',
+            styles: { fontSize: 8, cellPadding: 2 },
+            headStyles: { fillColor: [192,57,43], textColor: 255 },
+            margin: { left: margin, right: margin }
+          });
+          y = doc.lastAutoTable.finalY + 8;
+        });
+      }
+    }
+
+    // ── Section 5: Timetable (if complete or current) ──
+    if (exportComplete || currentReport === 'timetable') {
+      const tt = buildTimetable(timetableConfig);
+      if (!tt.empty) {
+        doc.addPage(); y = 25;
+        addSectionHeader(5, 'Study Timetable');
+        doc.setFontSize(10); doc.setTextColor(50);
+        doc.text(`Coverage: ${tt.coverage.toFixed(0)}%  |  Scheduled: ${tt.scheduled}/${tt.totalTasks}`, margin, y); y += 10;
+        tt.days.forEach(d => {
+          const slots = tt.timetable[d] || [];
+          if (!slots.length) return;
+          if (y > pageH - 40) { doc.addPage(); y = 25; }
+          addSubHeader(d);
+          doc.autoTable({
+            startY: y,
+            head: [['Task', 'Unit', 'Duration', 'Type']],
+            body: slots.map(s => [s.title, s.unit, s.scheduledMinutes + 'min' + (s.partial ? ' (partial)' : ''), s.type]),
+            theme: 'grid',
+            styles: { fontSize: 8, cellPadding: 2 },
+            headStyles: { fillColor: [111,66,193], textColor: 255 },
+            margin: { left: margin, right: margin }
+          });
+          y = doc.lastAutoTable.finalY + 8;
+        });
+      }
+    }
+
+    // ── NOW GO BACK AND FILL THE TOC ──
+    const totalPages = doc.internal.getNumberOfPages();
+    doc.setPage(tocPageNum);
+    doc.setFontSize(10); doc.setTextColor(50);
+    toc.forEach(item => {
+      doc.setFont('helvetica','bold');
+      doc.text(`${item.num}. ${stripEmoji(item.title)}`, margin, tocY);
+      doc.setFont('helvetica','normal');
+      doc.text(`page ${item.page}`, pageW - margin - 15, tocY);
+      // Dotted leader
+      let x = margin + doc.getTextWidth(`${item.num}. ${stripEmoji(item.title)}`) + 2;
+      const endX = pageW - margin - 18;
+      while (x < endX) { doc.text('.', x, tocY, { align: 'left' }); x += 1.5; }
+      tocY += 7;
+    });
+
+    // ── ADD HEADERS & FOOTERS TO ALL PAGES (except cover) ──
+    for (let i = 2; i <= totalPages; i++) {
+      doc.setPage(i);
+      // Header
+      doc.setDrawColor(200,210,220); doc.setLineWidth(0.3);
+      doc.line(margin, 12, pageW - margin, 12);
+      doc.setFontSize(8); doc.setTextColor(120); doc.setFont('helvetica','normal');
+      doc.text('Academic Report', margin, 9);
+      doc.text(scopeLine, pageW/2, 9, { align: 'center' });
+      doc.text(new Date().toLocaleDateString(), pageW - margin, 9, { align: 'right' });
+
+      // Footer
+      doc.line(margin, pageH - 12, pageW - margin, pageH - 12);
+      doc.setFontSize(8); doc.setTextColor(120);
+      doc.text('Generated by Your Portfolio · Study Manager', margin, pageH - 8);
+      doc.text(`Page ${i} of ${totalPages}`, pageW - margin, pageH - 8, { align: 'right' });
+    }
+
+    doc.save(`Academic_Report_${formatLocalYMD(new Date())}.pdf`);
+    showToast('✅ PDF exported', 'success');
+  }
+
+  function reportTitle() {
+    return ({
+      intelligence: 'Academic Intelligence',
+      recovery: 'Grade Recovery',
+      weekly: 'Weekly Review',
+      syllabus: 'Syllabus Coverage',
+      semester: 'Semester Trends',
+      audit: 'Assessment Audit',
+      timetable: 'Study Timetable'
+    })[currentReport] || 'Report';
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  //  EXCEL EXPORT — with fixed Grade Recovery columns
+  // ═══════════════════════════════════════════════════════════════════
+  async function exportExcel() {
+    if (!window.ExcelJS) { showToast('Excel library not loaded', 'error'); return; }
+    showToast('Generating Excel…', 'info');
+
+    const wb = new window.ExcelJS.Workbook();
+    wb.creator = user.username;
+    wb.created = new Date();
+
+    const headerFill = { type:'pattern', pattern:'solid', fgColor:{ argb:'FF0B2B3B' } };
+    const subFill = { type:'pattern', pattern:'solid', fgColor:{ argb:'FF1A4D5F' } };
+    const accentFill = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFE6F4FA' } };
+    const thinBorder = { top:{style:'thin'}, bottom:{style:'thin'}, left:{style:'thin'}, right:{style:'thin'} };
+
+    const buildOverview = () => {
+      const intel = buildIntelligenceReport();
+      if (intel.empty) return;
+      const s = wb.addWorksheet('Overview', { properties: { tabColor: { argb: 'FF2FC7FF' } } });
+      s.columns = [{ width: 5 }, { width: 12 }, { width: 38 }, { width: 14 }, { width: 12 }, { width: 12 }, { width: 12 }, { width: 12 }, { width: 10 }, { width: 14 }];
+      s.mergeCells('A1:J1');
+      const t = s.getCell('A1');
+      t.value = 'ACADEMIC INTELLIGENCE REPORT';
+      t.font = { bold: true, size: 20, color: { argb: 'FFFFFFFF' } };
+      t.fill = headerFill;
+      t.alignment = { horizontal: 'center', vertical: 'middle' };
+      s.getRow(1).height = 40;
+      s.mergeCells('A2:J2');
+      const s2 = s.getCell('A2');
+      s2.value = `${reportScope.yearName || 'All Years'} · ${reportScope.semesterName || 'All Semesters'} · Generated ${new Date().toLocaleString()}`;
+      s2.font = { size: 10, italic: true };
+      s2.fill = accentFill;
+      s2.alignment = { horizontal: 'center', vertical: 'middle' };
+      s.getRow(2).height = 22;
+
+      const headers = ['#', 'Code', 'Module', 'Year · Sem', 'Grade', 'Level', 'Assessed', 'Pending', 'Credits', 'Accuracy'];
+      headers.forEach((h, i) => {
+        const c = s.getCell(4, i+1);
+        c.value = h;
+        c.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10 };
+        c.fill = subFill;
+        c.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+        c.border = thinBorder;
+      });
+      s.getRow(4).height = 28;
+
+      const sorted = [...intel.unitGrades].sort((a,b) => (b.grade ?? -1) - (a.grade ?? -1));
+      sorted.forEach((u, i) => {
+        const row = i + 5;
+        const vals = [i+1, u.code, u.name, `${u.year} · ${u.sem}`, u.grade !== null ? u.grade.toFixed(1)+'%' : '—', u.grade !== null ? gradeLabel(u.grade).label : '—', u.totalW.toFixed(1), u.pending.toFixed(1), u.creditHours, u.confirmed ? 'Confirmed' : u.provisional ? 'Provisional' : '—'];
+        vals.forEach((v, ci) => {
+          const c = s.getCell(row, ci+1);
+          c.value = v;
+          c.border = thinBorder;
+          c.alignment = { vertical: 'middle', horizontal: [0,3,4,5,6,7,8,9].includes(ci) ? 'center' : 'left', wrapText: ci === 2 };
+        });
+        const gc = s.getCell(row, 5);
+        if (u.grade !== null) {
+          const gl = gradeLabel(u.grade);
+          const col = gl.cls === 'dist' ? 'FF1E7A34' : gl.cls === 'merit' ? 'FF138496' : gl.cls === 'credit' ? 'FF0984E3' : gl.cls === 'pass' ? 'FFB8860B' : 'FFC0392B';
+          gc.fill = { type:'pattern', pattern:'solid', fgColor:{ argb: col } };
+          gc.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        }
+        // Auto row height
+        const nameLines = Math.max(1, Math.ceil((u.name || '').length / 34));
+        s.getRow(row).height = Math.max(22, nameLines * 16 + 6);
+      });
+      s.views = [{ state: 'frozen', ySplit: 4 }];
+      s.pageSetup = { orientation:'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0, paperSize: 9, horizontalCentered: true };
+    };
+
+    const buildRecovery = () => {
+      const rec = buildRecoveryReport();
+      if (rec.empty) return;
+      const s = wb.addWorksheet('Grade Recovery', { properties: { tabColor: { argb: 'FF4AE4B8' } } });
+      // 5 columns: Assessment (merged 1-2), Status (3), Weight (4), New Grade (5), Impact (6)
+      s.columns = [{ width: 32 }, { width: 14 }, { width: 14 }, { width: 12 }, { width: 14 }, { width: 14 }];
+
+      s.mergeCells('A1:F1');
+      const t = s.getCell('A1');
+      t.value = 'GRADE RECOVERY & TARGET';
+      t.font = { bold: true, size: 18, color: { argb: 'FFFFFFFF' } };
+      t.fill = { type:'pattern', pattern:'solid', fgColor:{ argb:'FF138496' } };
+      t.alignment = { horizontal: 'center', vertical: 'middle' };
+      s.getRow(1).height = 36;
+
+      s.mergeCells('A2:F2');
+      const s2 = s.getCell('A2');
+      s2.value = `Scenarios assume ${recoveryControls.hypotheticalMark}% on each remaining assessment · Target increment +${recoveryControls.targetIncrement}%`;
+      s2.font = { size: 10, italic: true };
+      s2.fill = accentFill;
+      s2.alignment = { horizontal: 'center' };
+      s.getRow(2).height = 20;
+
+      let r = 4;
+      rec.units.forEach(u => {
+        s.mergeCells(r, 1, r, 6);
+        const hdr = s.getCell(r, 1);
+        hdr.value = `${u.code} — ${u.name}`;
+        hdr.font = { bold: true, size: 12, color: { argb: 'FFFFFFFF' } };
+        hdr.fill = subFill;
+        hdr.alignment = { indent: 1, vertical: 'middle' };
+        hdr.border = thinBorder;
+        s.getRow(r).height = 24;
+        r++;
+
+        // KPI rows — label in col 1, value merged across 2-6
+        const kpis = [
+          ['Current Grade', u.currentGrade.toFixed(1) + '%'],
+          ['Target', u.target + '%'],
+          ['Needed on Remaining', u.neededForTarget !== null ? u.neededForTarget.toFixed(1) + '%' : '—'],
+          ['Floor (fail remaining)', u.worstCase.toFixed(1) + '%'],
+          ['Ceiling (ace remaining)', u.bestCase.toFixed(1) + '%'],
+          ['Remaining Assessments', `${u.remainingCount} (${u.awaiting.length} awaiting grade, ${u.notSubmittedYet.length} not submitted)`]
+        ];
+        kpis.forEach(([k, v]) => {
+          const kl = s.getCell(r, 1);
+          kl.value = k;
+          kl.font = { bold: true, size: 10 };
+          kl.fill = accentFill;
+          kl.border = thinBorder;
+          kl.alignment = { vertical: 'middle', indent: 1 };
+
+          s.mergeCells(r, 2, r, 6);
+          const vc = s.getCell(r, 2);
+          vc.value = v;
+          vc.border = thinBorder;
+          vc.alignment = { vertical: 'middle', indent: 1 };
+          for (let c = 3; c <= 6; c++) s.getCell(r, c).border = thinBorder;
+          s.getRow(r).height = 20;
+          r++;
+        });
+
+        if (u.scenarios.length) {
+          r++;
+          // ✅ FIXED headers aligned with data
+          // Assessment (merged 1-2), Status (3), Weight (4), New Grade (5), Impact (6)
+          s.mergeCells(r, 1, r, 2);
+          const h1 = s.getCell(r, 1);
+          h1.value = 'Assessment';
+          h1.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10 };
+          h1.fill = headerFill;
+          h1.alignment = { horizontal: 'center', vertical: 'middle' };
+          h1.border = thinBorder;
+          s.getCell(r, 2).border = thinBorder;
+
+          const h3 = s.getCell(r, 3); h3.value = 'Status'; h3.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10 }; h3.fill = headerFill; h3.alignment = { horizontal: 'center', vertical: 'middle' }; h3.border = thinBorder;
+          const h4 = s.getCell(r, 4); h4.value = 'Weight'; h4.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10 }; h4.fill = headerFill; h4.alignment = { horizontal: 'center', vertical: 'middle' }; h4.border = thinBorder;
+          const h5 = s.getCell(r, 5); h5.value = 'New Grade'; h5.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10 }; h5.fill = headerFill; h5.alignment = { horizontal: 'center', vertical: 'middle' }; h5.border = thinBorder;
+          const h6 = s.getCell(r, 6); h6.value = 'Impact'; h6.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10 }; h6.fill = headerFill; h6.alignment = { horizontal: 'center', vertical: 'middle' }; h6.border = thinBorder;
+          s.getRow(r).height = 24;
+          r++;
+
+          u.scenarios.slice(0, 10).forEach(sc => {
+            s.mergeCells(r, 1, r, 2);
+            const nc = s.getCell(r, 1);
+            nc.value = sc.name;
+            nc.border = thinBorder;
+            nc.alignment = { vertical: 'middle', wrapText: true };
+            s.getCell(r, 2).border = thinBorder;
+
+            const stc = s.getCell(r, 3);
+            stc.value = sc.status === 'submitted' ? 'Awaiting' : sc.status;
+            stc.alignment = { horizontal: 'center', vertical: 'middle' };
+            stc.border = thinBorder;
+
+            const wc = s.getCell(r, 4);
+            wc.value = sc.weight + '%';
+            wc.alignment = { horizontal: 'center', vertical: 'middle' };
+            wc.border = thinBorder;
+
+            const ngc = s.getCell(r, 5);
+            ngc.value = sc.newGrade.toFixed(1) + '%';
+            ngc.alignment = { horizontal: 'center', vertical: 'middle' };
+            ngc.border = thinBorder;
+
+            const ic = s.getCell(r, 6);
+            ic.value = (sc.delta >= 0 ? '+' : '') + sc.delta.toFixed(2);
+            ic.alignment = { horizontal: 'center', vertical: 'middle' };
+            ic.font = { bold: true, color: { argb: sc.delta >= 3 ? 'FF1E7A34' : sc.delta >= 1 ? 'FFB8860B' : 'FF666666' } };
+            ic.border = thinBorder;
+
+            const nameLines = Math.max(1, Math.ceil((sc.name || '').length / 45));
+            s.getRow(r).height = Math.max(20, nameLines * 15 + 4);
+            r++;
+          });
+        }
+        r += 2;
+      });
+      s.pageSetup = { orientation:'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0, paperSize: 9, horizontalCentered: true };
+    };
+
+    const buildAudit = () => {
+      const aud = buildAuditReport();
+      if (aud.empty) return;
+      const s = wb.addWorksheet('Audit', { properties: { tabColor: { argb: 'FFE17055' } } });
+      s.columns = [{ width: 18 }, { width: 36 }, { width: 22 }];
+      s.mergeCells('A1:C1');
+      const t = s.getCell('A1');
+      t.value = 'ASSESSMENT AUDIT';
+      t.font = { bold: true, size: 18, color: { argb: 'FFFFFFFF' } };
+      t.fill = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFC0392B' } };
+      t.alignment = { horizontal: 'center', vertical: 'middle' };
+      s.getRow(1).height = 36;
+
+      s.getCell(3,1).value = 'Reliability Score'; s.getCell(3,1).font = { bold: true }; s.getCell(3,1).border = thinBorder;
+      s.mergeCells(3,2,3,3);
+      s.getCell(3,2).value = aud.reliability.toFixed(0) + '%';
+      s.getCell(3,2).font = { bold: true, size: 14, color: { argb: aud.reliability >= 85 ? 'FF1E7A34' : 'FFB8860B' } };
+      s.getCell(3,2).border = thinBorder;
+      s.getCell(3,3).border = thinBorder;
+
+      let r = 5;
+      const labels = {
+        missingDueDate:'Missing Due Dates', missingMarksSubmitted:'Submitted Without Marks', duplicateIds:'Duplicate IDs',
+        pastDueNotSubmitted:'Past Due Not Submitted', weightMismatch:'Weight Mismatches', categoryGuess:'Category Guesses',
+        zeroWeight:'Zero Weight', outOfRangeMarks:'Out of Range Marks'
+      };
+      Object.entries(aud.issues).forEach(([key, arr]) => {
+        if (!arr.length) return;
+        s.mergeCells(r, 1, r, 3);
+        const hdr = s.getCell(r, 1);
+        hdr.value = `${labels[key] || key} (${arr.length})`;
+        hdr.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        hdr.fill = subFill;
+        hdr.alignment = { indent: 1, vertical: 'middle' };
+        hdr.border = thinBorder;
+        s.getRow(r).height = 22;
+        r++;
+        arr.slice(0, 15).forEach(it => {
+          s.getCell(r, 1).value = it.unit || '—';
+          s.getCell(r, 2).value = it.name || it.id || '—';
+          s.getCell(r, 3).value = it.due || (it.actual !== undefined ? it.actual.toFixed(1) + '%' : '');
+          for (let c = 1; c <= 3; c++) s.getCell(r, c).border = thinBorder;
+          r++;
+        });
+        r++;
+      });
+    };
+
+    const buildTimetable = () => {
+      const tt = buildTimetable(timetableConfig);
+      if (tt.empty) return;
+      const s = wb.addWorksheet('Timetable', { properties: { tabColor: { argb: 'FFA29BFE' } } });
+      s.columns = [{ width: 12 }, { width: 14 }, { width: 38 }, { width: 14 }, { width: 14 }, { width: 14 }];
+      s.mergeCells('A1:F1');
+      const t = s.getCell('A1');
+      t.value = 'WEEKLY STUDY TIMETABLE';
+      t.font = { bold: true, size: 18, color: { argb: 'FFFFFFFF' } };
+      t.fill = { type:'pattern', pattern:'solid', fgColor:{ argb:'FF6F42C1' } };
+      t.alignment = { horizontal: 'center', vertical: 'middle' };
+      s.getRow(1).height = 36;
+
+      s.getCell(3, 1).value = 'Coverage'; s.getCell(3, 1).font = { bold: true }; s.getCell(3, 1).border = thinBorder;
+      s.getCell(3, 2).value = tt.coverage.toFixed(0) + '%'; s.getCell(3, 2).font = { bold: true, size: 14 }; s.getCell(3, 2).border = thinBorder;
+
+      let r = 5;
+      ['Day', 'Time', 'Task', 'Unit', 'Type', 'Partial'].forEach((h, i) => {
+        const c = s.getCell(r, i+1);
+        c.value = h;
+        c.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        c.fill = subFill;
+        c.alignment = { horizontal: 'center', vertical: 'middle' };
+        c.border = thinBorder;
+      });
+      r++;
+      tt.days.forEach(d => {
+        (tt.timetable[d] || []).forEach(slot => {
+          s.getCell(r, 1).value = d;
+          s.getCell(r, 2).value = slot.scheduledMinutes + ' min';
+          s.getCell(r, 3).value = slot.title;
+          s.getCell(r, 4).value = slot.unit;
+          s.getCell(r, 5).value = slot.type;
+          s.getCell(r, 6).value = slot.partial ? 'yes' : '';
+          for (let c = 1; c <= 6; c++) {
+            s.getCell(r, c).border = thinBorder;
+            if (c === 5) {
+              const clr = slot.type === 'overdue' ? 'FFC0392B' : slot.type === 'due-soon' ? 'FFB8860B' : 'FF0984E3';
+              s.getCell(r, c).font = { bold: true, color: { argb: clr } };
+            }
+          }
+          r++;
+        });
+      });
+    };
+
+    // ── Decide which sheets to include ──
+    if (exportComplete || currentReport === 'intelligence') buildOverview();
+    if (exportComplete || currentReport === 'recovery') buildRecovery();
+    if (exportComplete || currentReport === 'audit') buildAudit();
+    if (exportComplete || currentReport === 'timetable') buildTimetable();
+
+    // Ensure at least one sheet
+    if (!wb.worksheets.length) {
+      buildOverview();
+      if (!wb.worksheets.length) {
+        const s = wb.addWorksheet('Empty');
+        s.getCell(1,1).value = 'No data available for the current report.';
+      }
+    }
+
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    saveAs(blob, `Academic_Report_${formatLocalYMD(new Date())}.xlsx`);
+    showToast('✅ Excel exported', 'success');
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  //  WIRE UP
+  // ═══════════════════════════════════════════════════════════════════
+  document.getElementById('exportPdfBtn').addEventListener('click', exportPDF);
+  document.getElementById('exportExcelBtn').addEventListener('click', exportExcel);
+
+  (async function init() {
+    await loadStudyData();
+    if (!studyData.years || !studyData.years.length) {
+      document.getElementById('reportContent').innerHTML = emptyHtml('No study data found. Add modules in Studies first.');
+      return;
+    }
+    renderCurrentReport();
+    console.log('✅ Report Centre ready — v2 (accuracy fixes applied)');
+  })();
+
+})();
+</script>
+</body>
+</html>
