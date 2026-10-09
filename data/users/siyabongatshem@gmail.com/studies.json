@@ -2660,16 +2660,16 @@
                         "Projectile motion and uniform circular motion",
                         "Motion on a flat and inclined plane"
                       ],
-                      "completed": false,
+                      "completed": true,
                       "subCompleted": [
-                        false,
-                        false,
-                        false,
-                        false,
-                        false,
-                        false,
-                        false,
-                        false
+                        true,
+                        true,
+                        true,
+                        true,
+                        true,
+                        true,
+                        true,
+                        true
                       ]
                     }
                   ],
@@ -2691,17 +2691,17 @@
                         "Pressure",
                         "Buoyancy"
                       ],
-                      "completed": false,
+                      "completed": true,
                       "subCompleted": [
-                        false,
-                        false,
-                        false,
-                        false,
-                        false,
-                        false,
-                        false,
-                        false,
-                        false
+                        true,
+                        true,
+                        true,
+                        true,
+                        true,
+                        true,
+                        true,
+                        true,
+                        true
                       ]
                     }
                   ],
@@ -2735,16 +2735,16 @@
                         "Translation and rotation of rigid bodies",
                         "General plane motion of simple rigid bodies"
                       ],
-                      "completed": false,
+                      "completed": true,
                       "subCompleted": [
-                        false,
-                        false,
-                        false,
-                        false,
-                        false,
-                        false,
-                        false,
-                        false
+                        true,
+                        true,
+                        true,
+                        true,
+                        true,
+                        true,
+                        true,
+                        true
                       ]
                     }
                   ],
