@@ -1,11 +1,13 @@
 <!doctype html>
-<html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Approved public portfolio project gallery"><meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; object-src 'none'">
 <title>Projects | YourPortfolio</title>
-<meta name="description" content="Public project area">
-<meta name="referrer" content="no-referrer">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'">
-<link rel="stylesheet" href="secure-public.css"></head>
-<body><nav><a class="brand" href="index.html">YourPortfolio<span style="color:#5bdcb6">.</span></a><div class="links"><a href="index.html">Home</a><a href="projects.html">Projects</a><a href="certificates.html">Certificates</a><a href="studies.html">Studies</a><a href="https://portfolio-data-bridge.siyabongatshem.workers.dev/timesheet.html">Timesheets ↗</a></div></nav><main><section class="hero"><div class="eyebrow">Public project area</div><h1>Project gallery is being refreshed.</h1></section>
-<p class="lead">Project descriptions and images are being moved into a dedicated, explicitly public dataset. Private user/project records will not be served from GitHub Pages.</p><div class="actions"><a class="btn" href="index.html">Back to portfolio</a></div>
-</main><footer>Public portfolio · Private Timesheets are hosted separately through Cloudflare Access.</footer></body></html>
+<link rel="stylesheet" href="secure-public.css"><link rel="stylesheet" href="public-projects.css">
+<script defer src="public-projects.js"></script></head>
+<body><nav><a class="brand" href="index.html">YourPortfolio<span class="accent">.</span></a><div class="links"><a href="index.html">Home</a><a href="projects.html" aria-current="page">Projects</a><a href="certificates.html">Certificates</a><a href="studies.html">Studies ↗</a><a href="study-reports.html">Study Reports ↗</a><a href="timesheet.html">Timesheets ↗</a><a href="manage-projects.html">Private Project Manager ↗</a></div></nav>
+<main><section class="hero"><div class="eyebrow">Selected engineering and software work</div><h1>Projects</h1>
+<p class="lead">A selection of work approved for public display. Private specifications, internal reports and other personal records are not included.</p>
+<div class="actions"><a class="btn" href="manage-projects.html">Manage my projects privately ↗</a></div></section>
+<section aria-label="Public project gallery"><div class="catalog-tools"><label class="search-label">Search <input id="project-search" type="search" placeholder="Search public projects" autocomplete="off"></label><label>Category <select id="category-filter"><option value="">All categories</option></select></label></div>
+<div id="project-count" class="kicker" aria-live="polite">Loading public catalog…</div><div id="project-cards" class="public-card-grid"></div><p id="project-error" class="catalog-message" role="status" hidden></p></section></main><footer>Public project information is published intentionally. Private engineering records stay behind Cloudflare Access.</footer></body></html>

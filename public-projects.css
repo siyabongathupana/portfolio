@@ -1,0 +1,16 @@
+/* Public gallery design. No private data or credentials. */
+.accent{color:#5bdcb6}.catalog-tools{display:flex;gap:14px;flex-wrap:wrap;align-items:end;margin:16px 0 22px}
+.catalog-tools label{display:flex;flex-direction:column;gap:5px;font-size:.8rem;color:#a7bdd1;font-weight:650}.search-label{flex:2;min-width:220px}
+.catalog-tools input,.catalog-tools select{background:#121f30;color:#eaf4ff;border:1px solid #355069;border-radius:10px;font:inherit;font-size:1rem;padding:11px 12px;min-width:150px}
+.catalog-tools input:focus,.catalog-tools select:focus{outline:2px solid #2fc7ff;outline-offset:2px}
+.public-card-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(255px,1fr));gap:18px;margin-top:18px}
+.public-project-card{border:1px solid #2a4057;border-radius:17px;background:#131f30;overflow:hidden;display:flex;flex-direction:column;min-width:0}
+.public-project-card .body{padding:18px 20px;display:flex;flex-direction:column;flex:1;gap:10px}
+.public-project-card h2{font-size:1.3rem;margin:0}.public-project-card p{margin:0;color:#b5cadc;font-size:.92rem}
+.project-cover{display:block;width:100%;aspect-ratio:16/9;object-fit:cover;background:#122d45}.project-cover.fallback{background:linear-gradient(140deg,#153950,#102033 60%,#163d3a);display:grid;place-items:center;color:#7bccdc;font-weight:800;letter-spacing:.12em;font-size:.82rem}
+.pills{display:flex;gap:7px;flex-wrap:wrap}.pill{display:inline-block;color:#b2e7f0;background:#102a39;border:1px solid #274d5b;padding:4px 10px;border-radius:16px;font-size:.76rem}
+.public-project-card .more{margin-top:auto;font-weight:700}.catalog-message{background:#102336;border-left:3px solid #2fc7ff;color:#d4e4f1;padding:18px 20px;border-radius:0 10px 10px 0;margin-top:20px}
+.project-detail-panel{border:1px solid #2a4057;border-radius:18px;background:#121f2d;padding:clamp(20px,4vw,38px);margin:16px 0}
+.project-detail-panel h1{margin:8px 0 16px}.detail-image{max-height:460px;object-fit:contain;width:100%;border-radius:13px;background:#08131e;margin:10px 0 20px}
+.detail-body{color:#d6e4f0;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.75}.back{font-weight:700}.project-meta{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 18px}
+@media (max-width:600px){.catalog-tools label{width:100%}.catalog-tools select{width:100%}}
