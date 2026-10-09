@@ -2099,11 +2099,11 @@
                       "id": "ass_bsc101_quiz_w9",
                       "name": "Weekly Quiz Week 9",
                       "due": "2026-04-10",
-                      "status": "not-started",
-                      "marks": "",
+                      "status": "graded",
+                      "marks": "100",
                       "weight": 1,
                       "submittedDate": null,
-                      "gradedDate": null,
+                      "gradedDate": "2026-10-09",
                       "notes": "",
                       "priority": "normal"
                     }
