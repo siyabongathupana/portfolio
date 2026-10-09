@@ -2328,11 +2328,11 @@
                       "id": "ass_bsc102_mcq",
                       "name": "Multi-choice Test (Invigilated)",
                       "due": "2026-02-27",
-                      "status": "not-started",
-                      "marks": "",
+                      "status": "graded",
+                      "marks": "60",
                       "weight": 15,
                       "submittedDate": null,
-                      "gradedDate": null,
+                      "gradedDate": "2026-10-09",
                       "notes": "Topics 1 to 3. Multiple-choice quiz.",
                       "priority": "high"
                     }
