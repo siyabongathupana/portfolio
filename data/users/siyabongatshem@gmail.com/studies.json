@@ -3220,11 +3220,11 @@
                       "id": "ass_bsc105_quiz_w2",
                       "name": "Weekly Quiz Week 2",
                       "due": "2026-02-20",
-                      "status": "not-started",
-                      "marks": "",
+                      "status": "graded",
+                      "marks": "60",
                       "weight": 2.5,
                       "submittedDate": null,
-                      "gradedDate": null,
+                      "gradedDate": "2026-10-09",
                       "notes": "",
                       "priority": "normal"
                     }
