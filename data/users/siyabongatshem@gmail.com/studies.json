@@ -2443,11 +2443,11 @@
                       "id": "ass_bsc102_test1",
                       "name": "Test - Short Answer (Invigilated)",
                       "due": "2026-03-20",
-                      "status": "not-started",
-                      "marks": "",
+                      "status": "graded",
+                      "marks": "61",
                       "weight": 20,
                       "submittedDate": null,
-                      "gradedDate": null,
+                      "gradedDate": "2026-10-09",
                       "notes": "Topics 1 to 6. Short answer questions and simple problems.",
                       "priority": "high"
                     }
