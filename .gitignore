@@ -1,0 +1,4 @@
+# Security containment: private application data and environment files never belong in GitHub Pages
+/data/
+/.env
+/.env.*
