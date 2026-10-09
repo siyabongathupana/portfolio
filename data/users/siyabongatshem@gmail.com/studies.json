@@ -2569,11 +2569,11 @@
                       "id": "ass_bsc102_homework",
                       "name": "Homework - Multi-choice Test",
                       "due": "2026-04-17",
-                      "status": "not-started",
-                      "marks": "",
+                      "status": "graded",
+                      "marks": "4.9",
                       "weight": 5,
                       "submittedDate": null,
-                      "gradedDate": null,
+                      "gradedDate": "2026-10-09",
                       "notes": "Topics 1 to 10. Multiple choice questions.",
                       "priority": "normal"
                     }
