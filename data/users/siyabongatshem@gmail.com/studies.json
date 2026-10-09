@@ -2042,10 +2042,10 @@
                         "Sets and subsets, Union, Intersection, Differences, Product",
                         "Algebra, Power set"
                       ],
-                      "completed": false,
+                      "completed": true,
                       "subCompleted": [
-                        false,
-                        false
+                        true,
+                        true
                       ]
                     }
                   ],
