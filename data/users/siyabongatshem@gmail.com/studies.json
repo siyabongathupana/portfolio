@@ -3433,11 +3433,11 @@
                       "id": "ass_bsc105_presentation",
                       "name": "Presentation (10 min recorded)",
                       "due": "2026-03-27",
-                      "status": "not-started",
-                      "marks": "",
+                      "status": "graded",
+                      "marks": "53",
                       "weight": 30,
                       "submittedDate": null,
-                      "gradedDate": null,
+                      "gradedDate": "2026-10-09",
                       "notes": "Covers Topics 1 to 6. 10-minute recorded presentation.",
                       "priority": "high"
                     }
