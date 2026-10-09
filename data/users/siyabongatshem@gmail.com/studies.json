@@ -2487,13 +2487,13 @@
                         "Maximum Power Transfer Theorem",
                         "Impedance matching"
                       ],
-                      "completed": false,
+                      "completed": true,
                       "subCompleted": [
-                        false,
-                        false,
-                        false,
-                        false,
-                        false
+                        true,
+                        true,
+                        true,
+                        true,
+                        true
                       ]
                     }
                   ],
@@ -2516,18 +2516,18 @@
                         "Oscilloscope as measuring device",
                         "Bridges and their use in measurements"
                       ],
-                      "completed": false,
+                      "completed": true,
                       "subCompleted": [
-                        false,
-                        false,
-                        false,
-                        false,
-                        false,
-                        false,
-                        false,
-                        false,
-                        false,
-                        false
+                        true,
+                        true,
+                        true,
+                        true,
+                        true,
+                        true,
+                        true,
+                        true,
+                        true,
+                        true
                       ]
                     }
                   ],
@@ -2556,11 +2556,11 @@
                         "Mesh current analysis in AC circuits",
                         "Nodal analysis"
                       ],
-                      "completed": false,
+                      "completed": true,
                       "subCompleted": [
-                        false,
-                        false,
-                        false
+                        true,
+                        true,
+                        true
                       ]
                     }
                   ],
