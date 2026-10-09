@@ -2810,11 +2810,11 @@
                       "id": "ass_bsc103_test",
                       "name": "Test (Invigilated)",
                       "due": "2026-03-06",
-                      "status": "not-started",
-                      "marks": "",
+                      "status": "graded",
+                      "marks": "88",
                       "weight": 25,
                       "submittedDate": null,
-                      "gradedDate": null,
+                      "gradedDate": "2026-10-09",
                       "notes": "Topics 1 to 4. Short and/or long answer questions and/or simple numerical problems.",
                       "priority": "high"
                     }
