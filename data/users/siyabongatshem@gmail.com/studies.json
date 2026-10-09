@@ -1959,11 +1959,11 @@
                       "id": "ass_bsc101_quiz_w5",
                       "name": "Weekly Quiz Week 5",
                       "due": "2026-03-13",
-                      "status": "not-started",
-                      "marks": "",
+                      "status": "graded",
+                      "marks": "80",
                       "weight": 1,
                       "submittedDate": null,
-                      "gradedDate": null,
+                      "gradedDate": "2026-10-09",
                       "notes": "",
                       "priority": "normal"
                     }
@@ -5007,8 +5007,8 @@
                       "subtopics": [
                         "Need for control schemes",
                         "Symbols used in control circuits",
-                        "Motor controls Ã¢ÂÂ unidirectional",
-                        "Motor control Ã¢ÂÂ reversing",
+                        "Motor controls ÃÂ¢ÃÂÃÂ unidirectional",
+                        "Motor control ÃÂ¢ÃÂÃÂ reversing",
                         "Interlocks for control/safety"
                       ],
                       "completed": false,
@@ -6145,7 +6145,7 @@
                   "number": 9,
                   "topics": [
                     {
-                      "name": "Modelling, control, design and analysis of SISO systems using MatlabÃ¢ÂÂ¢",
+                      "name": "Modelling, control, design and analysis of SISO systems using MatlabÃÂ¢ÃÂÃÂ¢",
                       "subtopics": [
                         "Case studies and exercises with Matlab to model, tune, and analyze 1st and 2nd order systems",
                         "Verify stability and response of controllers"
