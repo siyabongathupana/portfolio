@@ -2536,11 +2536,11 @@
                       "id": "ass_bsc102_practical",
                       "name": "Practical Assessment (Simulation Software)",
                       "due": "2026-04-10",
-                      "status": "not-started",
-                      "marks": "",
+                      "status": "graded",
+                      "marks": "87",
                       "weight": 20,
                       "submittedDate": null,
-                      "gradedDate": null,
+                      "gradedDate": "2026-10-09",
                       "notes": "Topics 1 to 9. Complete practical project.",
                       "priority": "high"
                     }
