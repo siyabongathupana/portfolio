@@ -1945,12 +1945,12 @@
                         "Parametric equations",
                         "Derivatives of Other Functions, Higher Derivatives and Graphs of Derivatives"
                       ],
-                      "completed": false,
+                      "completed": true,
                       "subCompleted": [
-                        false,
-                        false,
-                        false,
-                        false
+                        true,
+                        true,
+                        true,
+                        true
                       ]
                     }
                   ],
