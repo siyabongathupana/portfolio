@@ -3341,11 +3341,11 @@
                       "id": "ass_bsc105_quiz_w5",
                       "name": "Weekly Quiz Week 5",
                       "due": "2026-03-13",
-                      "status": "not-started",
-                      "marks": "",
+                      "status": "graded",
+                      "marks": "100",
                       "weight": 2.5,
                       "submittedDate": null,
-                      "gradedDate": null,
+                      "gradedDate": "2026-10-09",
                       "notes": "",
                       "priority": "normal"
                     }
