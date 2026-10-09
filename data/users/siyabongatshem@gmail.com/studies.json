@@ -1545,7 +1545,7 @@
                       "name": "Assessment 2 (Mid Semester Test)",
                       "due": "2026-09-29",
                       "status": "submitted",
-                      "marks": "0.5",
+                      "marks": "",
                       "weight": 25,
                       "submittedDate": "2026-09-27",
                       "gradedDate": null,
