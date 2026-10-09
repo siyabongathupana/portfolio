@@ -1899,11 +1899,11 @@
                         "Sketching curves, Gradient and Tangent to a Curve",
                         "Maxima, Minima and Points of Inflection, Mean Value Theorem"
                       ],
-                      "completed": false,
+                      "completed": true,
                       "subCompleted": [
-                        false,
-                        false,
-                        false
+                        true,
+                        true,
+                        true
                       ]
                     }
                   ],
