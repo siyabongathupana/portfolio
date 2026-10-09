@@ -2086,11 +2086,11 @@
                         "Exponential functions, Graphing exponential functions, Logarithmic Equations",
                         "Application of Logarithms and exponential functions, Change of base"
                       ],
-                      "completed": false,
+                      "completed": true,
                       "subCompleted": [
-                        false,
-                        false,
-                        false
+                        true,
+                        true,
+                        true
                       ]
                     }
                   ],
