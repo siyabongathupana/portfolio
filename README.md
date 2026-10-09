@@ -26,7 +26,7 @@
 
 | Projects | Certifications | Users | Hours | Billable | Daily Avg |
 |:--------:|:--------------:|:-----:|:-----:|:--------:|:---------:|
-| 4 | 18 | 6 | 771.3 | 521.6 | 8.0h |
+| 0 | 0 | 6 | 0 | 0 | 0h |
 
 ---
 
@@ -34,44 +34,20 @@
 
 | Category | Value |
 |----------|-------|
-| Top Category | CFAT |
-| Top Project | Omnia Phase 3 |
-| Active Days | 97 |
+| Top Category | N/A |
+| Top Project | N/A |
+| Active Days | 0 |
 
 ---
 
 ## 🏗️ Featured Projects
 
 
-- ** Steam Station 1** - SASOL (-)
-  - Status: Completed | Progress: 100%
-  - 
-
-- ** Your Portfolio** - Siya (1 year)
-  - Status: Ongoing | Progress: 80%
-  - 
-
-- ** ATKSS** - ESKOM (-)
-  - Status: Ongoing | Progress: 70%
-  - 
-
-- ** OMNIA Phase 1** - Omnia (6 months)
-  - Status: Completed | Progress: 100%
-  - 
-
 
 ---
 
 ## 🎓 Recent Certifications
 
-
-- **7018 DeltaV Hardware and Troubleshooting** - Emerson  (2024-11)
-
-- **Service Ready Core** - Korn Ferry (2025-04)
-
-- **DeltaV Field Service Supervised** - Emerson  (2025-05)
-
-- **NDG Linux Unhatched** - NDG (2024-01)
 
 
 ---
@@ -89,34 +65,6 @@
 ## 🛠️ Skills
 
 
-`CSS`
-
-`Chemical`
-
-`DCS`
-
-`DeltaV PK`
-
-`DeltaV SZ`
-
-`DeltaV v13`
-
-`DeltaV v14`
-
-`DeltaV v15`
-
-`HTML`
-
-`JavaScript`
-
-`Node.js`
-
-`SIS & DCS`
-
-`Software & Technology`
-
-`Thermal Power & Utility`
-
 
 ---
 
@@ -130,6 +78,6 @@
 
 <div align="center">
 
-*Last updated: October 09, 2026 at 05:05:56 UTC*
+*Last updated: October 09, 2026 at 11:04:09 UTC*
 
 </div>
