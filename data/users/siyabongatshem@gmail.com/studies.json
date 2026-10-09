@@ -3550,11 +3550,11 @@
                       "id": "ass_bsc105_quiz_w10",
                       "name": "Weekly Quiz Week 10",
                       "due": "2026-04-17",
-                      "status": "not-started",
-                      "marks": "",
+                      "status": "graded",
+                      "marks": "100",
                       "weight": 2.5,
                       "submittedDate": null,
-                      "gradedDate": null,
+                      "gradedDate": "2026-10-09",
                       "notes": "",
                       "priority": "normal"
                     }
