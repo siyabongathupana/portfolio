@@ -2010,11 +2010,11 @@
                         "Geometric progression, Pascal's triangle, Permutation and combination",
                         "Binomial theorem, Graphing progressions, Power series"
                       ],
-                      "completed": false,
+                      "completed": true,
                       "subCompleted": [
-                        false,
-                        false,
-                        false
+                        true,
+                        true,
+                        true
                       ]
                     }
                   ],
