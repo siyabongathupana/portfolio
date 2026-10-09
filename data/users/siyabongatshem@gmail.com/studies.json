@@ -2160,11 +2160,11 @@
                         "Probability Concepts (probability rules, Conditional probability, Permutations and combinations)",
                         "Discrete Random Variables (CDF and common distribution)"
                       ],
-                      "completed": false,
+                      "completed": true,
                       "subCompleted": [
-                        false,
-                        false,
-                        false
+                        true,
+                        true,
+                        true
                       ]
                     }
                   ],
