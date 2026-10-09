@@ -2202,11 +2202,11 @@
                       "id": "ass_bsc101_final",
                       "name": "Final Exam (Invigilated)",
                       "due": "2026-05-15",
-                      "status": "not-started",
-                      "marks": "",
+                      "status": "graded",
+                      "marks": "71",
                       "weight": 40,
                       "submittedDate": null,
-                      "gradedDate": null,
+                      "gradedDate": "2026-10-09",
                       "notes": "Topics 1 to 12. Short and/or long answer questions and/or numerical problems. Must achieve 50%+ in exam.",
                       "priority": "high"
                     }
