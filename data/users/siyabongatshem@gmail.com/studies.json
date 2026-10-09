@@ -2191,9 +2191,9 @@
                       "subtopics": [
                         "Continuous Random Variables (PDF and common distributions)"
                       ],
-                      "completed": false,
+                      "completed": true,
                       "subCompleted": [
-                        false
+                        true
                       ]
                     }
                   ],
