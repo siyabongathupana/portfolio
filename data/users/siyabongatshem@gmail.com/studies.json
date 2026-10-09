@@ -2628,11 +2628,11 @@
                       "id": "ass_bsc102_final",
                       "name": "Examination",
                       "due": "2026-05-15",
-                      "status": "not-started",
-                      "marks": "",
+                      "status": "graded",
+                      "marks": "65",
                       "weight": 40,
                       "submittedDate": null,
-                      "gradedDate": null,
+                      "gradedDate": "2026-10-09",
                       "notes": "All topics. Mix of descriptive questions and numerical problems. Must achieve 50%+ in exam.",
                       "priority": "high"
                     }
