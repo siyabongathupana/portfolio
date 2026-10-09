@@ -3256,11 +3256,11 @@
                       "name": "Weekly Quiz Week 3",
                       "due": "2026-02-27",
                       "status": "not-started",
-                      "marks": "",
+                      "marks": "0",
                       "weight": 2.5,
                       "submittedDate": null,
                       "gradedDate": null,
-                      "notes": "",
+                      "notes": "Missed Due Date",
                       "priority": "normal"
                     }
                   ]
