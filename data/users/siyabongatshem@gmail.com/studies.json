@@ -2066,11 +2066,11 @@
                       "id": "ass_bsc101_test2",
                       "name": "Test 2 (Invigilated)",
                       "due": "2026-04-03",
-                      "status": "not-started",
-                      "marks": "",
+                      "status": "graded",
+                      "marks": "73",
                       "weight": 25,
                       "submittedDate": null,
-                      "gradedDate": null,
+                      "gradedDate": "2026-10-09",
                       "notes": "Topics 5 to 8. Short and/or long answer questions and/or numerical problems.",
                       "priority": "high"
                     }
