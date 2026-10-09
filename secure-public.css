@@ -1,0 +1,28 @@
+/* Step 5F.2 safe public mode: no private data, passwords or browser credentials. */
+:root { color-scheme: dark; font-family: Inter,system-ui,-apple-system,Segoe UI,Arial,sans-serif; }
+*{box-sizing:border-box}
+body{margin:0;background:#090f1b;color:#e6edf7;line-height:1.6}
+a{color:#61d7ff;text-decoration:none}
+a:hover{text-decoration:underline}
+nav{max-width:1050px;margin:auto;padding:21px 24px;display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap;align-items:center}
+.brand{font-weight:800;color:#f4f9ff;font-size:1.3rem;letter-spacing:-.03em}
+.links{display:flex;gap:18px;align-items:center;flex-wrap:wrap;font-size:.91rem}
+main{max-width:1050px;margin:45px auto 0;padding:0 24px 70px}
+.hero{padding:45px 0 20px;max-width:800px}
+.eyebrow{color:#5ed8bf;font-size:.8rem;letter-spacing:.13em;text-transform:uppercase;font-weight:700}
+h1{font-size:clamp(2.2rem,5.4vw,4rem);letter-spacing:-.055em;line-height:1.08;margin:14px 0 20px}
+h2{font-size:1.35rem;margin:0 0 8px;letter-spacing:-.02em}
+p{color:#b9cadb;margin:0 0 18px}
+.lead{font-size:1.13rem;color:#d4e1ee;max-width:700px}
+.actions{display:flex;gap:12px;flex-wrap:wrap;margin:28px 0 18px}
+.btn{display:inline-block;border:1px solid #366176;border-radius:11px;padding:12px 18px;color:#edf9ff;font-weight:700;background:#17293c}
+.btn.primary{background:#54caff;color:#052034;border-color:#54caff}
+.btn:hover{background:#20435b;text-decoration:none}
+.btn.primary:hover{background:#91e0ff}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin:22px 0}
+.card{background:linear-gradient(145deg,#121f30,#121a28);border:1px solid #293b4e;padding:22px;border-radius:15px}
+.card p{font-size:.94rem}
+.notice{border-left:3px solid #5bdcb6;background:#10252b;padding:15px 18px;margin:22px 0;border-radius:0 10px 10px 0;color:#d7eee8}
+.kicker{font-size:.82rem;color:#8ba3b9}
+footer{max-width:1050px;margin:0 auto;padding:20px 24px 34px;border-top:1px solid #223247;color:#93a8bb;font-size:.86rem}
+@media(max-width:640px){main{margin:20px auto 0}.hero{padding-top:30px}.links{gap:10px}}
