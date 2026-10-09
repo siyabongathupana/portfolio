@@ -3630,11 +3630,11 @@
                       "id": "ass_bsc105_casestudy",
                       "name": "Case Study Project (Turnitin)",
                       "due": "2026-05-15",
-                      "status": "not-started",
-                      "marks": "",
+                      "status": "graded",
+                      "marks": "85",
                       "weight": 45,
                       "submittedDate": null,
-                      "gradedDate": null,
+                      "gradedDate": "2026-10-09",
                       "notes": "All topics. Maximum 10 pages. Submit via Turnitin.",
                       "priority": "high"
                     }
