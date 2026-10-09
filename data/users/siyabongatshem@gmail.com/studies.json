@@ -2593,15 +2593,15 @@
                         "Sources of harmonics",
                         "Resonance due to harmonics"
                       ],
-                      "completed": false,
+                      "completed": true,
                       "subCompleted": [
-                        false,
-                        false,
-                        false,
-                        false,
-                        false,
-                        false,
-                        false
+                        true,
+                        true,
+                        true,
+                        true,
+                        true,
+                        true,
+                        true
                       ]
                     }
                   ],
@@ -2616,10 +2616,10 @@
                         "Review of contents covered so far",
                         "Student work review and clarification of outstanding issues"
                       ],
-                      "completed": false,
+                      "completed": true,
                       "subCompleted": [
-                        false,
-                        false
+                        true,
+                        true
                       ]
                     }
                   ],
