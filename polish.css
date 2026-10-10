@@ -9,3 +9,8 @@
 .public-card-grid article,.feature-card{transition:transform .22s ease,box-shadow .22s ease}
 @media(hover:hover){.public-card-grid article:hover,.feature-card:hover{transform:translateY(-4px)}}
 @media(prefers-reduced-motion:reduce){.public-card-grid article,.feature-card{transition:none}}
+
+/* Final brand consistency for public gallery headers */
+.site-header .brand,.topbar .brand{white-space:nowrap;letter-spacing:-.02em;font-weight:800}.site-header .brand img,.topbar .brand img{object-fit:contain}.portfolio-global-theme{border-radius:12px}
+
+.theme-toggle,#themeToggle,.portfolio-global-theme{min-width:40px;min-height:40px;display:inline-grid;place-items:center}.site-header .brand,.topbar .brand{white-space:nowrap}

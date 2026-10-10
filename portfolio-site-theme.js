@@ -7,15 +7,15 @@ const here=new URL(location.href);
 let stored=null;try{stored=norm(localStorage.getItem(KEY));}catch{}
 const incoming=norm(here.searchParams.get('theme'));
 let active=incoming||stored||'dark';
-function updateButton(btn){if(!btn)return;const light=active==='light';btn.setAttribute('aria-label',light?'Switch to dark mode':'Switch to light mode');btn.title=light?'Switch to dark mode':'Switch to light mode';btn.setAttribute('aria-pressed',String(light));const glyph=btn.querySelector('#themeIcon')||btn.querySelector('.theme-glyph');if(glyph)glyph.textContent=light?'☾':'☼';else if(btn.id==='secureThemeToggle'||btn.id==='universalThemeToggle')btn.textContent=light?'☾ Dark':'☼ Light';}
+function updateButton(btn){if(!btn)return;const light=active==='light';btn.setAttribute('aria-label',light?'Switch to dark mode':'Switch to light mode');btn.title=light?'Switch to dark mode':'Switch to light mode';btn.setAttribute('aria-pressed',String(light));const glyph=btn.querySelector('#themeIcon')||btn.querySelector('.theme-glyph');if(glyph)glyph.textContent=light?'☾':'☼';else if(btn.id==='secureThemeToggle'||btn.id==='universalThemeToggle')btn.textContent=light?'☾':'☼';}
 function apply(t,save=true){active=norm(t)||'dark';document.documentElement.dataset.theme=active;document.documentElement.classList.toggle('theme-dark',active==='dark');document.documentElement.classList.toggle('theme-light',active==='light');document.documentElement.style.colorScheme=active;const legacy=document.getElementById('theme-dark-css');if(legacy)legacy.disabled=active==='light';document.querySelectorAll('#themeToggle,#secureThemeToggle,#universalThemeToggle').forEach(updateButton);if(save)try{localStorage.setItem(KEY,active);}catch{}}
 apply(active);
 if(incoming){try{here.searchParams.delete('theme');history.replaceState(history.state,'',here.pathname+here.search+here.hash);}catch{}}
 function init(){
  // Existing homepage already wires its button in homepage.js; avoid a double-click handler.
- let existing=document.getElementById('themeToggle');
+ let existing=document.getElementById('themeToggle')||document.getElementById('secureThemeToggle')||document.getElementById('universalThemeToggle');
  if(!existing){
-   const btn=document.createElement('button');btn.id='universalThemeToggle';btn.className='portfolio-global-theme';btn.type='button';btn.innerHTML='<span class="theme-glyph" aria-hidden="true">☼</span><span class="theme-text">Theme</span>';
+   const btn=document.createElement('button');btn.id='universalThemeToggle';btn.className='portfolio-global-theme';btn.type='button';btn.innerHTML='<span class="theme-glyph" aria-hidden="true">☼</span>';
    const actions=document.querySelector('.site-header .nav-actions,.topbar .nav-actions');
    if(actions)actions.prepend(btn);else {btn.classList.add('floating-theme');document.body.append(btn);}
    btn.addEventListener('click',()=>apply(active==='dark'?'light':'dark'));
