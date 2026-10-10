@@ -45,31 +45,41 @@
       "slug": "deltav-guardian-associate",
       "title": "DeltaV Guardian Associate",
       "issuer": "Emerson",
-      "date": "2025-02"
+      "date": "2025-02",
+      "image": "public-certificate-images/deltav-guardian-associate-6.jpg",
+      "url": "https://drive.google.com/file/d/1eSWTXbYWMtGMGvsEqOxKkCarQPXGvbOH/view?usp=sharing"
     },
     {
       "slug": "control-valve-fundamentals",
       "title": "Control Valve Fundamentals",
       "issuer": "Emerson",
-      "date": "2024-10"
+      "date": "2024-10",
+      "image": "public-certificate-images/control-valve-fundamentals-7.jpg",
+      "url": "https://drive.google.com/file/d/1eBNQFTiMtQ6A70QtFCCAON_DIZPHi7MS/view?usp=sharing"
     },
     {
       "slug": "rosemount-iv2022-pressure",
       "title": "Rosemount IV2022 Pressure",
       "issuer": "Emerson",
-      "date": "2024-03"
+      "date": "2024-03",
+      "image": "public-certificate-images/rosemount-iv2022-pressure-8.jpg",
+      "url": "https://drive.google.com/file/d/1OlBdlv8Q0PacrmKKWYHpZBSHiLXvEyyZ/view?usp=sharing"
     },
     {
       "slug": "rosemount-process-control-and-fundamentals-pressure-measurements",
       "title": "Rosemount Process Control and Fundamentals Pressure Measurements",
       "issuer": "Emerson",
-      "date": "2024-02"
+      "date": "2024-02",
+      "image": "public-certificate-images/rosemount-process-control-and-fundamentals-pressure-measurements-9.jpg",
+      "url": "https://drive.google.com/file/d/1zA7kNEMU7so-PN-DKZQO54V1HTf5beW2/view?usp=sharing"
     },
     {
       "slug": "emerson-wireless-gateways",
       "title": "Emerson Wireless Gateways",
       "issuer": "Emerson",
-      "date": "2024-02"
+      "date": "2024-02",
+      "image": "public-certificate-images/emerson-wireless-gateways-10.jpg",
+      "url": "https://drive.google.com/file/d/1t29AY9V6TChJHjbmif4CTWEriIpp-RZf/view?usp=sharing"
     },
     {
       "slug": "ethical-hacker",
