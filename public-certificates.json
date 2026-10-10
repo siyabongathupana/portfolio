@@ -125,19 +125,25 @@
       "slug": "ai-fundumentals",
       "title": "AI Fundumentals",
       "issuer": "IBM",
-      "date": "2024-08"
+      "date": "2024-08",
+      "image": "public-certificate-images/ai-fundumentals-16.jpg",
+      "url": "https://drive.google.com/file/d/1T2jVOQ0wQpKZPrSjjdSLckgXxH2jwdGd/view?usp=sharing"
     },
     {
       "slug": "network-addressing-basic-troubleshooting",
       "title": "Network Addressing & Basic Troubleshooting",
       "issuer": "Cisco",
-      "date": "2024-08"
+      "date": "2024-08",
+      "image": "public-certificate-images/network-addressing-basic-troubleshooting-17.jpg",
+      "url": "https://drive.google.com/file/d/1lAgtKPlb4Ojtcf98hCtBxnlMZycknGlx/view?usp=drive_link"
     },
     {
       "slug": "network-devices-initial-configuration",
       "title": "Network Devices & Initial Configuration",
       "issuer": "Cisco",
-      "date": "2024-08"
+      "date": "2024-08",
+      "image": "public-certificate-images/network-devices-initial-configuration-18.jpg",
+      "url": "https://drive.google.com/file/d/1YtsYTXZEM018lkAZCzLKdl7ZMlEYJ5eE/view?usp=sharing"
     },
     {
       "slug": "test",
