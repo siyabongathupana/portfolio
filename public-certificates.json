@@ -85,13 +85,17 @@
       "slug": "ethical-hacker",
       "title": "Ethical Hacker",
       "issuer": "Cisco",
-      "date": "2023-11"
+      "date": "2023-11",
+      "image": "public-certificate-images/ethical-hacker-11.jpg",
+      "url": "https://drive.google.com/file/d/1paNaXgAqTjs8PBSto7SUV6l-CYu3RL8j/view?usp=sharing"
     },
     {
       "slug": "ndg-linux-essentials",
       "title": "NDG Linux Essentials",
       "issuer": "NDG",
-      "date": "2024-01"
+      "date": "2024-01",
+      "image": "public-certificate-images/ndg-linux-essentials-12.jpg",
+      "url": "https://drive.google.cohttps//drive.google.com/file/d/1jmo1MCbiAIjg-e25VPtc32MpsTnrkid-/view?usp=sharingm/file/d/1jmo1MCbiAIjg-e25VPtc32MpsTnrkid-/view?usp=sharing"
     },
     {
       "slug": "deltav-field-service-associate",
@@ -133,7 +137,8 @@
       "slug": "test",
       "title": "Test",
       "issuer": "Siya",
-      "date": "25 March 2025"
+      "date": "25 March 2025",
+      "image": "public-certificate-images/test-19.jpg"
     }
   ]
 }
