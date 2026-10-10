@@ -1,4 +1,60 @@
 {
   "schemaVersion": 1,
-  "projects": []
+  "projects": [
+    {
+      "slug": "atkss",
+      "title": "ATKSS",
+      "summary": "Configured Network Switches and Tested Hardware (IFAT & CFAT)",
+      "description": "",
+      "category": "deltaV",
+      "industry": "",
+      "status": "Ongoing",
+      "tags": "",
+      "coverImage": "public-project-images/atkss-cover.jpg"
+    },
+    {
+      "slug": "omnia-phase-1",
+      "title": "OMNIA Phase 1",
+      "summary": "",
+      "description": "",
+      "category": "deltaV",
+      "industry": "Chemical",
+      "status": "Completed",
+      "tags": "",
+      "coverImage": ""
+    },
+    {
+      "slug": "steam-station-1",
+      "title": "Steam Station 1",
+      "summary": "",
+      "description": "",
+      "category": "deltaV",
+      "industry": "Thermal Power & Utility",
+      "status": "Completed",
+      "tags": "",
+      "coverImage": ""
+    },
+    {
+      "slug": "test",
+      "title": "test",
+      "summary": "",
+      "description": "",
+      "category": "deltaV",
+      "industry": "",
+      "status": "Ongoing",
+      "tags": "",
+      "coverImage": ""
+    },
+    {
+      "slug": "your-portfolio",
+      "title": "Your Portfolio",
+      "summary": "A smart personal platform for showcasing projects, tracking work and studies, and managing productivity.",
+      "description": "",
+      "category": "nonDeltaV",
+      "industry": "Software & Technology",
+      "status": "Ongoing",
+      "tags": "",
+      "coverImage": ""
+    }
+  ]
 }
