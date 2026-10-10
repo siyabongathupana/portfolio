@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer"><meta name="color-scheme" content="dark light">
+<link rel="icon" type="image/png" href="favicon.png">
+<title>Public Gallery Health | YourPortfolio</title>
+<style>
+:root{font-family:Inter,system-ui,Segoe UI,Arial,sans-serif;color-scheme:dark;--bg:#091525;--fg:#eff7fd;--muted:#acbfd0;--card:#11243a;--border:#2c4962;--accent:#4ee4e5;--bad:#f59d94;--ok:#9ee3b0}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 80% 0%,#18334c,var(--bg) 68%);color:var(--fg);min-height:100vh}header{border-bottom:1px solid var(--border);padding:18px max(18px,calc((100vw - 1080px)/2));display:flex;gap:18px;align-items:center;flex-wrap:wrap}header a{color:var(--fg);text-decoration:none}header strong{letter-spacing:-.03em;font-size:22px}main{max-width:1080px;margin:auto;padding:32px 20px 70px}h1{font-size:clamp(29px,4vw,42px);margin:0 0 9px}p{color:var(--muted);line-height:1.6}button{border:1px solid var(--border);background:var(--card);color:var(--fg);padding:11px 16px;border-radius:12px;cursor:pointer;font:inherit}button.primary{background:var(--accent);border-color:transparent;color:#06242b;font-weight:750}button:disabled{opacity:.6;cursor:wait}.controls{display:flex;flex-wrap:wrap;gap:10px;margin:24px 0}.section{background:var(--card);border:1px solid var(--border);padding:18px;border-radius:18px;margin:20px 0;box-shadow:0 12px 40px #0002}.section h2{font-size:22px;margin:0 0 10px}.small{font-size:13px}.report{display:grid;gap:8px}.item{border-top:1px solid var(--border);padding:12px 0}.item strong{display:block;margin-bottom:5px;overflow-wrap:anywhere}.detail{font-size:13px;margin:3px 0;overflow-wrap:anywhere}.ok{color:var(--ok)}.bad{color:var(--bad)}.muted{color:var(--muted)}.count{color:var(--accent);font-weight:800}.tip{border-left:3px solid var(--accent);padding-left:12px}.inline{display:flex;gap:10px;align-items:center;flex-wrap:wrap}a{color:var(--accent)}.hidden{display:none}a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:4px}
+</style></head>
+<body><header><a href="index.html" aria-label="YourPortfolio homepage"><strong>YourPortfolio</strong></a><a href="index.html">← Home</a></header>
+<main><h1>Public Gallery Health</h1><p>This read-only tool checks what <strong>visitors</strong> can access. It only reads the public catalogs and public image paths—no sign-in, private files, or tokens.</p>
+<div class="controls"><button class="primary" id="scan">Scan public galleries</button><button id="copy" disabled>Copy report</button></div>
+<p id="status" role="status" aria-live="polite">Ready. Press Scan to inspect your published certificates and projects.</p>
+<div class="section"><h2>Certificates <span id="cert-count" class="count"></span></h2><div id="cert-report" class="report"></div></div>
+<div class="section"><h2>Projects <span id="project-count" class="count"></span></h2><div id="project-report" class="report"></div></div>
+<p class="tip small">Interpretation: <b>Missing URL</b> means the public catalog has no usable certificate link; <b>Missing image</b> means it has no approved image field; <b>Image 404</b> means its referenced public file cannot be found. A good image check does not prove an external certificate URL is accessible to everyone.</p>
+</main><script>
+(()=>{'use strict';
+const $=id=>document.getElementById(id),log=[];let running=false;
+const goodImage=/^public-(?:certificate|project)-images\/[a-z0-9][a-z0-9_.-]{0,125}\.(?:jpg|jpeg|png|webp)$/i;
+const goodPdf=/^public-certificate-files\/[a-z0-9][a-z0-9_.-]{0,120}\.pdf$/i;
+const text=(s)=>String(s??'');
+const add=(p,label,detail,ok)=>{let el=document.createElement('p');el.className='detail '+(ok?'ok':'bad');el.textContent=(ok?'✓ ':'✗ ')+label+(detail?' — '+detail:'');p.append(el);log.push((ok?'PASS ':'FAIL ')+label+(detail?' | '+detail:''));};
+async function inspectAsset(path){let r=await fetch(path,{method:'HEAD',cache:'no-store',credentials:'omit'});if(r.status===405||r.status===501)r=await fetch(path,{method:'GET',cache:'no-store',credentials:'omit'});return r;}
+function linkStatus(v){if(!v)return {ok:false,message:'URL missing from public catalog'};const u=text(v).trim();if(goodPdf.test(u))return {ok:true,message:'Public PDF path present (verify PDF file manually)'};
+try{const x=new URL(u);if(x.protocol==='https:'&&!x.username&&!x.password&&x.hostname!=='portfolio-data-bridge.siyabongatshem.workers.dev'&&!x.pathname.includes('/data/users/'))return {ok:true,message:'HTTPS URL present (external access not checked)'};}catch{}return{ok:false,message:'URL missing or not suitable for public visitors'};}
+async function inspect(kind){const projects=kind==='projects',root=$((projects?'project':'cert')+'-report'),counter=$((projects?'project':'cert')+'-count');root.replaceChildren();counter.textContent='';const label=projects?'Projects':'Certificates',file=projects?'public-projects.json':'public-certificates.json';
+log.push('== '+label+' ==');let catalog;
+try{const r=await fetch(file,{cache:'no-store',credentials:'omit'});if(!r.ok)throw Error(file+' returned HTTP '+r.status);catalog=await r.json();if(catalog.schemaVersion!==1||!Array.isArray(catalog[kind]))throw Error('Unexpected JSON schema');}catch(e){const p=document.createElement('p');p.className='bad';p.textContent='Catalog unavailable: '+e.message;root.append(p);log.push('FAIL '+p.textContent);return;}
+const rows=catalog[kind];counter.textContent=rows.length+' published';if(!rows.length){const p=document.createElement('p');p.className='bad';p.textContent='No approved public records in '+file;root.append(p);log.push('FAIL '+p.textContent);return;}
+for(let i=0;i<rows.length;i++){
+const row=rows[i]||{},wrapper=document.createElement('div');wrapper.className='item';const title=document.createElement('strong');title.textContent=(i+1)+'. '+(text(row.title)||'Untitled');wrapper.append(title);root.append(wrapper);log.push('Record '+(i+1)+': '+title.textContent);
+const image=projects?row.coverImage:row.image;const name=projects?'coverImage':'image';if(!image){add(wrapper,name+' missing','Private dashboard thumbnails are not public thumbnails.',false);}else if(!goodImage.test(image)||!text(image).startsWith(projects?'public-project-images/':'public-certificate-images/')){add(wrapper,name+' unusable',text(image).slice(0,160)+' (gallery accepts only approved public folder paths)',false);}else{try{const res=await inspectAsset(image);add(wrapper,'Image '+(res.ok?'found':'HTTP '+res.status),image+' (HTTP '+res.status+')',res.ok&&text(res.headers.get('content-type')||'').startsWith('image/'));}catch(e){add(wrapper,'Image check failed',image+' ('+e.message+')',false);}}
+if(!projects){const s=linkStatus(row.url);add(wrapper,s.message,text(row.url||'').slice(0,160),s.ok);}
+}
+}
+$('scan').addEventListener('click',async()=>{if(running)return;running=true;log.length=0;$('scan').disabled=true;$('copy').disabled=true;$('status').textContent='Reading the public catalogs and checking referenced images…';try{await inspect('certificates');await inspect('projects');$('status').textContent='Scan complete. Copy the report if you want me to identify the exact missing files or fields.';$('copy').disabled=false;}finally{$('scan').disabled=false;running=false;}});
+$('copy').addEventListener('click',async()=>{const report=log.join('\n');try{await navigator.clipboard.writeText(report);$('status').textContent='Report copied. Paste it into the chat.';}catch{$('status').textContent='Clipboard unavailable. Select the results above and copy them manually.';}});
+})();
+</script></body></html>
