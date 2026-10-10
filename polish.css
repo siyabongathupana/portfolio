@@ -1,0 +1,11 @@
+/* Step 5X: consistent understated page polish; original layout retained */
+.portable-home{position:relative;display:inline-block;margin:12px 18px;padding:9px 14px;border-radius:11px;background:#123148;color:#bce6ff;text-decoration:none;font:600 .9rem system-ui,sans-serif}.portable-home:hover{background:#1c4768;color:white}
+.site-header,.topbar{backdrop-filter:blur(20px)}
+.site-nav,.topbar .nav{min-height:66px}
+.site-header a,.topbar a{transition:opacity .15s ease,transform .15s ease}
+.site-header a:hover,.topbar a:hover{opacity:.94}
+.public-card-grid img,.cards .feature-image{object-fit:cover;background:#13253b}
+.feature-image-link{display:block;text-decoration:none;overflow:hidden;border-radius:16px 16px 0 0}.feature-image-link:focus-visible{outline:3px solid #42caef;outline-offset:-3px}
+.public-card-grid article,.feature-card{transition:transform .22s ease,box-shadow .22s ease}
+@media(hover:hover){.public-card-grid article:hover,.feature-card:hover{transform:translateY(-4px)}}
+@media(prefers-reduced-motion:reduce){.public-card-grid article,.feature-card{transition:none}}
