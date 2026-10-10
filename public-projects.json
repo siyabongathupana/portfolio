@@ -21,7 +21,7 @@
       "industry": "Chemical",
       "status": "Completed",
       "tags": "",
-      "coverImage": ""
+      "coverImage": "public-project-images/omnia-phase-1-cover.jpg"
     },
     {
       "slug": "steam-station-1",
@@ -32,7 +32,7 @@
       "industry": "Thermal Power & Utility",
       "status": "Completed",
       "tags": "",
-      "coverImage": ""
+      "coverImage": "public-project-images/steam-station-1-cover.jpg"
     },
     {
       "slug": "test",
@@ -43,7 +43,7 @@
       "industry": "",
       "status": "Ongoing",
       "tags": "",
-      "coverImage": ""
+      "coverImage": "public-project-images/test-cover.jpg"
     },
     {
       "slug": "your-portfolio",
@@ -54,7 +54,7 @@
       "industry": "Software & Technology",
       "status": "Ongoing",
       "tags": "",
-      "coverImage": ""
+      "coverImage": "public-project-images/your-portfolio-cover.jpg"
     }
   ]
 }
