@@ -2,6 +2,7 @@
   'use strict';
   const $ = id => document.getElementById(id);
   const VALID_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+  const CERT_IMAGE_PATH = /^public-certificate-images\/[a-z0-9][a-z0-9_.-]{0,100}\.(?:png|jpe?g|webp)$/i;
   const IMAGE_PATH = /^public-project-images\/[a-z0-9][a-z0-9_.-]{0,125}\.(?:png|jpe?g|webp)$/i;
   const t = (value, length=450) => typeof value === 'string' ? value.trim().slice(0,length) : '';
   const el = (tag, cls, text) => {
@@ -82,7 +83,27 @@
       $('certificateMetric').textContent=String(items.filter(c=>c&&typeof c==='object'&&t(c.title)).length);
     } catch { $('certificateMetric').textContent='—'; }
   }
-  loadProjects();loadCertificates();
+  async function certificateHighlights(){
+    const grid=$('certificateHighlights');
+    if (!grid) return;
+    try {
+      const records=await publicCatalog('public-certificates.json','certificates');
+      const certs=records.filter(c=>c && typeof c==='object' && t(c.title,160) && t(c.issuer,140)).slice(0,4);
+      if(!certs.length){grid.replaceChildren(el('p','loading-note','Certificates are being prepared for publication.'));return;}
+      const cards=certs.map(c=>{
+        const card=el('article','featured-card');
+        if(CERT_IMAGE_PATH.test(t(c.image,200))){
+          const im=el('img','feature-image');im.src=c.image;im.alt='Certificate thumbnail: '+t(c.title,100);im.loading='lazy';im.decoding='async';
+          im.addEventListener('error',()=>im.replaceWith(el('div','feature-image-fallback','✦')));
+          card.append(im);
+        }else card.append(el('div','feature-image-fallback','✦'));
+        const body=el('div','featured-body');body.append(el('h3',null,t(c.title,160)),el('p',null,t(c.issuer,140)),link('certificates.html','View all certificates →','card-link'));
+        card.append(body);return card;
+      });
+      grid.replaceChildren(...cards);
+    } catch {grid.replaceChildren(el('p','loading-note','Certificate highlights are temporarily unavailable.'));}
+  }
+  loadProjects();loadCertificates();certificateHighlights();
 
   $('contactForm').addEventListener('submit', event => {
     event.preventDefault();
