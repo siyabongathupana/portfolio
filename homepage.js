@@ -1,118 +1,17 @@
-(() => {
-  'use strict';
-  const $ = id => document.getElementById(id);
-  const VALID_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-  const CERT_IMAGE_PATH = /^public-certificate-images\/[a-z0-9][a-z0-9_.-]{0,100}\.(?:png|jpe?g|webp)$/i;
-  const IMAGE_PATH = /^public-project-images\/[a-z0-9][a-z0-9_.-]{0,125}\.(?:png|jpe?g|webp)$/i;
-  const t = (value, length=450) => typeof value === 'string' ? value.trim().slice(0,length) : '';
-  const el = (tag, cls, text) => {
-    const node = document.createElement(tag);
-    if (cls) node.className = cls;
-    if (text !== undefined) node.textContent = text;
-    return node;
-  };
-  const link = (href, text, cls) => {
-    const node=el('a',cls,text); node.href=href; return node;
-  };
-  const themeKey = 'yourportfolio-public-theme';
-  function setTheme(theme) {
-    const next = theme === 'light' ? 'light' : 'dark';
-    document.documentElement.dataset.theme = next;
-    $('themeIcon').textContent = next === 'light' ? '☾' : '☼';
-    $('themeToggle').setAttribute('aria-label', next === 'light' ? 'Switch to dark theme' : 'Switch to light theme');
-    try { localStorage.setItem(themeKey, next); } catch {}
-  }
-  try { setTheme(localStorage.getItem(themeKey) || 'dark'); } catch { setTheme('dark'); }
-  $('themeToggle').addEventListener('click',()=>setTheme(document.documentElement.dataset.theme==='light'?'dark':'light'));
-  const menu = $('siteNav');
-  $('menuToggle').addEventListener('click', () => {
-    const expanded = $('menuToggle').getAttribute('aria-expanded') === 'true';
-    $('menuToggle').setAttribute('aria-expanded', String(!expanded));
-    menu.classList.toggle('open', !expanded);
-  });
-  for (const navLink of menu.querySelectorAll('a')) navLink.addEventListener('click', () => {
-    menu.classList.remove('open');
-    $('menuToggle').setAttribute('aria-expanded','false');
-  });
-  $('copyrightYear').textContent=String(new Date().getFullYear());
-
-  async function publicCatalog(name, collection) {
-    const response=await fetch(name, {cache:'no-store',credentials:'omit',headers:{'Accept':'application/json'}});
-    if (!response.ok) throw new Error('Catalog unavailable');
-    const data=await response.json();
-    if (data?.schemaVersion !== 1 || !Array.isArray(data[collection])) throw new Error('Catalog format not recognised');
-    return data[collection];
-  }
-
-  function projectCard(p) {
-    const card=el('article','featured-card');
-    if (IMAGE_PATH.test(t(p.coverImage,200))) {
-      const img=el('img','feature-image'); img.src=p.coverImage;
-      img.alt=t(p.title,100)+' project cover'; img.loading='lazy'; img.decoding='async';
-      img.addEventListener('error',()=>img.replaceWith(el('div','feature-image-fallback','⌘')));
-      card.append(img);
-    } else card.append(el('div','feature-image-fallback','⌘'));
-    const body=el('div','featured-body'), pills=el('div','pills');
-    for (const value of [p.category,p.status]) if (t(value,65)) pills.append(el('span','pill',t(value,65)));
-    body.append(pills,el('h3',null,t(p.title,130)),el('p',null,t(p.summary,280)),link('project-details.html?slug='+encodeURIComponent(p.slug),'View project details ↗','card-link'));
-    card.append(body); return card;
-  }
-  function emptyState(message) {
-    const container=el('div','empty-projects');
-    container.append(el('div','empty-icon','⌁'),el('h3',null,'New public projects coming soon'),el('p',null,message),link('projects.html','Open projects gallery →','text-link'));
-    return container;
-  }
-  async function loadProjects() {
-    const grid=$('featuredGrid');
-    try {
-      const items=await publicCatalog('public-projects.json','projects');
-      const projects=items.filter(p=>p && typeof p==='object' && VALID_SLUG.test(p.slug||'') && t(p.title,130)).slice(0,1000);
-      $('projectMetric').textContent=String(projects.length);
-      if (!projects.length){grid.replaceChildren(emptyState('The gallery will update automatically when selected projects are approved for public viewing.')); $('featuredStatus').textContent='No public projects have been published yet.';return;}
-      const featured=projects.slice(0,6);grid.replaceChildren(...featured.map(projectCard));
-      $('featuredStatus').textContent='Showing '+featured.length+' of '+projects.length+' approved project'+(projects.length===1?'':'s')+'.';
-    } catch {
-      $('projectMetric').textContent='—';
-      grid.replaceChildren(emptyState('The approved project catalog could not be loaded. Please visit the gallery again later.'));
-      $('featuredStatus').textContent='Public project list temporarily unavailable.';
-    }
-  }
-  async function loadCertificates() {
-    try {
-      const items=await publicCatalog('public-certificates.json','certificates');
-      $('certificateMetric').textContent=String(items.filter(c=>c&&typeof c==='object'&&t(c.title)).length);
-    } catch { $('certificateMetric').textContent='—'; }
-  }
-  async function certificateHighlights(){
-    const grid=$('certificateHighlights');
-    if (!grid) return;
-    try {
-      const records=await publicCatalog('public-certificates.json','certificates');
-      const certs=records.filter(c=>c && typeof c==='object' && t(c.title,160) && t(c.issuer,140)).slice(0,4);
-      if(!certs.length){grid.replaceChildren(el('p','loading-note','Certificates are being prepared for publication.'));return;}
-      const cards=certs.map(c=>{
-        const card=el('article','featured-card');
-        if(CERT_IMAGE_PATH.test(t(c.image,200))){
-          const im=el('img','feature-image');im.src=c.image;im.alt='Certificate thumbnail: '+t(c.title,100);im.loading='lazy';im.decoding='async';
-          im.addEventListener('error',()=>im.replaceWith(el('div','feature-image-fallback','✦')));
-          card.append(im);
-        }else card.append(el('div','feature-image-fallback','✦'));
-        const body=el('div','featured-body');body.append(el('h3',null,t(c.title,160)),el('p',null,t(c.issuer,140)),link('certificates.html','View all certificates →','card-link'));
-        card.append(body);return card;
-      });
-      grid.replaceChildren(...cards);
-    } catch {grid.replaceChildren(el('p','loading-note','Certificate highlights are temporarily unavailable.'));}
-  }
-  loadProjects();loadCertificates();certificateHighlights();
-
-  $('contactForm').addEventListener('submit', event => {
-    event.preventDefault();
-    if (!$('contactForm').reportValidity()) return;
-    const name=t($('contactName').value,100), email=t($('contactEmail').value,160), message=t($('contactMsg').value,2500);
-    const subject=encodeURIComponent('Portfolio enquiry from '+name);
-    const body=encodeURIComponent('Name: '+name+'\nEmail: '+email+'\n\n'+message+'\n');
-    // This is a mail draft, not a server submission. The sender must press Send in their mail application.
-    $('contactStatus').textContent='Opening your mail application. Please review the draft and press Send there.';
-    window.location.href='mailto:siyabongatshem@gmail.com?subject='+subject+'&body='+body;
-  });
+(()=>{'use strict';
+const $=id=>document.getElementById(id);
+const themeKey='site-theme';
+function theme(next){document.documentElement.dataset.theme=next;document.documentElement.style.colorScheme=next;$('themeIcon').textContent=next==='dark'?'☼':'☾';$('themeToggle').setAttribute('aria-label',next==='dark'?'Switch to light theme':'Switch to dark theme');try{localStorage.setItem(themeKey,next);}catch{}}
+let chosen='dark';try{chosen=localStorage.getItem(themeKey)||'dark';}catch{}theme(chosen==='light'?'light':'dark');$('themeToggle').addEventListener('click',()=>theme(document.documentElement.dataset.theme==='dark'?'light':'dark'));
+$('year').textContent=String(new Date().getFullYear());
+const safeProject=/^public-project-images\/[a-z0-9][a-z0-9_.-]{0,125}\.(?:jpg|jpeg|png|webp)$/i;
+const safeCertificate=/^public-certificate-images\/[a-z0-9][a-z0-9_.-]{0,125}\.(?:jpg|jpeg|png|webp)$/i;
+const safeSlug=/^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const short=(val,max=160)=>typeof val==='string'?val.trim().slice(0,max):'';
+function elem(tag,cl,txt){let e=document.createElement(tag);if(cl)e.className=cl;if(txt!==undefined)e.textContent=txt;return e;}
+function card(title,category,summary,href,image,pattern){const root=elem('article','feature-card');if(pattern.test(image||'')){const img=elem('img','feature-image');img.src=image;img.alt=title+' thumbnail';img.loading='lazy';img.onerror=()=>img.replaceWith(elem('div','feature-fallback','✦'));root.append(img);}else root.append(elem('div','feature-fallback','✦'));const body=elem('div','feature-body');body.append(elem('span','pill',category),elem('h3','',title),elem('p','',summary));const a=elem('a','','View details ↗');a.href=href;body.append(a);root.append(body);return root;}
+async function getCatalog(filename,key){const r=await fetch(filename,{cache:'no-store',credentials:'omit'});if(!r.ok)throw Error('Catalog offline');const data=await r.json();if(data.schemaVersion!==1||!Array.isArray(data[key]))throw Error('Invalid catalog');return data[key];}
+async function projects(){const box=$('featuredProjects');try{const all=(await getCatalog('public-projects.json','projects')).filter(p=>p&&safeSlug.test(p.slug||'')&&short(p.title));$('publicProjectCount').textContent=String(all.length);box.replaceChildren(...(all.length?all.slice(0,3).map(p=>card(short(p.title,90),short(p.category,70),short(p.summary,175),'project-details.html?slug='+encodeURIComponent(p.slug),p.coverImage,safeProject)):[elem('p','empty-state','Public projects will appear here once published. Browse the Projects page for the full gallery.') ]));}catch{box.replaceChildren(elem('p','empty-state','Projects are temporarily unavailable.'));$('publicProjectCount').textContent='—';}}
+async function certs(){const box=$('featuredCerts');try{const all=(await getCatalog('public-certificates.json','certificates')).filter(c=>c&&short(c.title));$('publicCertificateCount').textContent=String(all.length);box.replaceChildren(...(all.length?all.slice(0,3).map(c=>card(short(c.title,90),short(c.issuer,80),short(c.date,70),'certificates.html',c.image,safeCertificate)):[elem('p','empty-state','Published certificates will appear here soon.') ]));}catch{box.replaceChildren(elem('p','empty-state','Certificates are temporarily unavailable.'));$('publicCertificateCount').textContent='—';}}
+projects();certs();
 })();
