@@ -1,0 +1,36 @@
+/* Compact theme switcher for main pages and authenticated tools. */
+.portfolio-global-theme{display:inline-flex;align-items:center;gap:7px;padding:8px 11px;min-width:38px;min-height:38px;border-radius:12px;border:1px solid var(--line,#43617b);color:var(--text,#eef8fc);background:var(--panel,var(--surface,#142e44));cursor:pointer;font:600 12px/1.1 system-ui,sans-serif;box-shadow:0 3px 14px #00152512;transition:transform .15s,background .2s}
+.portfolio-global-theme:hover{transform:translateY(-2px)}.portfolio-global-theme:focus-visible{outline:2px solid #31c5dc;outline-offset:3px}.portfolio-global-theme .theme-glyph{font-size:20px;line-height:1}
+.portfolio-global-theme.floating-theme{position:fixed;z-index:10000;right:14px;bottom:14px;background:#11263c;color:#f2faff;border-color:#4a6880;box-shadow:0 6px 25px #0004}
+:root[data-theme=light] .portfolio-global-theme.floating-theme{background:#fff;color:#18334b;border-color:#bed1dd;box-shadow:0 6px 25px #25425e25}
+@media(max-width:500px){.portfolio-global-theme .theme-text{display:none}.portfolio-global-theme{padding:7px 9px}}
+/* Core legacy protected layouts without a native theme switch. */
+:root[data-theme=light]{color-scheme:light}
+:root[data-theme=dark]{color-scheme:dark}
+:root[data-theme=light] body{--tbg:#f7fafd;--tfg:#17314a;--tsub:#566c81;--tborder:#d2e1ee}
+:root[data-theme=dark] body{--tbg:#101e31;--tfg:#eaf8ff;--tsub:#a9b8ca;--tborder:#2b405a}
+:root[data-theme=light] body:has(.wrap .cards),:root[data-theme=light] body:has(.tiles){background-color:#f7fafd;color:#17314a}
+:root[data-theme=light] .tiles .tile,:root[data-theme=light] .cards .card,:root[data-theme=light] .notice,:root[data-theme=light] .status:not(.timer-status){background:#fff;color:#17314a;border-color:#cfdeeb}
+:root[data-theme=light] .tiles .tile :is(b,span),:root[data-theme=light] .cards .card :is(h3,p,span,strong,label),:root[data-theme=light] .notice{color:#17314a}
+:root[data-theme=light] :is(.cards .card,.tiles .tile) :is(input,textarea,select){background:#f7fafd;color:#17314a;border-color:#b8cfdf}
+:root[data-theme=dark] .tiles .tile,:root[data-theme=dark] .cards .card{background:#11263a;color:#edf7ff;border-color:#284863}
+@media(prefers-reduced-motion:reduce){.portfolio-global-theme{transition:none}}
+/* The public gallery uses the site.css design language; soften its originally dark-only panels. */
+:root[data-theme=light]{--bg:#f5f9fd;--surface:#ffffff;--surface2:#eff6fc;--line:#c8dae9;--text:#17314a;--muted:#4f6981;--cyan:#037f98;--blue:#446fc0}
+:root[data-theme=light] .ambient{background:radial-gradient(ellipse 650px 600px at 85% 0%,#c3e7f766,transparent 72%),linear-gradient(180deg,#f7fafd,#eaf3f9)}
+:root[data-theme=light] .site-header{background:#f9fcffed;border-bottom-color:#cfdeeb}
+:root[data-theme=light] .desktop-links>a{color:#415e76}
+:root[data-theme=light] .desktop-links>a:hover,:root[data-theme=light] .desktop-links>a[aria-current=page]{background:#dfedf7;color:#14344e}
+:root[data-theme=light] .mobile-menu nav{background:#fff;box-shadow:0 16px 40px #1b40572b}
+:root[data-theme=light] .mobile-menu nav a:hover{background:#e7f4fb}
+:root[data-theme=light] .feature-card,:root[data-theme=light] .public-project-card,:root[data-theme=light] .cert-card,:root[data-theme=light] .project-detail-panel{background:linear-gradient(150deg,#fff,#f1f8fd);border-color:#c9deec;box-shadow:0 6px 25px #35566f14}
+:root[data-theme=light] .catalog-tools input,:root[data-theme=light] .catalog-tools select,:root[data-theme=light] .cert-filters input,:root[data-theme=light] .cert-filters select{background:#fff;border-color:#b8cfe1;color:#17314a}
+:root[data-theme=light] .site-footer{color:#527087;border-color:#c7d9e8}
+:root[data-theme=light] .kicker{color:#506c81}
+:root[data-theme=light] .sign-in{background:#e3f3f8;border-color:#6eacc2;color:#11516a}
+:root[data-theme=light] .button-ghost{background:#e3f2fb;color:#1b526c;border-color:#bed5e6}
+/* Certificate covers are clickable only when an approved public certificate URL is supplied. */
+.cert-cover-link{display:block;overflow:hidden;cursor:zoom-in}
+.cert-cover-link:focus-visible{outline:3px solid var(--cyan,#3ee4ef);outline-offset:-3px}
+.cert-cover-link .thumb{display:block;width:100%;transition:transform .2s ease}
+.cert-cover-link:hover .thumb{transform:scale(1.025)}
