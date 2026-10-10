@@ -1,11 +1,96 @@
 <!doctype html>
-<html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Home | YourPortfolio</title>
-<meta name="description" content="A secure public portfolio">
-<meta name="referrer" content="no-referrer">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'">
-<link rel="stylesheet" href="secure-public.css"></head>
-<body><nav><a class="brand" href="index.html">YourPortfolio<span style="color:#5bdcb6">.</span></a><div class="links"><a href="index.html">Home</a><a href="projects.html">Projects</a><a href="certificates.html">Certificates</a><a href="https://portfolio-data-bridge.siyabongatshem.workers.dev/studies.html">Studies (private) ↗</a><a href="https://portfolio-data-bridge.siyabongatshem.workers.dev/study-reports.html">Study Reports ↗</a><a href="https://portfolio-data-bridge.siyabongatshem.workers.dev/timesheet.html">Timesheets ↗</a></div></nav><main><section class="hero"><div class="eyebrow">A secure public portfolio</div><h1>Engineering. Automation. Practical software.</h1></section>
-<p class="lead">Projects and technical learning in industrial automation, process control and software development.</p><div class="actions"><a class="btn primary" href="https://portfolio-data-bridge.siyabongatshem.workers.dev/timesheet.html">Open secure Timesheets ↗</a><a class="btn" href="https://portfolio-data-bridge.siyabongatshem.workers.dev/studies.html">Open Study Manager ↗</a><a class="btn" href="projects.html">Browse public projects</a></div><div class="grid"><div class="card"><h2>Process Control</h2><p>Automation engineering, control logic and operator interfaces.</p></div><div class="card"><h2>Software Tools</h2><p>Utilities and systems for engineering productivity and reporting.</p></div><div class="card"><h2>Continued Learning</h2><p>Technical study, CAD and applied engineering mathematics.</p></div></div><div class="notice">The public projects gallery contains only explicitly approved information. Project management, Timesheets, Studies and Reports remain protected behind Cloudflare Access.</div>
-</main><footer>Public portfolio · Private Timesheets and academic tools are protected by Cloudflare Access.</footer></body></html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#091521">
+  <meta name="description" content="Engineering portfolio focused on Emerson DeltaV, industrial automation, process control, and software tools. Explore approved public projects and professional certifications.">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+  <link rel="icon" href="favicon.png" type="image/png">
+  <link rel="stylesheet" href="homepage.css">
+  <script src="homepage.js" defer></script>
+  <title>YourPortfolio — Industrial Automation & Software</title>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div class="page-glow" aria-hidden="true"></div>
+  <header class="site-header">
+    <div class="nav-inner container">
+      <a class="brand" href="index.html" aria-label="YourPortfolio home"><span class="brand-mark" aria-hidden="true">Y<span>·</span></span><span>Your<span class="accent">Portfolio</span></span></a>
+      <button id="menuToggle" class="menu-toggle" aria-label="Toggle navigation" aria-expanded="false" aria-controls="siteNav" type="button"><span></span><span></span><span></span></button>
+      <nav class="site-nav" id="siteNav" aria-label="Main navigation">
+        <a class="active" href="index.html" aria-current="page">Home</a>
+        <a href="projects.html">Projects</a>
+        <a href="certificates.html">Certificates</a>
+        <a href="#about">About</a>
+        <a href="#contact">Contact</a>
+        <a class="nav-workspace" href="workspace.html">Workspace <span aria-hidden="true">↗</span></a>
+      </nav>
+      <button id="themeToggle" class="theme-button" type="button" aria-label="Switch to light theme" title="Toggle light/dark appearance"><span id="themeIcon" aria-hidden="true">☼</span></button>
+    </div>
+  </header>
+  <main id="main">
+    <section class="hero container" aria-labelledby="heroTitle">
+      <div class="hero-copy">
+        <p class="eyebrow"><span class="pulse-dot" aria-hidden="true"></span> INDUSTRIAL AUTOMATION · SOFTWARE ENGINEERING</p>
+        <h1 id="heroTitle">Making complex systems <span class="gradient-text">work simply.</span></h1>
+        <p class="hero-lead">Building at the intersection of process control, DeltaV DCS, engineering tools and practical software. Explore the work, learning and systems behind the portfolio.</p>
+        <div class="hero-actions">
+          <a class="button button-primary" href="projects.html">Explore projects <span aria-hidden="true">↗</span></a>
+          <a class="button button-secondary" href="workspace.html">Open workspace <span aria-hidden="true">→</span></a>
+        </div>
+        <div class="hero-metrics" aria-label="Portfolio overview">
+          <div><strong id="projectMetric">—</strong><span>Published projects</span></div>
+          <div><strong id="certificateMetric">—</strong><span>Published certificates</span></div>
+          <div><strong>DeltaV</strong><span>Process control focus</span></div>
+        </div>
+      </div>
+      <div class="hero-visual">
+        <div class="visual-orbit orbit-one" aria-hidden="true"></div>
+        <div class="visual-orbit orbit-two" aria-hidden="true"></div>
+        <div class="profile-panel">
+          <div class="profile-photo"><img src="Siyabonga1.jpg" alt="Portfolio owner profile photograph" width="450" height="520" loading="eager" decoding="async"></div>
+          <div class="profile-caption"><span class="status-light" aria-hidden="true"></span><span><strong>Engineering in practice</strong><small>Process Control • Systems • Software</small></span></div>
+        </div>
+        <div class="floating-label" aria-hidden="true"><span class="float-symbol">⌘</span><span>Logic → Insight → Impact</span></div>
+      </div>
+    </section>
+
+    <section class="disciplines section container" aria-labelledby="disciplinesTitle">
+      <div class="section-heading compact"><p class="eyebrow">WHAT I WORK ON</p><h2 id="disciplinesTitle">Technology with a practical purpose.</h2></div>
+      <div class="discipline-grid">
+        <article class="discipline-card"><div class="tile-icon" aria-hidden="true">⌁</div><h3>Process control</h3><p>Emerson DeltaV, control logic, sequences, interlocks, operator graphics and instrumentation.</p><span class="card-index">01 / ENGINEERING</span></article>
+        <article class="discipline-card"><div class="tile-icon" aria-hidden="true">{ }</div><h3>Software tools</h3><p>Purpose-built applications for engineering workflows, project organisation and technical reporting.</p><span class="card-index">02 / DEVELOPMENT</span></article>
+        <article class="discipline-card"><div class="tile-icon" aria-hidden="true">◎</div><h3>Continuous learning</h3><p>Industrial automation engineering, CAD, mathematics, networking and systems thinking.</p><span class="card-index">03 / GROWTH</span></article>
+      </div>
+    </section>
+
+    <section class="featured section" id="featured" aria-labelledby="featuredTitle">
+      <div class="container">
+        <div class="section-heading with-action"><div><p class="eyebrow">SELECTED WORK</p><h2 id="featuredTitle">Featured projects<span class="accent">.</span></h2><p>Only projects explicitly approved for public viewing appear here.</p></div><a class="text-link" href="projects.html">All projects <span aria-hidden="true">↗</span></a></div>
+        <div class="featured-grid" id="featuredGrid" aria-live="polite"><p class="loading-note">Checking approved public projects…</p></div>
+        <p class="featured-note" id="featuredStatus" role="status"></p>
+      </div>
+    </section>
+
+    <section class="about section container" id="about" aria-labelledby="aboutTitle">
+      <div class="about-card"><div class="about-eyebrow"><div class="about-monogram" aria-hidden="true">D<span>V</span></div><span>BUILDING WHAT MATTERS</span></div><div><p class="eyebrow">ABOUT THIS PORTFOLIO</p><h2 id="aboutTitle">Engineering discipline.<br><span class="gradient-text">Builder's curiosity.</span></h2><p>This portfolio began as a personal way to organise technical projects and study progress. It has grown into a collection of engineering experience, software experiments and tools that help turn scattered work into usable systems.</p><p>I work with industrial automation, including DeltaV-based process control, while developing practical software and continuing to study engineering.</p><div class="about-links"><a class="button button-secondary" href="certificates.html">View certifications <span aria-hidden="true">↗</span></a><a class="button button-ghost" href="guide.html">Explore the user guide <span aria-hidden="true">→</span></a></div></div></div>
+    </section>
+
+    <section class="workspace-section section container" aria-labelledby="workspaceTitle">
+      <div class="section-heading"><p class="eyebrow">THE PRIVATE WORKSPACE</p><h2 id="workspaceTitle">Tools for the work behind the scenes<span class="accent">.</span></h2><p>Private applications use verified sign-in and individual permissions; the public website never receives the underlying records.</p></div>
+      <div class="workspace-grid">
+        <a class="workspace-card" href="https://portfolio-data-bridge.siyabongatshem.workers.dev/timesheet.html" rel="noreferrer"><span class="workspace-icon" aria-hidden="true">◷</span><strong>Timesheets</strong><small>Record work, manage entries, export reports</small><span class="workspace-arrow" aria-hidden="true">↗</span></a>
+        <a class="workspace-card" href="https://portfolio-data-bridge.siyabongatshem.workers.dev/studies.html" rel="noreferrer"><span class="workspace-icon" aria-hidden="true">▤</span><strong>Study Manager</strong><small>Modules, assessments and progress</small><span class="workspace-arrow" aria-hidden="true">↗</span></a>
+        <a class="workspace-card" href="https://portfolio-data-bridge.siyabongatshem.workers.dev/analytics.html" rel="noreferrer"><span class="workspace-icon" aria-hidden="true">▥</span><strong>My Analytics</strong><small>Recorded hours, insights and reporting</small><span class="workspace-arrow" aria-hidden="true">↗</span></a>
+        <a class="workspace-card" href="workspace.html"><span class="workspace-icon" aria-hidden="true">⌘</span><strong>All tools</strong><small>Projects, reports, messaging and administration</small><span class="workspace-arrow" aria-hidden="true">↗</span></a>
+      </div>
+      <p class="secure-note">🔒 Workspace links require Cloudflare authentication and the appropriate application permissions.</p>
+    </section>
+
+    <section class="contact-section section" id="contact" aria-labelledby="contactTitle"><div class="container contact-grid"><div class="contact-copy"><p class="eyebrow">LET'S CONNECT</p><h2 id="contactTitle">Have a technical idea?<br><span class="gradient-text">Let's talk.</span></h2><p>Questions about engineering projects, process automation or software? Send a message using your email app, or connect through my professional profiles.</p><div class="social-links"><a href="https://www.linkedin.com/in/siyabonga-thupana-b94646217/" rel="noopener noreferrer" target="_blank">LinkedIn <span aria-hidden="true">↗</span></a><a href="https://github.com/siyabongathupana" rel="noopener noreferrer" target="_blank">GitHub <span aria-hidden="true">↗</span></a></div></div><div class="contact-panel"><h3>Write a message</h3><p>Your email application will open with a draft; this public page does not submit messages to a server.</p><form id="contactForm"><label for="contactName">Your name</label><input id="contactName" name="name" autocomplete="name" maxlength="100" required placeholder="Name"><label for="contactEmail">Email</label><input id="contactEmail" name="email" type="email" autocomplete="email" maxlength="160" required placeholder="you@example.com"><label for="contactMsg">Message</label><textarea id="contactMsg" name="message" rows="4" maxlength="2500" required placeholder="Tell me about your project or idea"></textarea><button class="button button-primary contact-button" type="submit">Open email draft <span aria-hidden="true">↗</span></button><p class="contact-feedback" id="contactStatus" role="status"></p></form></div></div></section>
+  </main>
+  <footer class="site-footer"><div class="container footer-inner"><div><a class="brand footer-brand" href="index.html">Your<span class="accent">Portfolio</span></a><p>Practical automation. Better systems. Continuous learning.</p></div><div class="footer-links"><a href="projects.html">Projects</a><a href="certificates.html">Certificates</a><a href="quick-timesheet.html">Offline Timesheet</a><a href="guide.html">Guide</a><a href="workspace.html">Workspace</a></div></div><div class="container footer-bottom"><span>© <span id="copyrightYear">2026</span> YourPortfolio</span><span>Public content is deliberately separated from protected application data.</span></div></footer>
+</body>
+</html>
