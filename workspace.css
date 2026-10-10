@@ -1,0 +1,12 @@
+/* Static public navigation only. Authentication is enforced by the Cloudflare Worker. */
+:root{color-scheme:dark;font-family:Inter,ui-sans-serif,system-ui,sans-serif;color:#e8f1fa;background:#091321}
+*{box-sizing:border-box}body{margin:0}a{color:inherit;text-decoration:none}a:focus-visible{outline:2px solid #64d5ff;outline-offset:4px}
+header,main,footer{max-width:1180px;margin:0 auto;padding:22px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;border-bottom:1px solid #294258}
+.brand{font-weight:850;font-size:1.2rem}.brand span{color:#5bdcb6}header nav{display:flex;gap:18px;flex-wrap:wrap;color:#b1c9df}
+.eyebrow{letter-spacing:.12em;font-size:.78rem;text-transform:uppercase;color:#5bdcb6;font-weight:800}
+h1{font-size:clamp(2rem,5vw,3.4rem);margin:.35em 0}p{color:#a8c0d4;line-height:1.65}main{padding-top:32px}.intro{max-width:760px}
+section{margin:34px 0}h2{font-size:1.3rem}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(248px,1fr));gap:15px}
+.card{padding:19px;border:1px solid #29465d;border-radius:15px;background:linear-gradient(140deg,#15283a,#0d1c2b);display:flex;flex-direction:column;min-height:138px;gap:9px;transition:border-color .15s}
+.card:hover{border-color:#6ed8ff}.card strong{font-size:1.08rem}.card small{color:#adc6d8;font-size:.85rem;line-height:1.5}.card .arrow{margin-top:auto;color:#65d6ff}
+.note{border:1px solid #385974;background:#102334;padding:16px;border-radius:12px}footer{font-size:.8rem;color:#95abc0;border-top:1px solid #294258;margin-top:25px}
