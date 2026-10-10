@@ -1,0 +1,13 @@
+(()=>{'use strict';
+const $=id=>document.getElementById(id);
+const slug=/^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const projectImage=/^public-project-images\/[a-z0-9][a-z0-9_.-]{0,125}\.(?:jpg|jpeg|png|webp)$/i;
+const certImage=/^public-certificate-images\/[a-z0-9][a-z0-9_.-]{0,100}\.(?:jpg|jpeg|png|webp)$/i;
+const t=(v,n=150)=>typeof v==='string'?v.trim().slice(0,n):'';
+const node=(tag,cls,text)=>{let e=document.createElement(tag);if(cls)e.className=cls;if(text!==undefined)e.textContent=text;return e};
+function card(title,eyebrow,desc,href,img,regex){const card=node('article','feature-card');if(regex.test(img||'')){const im=node('img','feature-img');im.src=img;im.alt=title+' thumbnail';im.loading='lazy';im.addEventListener('error',()=>im.replaceWith(node('div','feature-fallback','✧')));card.append(im)}else card.append(node('div','feature-fallback','✧'));const b=node('div','feature-card-body');b.append(node('span','pill',eyebrow),node('h3','',title),node('p','',desc));const a=node('a','more','View details ↗');a.href=href;b.append(a);card.append(b);return card}
+async function catalog(url,key){const r=await fetch(url,{cache:'no-store',credentials:'omit'});if(!r.ok)throw Error('Catalog currently unavailable');const v=await r.json();if(v.schemaVersion!==1||!Array.isArray(v[key]))throw Error('Invalid public catalog');return v[key]}
+async function projects(){const g=$('featuredProjects');if(!g)return;try{let all=(await catalog('public-projects.json','projects')).filter(p=>p&&slug.test(p.slug||'')&&t(p.title));if($('projectCount'))$('projectCount').textContent=String(all.length);if(!all.length){g.append(node('p','small-note','Public projects will appear here as they are published.'));return;}g.replaceChildren(...all.slice(0,3).map(p=>card(t(p.title),t(p.category,90),t(p.summary,200),'project-details.html?slug='+encodeURIComponent(p.slug),p.coverImage,projectImage)));}catch{g.append(node('p','small-note','Projects are temporarily unavailable.'))}}
+async function certs(){const g=$('featuredCerts');if(!g)return;try{let all=(await catalog('public-certificates.json','certificates')).filter(c=>c&&t(c.title));if($('certCount'))$('certCount').textContent=String(all.length);if(!all.length){g.append(node('p','small-note','Public certificates will appear here soon.'));return;}g.replaceChildren(...all.slice(0,3).map(c=>card(t(c.title),t(c.issuer,80),t(c.date,90),'certificates.html',c.image,certImage)));}catch{g.append(node('p','small-note','Certificates are temporarily unavailable.'))}}
+projects();certs();
+})();
