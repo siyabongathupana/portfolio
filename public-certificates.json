@@ -101,19 +101,25 @@
       "slug": "deltav-field-service-associate",
       "title": "DeltaV Field Service Associate",
       "issuer": "Emerson",
-      "date": "2026-02"
+      "date": "2026-02",
+      "image": "public-certificate-images/deltav-field-service-associate-13.jpg",
+      "url": "https://drive.google.com/file/d/1qvMnoUVu8YKzzyHdPv3ztABA_pyI8AIV/view?usp=sharing"
     },
     {
       "slug": "network-technician",
       "title": "Network Technician",
       "issuer": "Cisco",
-      "date": "2025-07"
+      "date": "2025-07",
+      "image": "public-certificate-images/network-technician-14.jpg",
+      "url": "https://drive.google.com/file/d/1H1I9HaY3ge9V7xphGEfvra8AKqHrEVce/view?usp=sharing"
     },
     {
       "slug": "network-support-and-security",
       "title": "Network Support and Security",
       "issuer": "Cisco",
-      "date": "2025-07"
+      "date": "2025-07",
+      "image": "public-certificate-images/network-support-and-security-15.jpg",
+      "url": "https://drive.google.com/file/d/13vcIbZM999ajuSgdV9QbAkhB-KsH1kHs/view?usp=sharing"
     },
     {
       "slug": "ai-fundumentals",
