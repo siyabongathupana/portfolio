@@ -1,11 +1,715 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Quick Timesheet | YourPortfolio</title>
-<meta name="description" content="Legacy Timesheets retired">
-<meta name="referrer" content="no-referrer">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'">
-<link rel="stylesheet" href="secure-public.css"></head>
-<body><nav><a class="brand" href="index.html">YourPortfolio<span style="color:#5bdcb6">.</span></a><div class="links"><a href="index.html">Home</a><a href="projects.html">Projects</a><a href="certificates.html">Certificates</a><a href="studies.html">Studies</a><a href="https://portfolio-data-bridge.siyabongatshem.workers.dev/timesheet.html">Timesheets ↗</a></div></nav><main><section class="hero"><div class="eyebrow">Legacy Timesheets retired</div><h1>Use the secure Timesheet application.</h1></section>
-<p class="lead">The old quick-entry form is no longer connected to active data storage.</p><div class="actions"><a class="btn primary" href="https://portfolio-data-bridge.siyabongatshem.workers.dev/timesheet.html">Open secure Timesheets ↗</a></div>
-</main><footer>Public portfolio · Private Timesheets are hosted separately through Cloudflare Access.</footer></body></html>
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Offline Timesheet Viewer | Your Portfolio</title>
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <style>
+        /* ─── Base ─── */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0b2b3b;
+            min-height: 100vh;
+            padding: 30px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            max-width: 1100px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        /* ─── Glass card ─── */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border-radius: 32px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            padding: 32px 38px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        /* ─── Header ─── */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-bottom: 8px;
+        }
+        .header h1 {
+            font-weight: 800;
+            font-size: 2rem;
+            color: #fff;
+            letter-spacing: -0.02em;
+        }
+        .header h1 span {
+            color: #2fc7ff;
+        }
+        .header .badge-offline {
+            background: rgba(47, 199, 255, 0.15);
+            color: #2fc7ff;
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 4px 16px;
+            border-radius: 40px;
+            border: 1px solid rgba(47, 199, 255, 0.2);
+            letter-spacing: 0.04em;
+        }
+        .sub {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.95rem;
+            margin-bottom: 28px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            padding-bottom: 18px;
+        }
+        .sub i {
+            color: #2fc7ff;
+            margin-right: 8px;
+        }
+
+        /* ─── Drop zone ─── */
+        .drop-zone {
+            border: 2px dashed rgba(47, 199, 255, 0.25);
+            border-radius: 20px;
+            padding: 44px 20px;
+            text-align: center;
+            transition: 0.25s;
+            background: rgba(255, 255, 255, 0.02);
+            cursor: pointer;
+            position: relative;
+        }
+        .drop-zone:hover,
+        .drop-zone.dragover {
+            border-color: #2fc7ff;
+            background: rgba(47, 199, 255, 0.05);
+        }
+        .drop-zone i {
+            font-size: 3.2rem;
+            color: #2fc7ff;
+            display: block;
+            margin-bottom: 12px;
+        }
+        .drop-zone .title {
+            color: #fff;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+        .drop-zone .hint {
+            color: rgba(255, 255, 255, 0.35);
+            font-size: 0.85rem;
+            margin-top: 4px;
+        }
+        .drop-zone .file-input-hidden {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        /* ─── Buttons ─── */
+        .btn-delta {
+            background: #2fc7ff;
+            color: #0b2b3b;
+            border: none;
+            border-radius: 40px;
+            padding: 10px 28px;
+            font-weight: 600;
+            transition: 0.2s;
+        }
+        .btn-delta:hover {
+            background: #1d9fcf;
+            transform: translateY(-2px);
+            color: #0b2b3b;
+            box-shadow: 0 8px 30px rgba(47, 199, 255, 0.2);
+        }
+        .btn-outline-delta {
+            border: 1px solid rgba(47, 199, 255, 0.3);
+            background: transparent;
+            color: #2fc7ff;
+            border-radius: 40px;
+            padding: 10px 24px;
+            font-weight: 500;
+            transition: 0.2s;
+        }
+        .btn-outline-delta:hover {
+            background: rgba(47, 199, 255, 0.08);
+            color: #2fc7ff;
+        }
+        .btn-outline-light-sm {
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: transparent;
+            color: rgba(255, 255, 255, 0.5);
+            border-radius: 40px;
+            padding: 6px 18px;
+            font-size: 0.75rem;
+            transition: 0.2s;
+        }
+        .btn-outline-light-sm:hover {
+            background: rgba(255, 255, 255, 0.04);
+            color: #fff;
+        }
+
+        .file-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.85rem;
+            padding: 6px 16px;
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 40px;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+        }
+        .file-status i {
+            color: #28a745;
+        }
+
+        /* ─── Paste area ─── */
+        .paste-area {
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 16px;
+            padding: 16px;
+            margin-top: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+        }
+        .paste-area textarea {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 12px;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.85rem;
+            padding: 14px;
+            width: 100%;
+            resize: vertical;
+            min-height: 140px;
+            outline: none;
+            transition: 0.2s;
+        }
+        .paste-area textarea:focus {
+            border-color: #2fc7ff;
+            box-shadow: 0 0 0 3px rgba(47, 199, 255, 0.08);
+        }
+        .paste-area textarea::placeholder {
+            color: rgba(255, 255, 255, 0.2);
+        }
+
+        /* ─── Alert ─── */
+        .alert-custom {
+            border-radius: 16px;
+            padding: 14px 20px;
+            margin-top: 16px;
+            border: 1px solid transparent;
+            display: none;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9rem;
+        }
+        .alert-custom.show { display: flex; }
+        .alert-custom.error {
+            background: rgba(220, 53, 69, 0.12);
+            border-color: rgba(220, 53, 69, 0.2);
+            color: #f8a8b0;
+        }
+        .alert-custom.success {
+            background: rgba(40, 167, 69, 0.12);
+            border-color: rgba(40, 167, 69, 0.2);
+            color: #8cd4a0;
+        }
+        .alert-custom.info {
+            background: rgba(47, 199, 255, 0.08);
+            border-color: rgba(47, 199, 255, 0.12);
+            color: #8acff5;
+        }
+
+        /* ─── Results ─── */
+        .results {
+            display: none;
+            margin-top: 28px;
+            border-top: 1px solid rgba(255, 255, 255, 0.04);
+            padding-top: 24px;
+        }
+        .results.show { display: block; }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .results-header h4 {
+            color: #fff;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+        .results-header h4 i {
+            color: #2fc7ff;
+            margin-right: 8px;
+        }
+        .results-header .count-badge {
+            background: rgba(255, 255, 255, 0.04);
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 0.75rem;
+            padding: 4px 14px;
+            border-radius: 40px;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        /* ─── Stats grid ─── */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 16px;
+            padding: 14px 12px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            transition: 0.2s;
+        }
+        .stat-card:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(47, 199, 255, 0.1);
+        }
+        .stat-card .number {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #fff;
+            line-height: 1.2;
+        }
+        .stat-card .number.green { color: #28a745; }
+        .stat-card .number.red { color: #dc3545; }
+        .stat-card .number.blue { color: #2fc7ff; }
+        .stat-card .number.orange { color: #fd7e14; }
+        .stat-card .number.purple { color: #a29bfe; }
+        .stat-card .label {
+            font-size: 0.6rem;
+            color: rgba(255, 255, 255, 0.35);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-top: 2px;
+        }
+
+        /* ─── Table ─── */
+        .table-wrap {
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            overflow: hidden;
+            max-height: 480px;
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.15);
+        }
+        .table {
+            font-size: 0.8rem;
+            margin: 0;
+            color: rgba(255, 255, 255, 0.8);
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .table thead {
+            position: sticky;
+            top: 0;
+            z-index: 2;
+        }
+        .table thead th {
+            background: rgba(11, 43, 59, 0.95);
+            color: rgba(255, 255, 255, 0.5);
+            font-weight: 600;
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            padding: 10px 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        }
+        .table tbody td {
+            padding: 8px 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            vertical-align: middle;
+        }
+        .table tbody tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
+        }
+        .table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .badge-billable {
+            font-size: 0.55rem;
+            padding: 3px 12px;
+            border-radius: 30px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .badge-billable.yes {
+            background: rgba(40, 167, 69, 0.15);
+            color: #6bcb8a;
+        }
+        .badge-billable.no {
+            background: rgba(220, 53, 69, 0.15);
+            color: #f08080;
+        }
+
+        .totals-row td {
+            background: rgba(255, 255, 255, 0.03);
+            border-top: 2px solid rgba(47, 199, 255, 0.15);
+            font-weight: 600;
+            color: #fff;
+            padding: 10px 12px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: rgba(255, 255, 255, 0.2);
+        }
+        .empty-state i {
+            font-size: 3rem;
+            display: block;
+            margin-bottom: 12px;
+            opacity: 0.3;
+        }
+
+        /* ─── Scrollbar ─── */
+        .table-wrap::-webkit-scrollbar { width: 4px; height: 4px; }
+        .table-wrap::-webkit-scrollbar-track { background: transparent; }
+        .table-wrap::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+        }
+        .table-wrap::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.15); }
+
+        /* ─── Footer ─── */
+        .footer-note {
+            margin-top: 28px;
+            font-size: 0.7rem;
+            color: rgba(255, 255, 255, 0.15);
+            text-align: center;
+            border-top: 1px solid rgba(255, 255, 255, 0.03);
+            padding-top: 20px;
+        }
+        .footer-note a {
+            color: rgba(47, 199, 255, 0.5);
+            text-decoration: none;
+        }
+        .footer-note a:hover {
+            color: #2fc7ff;
+            text-decoration: underline;
+        }
+
+        /* ─── Responsive ─── */
+        @media (max-width: 600px) {
+            .glass-card { padding: 20px; }
+            .header h1 { font-size: 1.4rem; }
+            .stats-grid { grid-template-columns: repeat(3, 1fr); }
+            .stat-card .number { font-size: 1.2rem; }
+            .table { font-size: 0.7rem; }
+            .table thead th, .table tbody td { padding: 6px 8px; }
+            .drop-zone { padding: 30px 16px; }
+        }
+        @media (max-width: 400px) {
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+    
+  /* Local equivalents of the small Bootstrap helpers used in this standalone page. */
+  .d-flex{display:flex}.flex-wrap{flex-wrap:wrap}.align-items-center{align-items:center}
+  .justify-content-between{justify-content:space-between}.mt-3{margin-top:1rem}.mt-2{margin-top:.5rem}
+  .table{border-collapse:collapse;width:100%;color:inherit}
+  .table th,.table td{vertical-align:top;text-align:left}
+  button,textarea,input{font:inherit}
+  button{cursor:pointer}
+  .fa{display:inline-block;font-style:normal}
+  .fa:before{content:'◆'}
+  .fa-cloud-upload:before,.fa-upload:before{content:'⇧'}
+  .fa-cloud-download:before{content:'↓'}
+  .fa-code:before{content:'{ }'}
+  .fa-times:before{content:'×'}
+  .fa-check-circle:before{content:'✓'}
+  .fa-clock-o:before{content:'◷'}
+  .fa-inbox:before{content:'▢'}
+  .fa-github:before{content:'◈'}
+  .fa-wifi:before{content:'◉'}
+  .fa-play:before{content:'▶'}
+  :focus-visible{outline:2px solid #2fc7ff;outline-offset:3px}
+  .table-wrap{max-width:100%}
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="glass-card">
+
+        <!-- Header -->
+        <div class="header">
+            <h1><span>Offline</span> Timesheet</h1>
+            <span class="badge-offline"><i class="fa fa-wifi" style="opacity:0.4;"></i> Local JSON · No API access</span>
+        </div>
+        <div class="sub">
+            <i class="fa fa-cloud-download"></i>
+            Open your own <strong>timesheet.json</strong> or paste its content. The data is processed in your browser only; this page does not save or sync anything.
+        </div>
+
+        <!-- Drop zone -->
+        <div class="drop-zone" id="dropZone">
+            <i class="fa fa-cloud-upload"></i>
+            <div class="title">Drop your timesheet.json here</div>
+            <div class="hint">or click to browse</div>
+            <input type="file" id="fileInput" accept=".json,application/json" class="file-input-hidden" />
+        </div>
+
+        <!-- Actions -->
+        <div class="d-flex flex-wrap align-items-center justify-content-between mt-3" style="gap:10px;">
+            <div class="d-flex flex-wrap" style="gap:8px;">
+                <button class="btn-delta" id="loadBtn"><i class="fa fa-upload"></i> Load File</button>
+                <button class="btn-outline-delta" id="pasteBtn"><i class="fa fa-code"></i> Paste JSON</button>
+                <button class="btn-outline-light-sm" id="clearBtn" style="display:none;"><i class="fa fa-times"></i> Clear</button>
+            </div>
+            <span class="file-status" id="fileStatus" style="display:none;">
+                <i class="fa fa-check-circle"></i> <span id="fileName">file.json</span>
+            </span>
+        </div>
+
+        <!-- Paste area -->
+        <div class="paste-area" id="pasteArea" style="display:none;">
+            <textarea id="jsonInput" placeholder="Paste your timesheet JSON here..."></textarea>
+            <div class="mt-2">
+                <button class="btn-delta" id="parsePasteBtn"><i class="fa fa-play"></i> Parse JSON</button>
+                <button class="btn-outline-light-sm" id="hidePasteBtn">Cancel</button>
+                <span style="color:rgba(255,255,255,0.15);font-size:0.7rem;margin-left:12px;">Ctrl+Enter to parse</span>
+            </div>
+        </div>
+
+        <!-- Alert -->
+        <div class="alert-custom" id="messageBox"></div>
+
+        <!-- Results -->
+        <div class="results" id="results">
+            <div class="results-header">
+                <h4><i class="fa fa-clock-o"></i> Your Entries</h4>
+                <span class="count-badge" id="totalCount">0 entries</span>
+            </div>
+
+            <!-- Stats -->
+            <div class="stats-grid" id="statsContainer"></div>
+
+            <!-- Table -->
+            <div class="table-wrap">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Start</th>
+                            <th>End</th>
+                            <th>Hours</th>
+                            <th>Project</th>
+                            <th>Category</th>
+                            <th>Billable</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody id="entriesBody"></tbody>
+                    <tfoot id="entriesFoot" style="display:none;"></tfoot>
+                </table>
+            </div>
+        </div>
+
+        <div class="footer-note"><p style="color:#a9c3d5;font-size:.8rem;margin-bottom:10px">Need your up-to-date entries? Use the protected Timesheet application. This offline viewer only reads a JSON file you choose.</p>
+            <i class="fa fa-github"></i> Local JSON only · never uploaded by this page · 
+            <a href="https://portfolio-data-bridge.siyabongatshem.workers.dev/timesheet.html" rel="noopener noreferrer">Open secure Timesheets</a>
+        </div>
+    </div>
+</div>
+
+<script>
+(() => {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const dropZone = $('dropZone');
+  const fileInput = $('fileInput');
+  const messageBox = $('messageBox');
+  const entriesBody = $('entriesBody');
+  const entriesFoot = $('entriesFoot');
+  const statsContainer = $('statsContainer');
+  let entries = null;
+
+  const asText = value => {
+    if (value === null || value === undefined || value === '') return '—';
+    return typeof value === 'object' ? '[Invalid value]' : String(value);
+  };
+  const num = value => {
+    const result = Number(value);
+    return Number.isFinite(result) && result >= 0 && result <= 24 ? result : 0;
+  };
+  function note(text, kind = 'info') {
+    messageBox.className = 'alert-custom show ' + kind;
+    messageBox.textContent = text;
+  }
+  function clearNote() {
+    messageBox.className = 'alert-custom';
+    messageBox.textContent = '';
+  }
+  const cell = (row, text, tag = 'td') => {
+    const td = document.createElement(tag);
+    td.textContent = asText(text);
+    row.appendChild(td);
+    return td;
+  };
+  function appendStat(number, label, cls) {
+    const outer = document.createElement('div');
+    outer.className = 'stat-card';
+    const big = document.createElement('div');
+    big.className = 'number' + (cls ? ' ' + cls : '');
+    big.textContent = number;
+    const small = document.createElement('div');
+    small.className = 'label';
+    small.textContent = label;
+    outer.append(big, small);
+    statsContainer.appendChild(outer);
+  }
+  function render(list) {
+    entriesBody.replaceChildren();
+    entriesFoot.replaceChildren();
+    statsContainer.replaceChildren();
+    entriesFoot.style.display = 'none';
+    $('results').classList.add('show');
+    $('clearBtn').style.display = 'inline-block';
+    $('totalCount').textContent = list.length + ' entries';
+    if (!list.length) {
+      const tr = document.createElement('tr');
+      const td = cell(tr, 'No entries found.');
+      td.colSpan = 8;
+      entriesBody.appendChild(tr);
+      return;
+    }
+    const sorted = [...list].sort((a, b) =>
+      String(b.date || '').localeCompare(String(a.date || '')));
+    let total = 0, billable = 0, nonBillable = 0;
+    const projects = new Set(), days = new Set();
+    for (const item of sorted) {
+      const e = item && typeof item === 'object' && !Array.isArray(item) ? item : {};
+      const hrs = num(e.hours);
+      total += hrs;
+      if (String(e.billable).toLowerCase() === 'yes') billable += hrs;
+      else nonBillable += hrs;
+      if (typeof e.project === 'string' && e.project.trim()) projects.add(e.project);
+      if (typeof e.date === 'string' && e.date.trim()) days.add(e.date);
+      const tr = document.createElement('tr');
+      cell(tr, e.date);
+      cell(tr, e.start);
+      cell(tr, e.end);
+      cell(tr, hrs.toFixed(2)).style.fontWeight = 'bold';
+      cell(tr, e.project);
+      cell(tr, e.category);
+      const bill = cell(tr, String(e.billable).toLowerCase() === 'yes' ? 'Yes' : 'No');
+      bill.className = 'badge-billable ' + (String(e.billable).toLowerCase() === 'yes' ? 'yes' : 'no');
+      const nt = cell(tr, e.notes);
+      nt.style.cssText = 'max-width:140px;overflow-wrap:anywhere;white-space:pre-wrap';
+      entriesBody.appendChild(tr);
+    }
+    const foot = document.createElement('tr');
+    foot.className = 'totals-row';
+    const label = cell(foot, 'Totals');
+    label.colSpan = 3;
+    cell(foot, total.toFixed(2));
+    cell(foot, '');
+    cell(foot, '');
+    cell(foot, billable.toFixed(2) + ' / ' + nonBillable.toFixed(2));
+    cell(foot, '');
+    entriesFoot.appendChild(foot);
+    entriesFoot.style.display = 'table-footer-group';
+    appendStat(total.toFixed(1), 'Total Hours', 'blue');
+    appendStat(billable.toFixed(1), 'Billable', 'green');
+    appendStat(nonBillable.toFixed(1), 'Non-Billable', 'red');
+    appendStat(String(projects.size), 'Projects', 'orange');
+    appendStat(String(days.size), 'Days', 'purple');
+    appendStat((days.size ? total / days.size : 0).toFixed(1), 'Avg / Day');
+  }
+  function loadJson(text, filename) {
+    let data;
+    try { data = JSON.parse(text); }
+    catch { note('This is not valid JSON.', 'error'); return; }
+    if (!Array.isArray(data) || data.length > 50000) {
+      note('Expected a JSON array of up to 50,000 timesheet entries.', 'error');
+      return;
+    }
+    entries = data;
+    render(entries);
+    $('fileStatus').style.display = filename ? 'inline-flex' : 'none';
+    $('fileName').textContent = filename || '';
+    $('pasteArea').style.display = 'none';
+    note('Loaded ' + data.length + ' entries locally. Nothing has been uploaded.', 'success');
+  }
+  function loadFile(file) {
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith('.json')) {
+      note('Please choose a .json file.', 'error'); return;
+    }
+    if (file.size > 6 * 1024 * 1024) {
+      note('File is over 6 MB; choose a smaller JSON export.', 'error'); return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => loadJson(String(reader.result || ''), file.name);
+    reader.onerror = () => note('Could not read your file.', 'error');
+    reader.readAsText(file);
+  }
+  $('loadBtn').addEventListener('click', () => fileInput.click());
+  dropZone.addEventListener('click', e => {
+    if (e.target !== fileInput) fileInput.click();
+  });
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault(); dropZone.classList.remove('dragover');
+    loadFile(e.dataTransfer.files && e.dataTransfer.files[0]);
+  });
+  fileInput.addEventListener('change', () => {
+    loadFile(fileInput.files && fileInput.files[0]);
+    fileInput.value = '';
+  });
+  $('pasteBtn').addEventListener('click', () => {
+    $('pasteArea').style.display = $('pasteArea').style.display === 'none' ? 'block' : 'none';
+    if ($('pasteArea').style.display === 'block') $('jsonInput').focus();
+  });
+  $('hidePasteBtn').addEventListener('click', () => $('pasteArea').style.display = 'none');
+  $('parsePasteBtn').addEventListener('click', () => loadJson($('jsonInput').value.trim(), ''));
+  $('jsonInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault(); loadJson($('jsonInput').value.trim(), '');
+    }
+  });
+  $('clearBtn').addEventListener('click', () => {
+    entries = null;
+    entriesBody.replaceChildren();
+    entriesFoot.replaceChildren();
+    statsContainer.replaceChildren();
+    $('results').classList.remove('show');
+    $('fileStatus').style.display = 'none';
+    $('clearBtn').style.display = 'none';
+    $('pasteArea').style.display = 'none';
+    $('jsonInput').value = '';
+    $('totalCount').textContent = '0 entries';
+    clearNote();
+  });
+  // Data is never transmitted, stored, synced or sent to GitHub by this page.
+  if (new URLSearchParams(location.search).has('paste')) $('pasteArea').style.display = 'block';
+})();
+</script>
+</body>
+</html>
