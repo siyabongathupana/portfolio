@@ -2,11 +2,118 @@
   "schemaVersion": 1,
   "certificates": [
     {
+      "slug": "7018-deltav-hardware-and-troubleshooting",
+      "title": "7018 DeltaV Hardware and Troubleshooting",
+      "issuer": "Emerson",
+      "date": "2024-11"
+    },
+    {
+      "slug": "service-ready-core",
+      "title": "Service Ready Core",
+      "issuer": "Korn Ferry",
+      "date": "2025-04"
+    },
+    {
+      "slug": "deltav-field-service-supervised",
+      "title": "DeltaV Field Service Supervised",
+      "issuer": "Emerson",
+      "date": "2025-05"
+    },
+    {
+      "slug": "ndg-linux-unhatched",
+      "title": "NDG Linux Unhatched",
+      "issuer": "NDG",
+      "date": "2024-01"
+    },
+    {
+      "slug": "deltav-operate-implementation",
+      "title": "DeltaV Operate Implementation",
+      "issuer": "Emerson",
+      "date": "2023-10"
+    },
+    {
+      "slug": "deltav-guardian-associate",
+      "title": "DeltaV Guardian Associate",
+      "issuer": "Emerson",
+      "date": "2025-02"
+    },
+    {
+      "slug": "control-valve-fundamentals",
+      "title": "Control Valve Fundamentals",
+      "issuer": "Emerson",
+      "date": "2024-10"
+    },
+    {
+      "slug": "rosemount-iv2022-pressure",
+      "title": "Rosemount IV2022 Pressure",
+      "issuer": "Emerson",
+      "date": "2024-03"
+    },
+    {
+      "slug": "rosemount-process-control-and-fundamentals-pressure-measurements",
+      "title": "Rosemount Process Control and Fundamentals Pressure Measurements",
+      "issuer": "Emerson",
+      "date": "2024-02"
+    },
+    {
+      "slug": "emerson-wireless-gateways",
+      "title": "Emerson Wireless Gateways",
+      "issuer": "Emerson",
+      "date": "2024-02"
+    },
+    {
+      "slug": "ethical-hacker",
+      "title": "Ethical Hacker",
+      "issuer": "Cisco",
+      "date": "2023-11"
+    },
+    {
       "slug": "ndg-linux-essentials",
       "title": "NDG Linux Essentials",
       "issuer": "NDG",
-      "date": "2024-01",
-      "image": "public-certificate-images/ndg-linux-essentials-12.jpg"
+      "date": "2024-01"
+    },
+    {
+      "slug": "deltav-field-service-associate",
+      "title": "DeltaV Field Service Associate",
+      "issuer": "Emerson",
+      "date": "2026-02"
+    },
+    {
+      "slug": "network-technician",
+      "title": "Network Technician",
+      "issuer": "Cisco",
+      "date": "2025-07"
+    },
+    {
+      "slug": "network-support-and-security",
+      "title": "Network Support and Security",
+      "issuer": "Cisco",
+      "date": "2025-07"
+    },
+    {
+      "slug": "ai-fundumentals",
+      "title": "AI Fundumentals",
+      "issuer": "IBM",
+      "date": "2024-08"
+    },
+    {
+      "slug": "network-addressing-basic-troubleshooting",
+      "title": "Network Addressing & Basic Troubleshooting",
+      "issuer": "Cisco",
+      "date": "2024-08"
+    },
+    {
+      "slug": "network-devices-initial-configuration",
+      "title": "Network Devices & Initial Configuration",
+      "issuer": "Cisco",
+      "date": "2024-08"
+    },
+    {
+      "slug": "test",
+      "title": "Test",
+      "issuer": "Siya",
+      "date": "25 March 2025"
     }
   ]
 }
