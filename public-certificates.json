@@ -2,91 +2,11 @@
   "schemaVersion": 1,
   "certificates": [
     {
-      "slug": "7018-deltav-hardware-and-troubleshooting",
-      "title": "7018 DeltaV Hardware and Troubleshooting",
-      "issuer": "Emerson",
-      "date": "2024-11",
-      "image": "public-certificate-images/7018-deltav-hardware-and-troubleshooting-1.jpg"
-    },
-    {
-      "slug": "service-ready-core",
-      "title": "Service Ready Core",
-      "issuer": "Korn Ferry",
-      "date": "2025-04",
-      "image": "public-certificate-images/service-ready-core-2.jpg"
-    },
-    {
-      "slug": "deltav-field-service-supervised",
-      "title": "DeltaV Field Service Supervised",
-      "issuer": "Emerson",
-      "date": "2025-05",
-      "image": "public-certificate-images/deltav-field-service-supervised-3.jpg"
-    },
-    {
-      "slug": "ndg-linux-unhatched",
-      "title": "NDG Linux Unhatched",
-      "issuer": "NDG",
-      "date": "2024-01",
-      "image": "public-certificate-images/ndg-linux-unhatched-4.jpg"
-    },
-    {
-      "slug": "deltav-operate-implementation",
-      "title": "DeltaV Operate Implementation",
-      "issuer": "Emerson",
-      "date": "2023-10",
-      "image": "public-certificate-images/deltav-operate-implementation-5.jpg"
-    },
-    {
-      "slug": "deltav-guardian-associate",
-      "title": "DeltaV Guardian Associate",
-      "issuer": "Emerson",
-      "date": "2025-02",
-      "image": "public-certificate-images/deltav-guardian-associate-6.jpg"
-    },
-    {
-      "slug": "emerson-wireless-gateways",
-      "title": "Emerson Wireless Gateways",
-      "issuer": "Emerson",
-      "date": "2024-02",
-      "image": "public-certificate-images/emerson-wireless-gateways-10.jpg"
-    },
-    {
-      "slug": "ethical-hacker",
-      "title": "Ethical Hacker",
-      "issuer": "Cisco",
-      "date": "2023-11",
-      "image": "public-certificate-images/ethical-hacker-11.jpg"
-    },
-    {
       "slug": "ndg-linux-essentials",
       "title": "NDG Linux Essentials",
       "issuer": "NDG",
-      "date": "2024-01"
-    },
-    {
-      "slug": "deltav-field-service-associate",
-      "title": "DeltaV Field Service Associate",
-      "issuer": "Emerson",
-      "date": "2026-02"
-    },
-    {
-      "slug": "network-technician",
-      "title": "Network Technician",
-      "issuer": "Cisco",
-      "date": "2025-07"
-    },
-    {
-      "slug": "network-support-and-security",
-      "title": "Network Support and Security",
-      "issuer": "Cisco",
-      "date": "2025-07"
-    },
-    {
-      "slug": "test",
-      "title": "Test",
-      "issuer": "Siya",
-      "date": "25 March 2025",
-      "image": "public-certificate-images/test-19.jpg"
+      "date": "2024-01",
+      "image": "public-certificate-images/ndg-linux-essentials-12.jpg"
     }
   ]
 }
