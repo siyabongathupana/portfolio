@@ -1,0 +1,9 @@
+
+/* Siya contrast safeguards on non-standard protected pages */
+:root[data-theme=light] body{color-scheme:light}
+:root[data-theme=light] :is(.card,.panel,.tile,.section,.box):not(.btn-primary){--text:#18344c;--muted:#4b6579}
+:root[data-theme=light] :is(input,select,textarea){color-scheme:light}
+:root[data-theme=light] :is(input,select,textarea)::placeholder{color:#5a7083}
+:root[data-theme=light] :is(.error,.warn,.warning){color:#8a4a18}
+:root[data-theme=light] :is(.success,.ok){color:#146545}
+:root[data-theme=dark] :is(input,select,textarea)::placeholder{color:#a3b6c7}
