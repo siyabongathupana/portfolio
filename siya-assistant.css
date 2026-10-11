@@ -49,3 +49,16 @@
 @media(max-width:600px){.siya-milestones{padding:10px}.siya-milestone-row{flex-wrap:wrap}.siya-celebrate{margin-left:auto}.siya-milestone-list{max-height:26vh}.siya-floating-achievement{max-width:180px}}
 @media(min-width:1800px){.siya-milestones{padding:16px}.siya-milestone-row{padding:12px}}
 @media(prefers-reduced-motion:reduce){.siya-milestone-row,.siya-floating-achievement{animation:none!important;transition:none!important}}
+
+/* Siya v3.4 — one popup, one red unread badge, no achievement toasts. */
+#siya-launcher [hidden]{display:none!important}
+#siya-launcher .siya-badge{position:absolute;top:-11px;right:-11px;z-index:4;background:#dc243e;color:#fff;font:800 13px/1.1 system-ui,sans-serif;min-width:23px;min-height:23px;border:2px solid #fff;border-radius:99px;display:grid;place-items:center;padding:3px 5px;box-shadow:0 3px 12px #0009;pointer-events:none}
+#siya-launcher .siya-floating-achievement{display:none!important}
+#siya-launcher .siya-celebrate-all{width:100%;padding:9px 12px;margin:0 0 9px;border:1px solid #61cadb;border-radius:10px;color:#09283c;background:linear-gradient(110deg,#6bdff0,#c7b5ff);font-size:.83rem;font-weight:800;cursor:pointer}
+#siya-launcher .siya-mailbox{border:1px solid var(--sedge);background:var(--sbtn);border-radius:13px;padding:11px;margin:10px 0;color:var(--sfg)}
+#siya-launcher .siya-mailbox>strong{display:block;margin:0 0 7px}.siya-message-list{display:grid;gap:5px}
+#siya-launcher .siya-message-item{display:grid;gap:3px;padding:8px;border-top:1px solid var(--sedge);overflow-wrap:anywhere}
+#siya-launcher .siya-message-item small{color:var(--smuted);font-size:11px}
+#siya-launcher .siya-inbox-link{display:block;margin:7px 0 0;color:var(--sfg);font-size:13px;font-weight:750;text-decoration:underline}
+@media(max-width:390px){#siya-launcher .siya-card{padding:12px;max-height:calc(100dvh - 10px)}#siya-launcher .siya-top strong{font-size:15px}#siya-launcher .siya-milestone-row{padding:7px}}
+@media(min-width:1800px){#siya-launcher .siya-card{font-size:15px}}
