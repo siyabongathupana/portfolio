@@ -33,3 +33,7 @@ window.addEventListener('storage',e=>{if(e.key===KEY&&norm(e.newValue))apply(e.n
 // Public homepage's existing toggle uses the same storage key.
 const obs=new MutationObserver(()=>{const t=norm(document.documentElement.dataset.theme);if(t&&t!==active){active=t;const legacy=document.getElementById('theme-dark-css');if(legacy)legacy.disabled=t==='light';try{localStorage.setItem(KEY,t)}catch{}}});obs.observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
 })();
+
+
+/* Siya v3 public launcher (shared theme is loaded on almost all public pages). */
+(()=>{'use strict';function ready(){if(document.querySelector('script[data-siya-widget]'))return;const l=document.createElement('link');l.rel='stylesheet';l.href='siya-assistant.css';document.head.append(l);const s=document.createElement('script');s.src='siya-assistant.js';s.dataset.siyaWidget='v3';s.defer=true;document.body.append(s)}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',ready,{once:true});else ready()})();
