@@ -13,3 +13,39 @@
 @keyframes siya-open{from{opacity:0;transform:translateY(9px) scale(.98)}to{opacity:1;transform:none}}
 @media(max-width:460px){#siya-launcher{width:62px;height:62px}#siya-launcher .siya-trigger{width:62px;height:62px}}
 @media(prefers-reduced-motion:reduce){#siya-launcher *{animation:none!important;transition:none!important}}
+
+/* Siya v3.2 compact personal-assistant briefing and quick commands. */
+#siya-launcher .siya-brief{background:var(--sbtn);border:1px solid var(--sedge);border-radius:12px;padding:10px 12px;margin:8px 0 11px;max-height:205px;overflow:auto;font-size:12px;line-height:1.5}
+#siya-launcher .siya-brief>strong{display:block;margin-bottom:7px;font-size:13px;color:var(--sfg)}
+#siya-launcher .siya-brief-content>p{margin:0;color:var(--smuted)}
+#siya-launcher .siya-brief-row{display:flex;gap:7px;align-items:flex-start;border-top:1px solid var(--sedge);padding:7px 0;overflow-wrap:anywhere;color:var(--sfg)}
+#siya-launcher .siya-alert-dot{display:inline-grid;place-items:center;flex-shrink:0;width:16px;height:16px;border-radius:100px;color:#053047;background:#6cddfc;font-weight:800}
+#siya-launcher .siya-alert-dot.siya-alert-warn{background:#f9bf78;color:#4d220d}
+#siya-launcher .siya-done{margin-left:auto;padding:3px 7px;border-radius:6px;border:1px solid var(--sedge);background:var(--spanel);color:var(--sfg);cursor:pointer;font-size:11px}
+#siya-launcher .siya-quick{display:flex;align-items:stretch;gap:6px;margin:10px 0}
+#siya-launcher .siya-quick[hidden]{display:none!important}
+#siya-launcher .siya-quick-input{flex:1;min-width:0;width:100%;padding:9px;border:1px solid var(--sedge);border-radius:9px;background:var(--sbtn);color:var(--sfg);font:12px/1.4 system-ui,sans-serif;color-scheme:dark}
+#siya-launcher .siya-quick-input::placeholder{color:var(--smuted);opacity:1}
+#siya-launcher .siya-quick-send{padding:8px 10px;border:1px solid #73ddef;background:linear-gradient(110deg,#6ce4f2,#89aaf5);color:#08203a;font-weight:800;border-radius:9px;cursor:pointer}
+#siya-launcher .siya-quick-send:disabled{opacity:.6;cursor:wait}
+#siya-launcher .siya-message{overflow-wrap:anywhere;white-space:pre-wrap}
+#siya-launcher .siya-another{display:none!important}
+:root[data-theme="light"] #siya-launcher .siya-quick-input,:root.theme-light #siya-launcher .siya-quick-input{color-scheme:light}
+
+/* Siya v3.3 responsive achievement notice */
+#siya-launcher .siya-milestones{margin:12px 0;padding:12px;background:var(--sbtn);color:var(--sfg);border:1px solid rgba(111,210,234,.36);border-radius:14px;min-width:0}
+#siya-launcher .siya-milestone-title{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:9px;font-size:.89rem;flex-wrap:wrap}
+#siya-launcher .siya-milestone-count{font-weight:800;color:#e6b95f}
+#siya-launcher .siya-milestone-list{display:grid;gap:7px;max-height:min(39vh,270px);overflow:auto;overscroll-behavior:contain}
+#siya-launcher .siya-milestone-row{display:flex;align-items:center;gap:9px;padding:9px;border-radius:10px;border:1px solid rgba(106,194,220,.2);background:rgba(51,111,143,.18);min-width:0}
+#siya-launcher .siya-milestone-row>div{display:grid;gap:2px;min-width:0;flex:1}
+#siya-launcher .siya-milestone-row strong{font-size:.84rem;overflow-wrap:anywhere}
+#siya-launcher .siya-milestone-row small{font-size:.74rem;color:var(--smuted);line-height:1.4;overflow-wrap:anywhere}
+#siya-launcher .siya-trophy-emoji{font-size:1.4rem;flex-shrink:0}
+#siya-launcher .siya-milestone-muted{font-size:.79rem;margin:0;color:var(--smuted)}
+#siya-launcher .siya-celebrate{font:inherit;font-size:.7rem;font-weight:700;background:linear-gradient(125deg,#72dbf3,#a1b5ff);border:0;border-radius:9px;padding:9px 7px;color:#082236;cursor:pointer;max-width:95px;flex-shrink:0}
+#siya-launcher .siya-celebrate:focus-visible{outline:3px solid #fbc454;outline-offset:2px}
+#siya-launcher .siya-floating-achievement{position:fixed;background:#143653;color:#fff6d7;border:1px solid #e8b659;border-radius:14px;padding:10px;min-width:140px;max-width:220px;box-shadow:0 8px 30px #050d1f88;font-weight:800;font-size:.8rem;pointer-events:none}
+@media(max-width:600px){.siya-milestones{padding:10px}.siya-milestone-row{flex-wrap:wrap}.siya-celebrate{margin-left:auto}.siya-milestone-list{max-height:26vh}.siya-floating-achievement{max-width:180px}}
+@media(min-width:1800px){.siya-milestones{padding:16px}.siya-milestone-row{padding:12px}}
+@media(prefers-reduced-motion:reduce){.siya-milestone-row,.siya-floating-achievement{animation:none!important;transition:none!important}}
