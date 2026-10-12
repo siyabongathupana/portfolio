@@ -70,3 +70,25 @@
 .siya-easter-egg{position:fixed;z-index:2147482001;left:50%;bottom:24px;transform:translateX(-50%);max-width:min(480px,calc(100vw - 30px));padding:13px 16px;background:#0d2842;border:1px solid #60dffa;box-shadow:0 16px 48px #000a;border-radius:14px;color:#e7faff;font-size:13px;line-height:1.45;pointer-events:none;text-align:center}
 #siya-launcher .siya-badge{background:#df2443!important;color:#fff!important;border-color:#fff!important;opacity:1!important;filter:none!important}
 #siya-launcher .siya-trigger[aria-expanded="true"]{outline:none}
+
+/* Siya v3.6 — crisp professional visual identity, brief-dismiss and overlap cards. */
+#siya-launcher .siya-trigger{border:1px solid #46bcd3;border-radius:19px;background:linear-gradient(145deg,#102b42,#071528);box-shadow:0 11px 34px #01111c9b, inset 0 0 0 1px #a6e9ff22}
+#siya-launcher .siya-trigger:hover{box-shadow:0 15px 40px #0ccbec6b}
+#siya-launcher .siya-avatar{filter:drop-shadow(0 3px 9px #05bed78a)}
+#siya-launcher .siya-brief-header{display:flex;justify-content:space-between;align-items:center;gap:12px}
+#siya-launcher .siya-brief-header strong{font-size:13px}
+#siya-launcher .siya-brief-dismiss{background:transparent;border:1px solid var(--sedge);border-radius:8px;color:var(--sfg);padding:4px 9px;cursor:pointer}
+#siya-launcher .siya-notification-toolbar{margin:8px 0;display:flex;justify-content:flex-end}
+#siya-launcher .siya-read-all,#siya-launcher .siya-verify-button{background:linear-gradient(120deg,#6bd9ef,#8baeff);color:#062237;border:0;border-radius:10px;padding:10px 12px;font:700 13px system-ui;cursor:pointer}
+#siya-launcher .siya-verify-button{width:100%;margin:0 0 6px}
+#siya-launcher .siya-overlaps{border:1px solid #dfaa67;background:color-mix(in srgb,var(--spanel) 76%,#6e441d 24%);padding:12px;border-radius:12px;margin:8px 0}
+#siya-launcher .siya-overlap-list{max-height:230px;overflow:auto;display:grid;gap:8px;margin-top:8px}
+#siya-launcher .siya-overlap-item{display:grid;gap:2px;padding:9px;border:1px solid var(--sedge);border-radius:9px;color:var(--sfg);font-size:12px}
+#siya-launcher .siya-overlap-item strong{color:#fad69f}
+#siya-launcher .siya-overlap-item small{color:var(--smuted)}
+@media(max-width:390px){#siya-launcher .siya-card{max-width:calc(100vw - 16px)}}
+
+/* Prevent the floating trigger from covering controls when a tall panel opens. */
+#siya-launcher .siya-card{max-height:min(740px,calc(100dvh - 104px));overscroll-behavior:contain}
+#siya-launcher .siya-ignore-overlap{width:100%;border-radius:9px;border:1px solid #f0c18b;background:#f0c18b;color:#3b2412;padding:9px 11px;cursor:pointer;font-weight:750}
+@media(max-width:600px){#siya-launcher .siya-card{max-height:calc(100dvh - 94px)}}

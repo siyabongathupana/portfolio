@@ -5,6 +5,29 @@ if(document.getElementById('siya-launcher'))return;
 const WORKER='https://portfolio-data-bridge.siyabongatshem.workers.dev';
 const JOIN='https://siyabongathupana.github.io/portfolio/join.html';
 const protectedOrigin=location.origin===new URL(WORKER).origin;
+const PUBLIC_ORIGIN='https://siyabongathupana.github.io';
+const BRIDGE_KEY='siya-v36-verified-session';
+const bridgeTtlMs=20*60*1000;
+let guestGeneration=0,bridgeWindow=null;
+function bridgeSnapshot(){try{const d=JSON.parse(sessionStorage.getItem(BRIDGE_KEY)||'null');return d&&d.signedIn===true&&Date.now()-Number(d.checkedAt||0)<bridgeTtlMs?d:null}catch{return null}}
+function rememberBridge(d){const clean={signedIn:true,firstName:String(d.firstName||'').slice(0,70),aiAllowed:!!d.aiAllowed,isAdmin:!!d.isAdmin,badgeCount:d.badgeCount===null||d.badgeCount===undefined?null:Math.max(0,Number(d.badgeCount)||0),partialMailboxScan:!!d.partialMailboxScan,checkedAt:Date.now()};try{sessionStorage.setItem(BRIDGE_KEY,JSON.stringify(clean))}catch{}return clean}
+function secureHandshake(){
+ if(protectedOrigin)return;
+ const nonce=(crypto?.randomUUID?.()||String(Date.now())+Math.random()).replaceAll('-','');
+ try{sessionStorage.setItem('siya-bridge-nonce',nonce)}catch{}
+ const link=WORKER+'/siya-account-bridge.html?origin='+encodeURIComponent(location.origin)+'&nonce='+encodeURIComponent(nonce);
+ bridgeWindow=window.open(link,'siya_secure_account_check','popup=yes,width=520,height=640');
+ if(!bridgeWindow){location.href=link;return}
+ status.textContent='A secure sign-in check opened. Complete it to connect Siya here.';
+}
+window.addEventListener('message',event=>{
+ if(protectedOrigin||event.origin!==new URL(WORKER).origin||!event.data||event.data.type!=='siya-v36-verified')return;
+ const expected=sessionStorage.getItem('siya-bridge-nonce');
+ if(!expected||event.data.nonce!==expected||event.data.session?.signedIn!==true)return;
+ sessionStorage.removeItem('siya-bridge-nonce');
+ rememberBridge(event.data.session);guest();
+});
+
 const ROOT=protectedOrigin?'/':location.pathname.startsWith('/portfolio/')?'/portfolio/':'/';
 const PATH=location.pathname.toLowerCase();
 const CONTEXT=/timesheet|time-?track/.test(PATH)?'timesheets':/studies|study|grade|assessment|cad/.test(PATH)?'studies':/analytic|insight|report/.test(PATH)?'analytics':/project|milestone|publish/.test(PATH)?'projects':/certificat/.test(PATH)?'certificates':/admin|access|user/.test(PATH)?'admin':/ai-centre/.test(PATH)?'ai':'home';
@@ -88,7 +111,10 @@ const panel=make('section','siya-card');panel.setAttribute('role','dialog');pane
 const head=make('div','siya-top'),hicon=icon.cloneNode(true),heading=make('div');heading.append(make('strong','','Siya · Your co-pilot'),make('small','','Your friendly Cybertronian engineer ⚙️'));
 head.append(hicon,heading);panel.append(head);
 const joke=make('p','siya-joke');joke.setAttribute('aria-live','polite');panel.append(joke);
-const brief=make('div','siya-brief');brief.hidden=true;brief.setAttribute('aria-live','polite');brief.append(make('strong','','📋 Your quick briefing'));
+const brief=make('div','siya-brief');brief.hidden=true;brief.setAttribute('aria-live','polite');
+const briefHeader=make('div','siya-brief-header');briefHeader.append(make('strong','','📋 Your quick briefing'));
+const briefDismiss=make('button','siya-brief-dismiss','Hide');briefDismiss.type='button';briefDismiss.setAttribute('aria-label','Hide the briefing');briefHeader.append(briefDismiss);brief.append(briefHeader);
+let briefingDismissed=false;briefDismiss.onclick=()=>{briefingDismissed=true;brief.hidden=true;layoutPanel()};
 const briefContent=make('div','siya-brief-content','Open Siya for your saved deadlines, tasks and reminders.');brief.append(briefContent);panel.append(brief);
 const msg=make('p','siya-message','I can check saved records, answer quick questions and set in-app reminders.');panel.append(msg);
 const introLines={playful:["Hi! Siya here. My circuits are charged and my jokes are under review. 🤖","Your favourite Cybertronian has arrived. Productivity may improve; humour is not guaranteed. 😎","Hello, earthling! I've checked the logs. The coffee machine is still the prime suspect. ☕","Siya reporting for duty. I promise not to convert every tiny task into a full FAT procedure. ⚙️"],balanced:["Hi! I'm Siya. I can check your progress and highlight what needs attention.","Welcome back. I can summarize the important changes in your portfolio.","Your portfolio co-pilot is ready. What can I help you with today?"],focused:["Siya ready. Choose a task or review your notifications.","Assistant online. Verified records and approved actions only.","Ready for your next instruction."]};
@@ -101,6 +127,9 @@ const send=make('button','siya-quick-send','Ask ↗');send.type='submit';quick.a
 const trophy=make('section','siya-milestones');trophy.hidden=!protectedOrigin;
 const trophyHeading=make('div','siya-milestone-title');trophyHeading.append(make('strong','','🏆 Siya achievements'),make('span','siya-milestone-count',''));
 const celebrateAll=make('button','siya-celebrate-all','🎉 Celebrate all');celebrateAll.type='button';const trophyList=make('div','siya-milestone-list');trophy.append(trophyHeading,celebrateAll,trophyList);panel.append(trophy);
+const manageNotices=make('div','siya-notification-toolbar');manageNotices.hidden=true;
+const readAll=make('button','siya-read-all','Mark all as read');readAll.type='button';manageNotices.append(readAll);panel.append(manageNotices);
+const overlaps=make('section','siya-overlaps');overlaps.hidden=true;overlaps.append(make('strong','','⚠️ Overlap inspector'));const overlapList=make('div','siya-overlap-list');overlaps.append(overlapList);panel.append(overlaps);
 const mailboxSection=make('section','siya-mailbox');mailboxSection.hidden=true;mailboxSection.append(make('strong','','✉️ New messages'));const mailboxList=make('div','siya-message-list');mailboxSection.append(mailboxList);const inboxLink=make('a','siya-inbox-link','Open messages →');inboxLink.href=WORKER+'/messages.html';mailboxSection.append(inboxLink);panel.append(mailboxSection);
 celebrateAll.addEventListener('click',async()=>{if(celebrateAll.disabled)return;celebrateAll.disabled=true;try{await api('/api/siya/milestones/seen-all','POST',{});trophyList.replaceChildren();trophy.hidden=true;celebrateAll.hidden=true;lastMilestoneCheck=0;await loadNotifications();}catch(e){quickStatus.textContent='Could not celebrate everything yet. '+e.message;}finally{celebrateAll.disabled=false;layoutPanel();}});
 const quickStatus=make('p','siya-message');quickStatus.setAttribute('aria-live','polite');panel.append(quickStatus);
@@ -109,42 +138,50 @@ const status=make('div','siya-state');panel.append(status);
 const reset=make('button','siya-reset','↺ Reset mascot position');reset.type='button';panel.append(reset);root.append(panel);
 const action=(label,url,primary)=>{const a=make('a',primary?'siya-primary':'',label);a.href=url;actions.append(a)};
 const visitorRoasts=['No account? Wow, even my toaster has a login. 🥲','You came all the way from the internet without an account? Bold. 😂','I would give you access, but my firewall is stricter than a university exam invigilator. 🤖','Visitor detected. Your next mission: create an account. This is not optional in my robot dreams. 😎','I checked the guest list. It says: nice try, Cybertron tourist! 🚀','Your account has gone missing. Was it ever here? A mystery worthy of a Netflix documentary. 🔍','I have 404 problems, and your account is currently one of them. 🤣'];
-async function guest(){
+async function guest(){const generation=++guestGeneration;
  quick.hidden=true;brief.hidden=true;mailboxSection.hidden=true;trophy.hidden=true;briefContent.textContent='';actions.replaceChildren();
  // Cross-origin Access sessions can be unavailable to JavaScript due to third-party cookie protections.
  // Never label an account holder a visitor just because this best-effort probe fails.
- let signed=null;
- try{const res=await fetch(WORKER+'/api/siya/public-session',{credentials:'include',mode:'cors',cache:'no-store'});if(res.ok){const data=await res.json();if(data?.signedIn===true)signed=data;}}catch{}
- recognizedPublic=!!signed;
- if(signed){if(signed.badgeCount!==null&&Number.isFinite(Number(signed.badgeCount))){notificationData={badgeCount:Number(signed.badgeCount),hasPartialMailboxScan:signed.partialMailboxScan===true,checkedAt:new Date().toISOString()};updateBadge();}
+ let signed=bridgeSnapshot();
+ try{const res=await fetch(WORKER+'/api/siya/public-session',{credentials:'include',mode:'cors',cache:'no-store'});if(res.ok){const data=await res.json();if(data?.signedIn===true)signed=rememberBridge(data);}}catch{}
+ if(generation!==guestGeneration)return;recognizedPublic=!!signed;
+ if(signed){notificationData={badgeCount:signed.badgeCount,hasPartialMailboxScan:signed.partialMailboxScan===true||signed.badgeCount===null,checkedAt:new Date().toISOString()};updateBadge();
   msg.textContent='Welcome back'+(signed.firstName?', '+signed.firstName:'')+'! 🛸 Your account is recognized. Your private notices are waiting inside the workspace.';
   action('Open my private Siya assistant',WORKER+'/app.html',true);
   action(signed.aiAllowed?'Open Siya AI Centre':'Request Siya AI access',WORKER+(signed.aiAllowed?'/ai-centre.html':'/ai-access.html'));
-  status.textContent='Verified portfolio account · private alerts stay inside your secure workspace.';
+  status.textContent='Verified account · '+(signed.badgeCount===null?'Unread status requires a secure refresh.':'Notification snapshot; refresh to check new alerts.');
+  const refresh=make('button','siya-verify-button','↻ Refresh secure status');refresh.onclick=secureHandshake;actions.append(refresh);
  }else{
-  msg.textContent='On the public side, I can’t reliably inspect an existing Cloudflare login. Already registered? Take the VIP door. New here? '+visitorRoasts[Math.floor(Math.random()*visitorRoasts.length)];
-  action('I already have an account',WORKER+'/app.html',true);
+  msg.textContent='Already part of the engineering crew? Connect securely so I can recognize you on Home, Projects and Certificates. New here? '+visitorRoasts[Math.floor(Math.random()*visitorRoasts.length)];
+  const verify=make('button','siya-verify-button','I have an account · Connect Siya');verify.type='button';verify.onclick=secureHandshake;actions.append(verify);
   action('Create / request an account',JOIN);
-  status.textContent='Your login is checked securely after opening the workspace; this public page does not assume you are a visitor.';
+  status.textContent='Sign-in detection is verified by Cloudflare. No account details are guessed from this public page.';
  }
  layoutPanel();
 }
 
 let allowed=false,recognizedPublic=false,profileName=null;
 async function api(path,method='GET',body=null){const opts={method,credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json',...(body?{'Content-Type':'application/json'}:{})}};if(body)opts.body=JSON.stringify(body);const r=await fetch(path,opts);let d;try{d=await r.json()}catch{throw Error('A secure response could not be read.')}if(!r.ok)throw Error(String(d.error||'Request failed').slice(0,180));return d}
-function paintBrief(d){briefContent.replaceChildren();const rows=(d.notices||[]).slice(0,6);brief.hidden=!rows.length;
+function paintBrief(d){briefContent.replaceChildren();const rows=(d.notices||[]).slice(0,6);brief.hidden=!rows.length||briefingDismissed;
 for(const n of rows){const row=make('div','siya-brief-row'),dot=make('span','siya-alert-dot '+(n.severity==='warning'?'siya-alert-warn':''),n.severity==='warning'?'!':'•'),text=make('span','',n.text);row.append(dot,text);if(n.reminderId){const done=make('button','siya-done','Done');done.type='button';done.onclick=async()=>{if(!confirm('Mark this reminder as completed?'))return;try{await api('/api/ai/reminders/done','POST',{id:n.reminderId});await getBrief()}catch(e){quickStatus.textContent=e.message}};row.append(done)}briefContent.append(row)}
 status.textContent='Private briefing checked '+new Date(d.checkedAt||Date.now()).toLocaleTimeString()+' · In-app notifications only';layoutPanel();}
 let lastMilestoneCheck=0;let notificationData=null;
 function updateBadge(){
  // Only unread actionable events count. Briefings are informational, not notifications.
  const total=Number.isFinite(Number(notificationData?.badgeCount))?Math.max(0,Number(notificationData.badgeCount)):0;
- const partial=notificationData?.hasPartialMailboxScan===true;badge.hidden=total<=0&&!partial;badge.textContent=partial?(total>0?(total>99?'99+':String(total)+'+'):'?'):(total>99?'99+':String(total));
+ const partial=notificationData?.hasPartialMailboxScan===true;manageNotices.hidden=!protectedOrigin||(total<=0&&!partial);badge.hidden=total<=0&&!partial;badge.textContent=partial?(total>0?(total>99?'99+':String(total)+'+'):'?'):(total>99?'99+':String(total));
  btn.setAttribute('aria-label',total>0?'Siya assistant, '+total+' unread notification'+(total===1?'':'s'):'Open Siya assistant. Drag to move.');
  btn.dataset.notificationStatus=notificationData?.checkedAt?'synced':'unknown';
 }
 
-async function loadNotifications(){if(!protectedOrigin)return;try{const d=await api('/api/siya/notifications');notificationData=d;updateBadge();mailboxList.replaceChildren();const msgs=(d.messages||[]);mailboxSection.hidden=!msgs.length;if(msgs.length&&panel.dataset.open==='yes')quickStatus.textContent=msgs.length+' new incoming portfolio message'+(msgs.length===1?'':'s')+'. Open Messages to read them.';inboxLink.href=WORKER+(d.isAdmin?'/admin-messages.html':'/messages.html');for(const m of msgs.slice(0,5)){const row=make('div','siya-message-item');row.append(make('strong','',m.subject||'New message'),make('small','',m.from||'YourPortfolio'));mailboxList.append(row)}layoutPanel();}catch{btn.dataset.notificationStatus='temporarily-unavailable';/* retain last verified count; never turn a failed request into fake zero */}}
+async function loadNotifications(){if(!protectedOrigin)return;try{const d=await api('/api/siya/notifications');notificationData=d;updateBadge();mailboxList.replaceChildren();const msgs=(d.messages||[]);mailboxSection.hidden=!msgs.length;inboxLink.href=WORKER+(d.isAdmin?'/admin-messages.html':'/messages.html');for(const m of msgs.slice(0,5)){const row=make('div','siya-message-item');row.append(make('strong','',m.subject||'New message'),make('small','',m.from||'YourPortfolio'));mailboxList.append(row)}if(d.overlap?.active){await loadOverlapDetails()}else{overlaps.hidden=true;overlapList.replaceChildren()}
+ layoutPanel();}catch{btn.dataset.notificationStatus='temporarily-unavailable';/* retain last verified count; never turn a failed request into fake zero */}}
+async function loadOverlapDetails(){try{const x=await api('/api/siya/overlaps/details');overlapList.replaceChildren();const rows=x.pairs||[];overlaps.hidden=!rows.length;
+ for(const p of rows.slice(0,12)){const row=make('div','siya-overlap-item');row.append(make('strong','',p.date+' · '+p.minutes+' minutes'),make('span','',(p.first?.project||'Unknown project')+' ('+p.first?.start+'–'+p.first?.end+')'),make('span','',(p.second?.project||'Unknown project')+' ('+p.second?.start+'–'+p.second?.end+')'),make('small','','Conflict: '+(p.overlapStart||'')+'–'+(p.overlapEnd||'')+' · Review your Timesheet.'));overlapList.append(row)}
+ if(x.truncated)overlapList.append(make('small','','Additional conflicts may exist. Open Timesheets for full review.'));
+ if(rows.length&&notificationData?.overlap?.fingerprint){const ignore=make('button','siya-ignore-overlap','Acknowledge this overlap warning');ignore.type='button';ignore.onclick=async()=>{if(!confirm('Hide this overlap warning? Your Timesheet entries will stay unchanged. New overlap patterns will alert again.'))return;ignore.disabled=true;try{await api('/api/siya/overlap-alert','POST',{fingerprint:notificationData.overlap.fingerprint});await loadNotifications();quickStatus.textContent='Overlap warning acknowledged. Your saved hours were not changed.'}catch(e){quickStatus.textContent=e.message;ignore.disabled=false}};overlapList.append(ignore)}
+ }catch{overlaps.hidden=true}}
+readAll.onclick=async()=>{if(readAll.disabled||!protectedOrigin)return;readAll.disabled=true;readAll.textContent='Clearing…';try{const r=await api('/api/siya/notifications/mark-all','POST',{});await loadMilestones(true);await loadNotifications();quickStatus.textContent=r.partial?'Some sources could not be checked; verified items were marked read.':'All current notifications marked as read. New events will still appear.';}catch(e){quickStatus.textContent='Could not mark notifications read: '+e.message}finally{readAll.disabled=false;readAll.textContent='Mark all as read';layoutPanel()}};
 async function loadMilestones(force=false){
  if(!protectedOrigin||!trophy)return;
  if(!force&&Date.now()-lastMilestoneCheck<60000)return;
