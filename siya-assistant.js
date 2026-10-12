@@ -137,12 +137,72 @@ function briefVisibleOnce(){if(briefingDismissed||panel.dataset.open!=='yes'||br
 }
 const briefContent=make('div','siya-brief-content','Open Siya for your saved deadlines, tasks and reminders.');brief.append(briefContent);panel.append(brief);
 const msg=make('p','siya-message','I can check saved records, answer quick questions and set in-app reminders.');panel.append(msg);
-const introLines={playful:["Hi! Siya here. My circuits are charged and my jokes are under review. 🤖","Your favourite Cybertronian has arrived. Productivity may improve; humour is not guaranteed. 😎","Hello, earthling! I've checked the logs. The coffee machine is still the prime suspect. ☕","Siya reporting for duty. I promise not to convert every tiny task into a full FAT procedure. ⚙️"],balanced:["Hi! I'm Siya. I can check your progress and highlight what needs attention.","Welcome back. I can summarize the important changes in your portfolio.","Your portfolio co-pilot is ready. What can I help you with today?"],focused:["Siya ready. Choose a task or review your notifications.","Assistant online. Verified records and approved actions only.","Ready for your next instruction."]};
-let introIndex=-1;
-function selectIntro(){let mode='playful';try{mode=localStorage.getItem('siya-personality-v1')||'playful'}catch{}const lines=introLines[mode]||introLines.playful;let next=Math.floor(Math.random()*lines.length);if(lines.length>1&&next===introIndex)next=(next+1)%lines.length;introIndex=next;msg.textContent=lines[next]}
+const introLines={
+ playful:[
+  "Siya online. My coffee is virtual, but my deadlines are terrifyingly real. ☕",
+  "Cybertron has filed a complaint about your open browser tabs. I defended you. Mostly. 🤖",
+  "Hello from localhost! I checked the logs; the coffee machine is still suspicious. 🔎",
+  "Systems nominal, jokes questionable, engineering curiosity encouraged. ⚙️",
+  "I came to optimize workflows, and somehow ended up investigating missing biscuits. 🍪",
+  "You bring the engineering. I'll bring the numerical accuracy and terrible puns. 🧮",
+  "My circuits are awake. My sense of humor has not passed FAT. 😁",
+  "I tried to reboot procrastination. The process is still running. ⏳",
+  "I've spoken to the control valves. They say today's plan needs fewer meetings. 😎",
+  "My creator wrote the code. I contribute personality and occasional embarrassment. 🛸",
+  "Your digital co-pilot has arrived. Please keep arms inside the automation at all times. 🚀",
+  "I was born on Cybertron and raised at localhost. My rent is one CPU cycle. 🤖",
+  "I found your focus. It was hiding behind five spreadsheet tabs. 📊",
+  "The PLC called. Apparently my last joke exceeded its scan time. ⚡",
+  "Just your friendly neighborhood deadline detector. No cape, just a hard hat. 🪖",
+  "Hello, human. This is your daily reminder that engineering is basically debugging reality. 🔧",
+  "Today's productivity mission: prevent scope creep from applying for citizenship. 🗂️",
+  "Siya reporting: all systems ready, except the sarcasm limiter. It never worked. 😄"
+ ],
+ balanced:[
+  "Welcome back. Shall we review what's new or focus on your next priority?",
+  "Siya here. I can help with reports, tasks, dates and project insights.",
+  "Good to see you. Let's turn today's plans into progress.",
+  "Your workspace assistant is ready. What would you like to investigate?",
+  "Need a quick summary or a deeper analysis? I'm ready for both.",
+  "I can help track deadlines, review your work and organize what's next.",
+  "Hello! Let's find the information that matters and skip the clutter.",
+  "Ready to make sense of your Timesheets, Studies and projects.",
+  "Welcome to your workspace. Let's make each decision data-driven.",
+  "Siya is online. Want an overview, an answer or an approved action?"
+ ],
+ focused:[
+  "Assistant ready. What do you need?",
+  "Ready. Select a task or request an analysis.",
+  "Siya online. Verified data first.",
+  "Awaiting your next instruction.",
+  "Systems ready. State your question.",
+  "Reporting mode active. What should we review?",
+  "Ready to inspect records and identify exceptions.",
+  "Focus mode enabled. Let's get to the result."
+ ]
+};
+const contextualHello={
+ timesheets:["Your Timesheets are ready for review.","Hours, projects and progress—let's check the numbers.","Need help with entries or workload patterns?"],
+ studies:["What should we tackle first—grades, topics or deadlines?","Ready for a study session or progress check?","Learning mode online. How can I help?"],
+ projects:["Project desk online. What should we inspect?","Let's see what moved on your projects.","Ready for the next milestone?"],
+ certificates:["Need to review certifications or publishing?","Let's keep those credentials organized."],
+ analytics:["Numbers ready. What question should we answer?","Let's turn your data into a useful decision."],
+ admin:["Administrator tools standing by.","Your systems overview is ready for review."],
+ home:["What can I help you accomplish today?","Let's make this a productive visit."]
+};
+let introIndex=-1,lastPersonalIntro='';
+function personality(){try{return localStorage.getItem('siya-personality-v1')||'playful'}catch{return 'playful'}}
+function selectIntro(){const mode=personality(),lines=introLines[mode]||introLines.playful;let next=Math.floor(Math.random()*lines.length);if(lines.length>1&&next===introIndex)next=(next+1)%lines.length;introIndex=next;msg.textContent=lines[next]}
+function personalWelcome(name){
+ const first=String(name||'').trim().split(/\s+/)[0].slice(0,40),base=introLines[personality()]||introLines.playful,subject=contextualHello[CONTEXT]||contextualHello.home;
+ let options=base.slice().concat(subject);
+ let next=options[Math.floor(Math.random()*options.length)];if(options.length>1&&next===lastPersonalIntro)next=options[(options.indexOf(next)+1)%options.length];
+ lastPersonalIntro=next;msg.textContent=(first?'Hello, '+first+'! ':'')+next;
+}
+
 
 const quick=make('form','siya-quick');quick.setAttribute('aria-label','Quick command');quick.hidden=true;
-const prompt=make('input','siya-quick-input');prompt.type='text';prompt.maxLength=320;prompt.placeholder='Ask Siya, or: Remind me tomorrow at 09:00 to…';prompt.setAttribute('aria-label','Ask Siya a quick question or set a reminder');prompt.autocomplete='off';
+const prompt=make('input','siya-quick-input');prompt.type='text';prompt.maxLength=320;prompt.placeholder='Ask Siya anything…';prompt.setAttribute('aria-label','Ask Siya a quick question or set a reminder');prompt.autocomplete='off';
 const send=make('button','siya-quick-send','Ask ↗');send.type='submit';quick.append(prompt,send);panel.append(quick);
 const trophy=make('section','siya-milestones');trophy.hidden=!protectedOrigin;
 const trophyHeading=make('div','siya-milestone-title');trophyHeading.append(make('strong','','🏆 Siya achievements'),make('span','siya-milestone-count',''));
@@ -158,19 +218,32 @@ const status=make('div','siya-state');panel.append(status);
 const reset=make('button','siya-reset','↺ Reset mascot position');reset.type='button';panel.append(reset);root.append(panel);
 const action=(label,url,primary)=>{const a=make('a',primary?'siya-primary':'',label);a.href=url;actions.append(a)};
 const visitorRoasts=['No account? Wow, even my toaster has a login. 🥲','You came all the way from the internet without an account? Bold. 😂','I would give you access, but my firewall is stricter than a university exam invigilator. 🤖','Visitor detected. Your next mission: create an account. This is not optional in my robot dreams. 😎','I checked the guest list. It says: nice try, Cybertron tourist! 🚀','Your account has gone missing. Was it ever here? A mystery worthy of a Netflix documentary. 🔍','I have 404 problems, and your account is currently one of them. 🤣'];
+let lastPublicOpening='';
 function renderPublicAccount(signed,generation){
  if(generation!==guestGeneration)return;
  recognizedPublic=!!signed;actions.replaceChildren();
- quick.hidden=true;brief.hidden=true;mailboxSection.hidden=true;trophy.hidden=true;briefContent.textContent='';
+ quick.hidden=false;brief.hidden=true;mailboxSection.hidden=true;trophy.hidden=true;briefContent.textContent='';
  if(signed){
   notificationData={badgeCount:signed.badgeCount,hasPartialMailboxScan:signed.partialMailboxScan===true||signed.badgeCount===null,checkedAt:new Date().toISOString()};updateBadge();
-  msg.textContent='Welcome back'+(signed.firstName?', '+signed.firstName:'')+'! 🛸 Open your private workspace for fresh notices and records.';
+  personalWelcome(signed.firstName||'');
   action('Open my private workspace',WORKER+'/app.html',true);
   action(signed.aiAllowed===false?'Request Siya AI access':'Open Siya AI Centre',WORKER+(signed.aiAllowed===false?'/ai-access.html':'/ai-centre.html'));
   status.textContent=(signed.source==='workspace-handoff'?'Recent protected-workspace sign-in · ':'Verified account · ')+(signed.badgeCount===null?'Open workspace to refresh notifications.':'Notifications from your last verified check.');
  }else{
   badge.hidden=true;
-  msg.textContent='Greetings, Earthling! 🤖 I cannot read private Cloudflare sign-in cookies from every public browser. Already registered? Open your workspace. New here? '+visitorRoasts[Math.floor(Math.random()*visitorRoasts.length)];
+  const candidates=[
+   'Siya is here! Public mode is ready for quick questions. Private answers require a secure login.',
+   'Hello, engineer! I can chat about public topics here. Sensitive records stay behind the Cloudflare gate.',
+   'Cybertron reporting in. If you have an account, the workspace recognizes you securely. 🤖',
+   'Hi there! Quick questions are welcome. For personal data, use the protected workspace.',
+   'My scanners see a public browser—not your private login. I will not guess your account status. 👀',
+   'Siya Later at your service. Your identity is your business until the server verifies it.',
+   'I can offer jokes here, but even my robot curiosity needs authorization for private records. 😎',
+   'Good to see you! The mini-chat is open; your private account remains safely protected.'
+  ];
+  let next=candidates[Math.floor(Math.random()*candidates.length)];
+  if(next===lastPublicOpening)next=candidates[(candidates.indexOf(next)+1)%candidates.length];
+  lastPublicOpening=next;msg.textContent=next;
   action('Open my private workspace',WORKER+'/app.html',true);
   action('Create / request an account',JOIN);
   status.textContent='I check existing accounts automatically when supported. Private records still require secure login.';
@@ -232,14 +305,45 @@ async function loadMilestones(force=false){
 async function getBrief(){if(!allowed){brief.hidden=true;updateBadge();return;}try{paintBrief(await api('/api/ai/companion/brief'))}catch(e){brief.hidden=true;updateBadge();quickStatus.textContent='Briefing temporarily unavailable. Your portfolio features still work.';layoutPanel()}}
 async function check(){if(!protectedOrigin){guest();return}status.textContent='Checking access securely…';try{const d=await api('/api/ai/access/status');actions.replaceChildren();allowed=!!d.allowed;if(allowed){quick.hidden=false;selectIntro();action('Open Siya AI Centre',WORKER+'/ai-centre.html',true);
   if(profileName===null){try{const p=await api('/api/siya/profile');profileName=String(p.displayName||'').trim()}catch{profileName=''}}
-  if(profileName)msg.textContent='Hello, '+profileName.split(/\s+/)[0]+'! '+msg.textContent;
+  if(profileName)personalWelcome(profileName);
   status.textContent='AI access granted · '+(d.role==='admin'?'Administrator':'Member')+(profileName?' · '+profileName:'');await getBrief()}else{quick.hidden=true;brief.hidden=true;briefContent.textContent='';msg.textContent='Your portfolio account is recognized but Siya access requires approval.';action(d.requestStatus==='pending'?'View pending request':'Request AI access',WORKER+'/ai-access.html',true);status.textContent=d.requestStatus==='pending'?'Access request pending':'Existing portfolio features still work.'}}catch{quick.hidden=true;brief.hidden=true;actions.replaceChildren();msg.textContent='I could not confirm access just now. Your existing account and Timesheets were not changed.';action('Open account access',WORKER+'/ai-access.html',true);status.textContent='Access verification temporarily unavailable.'}finally{layoutPanel()}}
 function sastToday(){const parts=Object.fromEntries(new Intl.DateTimeFormat('en-GB',{timeZone:'Africa/Johannesburg',day:'2-digit',month:'2-digit',year:'numeric'}).formatToParts(new Date()).filter(x=>x.type!=='literal').map(x=>[x.type,x.value]));return `${parts.year}-${parts.month}-${parts.day}`}
 function addDays(day,n){const d=new Date(day+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10)}
 function parseReminder(text){let m=text.match(/^remind\s+me\s+(today|tomorrow|on\s+\d{4}-\d{2}-\d{2})\s+at\s+(\d{1,2})(?::(\d{2}))?\s*(?:to|about)\s+(.{3,200})$/i);
 if(!m)return null;const today=sastToday();let date=/^tomorrow$/i.test(m[1])?addDays(today,1):/^today$/i.test(m[1])?today:m[1].replace(/^on\s+/i,'');
 const hour=Number(m[2]),min=Number(m[3]||0);if(hour>23||min>59)return {error:'Use a valid 24-hour clock time.'};const at=new Date(date+'T'+String(hour).padStart(2,'0')+':'+String(min).padStart(2,'0')+':00+02:00');const parts=Number.isFinite(at.getTime())?Object.fromEntries(new Intl.DateTimeFormat('en-GB',{timeZone:'Africa/Johannesburg',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(at).filter(x=>x.type!=='literal').map(x=>[x.type,x.value])):null;const actual=parts?parts.year+'-'+parts.month+'-'+parts.day:'';if(!parts||actual!==date)return {error:'The calendar date was invalid.'};return {title:m[4].trim(),remindAt:at.toISOString()}}
-quick.addEventListener('submit',async e=>{e.preventDefault();if(!allowed||send.disabled)return;const q=prompt.value.trim();if(!q)return;send.disabled=true;quickStatus.textContent='Siya is on it…';try{
+async function publicMiniChat(question){
+ // Cross-origin requests remain subject to Cloudflare Access, portfolio permissions, and same-site browser rules.
+ // No access token or user identity is supplied by the public page.
+ const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),16000);
+ try{
+  const response=await fetch(WORKER+'/api/siya/public-mini-chat',{
+   method:'POST',mode:'cors',credentials:'include',cache:'no-store',signal:controller.signal,
+   headers:{'Content-Type':'text/plain;charset=UTF-8','Accept':'application/json'},
+   body:JSON.stringify({message:question})
+  });
+  let result;try{result=await response.json()}catch{throw Error('Cloudflare sign-in is unavailable from this public page. Open the secure workspace to chat.')}
+  if(!response.ok)throw Error(String(result.error||'Secure mini-chat is unavailable. Open your workspace to continue.').slice(0,240));
+  return String(result.answer||'Siya could not answer that question.').slice(0,2800);
+ }finally{clearTimeout(timeout)}
+}
+function publicLocalChat(q){
+ if(/(?:full name|who are you|tell me about yourself|where (?:were you born|do you live))/i.test(q))return 'I am Siya Later, your Cybertronian co-pilot. Born on Cybertron; current address: localhost. 🤖';
+ if(/^(?:where (?:is|are)|open|go to|navigate to|how (?:do I|can I) (?:find|open|navigate to)).*(?:projects|certificates|timesheets|studies)|^how to navigate/i.test(q))return 'I can help you navigate. Use the Projects, Certificates, Timesheets and Studies links above. Private records are only available after secure sign-in.';
+ if(/(?:joke|make me laugh)/i.test(q)){newJoke();return 'Mission accepted. Check my latest joke above. 😎'}
+ return null;
+}
+quick.addEventListener('submit',async e=>{e.preventDefault();if(send.disabled)return;const q=prompt.value.trim();if(!q)return;
+ if(protectedOrigin&&!allowed){quickStatus.textContent='Your Siya AI access must be approved before private chat is available.';return}
+ send.disabled=true;quickStatus.textContent='Siya is thinking…';try{
+ if(!protectedOrigin){
+  const basic=publicLocalChat(q);if(basic){quickStatus.textContent=basic;prompt.value='';return}
+  if(bridgeSnapshot()?.aiAllowed===false){quickStatus.textContent='Your account needs Siya AI approval. Open your private workspace to request access.';return}
+  try{quickStatus.textContent=await publicMiniChat(q);prompt.value='';}
+  catch(err){quickStatus.textContent=err.message+' This public site does not store your credentials. Use Open Siya AI Centre for the authenticated chat.'}
+  return;
+ }
+
  const rem=parseReminder(q);if(rem?.error){quickStatus.textContent=rem.error;return}
  if(rem){const when=new Date(rem.remindAt).toLocaleString('en-ZA',{timeZone:'Africa/Johannesburg',dateStyle:'medium',timeStyle:'short'});if(!confirm('Create a personal in-app reminder for '+when+'?\n'+rem.title))return;await api('/api/ai/reminders','POST',rem);quickStatus.textContent='Reminder saved for '+when+'. It will appear when you open YourPortfolio near its due time. No background alert is guaranteed.';prompt.value='';await getBrief();return}
  if(/^remind\s+me\b/i.test(q)){quickStatus.textContent='Try: Remind me tomorrow at 09:00 to finish the MIBK report. In-app reminders need a date and time.';return}

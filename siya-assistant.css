@@ -92,3 +92,11 @@
 #siya-launcher .siya-card{max-height:min(740px,calc(100dvh - 104px));overscroll-behavior:contain}
 #siya-launcher .siya-ignore-overlap{width:100%;border-radius:9px;border:1px solid #f0c18b;background:#f0c18b;color:#3b2412;padding:9px 11px;cursor:pointer;font-weight:750}
 @media(max-width:600px){#siya-launcher .siya-card{max-height:calc(100dvh - 94px)}}
+
+/* v3.8.2: public-page mini-chat stays visible; compact responsive answers. */
+#siya-launcher .siya-quick{display:flex;gap:7px;width:100%;margin:12px 0 5px}
+#siya-launcher .siya-quick-input{min-width:0;flex:1}
+#siya-launcher .siya-quick-send{flex-shrink:0;min-width:63px}
+#siya-launcher .siya-message{overflow-wrap:anywhere;white-space:pre-wrap}
+#siya-launcher .siya-card{width:min(405px,calc(100vw - 18px))}
+@media(max-width:380px){#siya-launcher .siya-quick-input{font-size:14px}#siya-launcher .siya-quick-send{min-width:54px;padding-inline:9px}}
