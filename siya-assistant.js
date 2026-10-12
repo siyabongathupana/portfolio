@@ -271,10 +271,18 @@ status.textContent='Private briefing checked '+new Date(d.checkedAt||Date.now())
 let lastMilestoneCheck=0;let notificationData=null;
 function updateBadge(){
  // Only unread actionable events count. Briefings are informational, not notifications.
- const total=Number.isFinite(Number(notificationData?.badgeCount))?Math.max(0,Number(notificationData.badgeCount)):0;
- const partial=notificationData?.hasPartialMailboxScan===true;manageNotices.hidden=!protectedOrigin||(total<=0&&!partial);badge.hidden=total<=0&&!partial;badge.textContent=partial?(total>0?(total>99?'99+':String(total)+'+'):'?'):(total>99?'99+':String(total));
- btn.setAttribute('aria-label',total>0?'Siya assistant, '+total+' unread notification'+(total===1?'':'s'):'Open Siya assistant. Drag to move.');
- btn.dataset.notificationStatus=notificationData?.checkedAt?'synced':'unknown';
+ const raw=notificationData?.badgeCount;
+ const known=raw!==null&&raw!==undefined&&Number.isFinite(Number(raw));
+ const total=known?Math.max(0,Math.floor(Number(raw))):0;
+ const partial=notificationData?.hasPartialMailboxScan===true||!known;
+ // Never show '?' or '+' as an unread count. On partial scans, show the
+ // verified MINIMUM only. Zero with an incomplete scan is not an unread alert.
+ manageNotices.hidden=!protectedOrigin||total===0;
+ badge.hidden=total===0;
+ badge.textContent=total>99?'99+':String(total);
+ badge.title=partial?'At least '+total+' unread; some sources could not be checked.':' '+total+' unread notifications';
+ btn.setAttribute('aria-label',total>0?'Siya assistant, '+(partial?'at least ':'')+total+' unread notification'+(total===1?'':'s'):'Open Siya assistant. Drag to move.');
+ btn.dataset.notificationStatus=partial?'partial':notificationData?.checkedAt?'synced':'unknown';
 }
 
 async function loadNotifications(){if(!protectedOrigin)return;try{const d=await api('/api/siya/notifications');notificationData=d;updateBadge();mailboxList.replaceChildren();const msgs=(d.messages||[]);mailboxSection.hidden=!msgs.length;inboxLink.href=WORKER+(d.isAdmin?'/admin-messages.html':'/messages.html');for(const m of msgs.slice(0,5)){const row=make('div','siya-message-item');row.append(make('strong','',m.subject||'New message'),make('small','',m.from||'YourPortfolio'));mailboxList.append(row)}if(d.overlap?.active){await loadOverlapDetails()}else{overlaps.hidden=true;overlapList.replaceChildren()}
