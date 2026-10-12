@@ -62,3 +62,11 @@
 #siya-launcher .siya-inbox-link{display:block;margin:7px 0 0;color:var(--sfg);font-size:13px;font-weight:750;text-decoration:underline}
 @media(max-width:390px){#siya-launcher .siya-card{padding:12px;max-height:calc(100dvh - 10px)}#siya-launcher .siya-top strong{font-size:15px}#siya-launcher .siya-milestone-row{padding:7px}}
 @media(min-width:1800px){#siya-launcher .siya-card{font-size:15px}}
+
+/* Siya v3.5: clean interaction, stable red badge, and no focus ring on mouse clicks. */
+#siya-launcher .siya-trigger:focus:not(:focus-visible){outline:none!important}
+#siya-launcher .siya-trigger:focus-visible{outline:3px solid #68def6!important;outline-offset:4px}
+#siya-launcher .siya-close{display:none!important}
+.siya-easter-egg{position:fixed;z-index:2147482001;left:50%;bottom:24px;transform:translateX(-50%);max-width:min(480px,calc(100vw - 30px));padding:13px 16px;background:#0d2842;border:1px solid #60dffa;box-shadow:0 16px 48px #000a;border-radius:14px;color:#e7faff;font-size:13px;line-height:1.45;pointer-events:none;text-align:center}
+#siya-launcher .siya-badge{background:#df2443!important;color:#fff!important;border-color:#fff!important;opacity:1!important;filter:none!important}
+#siya-launcher .siya-trigger[aria-expanded="true"]{outline:none}
