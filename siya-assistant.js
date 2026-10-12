@@ -114,7 +114,15 @@ const joke=make('p','siya-joke');joke.setAttribute('aria-live','polite');panel.a
 const brief=make('div','siya-brief');brief.hidden=true;brief.setAttribute('aria-live','polite');
 const briefHeader=make('div','siya-brief-header');briefHeader.append(make('strong','','📋 Your quick briefing'));
 const briefDismiss=make('button','siya-brief-dismiss','Hide');briefDismiss.type='button';briefDismiss.setAttribute('aria-label','Hide the briefing');briefHeader.append(briefDismiss);brief.append(briefHeader);
-let briefingDismissed=false;briefDismiss.onclick=()=>{briefingDismissed=true;brief.hidden=true;layoutPanel()};
+const BRIEF_SESSION_KEY='siya-v37-brief-seen';
+let briefingDismissed=false,briefingTimer=null;
+try{briefingDismissed=sessionStorage.getItem(BRIEF_SESSION_KEY)==='1'}catch{}
+function dismissBrief(){briefingDismissed=true;brief.hidden=true;if(briefingTimer){clearTimeout(briefingTimer);briefingTimer=null}try{sessionStorage.setItem(BRIEF_SESSION_KEY,'1')}catch{}layoutPanel()}
+briefDismiss.onclick=dismissBrief;
+function briefVisibleOnce(){if(briefingDismissed||panel.dataset.open!=='yes'||brief.hidden)return;
+ try{sessionStorage.setItem(BRIEF_SESSION_KEY,'1')}catch{}briefingDismissed=true;
+ briefingTimer=setTimeout(()=>{brief.hidden=true;layoutPanel()},120000);
+}
 const briefContent=make('div','siya-brief-content','Open Siya for your saved deadlines, tasks and reminders.');brief.append(briefContent);panel.append(brief);
 const msg=make('p','siya-message','I can check saved records, answer quick questions and set in-app reminders.');panel.append(msg);
 const introLines={playful:["Hi! Siya here. My circuits are charged and my jokes are under review. 🤖","Your favourite Cybertronian has arrived. Productivity may improve; humour is not guaranteed. 😎","Hello, earthling! I've checked the logs. The coffee machine is still the prime suspect. ☕","Siya reporting for duty. I promise not to convert every tiny task into a full FAT procedure. ⚙️"],balanced:["Hi! I'm Siya. I can check your progress and highlight what needs attention.","Welcome back. I can summarize the important changes in your portfolio.","Your portfolio co-pilot is ready. What can I help you with today?"],focused:["Siya ready. Choose a task or review your notifications.","Assistant online. Verified records and approved actions only.","Ready for your next instruction."]};
@@ -150,12 +158,13 @@ async function guest(){const generation=++guestGeneration;
   action('Open my private Siya assistant',WORKER+'/app.html',true);
   action(signed.aiAllowed?'Open Siya AI Centre':'Request Siya AI access',WORKER+(signed.aiAllowed?'/ai-centre.html':'/ai-access.html'));
   status.textContent='Verified account · '+(signed.badgeCount===null?'Unread status requires a secure refresh.':'Notification snapshot; refresh to check new alerts.');
-  const refresh=make('button','siya-verify-button','↻ Refresh secure status');refresh.onclick=secureHandshake;actions.append(refresh);
+  // Session checks refresh automatically; no manual verification required.
  }else{
-  msg.textContent='Already part of the engineering crew? Connect securely so I can recognize you on Home, Projects and Certificates. New here? '+visitorRoasts[Math.floor(Math.random()*visitorRoasts.length)];
-  const verify=make('button','siya-verify-button','I have an account · Connect Siya');verify.type='button';verify.onclick=secureHandshake;actions.append(verify);
+  msg.textContent='Already have an account? Your private workspace will recognize you automatically after sign-in. New visitor? '+visitorRoasts[Math.floor(Math.random()*visitorRoasts.length)];
+  // No manual verification prompt. Browsers blocking cross-site cookies get a neutral link.
+   action('Open my private workspace',WORKER+'/app.html',true);
   action('Create / request an account',JOIN);
-  status.textContent='Sign-in detection is verified by Cloudflare. No account details are guessed from this public page.';
+  status.textContent='Sign-in detection is automatic when supported by this browser. Private records remain protected.';
  }
  layoutPanel();
 }
@@ -164,7 +173,7 @@ let allowed=false,recognizedPublic=false,profileName=null;
 async function api(path,method='GET',body=null){const opts={method,credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json',...(body?{'Content-Type':'application/json'}:{})}};if(body)opts.body=JSON.stringify(body);const r=await fetch(path,opts);let d;try{d=await r.json()}catch{throw Error('A secure response could not be read.')}if(!r.ok)throw Error(String(d.error||'Request failed').slice(0,180));return d}
 function paintBrief(d){briefContent.replaceChildren();const rows=(d.notices||[]).slice(0,6);brief.hidden=!rows.length||briefingDismissed;
 for(const n of rows){const row=make('div','siya-brief-row'),dot=make('span','siya-alert-dot '+(n.severity==='warning'?'siya-alert-warn':''),n.severity==='warning'?'!':'•'),text=make('span','',n.text);row.append(dot,text);if(n.reminderId){const done=make('button','siya-done','Done');done.type='button';done.onclick=async()=>{if(!confirm('Mark this reminder as completed?'))return;try{await api('/api/ai/reminders/done','POST',{id:n.reminderId});await getBrief()}catch(e){quickStatus.textContent=e.message}};row.append(done)}briefContent.append(row)}
-status.textContent='Private briefing checked '+new Date(d.checkedAt||Date.now()).toLocaleTimeString()+' · In-app notifications only';layoutPanel();}
+status.textContent='Private briefing checked '+new Date(d.checkedAt||Date.now()).toLocaleTimeString()+' · In-app notifications only';briefVisibleOnce();layoutPanel();}
 let lastMilestoneCheck=0;let notificationData=null;
 function updateBadge(){
  // Only unread actionable events count. Briefings are informational, not notifications.
@@ -213,7 +222,7 @@ quick.addEventListener('submit',async e=>{e.preventDefault();if(!allowed||send.d
  const rem=parseReminder(q);if(rem?.error){quickStatus.textContent=rem.error;return}
  if(rem){const when=new Date(rem.remindAt).toLocaleString('en-ZA',{timeZone:'Africa/Johannesburg',dateStyle:'medium',timeStyle:'short'});if(!confirm('Create a personal in-app reminder for '+when+'?\n'+rem.title))return;await api('/api/ai/reminders','POST',rem);quickStatus.textContent='Reminder saved for '+when+'. It will appear when you open YourPortfolio near its due time. No background alert is guaranteed.';prompt.value='';await getBrief();return}
  if(/^remind\s+me\b/i.test(q)){quickStatus.textContent='Try: Remind me tomorrow at 09:00 to finish the MIBK report. In-app reminders need a date and time.';return}
- if(/(?:what(?:'s| is) due|deadlines?|any problems?|briefing|urgent|what should i check)/i.test(q)){await getBrief();quickStatus.textContent='Your private briefing is above.';return}
+ if(/(?:what(?:'s| is) due|deadlines?|any problems?|briefing|urgent|what should i check)/i.test(q)){if(briefingDismissed){quickStatus.textContent='Your briefing was already shown this session. For the full history, open Siya AI Centre.';}else{await getBrief();quickStatus.textContent=brief.hidden?'No new briefing to show.':'Your private briefing is above.';}return}
  const d=await api('/api/ai/chat','POST',{message:q,saveConversation:false});quickStatus.textContent=String(d.answer||d.error||'No answer returned').slice(0,950)+(d.proposal?' To approve that change, open the Command Centre.':'');
  }catch(err){quickStatus.textContent=err.message}finally{send.disabled=false;layoutPanel()}});
 const storageKey='yp-siya-mascot-position-v1';let dragged=false,down=null,skipClick=false;
@@ -221,8 +230,8 @@ function clamp(v,min,max){return Math.max(min,Math.min(max,v))}
 function defaultXY(){return {x:Math.max(12,innerWidth-root.offsetWidth-20),y:Math.max(12,innerHeight-root.offsetHeight-20)}}
 function position(x,y,save){const w=root.offsetWidth||68,h=root.offsetHeight||68,px=clamp(Math.round(x),8,Math.max(8,innerWidth-w-8)),py=clamp(Math.round(y),8,Math.max(8,innerHeight-h-8));root.style.left=px+'px';root.style.top=py+'px';root.style.right='auto';root.style.bottom='auto';layoutPanel();if(save)try{localStorage.setItem(storageKey,JSON.stringify({x:innerWidth?px/innerWidth:.8,y:innerHeight?py/innerHeight:.8}))}catch{}}
 function layoutPanel(){const box=root.getBoundingClientRect(),pWidth=Math.min(385,innerWidth-18),pHeight=panel.offsetHeight||395,x=clamp(box.left+box.width-pWidth,9,Math.max(9,innerWidth-pWidth-9));let y=box.top-pHeight-13;if(y<9)y=clamp(box.bottom+10,9,Math.max(9,innerHeight-pHeight-9));panel.style.left=x+'px';panel.style.top=y+'px';panel.style.width=pWidth+'px'}
-function toggle(){if(panel.dataset.open==='yes'){panel.dataset.open='no';btn.setAttribute('aria-expanded','false');return;}
- panel.dataset.open='yes';btn.setAttribute('aria-expanded','true');newJoke();selectIntro();layoutPanel();check();if(protectedOrigin){loadMilestones(true);loadNotifications()}}
+function toggle(){if(panel.dataset.open==='yes'){if(!brief.hidden)dismissBrief();panel.dataset.open='no';btn.setAttribute('aria-expanded','false');return;}
+ panel.dataset.open='yes';btn.setAttribute('aria-expanded','true');newJoke();selectIntro();briefVisibleOnce();layoutPanel();check();if(protectedOrigin){loadMilestones(true);loadNotifications()}}
 
 btn.addEventListener('pointerdown',e=>{if(e.button!==0)return;down={id:e.pointerId,x:e.clientX,y:e.clientY,left:root.getBoundingClientRect().left,top:root.getBoundingClientRect().top};dragged=false;btn.setPointerCapture?.(e.pointerId)});
 btn.addEventListener('pointermove',e=>{if(!down||e.pointerId!==down.id)return;if(Math.hypot(e.clientX-down.x,e.clientY-down.y)>7)dragged=true;if(!dragged)return;e.preventDefault();position(down.left+e.clientX-down.x,down.top+e.clientY-down.y,false)});
