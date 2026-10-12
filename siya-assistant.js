@@ -8,9 +8,21 @@ const protectedOrigin=location.origin===new URL(WORKER).origin;
 const PUBLIC_ORIGIN='https://siyabongathupana.github.io';
 const BRIDGE_KEY='siya-v36-verified-session';
 const bridgeTtlMs=20*60*1000;
+// Handoff is a small, non-credential display hint passed when navigating from the protected workspace.
+// It cannot authorize any API or private data request.
+function readWorkspaceHandoff(){
+ if(protectedOrigin||!location.hash.startsWith('#siya_session='))return;
+ try{
+  const data=JSON.parse(decodeURIComponent(location.hash.slice('#siya_session='.length)));
+  if(data?.signedIn!==true||Date.now()-Number(data.checkedAt||0)>20*60*1000)return;
+  rememberBridge({...data,source:'workspace-handoff'});
+  history.replaceState(history.state,'',location.pathname+location.search);
+ }catch{ /* An unverified URL never grants access */ }
+}
+
 let guestGeneration=0,bridgeWindow=null;
 function bridgeSnapshot(){try{const d=JSON.parse(sessionStorage.getItem(BRIDGE_KEY)||'null');return d&&d.signedIn===true&&Date.now()-Number(d.checkedAt||0)<bridgeTtlMs?d:null}catch{return null}}
-function rememberBridge(d){const clean={signedIn:true,firstName:String(d.firstName||'').slice(0,70),aiAllowed:!!d.aiAllowed,isAdmin:!!d.isAdmin,badgeCount:d.badgeCount===null||d.badgeCount===undefined?null:Math.max(0,Number(d.badgeCount)||0),partialMailboxScan:!!d.partialMailboxScan,checkedAt:Date.now()};try{sessionStorage.setItem(BRIDGE_KEY,JSON.stringify(clean))}catch{}return clean}
+function rememberBridge(d){const clean={signedIn:true,firstName:String(d.firstName||'').slice(0,70),aiAllowed:d.aiAllowed==null?null:!!d.aiAllowed,isAdmin:!!d.isAdmin,badgeCount:d.badgeCount===null||d.badgeCount===undefined?null:Math.max(0,Number(d.badgeCount)||0),partialMailboxScan:!!d.partialMailboxScan,source:String(d.source||'live-session').slice(0,28),checkedAt:Date.now()};try{sessionStorage.setItem(BRIDGE_KEY,JSON.stringify(clean))}catch{}return clean}
 function secureHandshake(){
  if(protectedOrigin)return;
  const nonce=(crypto?.randomUUID?.()||String(Date.now())+Math.random()).replaceAll('-','');
@@ -146,27 +158,36 @@ const status=make('div','siya-state');panel.append(status);
 const reset=make('button','siya-reset','↺ Reset mascot position');reset.type='button';panel.append(reset);root.append(panel);
 const action=(label,url,primary)=>{const a=make('a',primary?'siya-primary':'',label);a.href=url;actions.append(a)};
 const visitorRoasts=['No account? Wow, even my toaster has a login. 🥲','You came all the way from the internet without an account? Bold. 😂','I would give you access, but my firewall is stricter than a university exam invigilator. 🤖','Visitor detected. Your next mission: create an account. This is not optional in my robot dreams. 😎','I checked the guest list. It says: nice try, Cybertron tourist! 🚀','Your account has gone missing. Was it ever here? A mystery worthy of a Netflix documentary. 🔍','I have 404 problems, and your account is currently one of them. 🤣'];
-async function guest(){const generation=++guestGeneration;
- quick.hidden=true;brief.hidden=true;mailboxSection.hidden=true;trophy.hidden=true;briefContent.textContent='';actions.replaceChildren();
- // Cross-origin Access sessions can be unavailable to JavaScript due to third-party cookie protections.
- // Never label an account holder a visitor just because this best-effort probe fails.
- let signed=bridgeSnapshot();
- try{const res=await fetch(WORKER+'/api/siya/public-session',{credentials:'include',mode:'cors',cache:'no-store'});if(res.ok){const data=await res.json();if(data?.signedIn===true)signed=rememberBridge(data);}}catch{}
- if(generation!==guestGeneration)return;recognizedPublic=!!signed;
- if(signed){notificationData={badgeCount:signed.badgeCount,hasPartialMailboxScan:signed.partialMailboxScan===true||signed.badgeCount===null,checkedAt:new Date().toISOString()};updateBadge();
-  msg.textContent='Welcome back'+(signed.firstName?', '+signed.firstName:'')+'! 🛸 Your account is recognized. Your private notices are waiting inside the workspace.';
-  action('Open my private Siya assistant',WORKER+'/app.html',true);
-  action(signed.aiAllowed?'Open Siya AI Centre':'Request Siya AI access',WORKER+(signed.aiAllowed?'/ai-centre.html':'/ai-access.html'));
-  status.textContent='Verified account · '+(signed.badgeCount===null?'Unread status requires a secure refresh.':'Notification snapshot; refresh to check new alerts.');
-  // Session checks refresh automatically; no manual verification required.
+function renderPublicAccount(signed,generation){
+ if(generation!==guestGeneration)return;
+ recognizedPublic=!!signed;actions.replaceChildren();
+ quick.hidden=true;brief.hidden=true;mailboxSection.hidden=true;trophy.hidden=true;briefContent.textContent='';
+ if(signed){
+  notificationData={badgeCount:signed.badgeCount,hasPartialMailboxScan:signed.partialMailboxScan===true||signed.badgeCount===null,checkedAt:new Date().toISOString()};updateBadge();
+  msg.textContent='Welcome back'+(signed.firstName?', '+signed.firstName:'')+'! 🛸 Open your private workspace for fresh notices and records.';
+  action('Open my private workspace',WORKER+'/app.html',true);
+  action(signed.aiAllowed===false?'Request Siya AI access':'Open Siya AI Centre',WORKER+(signed.aiAllowed===false?'/ai-access.html':'/ai-centre.html'));
+  status.textContent=(signed.source==='workspace-handoff'?'Recent protected-workspace sign-in · ':'Verified account · ')+(signed.badgeCount===null?'Open workspace to refresh notifications.':'Notifications from your last verified check.');
  }else{
-  msg.textContent='Already have an account? Your private workspace will recognize you automatically after sign-in. New visitor? '+visitorRoasts[Math.floor(Math.random()*visitorRoasts.length)];
-  // No manual verification prompt. Browsers blocking cross-site cookies get a neutral link.
-   action('Open my private workspace',WORKER+'/app.html',true);
+  badge.hidden=true;
+  msg.textContent='Greetings, Earthling! 🤖 I cannot read private Cloudflare sign-in cookies from every public browser. Already registered? Open your workspace. New here? '+visitorRoasts[Math.floor(Math.random()*visitorRoasts.length)];
+  action('Open my private workspace',WORKER+'/app.html',true);
   action('Create / request an account',JOIN);
-  status.textContent='Sign-in detection is automatic when supported by this browser. Private records remain protected.';
+  status.textContent='I check existing accounts automatically when supported. Private records still require secure login.';
  }
  layoutPanel();
+}
+async function guest(){
+ const generation=++guestGeneration;
+ // Display last authorized context or a neutral sign-in option immediately.
+ // Never freeze the entire popup waiting for cross-site cookies or Cloudflare Access.
+ let signed=bridgeSnapshot();renderPublicAccount(signed,generation);
+ const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),3000);
+ try{
+  const res=await fetch(WORKER+'/api/siya/public-session',{credentials:'include',mode:'cors',cache:'no-store',signal:controller.signal});
+  if(res.ok){const data=await res.json();if(data?.signedIn===true){signed=rememberBridge({...data,source:'live-session'});renderPublicAccount(signed,generation)}}
+ }catch{ /* Third-party Access cookies may be blocked. Keep neutral or previously authenticated context. */ }
+ finally{clearTimeout(timeout)}
 }
 
 let allowed=false,recognizedPublic=false,profileName=null;
@@ -250,6 +271,24 @@ if(!protectedOrigin){setTimeout(()=>{if(!document.hidden)guest()},900);setInterv
 window.addEventListener('storage',e=>{if(e.key==='siya-personality-v1'&&panel.dataset.open==='yes')selectIntro()});
 
 document.body.append(root);
+// Preserve a recently authenticated profile across GitHub Pages navigation (same tab).
+// URL fragment is purely cosmetic context and cannot grant permissions.
+if(protectedOrigin){
+ let handoff=null;
+ fetch('/api/siya/profile',{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}})
+  .then(r=>r.ok?r.json():null).then(p=>{
+   if(!p||!p.displayName)return;
+   handoff={signedIn:true,firstName:String(p.displayName).split(/\s+/)[0].slice(0,70),isAdmin:!!p.owner,aiAllowed:null,checkedAt:Date.now(),badgeCount:null};
+  }).catch(()=>{});
+ document.addEventListener('click',event=>{
+  const anchor=event.target.closest?.('a[href]');if(!anchor||!handoff)return;
+  try{const url=new URL(anchor.href,location.href);
+   if(url.origin!==PUBLIC_ORIGIN||!url.pathname.startsWith('/portfolio/'))return;
+   url.hash='siya_session='+encodeURIComponent(JSON.stringify(handoff));anchor.href=url.href;
+  }catch{}
+ },true);
+}
+if(!protectedOrigin)readWorkspaceHandoff();
 // Hidden one-time Cybertron easter egg on double click of the public creator portrait.
 let portraitLastClick=0;
 document.addEventListener('click',e=>{
