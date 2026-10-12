@@ -285,13 +285,14 @@ function updateBadge(){
  btn.dataset.notificationStatus=partial?'partial':notificationData?.checkedAt?'synced':'unknown';
 }
 
-async function loadNotifications(){if(!protectedOrigin)return;try{const d=await api('/api/siya/notifications');notificationData=d;updateBadge();mailboxList.replaceChildren();const msgs=(d.messages||[]);mailboxSection.hidden=!msgs.length;inboxLink.href=WORKER+(d.isAdmin?'/admin-messages.html':'/messages.html');for(const m of msgs.slice(0,5)){const row=make('div','siya-message-item');row.append(make('strong','',m.subject||'New message'),make('small','',m.from||'YourPortfolio'));mailboxList.append(row)}if(d.overlap?.active){await loadOverlapDetails()}else{overlaps.hidden=true;overlapList.replaceChildren()}
+async function loadNotifications(){if(!protectedOrigin)return;try{const d=await api('/api/siya/notifications');notificationData=d;updateBadge();mailboxList.replaceChildren();const msgs=(d.messages||[]);mailboxSection.hidden=!msgs.length;inboxLink.href=WORKER+(d.isAdmin?'/admin-messages.html':'/messages.html');for(const m of msgs.slice(0,5)){const row=make('div','siya-message-item');row.append(make('strong','',m.subject||'New message'),make('small','',m.from||'YourPortfolio'));mailboxList.append(row)}if(d.overlap?.active){if(Array.isArray(d.overlap.details))renderOverlapDetails({pairs:d.overlap.details,truncated:d.overlap.truncated});else await loadOverlapDetails()}else{overlaps.hidden=true;overlapList.replaceChildren()}
  layoutPanel();}catch{btn.dataset.notificationStatus='temporarily-unavailable';/* retain last verified count; never turn a failed request into fake zero */}}
-async function loadOverlapDetails(){try{const x=await api('/api/siya/overlaps/details');overlapList.replaceChildren();const rows=x.pairs||[];overlaps.hidden=!rows.length;
+async function loadOverlapDetails(){try{renderOverlapDetails(await api('/api/siya/overlaps/details'))}catch{overlaps.hidden=true}}
+function renderOverlapDetails(x){overlapList.replaceChildren();const rows=x.pairs||[];overlaps.hidden=!rows.length;
  for(const p of rows.slice(0,12)){const row=make('div','siya-overlap-item');row.append(make('strong','',p.date+' · '+p.minutes+' minutes'),make('span','',(p.first?.project||'Unknown project')+' ('+p.first?.start+'–'+p.first?.end+')'),make('span','',(p.second?.project||'Unknown project')+' ('+p.second?.start+'–'+p.second?.end+')'),make('small','','Conflict: '+(p.overlapStart||'')+'–'+(p.overlapEnd||'')+' · Review your Timesheet.'));overlapList.append(row)}
  if(x.truncated)overlapList.append(make('small','','Additional conflicts may exist. Open Timesheets for full review.'));
  if(rows.length&&notificationData?.overlap?.fingerprint){const ignore=make('button','siya-ignore-overlap','Acknowledge this overlap warning');ignore.type='button';ignore.onclick=async()=>{if(!confirm('Hide this overlap warning? Your Timesheet entries will stay unchanged. New overlap patterns will alert again.'))return;ignore.disabled=true;try{await api('/api/siya/overlap-alert','POST',{fingerprint:notificationData.overlap.fingerprint});await loadNotifications();quickStatus.textContent='Overlap warning acknowledged. Your saved hours were not changed.'}catch(e){quickStatus.textContent=e.message;ignore.disabled=false}};overlapList.append(ignore)}
- }catch{overlaps.hidden=true}}
+ }
 readAll.onclick=async()=>{if(readAll.disabled||!protectedOrigin)return;readAll.disabled=true;readAll.textContent='Clearing…';try{const r=await api('/api/siya/notifications/mark-all','POST',{});await loadMilestones(true);await loadNotifications();quickStatus.textContent=r.partial?'Some sources could not be checked; verified items were marked read.':'All current notifications marked as read. New events will still appear.';}catch(e){quickStatus.textContent='Could not mark notifications read: '+e.message}finally{readAll.disabled=false;readAll.textContent='Mark all as read';layoutPanel()}};
 async function loadMilestones(force=false){
  if(!protectedOrigin||!trophy)return;
@@ -377,7 +378,7 @@ reset.addEventListener('click',()=>{try{localStorage.removeItem(storageKey)}catc
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&panel.dataset.open==='yes'){panel.dataset.open='no';btn.setAttribute('aria-expanded','false');btn.focus()}});
 window.addEventListener('resize',()=>{const b=root.getBoundingClientRect();position(b.left,b.top,false)});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&protectedOrigin){loadMilestones();loadNotifications()}});
-if(protectedOrigin){setTimeout(()=>{loadMilestones();loadNotifications()},700);setInterval(()=>{if(!document.hidden){loadNotifications();loadMilestones()}},45000)}
+if(protectedOrigin){setTimeout(()=>{loadMilestones();loadNotifications()},700);setInterval(()=>{if(!document.hidden){loadNotifications();loadMilestones()}},90000)}
 window.addEventListener('siya:notifications-changed',()=>{if(protectedOrigin){loadNotifications();loadMilestones(true)}});
 if(!protectedOrigin){setTimeout(()=>{if(!document.hidden)guest()},900);setInterval(()=>{if(!document.hidden)guest()},90000)}
 window.addEventListener('storage',e=>{if(e.key==='siya-personality-v1'&&panel.dataset.open==='yes')selectIntro()});
