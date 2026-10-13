@@ -184,3 +184,16 @@
 #siya-launcher .siya-connect-action{display:block;width:100%;text-align:center;padding:10px 9px;border:1px solid var(--siya-neon);border-radius:10px;background:linear-gradient(110deg,#62f6f1,#7baeff);color:#08253a;font-weight:800;cursor:pointer;box-shadow:0 0 12px var(--siya-neon-soft)}
 #siya-launcher .siya-mouth-line{stroke-width:6.5;filter:drop-shadow(0 0 3px var(--siya-neon)) drop-shadow(0 0 7px var(--siya-neon))}
 #siya-launcher .siya-message{white-space:pre-wrap}
+
+/* v4.0.12 — preserved mini-chat conversation, elapsed thinking indicator and cancel action */
+#siya-launcher .siya-conversation-view{margin:10px 0 8px;border:1px solid var(--sedge);border-radius:12px;background:color-mix(in srgb,var(--spanel) 92%,#2b83a5 8%);overflow:hidden}
+#siya-launcher .siya-conversation-view[hidden]{display:none!important}
+#siya-launcher .siya-conversation-log{display:grid;gap:8px;max-height:250px;overflow-y:auto;padding:10px;overscroll-behavior:contain}
+#siya-launcher .siya-conversation-bubble{font-size:12px;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere;padding:9px 11px;border-radius:13px;max-width:96%}
+#siya-launcher .siya-conversation-user{justify-self:end;border-bottom-right-radius:4px;background:linear-gradient(120deg,#50d9eb,#91afff);color:#08263a}
+#siya-launcher .siya-conversation-assistant{justify-self:start;border:1px solid var(--sedge);border-bottom-left-radius:4px;background:var(--sbtn);color:var(--sfg)}
+#siya-launcher .siya-chat-tools{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:6px 0 10px}
+#siya-launcher .siya-elapsed{font-size:11px;color:var(--smuted);margin-right:auto;font-variant-numeric:tabular-nums}
+#siya-launcher .siya-chat-tools button{font:650 11px/1.25 system-ui,sans-serif;border:1px solid var(--sedge);background:var(--sbtn);color:var(--sfg);padding:6px 8px;border-radius:8px;cursor:pointer}
+#siya-launcher .siya-chat-tools button[hidden],#siya-launcher .siya-elapsed[hidden]{display:none!important}
+#siya-launcher .siya-stop-chat{border-color:#ed9d7d!important}

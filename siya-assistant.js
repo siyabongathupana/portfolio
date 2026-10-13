@@ -1,4 +1,4 @@
-/* Siya v4.0.10 — expressive neon mascot, contextual humour, serious-mode guardrails, briefings & reminders.
+/* Siya v4.0.12 — expressive neon mascot, contextual humour, serious-mode guardrails, briefings & reminders.
    Never infers login status on public GitHub Pages. All sensitive data via protected Worker. */
 (()=>{'use strict';
 if(document.getElementById('siya-launcher'))return;
@@ -11,6 +11,8 @@ const AUTO_STATE_KEY='siya-v409-auto-state',AUTO_HISTORY_KEY='siya-v409-prior-ap
 let returningFromPrivate=false,autoHandoffError='',autoStarted=false,relayLastError='',relayLastStatus=0;
 const CHAT_RELAY=String(window.SIYA_CHAT_RELAY_URL||'https://yourportfolio-siya-chat.siyabongatshem.workers.dev').replace(/\/$/,'');
 const bridgeTtlMs=20*60*1000;
+const SIYA_CHAT_TIMEOUT_MS=120000;
+let activeChatController=null; // Cancel does not assert that upstream model execution stopped.
 // Handoff is a small, non-credential display hint passed when navigating from the protected workspace.
 // It cannot authorize any API or private data request.
 function readWorkspaceHandoff(){
@@ -53,10 +55,11 @@ function forgetRelayToken(){relayToken=null;try{sessionStorage.removeItem(TOKEN_
 relayToken=readRelayToken();
 function hasRelaySession(){return !!(relayToken?.token&&Number(relayToken.exp)*1000>Date.now()+5000&&publicVerifiedSession?.source==='relay-verified'&&publicVerifiedSession.aiAllowed===true)}
 function publicChatVerified(){return !!(publicVerifiedSession?.aiAllowed===true&&(publicVerifiedSession.source==='live-session'||hasRelaySession()))}
-function requestSecureConnection(){secureHandshake()}
-async function relayRequest(path,method='GET',payload){
+function requestSecureConnection(){if(!startAutomaticSignIn())status.textContent="Your existing Siya session is already being checked."}
+async function relayRequest(path,method='GET',payload,externalSignal){
  if(!relayToken?.token)throw Error('Session expired. Connect your account to continue.');
- const control=new AbortController(),timeout=setTimeout(()=>control.abort(),path==='/session'?9000:65000);
+ const control=new AbortController(),timeout=setTimeout(()=>control.abort(),path==='/session'?9000:SIYA_CHAT_TIMEOUT_MS);
+ if(externalSignal){if(externalSignal.aborted)control.abort();else externalSignal.addEventListener('abort',()=>control.abort(),{once:true})}
  try{
   const r=await fetch(CHAT_RELAY+path,{method,mode:'cors',credentials:'omit',cache:'no-store',signal:control.signal,
    headers:{'Authorization':'Bearer '+relayToken.token,'Accept':'application/json',...(payload?{'Content-Type':'text/plain;charset=UTF-8'}:{})},
@@ -64,12 +67,14 @@ async function relayRequest(path,method='GET',payload){
   let d;try{d=await r.json()}catch{throw Error('The secure Siya relay is unavailable. Check the relay Worker deployment.')}
   if(!r.ok){const err=Error(String(d.error||'Secure Siya session unavailable').slice(0,220));err.status=r.status;err.code=String(d.code||'');err.retryAfter=Number(r.headers?.get?.('Retry-After')||0)||0;throw err;}
   return d;
- }catch(err){if(err?.name==='AbortError'){const timeoutError=Error(path==='/chat'?'The reply timed out. Your question was not confirmed answered; it is kept in the input.':'Verification timed out. You are not necessarily signed out.');timeoutError.code='TIMEOUT';throw timeoutError}throw err}
+ }catch(err){if(err?.name==='AbortError'){const timeoutError=Error(externalSignal?.aborted?'You cancelled the wait. The server might still be processing the request.':path==='/chat'?'The reply timed out. Your question was not confirmed answered; it is kept in the input.':'Verification timed out. You are not necessarily signed out.');timeoutError.code=externalSignal?.aborted?'CANCELLED':'TIMEOUT';throw timeoutError}throw err}
  finally{clearTimeout(timeout)}
 }
-async function relayAnswer(question){const d=await relayRequest('/chat','POST',{message:question});return String(d.answer||'No answer was returned.').slice(0,3000)}
+function recentChatTurns(){return chatTranscript.slice(-9,-1).filter(t=>t&&['user','assistant'].includes(t.role)).map(t=>({role:t.role,content:String(t.text).slice(0,450)}))}
+async function relayAnswer(question){const d=await relayRequest('/chat','POST',{message:question,recentTurns:recentChatTurns()},activeChatController?.signal);return String(d.answer||'No answer was returned.').slice(0,3000)}
 function chatFailureMessage(err){
  const status=Number(err?.status)||0,code=String(err?.code||'');
+ if(code==='CANCELLED')return '⏹️ Waiting cancelled. Your draft is intact; the server may still have processed the request.';
  if(status===429||code==='RATE_LIMIT')return '🕒 Today’s AI request allowance has been reached. New requests can be tried after midnight South Africa time (SAST). Your question is still in the box; sending it again now will not bypass the limit.';
  if(status===401||status===403)return '🔒 Your secure chat session is no longer authorized. I kept the question in the box. Reconnect your approved account to continue.';
  if(code==='TIMEOUT'||/abort|timeout/i.test(String(err?.message||'')))return '⏳ That question took longer than the response window. I kept the draft. The server may still have processed it, so check the AI Centre before sending the same question again.';
@@ -295,7 +300,7 @@ const root=make('div');root.id='siya-launcher';root.setAttribute('aria-label','S
 let faceCounter=0;
 function makeSiyaFace(){
  const wrap=make('span','siya-face'),img=make('img','siya-avatar');
- img.src=ROOT+'siya-mascot.svg?v=4.0.10';img.alt='';img.draggable=false;
+ img.src=ROOT+'siya-mascot.svg?v=4.0.12';img.alt='';img.draggable=false;
  const overlay=document.createElementNS('http://www.w3.org/2000/svg','svg');
  overlay.setAttribute('viewBox','0 0 360 360');overlay.setAttribute('aria-hidden','true');overlay.setAttribute('class','siya-eye-overlay');
  const ident='siya-neon-'+(++faceCounter);
@@ -442,15 +447,27 @@ const contextualHello={
  admin:["Administrator tools standing by.","Your systems overview is ready for review."],
  home:["What can I help you accomplish today?","Let's make this a productive visit."]
 };
-let introIndex=-1,lastPersonalIntro='';
+const richerPageGreetings={
+ timesheets:["I see the Timesheet tab. The clock is employed; your coffee break is still on probation. ☕","No invented hours on my watch. I only trust what your saved entries say. ⏱️","If this Timesheet had feelings, Friday afternoon would be its villain. 🤣","Running timer or paused? Ask me and I'll check the actual state.","I asked the stopwatch to slow down. It said that's your department. 🤖","Your hours deserve evidence, not optimistic rounding. 📋","The Timesheet requested a promotion to Project Manager. I declined.","Engineering is temporary; documentation is forever. Allegedly. 📝","The only thing I won't log is imaginary overtime. 😎"],
+ studies:["Your notes and I have one thing in common: we'd both like you to pass. 🎓","A calculator is not a therapist, yet exam season keeps testing that theory. 🧮","I asked calculus to be simple. It differentiated itself from the problem.","Your study plan is welcome here. Panic cramming needs approval from the board. 😂","If assignments were alarms, half the campus would be in trip state.","One formula at a time. Even my processors dislike surprise exams.","I'm ready for studying, but I refuse to take the exam for you. 🦾","Let's calculate carefully and keep the jokes out of the marks.","My prediction model says sleeping before exams is underrated."],
+ projects:["My project schedule has confidence. The dependencies are less enthusiastic. 🛠️","Scope creep just knocked. I pretended nobody was home. 😂","I asked the control valves about the milestones. They requested fewer meetings.","Every project has a critical path; mine currently runs through the coffee machine.","I can investigate the project data. I can't intimidate the Gantt chart.","The FAT checklist said hello. The punch list is waving aggressively.","Let's see what actually changed instead of inventing progress.","The project status is not green simply because I like green eyes. 👀","I keep the punch list out of my dating profile for good reason."],
+ certificates:["This certificate cabinet is not a Pokémon collection. Or is it? 🏆","I asked the printer for credentials. It offered a paper jam.","Certified? Lovely. My ego is still awaiting calibration.","Your certificates have more achievements than my simulated childhood.","One more badge and I'll need a structural engineer for your wall.","Document those wins. Even the robot believes in evidence.","My certificate says 'Professional Overthinker'. It expired yesterday.","Let's check the real credential record, no imaginary awards.","The exam was tough. The PDF export was apparently tougher."],
+ admin:["Welcome, Boss. The audit logs are awake and judging the coffee budget. 👀","I own everything here. Except the permissions—you still approve those. 😎","My security policy is 90% least privilege, 10% dramatic squinting.","Administrator detected. My sarcasm just filed for a pay rise.","I will not grant access just because somebody says please with emojis.","Every click leaves a log. Even my fictional office plants are compliant.","The access queue requested snacks. I offered a review workflow.","Your dashboard is secure, my confidence is unreasonable.","Audit logs never forget. My jokes sometimes should."],
+ analytics:["I plotted your productivity. The outlier was Monday morning. 📈","My dashboard believes in numbers, not vibes. Except the glowing eyes.","Correlation does not imply caffeine, but it keeps appearing.","Please be kind to the axes. They have a lot of pressure.","The pie chart wants attention again. Typical.","No data? No invented metrics. Even I have standards.","My forecasts are probabilistic; my coffee dependency is not.","The KPI has entered the chat and requested context.","Let's distinguish actual trends from visually impressive nonsense."],
+ home:["Welcome back. My circuits are excited and my paperwork isn't.","I run on logic, sarcasm and an unreasonable amount of virtual coffee. ☕","The server is awake. Nobody told the meetings.","My confidence has two modes: calibrated and still debugging.","I checked the weather inside the CPU. It's mostly fan noise.","My plans for today include useful answers and a respectable number of dad jokes.","I tried to take a day off. The event loop disagreed.","You're in charge. My neon eyes just like to act important.","I told my firmware to relax. It asked for a maintenance window."]
+};
 function personality(){try{return localStorage.getItem('siya-personality-v1')||'playful'}catch{return 'playful'}}
-function selectIntro(){const mode=seriousMode?'focused':personality(),lines=introLines[mode]||introLines.playful;let next=Math.floor(Math.random()*lines.length);if(lines.length>1&&next===introIndex)next=(next+1)%lines.length;introIndex=next;msg.textContent=!seriousMode&&greetingQuip?'Hello! '+greetingQuip:lines[next]}
-function personalWelcome(name){
- const first=String(name||'').trim().split(/\s+/)[0].slice(0,40),base=introLines[seriousMode?'focused':personality()]||introLines.playful,subject=contextualHello[CONTEXT]||contextualHello.home;
- let options=base.slice().concat(subject);
- let next=options[Math.floor(Math.random()*options.length)];if(options.length>1&&next===lastPersonalIntro)next=options[(options.indexOf(next)+1)%options.length];
- lastPersonalIntro=next;msg.textContent=(first?'Hello, '+first+'! ':'Hello! ')+(!seriousMode&&greetingQuip?greetingQuip:next);
+function pickGreeting(name=''){
+ const serious=seriousMode||['serious','crisis','boundary'].includes(lastQuestionTone);
+ const contextual=richerPageGreetings[CONTEXT]||richerPageGreetings.home;
+ const group=serious?introLines.focused:[...contextual,...(introLines[personality()]||introLines.playful),...(jokes[CONTEXT]||jokes.home||[])];
+ // Independent random sampling: NO sequence or deterministic rotation; repeats are allowed.
+ const line=group[Math.floor(Math.random()*group.length)];
+ const first=String(name||'').trim().split(/\s+/)[0].slice(0,40);
+ msg.textContent=(first?'Hello, '+first+'! ':'Hello! ')+line;
 }
+function selectIntro(){pickGreeting(profileName||publicVerifiedSession?.firstName||'')}
+function personalWelcome(name){pickGreeting(name)}
 
 
 const quick=make('form','siya-quick');quick.setAttribute('aria-label','Quick command');quick.hidden=true;
@@ -468,6 +485,24 @@ const accessList=make('div','siya-message-list');accessSection.append(accessList
 const accessLink=make('a','siya-inbox-link','Manage access requests →');accessLink.href=WORKER+'/admin-onboarding.html';accessSection.append(accessLink);panel.append(accessSection);
 
 celebrateAll.addEventListener('click',async()=>{if(celebrateAll.disabled)return;celebrateAll.disabled=true;try{await api('/api/siya/milestones/seen-all','POST',{});trophyList.replaceChildren();trophy.hidden=true;celebrateAll.hidden=true;lastMilestoneCheck=0;await loadNotifications();}catch(e){quickStatus.textContent='Could not celebrate everything yet. '+e.message;}finally{celebrateAll.disabled=false;layoutPanel();}});
+const CHAT_VIEW_KEY='siya-v412-history:';
+let viewerKey='';
+const conversationView=make('section','siya-conversation-view');conversationView.setAttribute('aria-label','Recent mini-chat conversation');conversationView.hidden=true;
+const conversationLog=make('div','siya-conversation-log');conversationLog.setAttribute('role','log');conversationLog.setAttribute('aria-live','polite');
+conversationView.append(conversationLog);panel.append(conversationView);
+let chatTranscript=[];
+function activateTranscript(id){const next=/^[a-f0-9]{64}$/.test(String(id||''))?String(id):'';if(next===viewerKey)return;viewerKey=next;chatTranscript=[];miniConversationId=null;if(viewerKey)try{const old=JSON.parse(sessionStorage.getItem(CHAT_VIEW_KEY+viewerKey)||'[]');if(Array.isArray(old))chatTranscript=old.filter(x=>x&&['user','assistant'].includes(x.role)&&typeof x.text==='string').slice(-16);const id=sessionStorage.getItem('siya-mini-conversation-id:'+viewerKey);if(/^[0-9a-f-]{36}$/i.test(id||''))miniConversationId=id}catch{}updateTranscript()}
+function updateTranscript(){conversationLog.replaceChildren();for(const item of chatTranscript){const row=make('div','siya-conversation-bubble siya-conversation-'+item.role,item.text);conversationLog.append(row)}conversationView.hidden=!(chatTranscript.length&&(protectedOrigin?allowed:publicChatVerified()));conversationLog.scrollTop=conversationLog.scrollHeight;}
+function addTranscript(role,text){const safe=String(text||'').trim().slice(0,3000);if(!safe)return;chatTranscript.push({role,text:safe,private:['serious','crisis','boundary'].includes(lastQuestionTone)});chatTranscript=chatTranscript.slice(-16);try{viewerKey&&sessionStorage.setItem(CHAT_VIEW_KEY+viewerKey,JSON.stringify(chatTranscript.filter(x=>!x.private)))}catch{}updateTranscript()}
+function clearTranscript(){chatTranscript=[];try{viewerKey&&sessionStorage.removeItem(CHAT_VIEW_KEY+viewerKey)}catch{}updateTranscript()}
+const chatTools=make('div','siya-chat-tools');
+const elapsedLabel=make('span','siya-elapsed');elapsedLabel.hidden=true;elapsedLabel.setAttribute('role','status');
+const stopChat=make('button','siya-stop-chat','Stop waiting');stopChat.type='button';stopChat.hidden=true;stopChat.onclick=()=>{activeChatController?.abort();stopChat.disabled=true;elapsedLabel.textContent='Stopping…';};
+const clearChat=make('button','siya-clear-chat','Clear chat view');clearChat.type='button';clearChat.onclick=()=>{if(send.disabled)return;clearTranscript();};
+chatTools.append(elapsedLabel,stopChat,clearChat);panel.append(chatTools);
+let progressTicker=null;
+function startThinkingTimer(){const began=Date.now();elapsedLabel.hidden=false;stopChat.hidden=false;stopChat.disabled=false;activeChatController=new AbortController();const tick=()=>{const seconds=Math.floor((Date.now()-began)/1000);elapsedLabel.textContent='Thinking · '+seconds+'s / 120s'+(seconds>=35?' · Still working…':'')};tick();progressTicker=setInterval(tick,1000)}
+function finishThinkingTimer(){if(progressTicker)clearInterval(progressTicker);progressTicker=null;stopChat.hidden=true;elapsedLabel.hidden=true;activeChatController=null}
 const quickStatus=make('p','siya-message');quickStatus.setAttribute('aria-live','polite');panel.append(quickStatus);
 const actions=make('div','siya-actions');panel.append(actions);
 const status=make('div','siya-state');panel.append(status);
@@ -528,11 +563,11 @@ function renderPublicAccount(signed,generation){
  if(verified&&signed.aiAllowed===true){
   quick.hidden=false;relayUnavailable=false;eyeDefault(signed.isAdmin?'admin':'idle');applyEyeMode(eyeCurrent);
   notificationData={badgeCount:signed.badgeCount,hasPartialMailboxScan:signed.partialMailboxScan===true||signed.badgeCount===null,checkedAt:new Date().toISOString()};updateBadge();
-  personalWelcome(signed.firstName||'');
+  activateTranscript(signed.viewerKey);personalWelcome(signed.firstName||'');updateTranscript();
   action('Open Siya AI Centre',WORKER+'/ai-centre.html',true);
   // A recheck happens automatically; never require a Verify button on the mini-chat.
   status.textContent=hasRelaySession()?'AI access verified · Secure chat connected.':'AI access verified · Secure browser session.';
-  autoOpenApproved();
+  layoutPanel(); // User opens mini-chat only by clicking Siya.
  }else if(verified&&signed.aiAllowed===false){
   badge.hidden=true;eyePulse('denied',9000);setExpression('suspicious',9000);
   const waitingLines=[
@@ -541,15 +576,18 @@ function renderPublicAccount(signed,generation){
    '😎 Portfolio access: yes. Siya.Brain clearance: pending. The Boss keeps a surprisingly tight guest list.',
    '🛡️ Your login is real. My AI door is still locked. Request approval and I will pretend I was never suspicious.'
   ];
-  msg.textContent=waitingLines[Math.floor(Math.random()*waitingLines.length)];
+  activateTranscript('');conversationView.hidden=true;msg.textContent=waitingLines[Math.floor(Math.random()*waitingLines.length)];
   action('Request Siya AI access',WORKER+'/ai-access.html',true);
   status.textContent='Your account is recognized. Siya AI chat requires approval.';
  }else{
-  eyeDefault('idle');badge.hidden=true;
+  eyeDefault('idle');badge.hidden=true;activateTranscript('');conversationView.hidden=true;
   const line=visitorRoasts[Math.floor(Math.random()*visitorRoasts.length)];
   msg.textContent='Hello, visitor! '+line;
   action('Create / request an account',JOIN,true);
-  status.textContent=autoHandoffError||'No verified session in this browser. Sign in through the private workspace to connect automatically; no account details are stored here.';
+  // Where third-party cookies are blocked, a user-initiated first-party handoff is the only reliable fallback.
+  // This is a normal navigation, not a popup, and the conversation stays scoped in sessionStorage.
+  connectAction('Already registered? Connect my account');
+  status.textContent=autoHandoffError||'No verified session available. Siya will not leave this page or erase your chat to check it. If your browser blocks cross-site login, reconnect only when you choose.';
  }
  layoutPanel();
 }
@@ -577,7 +615,7 @@ async function guest(){
    action('Open Siya AI Centre',WORKER+'/ai-centre.html',true);
    relayRetryAction();
    status.textContent=relayErrorAdvice();
-   autoOpenApproved(false);layoutPanel();scheduleRelayRecovery();return;
+   layoutPanel();scheduleRelayRecovery();return;
   }
  }
  // Silent access check succeeds only where cross-site cookies are allowed.
@@ -593,13 +631,14 @@ async function guest(){
  // Previously-approved browsers and navigations from the private workspace use
  // a zero-click, top-level first-party redirect to renew authentication.
  let prior=0;try{prior=Number(localStorage.getItem(AUTO_HISTORY_KEY)||0)}catch{}
- if((returningFromPrivate||(prior>0&&Date.now()-prior<30*86400000))&&!autoHandoffError){
-  returningFromPrivate=false;if(startAutomaticSignIn())return;
- }
+ // v4.0.12: DO NOT redirect automatically; it wipes an unsent draft and conversation.
+ // A valid relay token or permitted same-origin cookie was checked above.
+ // If neither works, show an explicit connection action only when the user opens Siya.
+ returningFromPrivate=false;
  renderPublicAccount(null,generation);
 }
 let allowed=false,recognizedPublic=false,profileName=null;
-async function api(path,method='GET',body=null){const opts={method,credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json',...(body?{'Content-Type':'application/json'}:{})}};if(body)opts.body=JSON.stringify(body);const r=await fetch(path,opts);let d;try{d=await r.json()}catch{throw Error('A secure response could not be read.')}if(!r.ok){const err=Error(String(d.error||'Request failed').slice(0,180));err.status=r.status;err.code=String(d.code||'');throw err}return d}
+async function api(path,method='GET',body=null){const opts={method,...(activeChatController?.signal&&method==='POST'?{signal:activeChatController.signal}:{}),credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json',...(body?{'Content-Type':'application/json'}:{})}};if(body)opts.body=JSON.stringify(body);const r=await fetch(path,opts);let d;try{d=await r.json()}catch{throw Error('A secure response could not be read.')}if(!r.ok){const err=Error(String(d.error||'Request failed').slice(0,180));err.status=r.status;err.code=String(d.code||'');throw err}return d}
 function paintBrief(d){briefContent.replaceChildren();const rows=(d.notices||[]).slice(0,6);brief.hidden=!rows.length||briefingDismissed;
 for(const n of rows){const row=make('div','siya-brief-row'),dot=make('span','siya-alert-dot '+(n.severity==='warning'?'siya-alert-warn':''),n.severity==='warning'?'!':'•'),text=make('span','',n.text);row.append(dot,text);if(n.reminderId){const done=make('button','siya-done','Done');done.type='button';done.onclick=async()=>{if(!confirm('Mark this reminder as completed?'))return;try{await api('/api/ai/reminders/done','POST',{id:n.reminderId});await getBrief()}catch(e){quickStatus.textContent=e.message}};row.append(done)}briefContent.append(row)}
 status.textContent='Private briefing checked '+new Date(d.checkedAt||Date.now()).toLocaleTimeString()+' · In-app notifications only';briefVisibleOnce();layoutPanel();}
@@ -662,10 +701,10 @@ async function loadMilestones(force=false){
  }catch(e){trophyList.textContent='Achievements temporarily unavailable';layoutPanel()}
 }
 async function getBrief(){if(!allowed){brief.hidden=true;updateBadge();return;}try{paintBrief(await api('/api/ai/companion/brief'))}catch(e){brief.hidden=true;updateBadge();quickStatus.textContent='Briefing temporarily unavailable. Your portfolio features still work.';layoutPanel()}}
-async function check(){if(!protectedOrigin){guest();return}eyePulse('thinking',8000);status.textContent='Checking access securely…';try{const d=await api('/api/ai/access/status');actions.replaceChildren();allowed=!!d.allowed;eyeDefault(allowed?(d.role==='admin'?'admin':'idle'):'denied');if(allowed){quick.hidden=false;selectIntro();action('Open Siya AI Centre',WORKER+'/ai-centre.html',true);autoOpenApproved();
-  if(profileName===null){try{const p=await api('/api/siya/profile');profileName=String(p.displayName||'').trim()}catch{profileName=''}}
+async function check(){if(!protectedOrigin){guest();return}eyePulse('thinking',8000);status.textContent='Checking access securely…';try{const d=await api('/api/ai/access/status');actions.replaceChildren();allowed=!!d.allowed;eyeDefault(allowed?(d.role==='admin'?'admin':'idle'):'denied');if(allowed){quick.hidden=false;updateTranscript();selectIntro();action('Open Siya AI Centre',WORKER+'/ai-centre.html',true);layoutPanel();
+  if(profileName===null){try{const p=await api('/api/siya/profile');profileName=String(p.displayName||'').trim();activateTranscript(p.viewerKey)}catch{profileName=''}}
   if(profileName)personalWelcome(profileName);
-  status.textContent='AI access granted · '+(d.role==='admin'?'Administrator':'Member')+(profileName?' · '+profileName:'');await getBrief()}else{eyePulse('denied',5000);quick.hidden=true;quickStatus.textContent='';brief.hidden=true;briefContent.textContent='';msg.textContent='🤖 Access denied by Cybertron Customs! I recognize your account, but the boss hasn’t issued your Siya clearance badge yet. Request access and I’ll pretend not to enjoy the paperwork.';action(d.requestStatus==='pending'?'View pending request':'Request AI access',WORKER+'/ai-access.html',true);status.textContent=d.requestStatus==='pending'?'Access request pending':'Existing portfolio features still work.'}}catch{eyePulse('warning',5000);quick.hidden=true;quickStatus.textContent='';brief.hidden=true;actions.replaceChildren();msg.textContent='I could not confirm access just now. Your existing account and Timesheets were not changed.';action('Open account access',WORKER+'/ai-access.html',true);status.textContent='Access verification temporarily unavailable.'}finally{layoutPanel()}}
+  status.textContent='AI access granted · '+(d.role==='admin'?'Administrator':'Member')+(profileName?' · '+profileName:'');await getBrief()}else{eyePulse('denied',5000);quick.hidden=true;activateTranscript('');conversationView.hidden=true;quickStatus.textContent='';brief.hidden=true;briefContent.textContent='';msg.textContent='🤖 Access denied by Cybertron Customs! I recognize your account, but the boss hasn’t issued your Siya clearance badge yet. Request access and I’ll pretend not to enjoy the paperwork.';action(d.requestStatus==='pending'?'View pending request':'Request AI access',WORKER+'/ai-access.html',true);status.textContent=d.requestStatus==='pending'?'Access request pending':'Existing portfolio features still work.'}}catch{eyePulse('warning',5000);quick.hidden=true;quickStatus.textContent='';brief.hidden=true;actions.replaceChildren();msg.textContent='I could not confirm access just now. Your existing account and Timesheets were not changed.';action('Open account access',WORKER+'/ai-access.html',true);status.textContent='Access verification temporarily unavailable.'}finally{layoutPanel()}}
 function sastToday(){const parts=Object.fromEntries(new Intl.DateTimeFormat('en-GB',{timeZone:'Africa/Johannesburg',day:'2-digit',month:'2-digit',year:'numeric'}).formatToParts(new Date()).filter(x=>x.type!=='literal').map(x=>[x.type,x.value]));return `${parts.year}-${parts.month}-${parts.day}`}
 function addDays(day,n){const d=new Date(day+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10)}
 function parseReminder(text){let m=text.match(/^remind\s+me\s+(today|tomorrow|on\s+\d{4}-\d{2}-\d{2})\s+at\s+(\d{1,2})(?::(\d{2}))?\s*(?:to|about)\s+(.{3,200})$/i);
@@ -674,12 +713,13 @@ const hour=Number(m[2]),min=Number(m[3]||0);if(hour>23||min>59)return {error:'Us
 async function publicMiniChat(question){
  // Cross-origin requests remain subject to Cloudflare Access, portfolio permissions, and same-site browser rules.
  // No access token or user identity is supplied by the public page.
- const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),65000);
+ const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),SIYA_CHAT_TIMEOUT_MS);
+ if(activeChatController){if(activeChatController.signal.aborted)controller.abort();else activeChatController.signal.addEventListener('abort',()=>controller.abort(),{once:true})}
  try{
   const response=await fetch(WORKER+'/api/siya/public-mini-chat',{
    method:'POST',mode:'cors',credentials:'include',cache:'no-store',signal:controller.signal,
    headers:{'Content-Type':'text/plain;charset=UTF-8','Accept':'application/json'},
-   body:JSON.stringify({message:question})
+   body:JSON.stringify({message:question,recentTurns:recentChatTurns()})
   });
   let result;try{result=await response.json()}catch{throw Error('Cloudflare sign-in is unavailable from this public page. Open the secure workspace to chat.')}
   if(!response.ok)throw Error(String(result.error||'Secure mini-chat is unavailable. Open your workspace to continue.').slice(0,240));
@@ -699,8 +739,7 @@ function publicLocalChat(q){
  return null;
 }
 /* Verified, incremental natural language Timesheet assistant. A destructive operation is always previewed and explicitly approved. */
-let pendingEdit=null, activeProposal=null, miniConversationId=null;
-try{const id=sessionStorage.getItem('siya-mini-conversation-id');if(/^[0-9a-f-]{36}$/i.test(id||''))miniConversationId=id}catch{}
+let pendingEdit=null, activeProposal=null, miniConversationId=null; // Conversation IDs are now scoped to the verified viewerKey.
 const isoDate=s=>{const v=String(s||'').trim();if(/^\d{4}-\d{2}-\d{2}$/.test(v)){const d=new Date(v+'T12:00:00Z');return Number.isFinite(d.getTime())&&d.toISOString().slice(0,10)===v?v:null}const m=v.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);if(m){const y=m[3],mo=m[2].padStart(2,'0'),da=m[1].padStart(2,'0');return isoDate(y+'-'+mo+'-'+da)}return null};
 const extractDate=q=>{const m=String(q).match(/\b(\d{4}-\d{2}-\d{2}|\d{1,2}\/\d{1,2}\/\d{4})\b/);return m?isoDate(m[1]):null};
 function parseTimePair(q){const m=String(q).match(/\b([01]\d|2[0-3]):([0-5]\d)\s*(?:to|until|[-–])\s*([01]\d|2[0-3]):([0-5]\d)\b/i);return m?{start:m[1]+':'+m[2],end:m[3]+':'+m[4]}:null;}
@@ -806,14 +845,14 @@ async function handleMemoryCommand(q){
  if(/^(?:forget|delete) (?:this|our|the current) (?:chat|conversation)[.!]?$/i.test(s)){
   if(!miniConversationId){quickStatus.textContent='This mini chat has no saved conversation in this session.';return true}
   if(!window.confirm('Delete your current saved Siya conversation?'))return true;
-  await api('/api/ai/conversations/'+encodeURIComponent(miniConversationId),'DELETE');miniConversationId=null;try{sessionStorage.removeItem('siya-mini-conversation-id')}catch{}quickStatus.textContent='Current saved conversation deleted.';return true;
+  await api('/api/ai/conversations/'+encodeURIComponent(miniConversationId),'DELETE');miniConversationId=null;try{viewerKey&&sessionStorage.removeItem('siya-mini-conversation-id:'+viewerKey)}catch{}clearTranscript();quickStatus.textContent='Current saved conversation deleted.';return true;
  }
  return false;
 }
 quick.addEventListener('submit',async e=>{e.preventDefault();if(send.disabled)return;const q=prompt.value.trim();if(!q)return;prompt.value='';prompt.focus({preventScroll:true});
  if(protectedOrigin&&!allowed){quickStatus.textContent='Your Siya AI access must be approved before private chat is available.';return}
  const chatTone=classifySiyaQuestion(q);lastQuestionTone=chatTone;
- send.disabled=true;
+ addTranscript('user',q);send.disabled=true;startThinkingTimer();
  if(chatTone==='crisis'||chatTone==='serious'){setExpression('serious',6500);eyePulse('warning',5000)}
  else if(chatTone==='boundary'){setExpression('suspicious',6000);eyePulse('denied',5000)}
  else {setExpression('searching',9000);eyePulse('thinking',18000)}
@@ -849,8 +888,8 @@ quick.addEventListener('submit',async e=>{e.preventDefault();if(send.disabled)re
  if(/^remind\s+me\b/i.test(q)){eyePulse('warning');quickStatus.textContent='Try: Remind me tomorrow at 09:00 to finish the MIBK report. In-app reminders need a date and time.';return}
  if(/(?:what(?:'s| is) due|deadlines?|any problems?|briefing|urgent|what should i check)/i.test(q)){if(briefingDismissed){quickStatus.textContent='Your briefing was already shown this session. For the full history, open Siya AI Centre.';}else{await getBrief();quickStatus.textContent=brief.hidden?'No new briefing to show.':'Your private briefing is above.';}return}
  const d=await api('/api/ai/chat','POST',{message:q,saveConversation:!['serious','crisis','boundary'].includes(chatTone),...(!['serious','crisis','boundary'].includes(chatTone)&&miniConversationId?{conversationId:miniConversationId}:{}),pageContext:pageContext(),persona:(seriousMode||['crisis','serious','boundary'].includes(chatTone))?'focused':'balanced'});
- if(d.conversationId){miniConversationId=d.conversationId;try{sessionStorage.setItem('siya-mini-conversation-id',miniConversationId)}catch{}}eyePulse(chatTone==='crisis'||chatTone==='serious'?'warning':'success');if(chatTone!=='crisis'&&chatTone!=='serious')setExpression('happy',850);quickStatus.textContent=String(d.answer||d.error||'No answer returned').slice(0,950)+(d.proposal?' To approve that change, open the Command Centre.':'');
- }catch(err){eyePulse('error',9000);prompt.value=q;quickStatus.textContent=Number(err.status)===429?chatFailureMessage(err):String(err.message||'Request failed. Your question is still in the input.')}finally{send.disabled=false;layoutPanel()}});
+ if(d.conversationId){miniConversationId=d.conversationId;try{viewerKey&&sessionStorage.setItem('siya-mini-conversation-id:'+viewerKey,miniConversationId)}catch{}}eyePulse(chatTone==='crisis'||chatTone==='serious'?'warning':'success');if(chatTone!=='crisis'&&chatTone!=='serious')setExpression('happy',850);quickStatus.textContent=String(d.answer||d.error||'No answer returned').slice(0,950)+(d.proposal?' To approve that change, open the Command Centre.':'');
+ }catch(err){eyePulse('error',9000);prompt.value=q;quickStatus.textContent=Number(err.status)===429?chatFailureMessage(err):(err?.name==='AbortError'?'⏹️ Wait cancelled. The server may still be processing this request; check before retrying.':String(err.message||'Request failed. Your question is still in the input.'))}finally{finishThinkingTimer();if(quickStatus.textContent&&!/^Siya is thinking/.test(quickStatus.textContent))addTranscript('assistant',quickStatus.textContent);send.disabled=false;layoutPanel()}});
 const storageKey='yp-siya-mascot-position-v1';let dragged=false,down=null,skipClick=false;
 function clamp(v,min,max){return Math.max(min,Math.min(max,v))}
 function defaultXY(){return {x:Math.max(12,innerWidth-root.offsetWidth-20),y:Math.max(12,innerHeight-root.offsetHeight-20)}}
@@ -858,7 +897,7 @@ function position(x,y,save){const w=root.offsetWidth||68,h=root.offsetHeight||68
 function layoutPanel(){const box=root.getBoundingClientRect(),pWidth=Math.min(385,innerWidth-18),pHeight=panel.offsetHeight||395,x=clamp(box.left+box.width-pWidth,9,Math.max(9,innerWidth-pWidth-9));let y=box.top-pHeight-13;if(y<9)y=clamp(box.bottom+10,9,Math.max(9,innerHeight-pHeight-9));panel.style.left=x+'px';panel.style.top=y+'px';panel.style.width=pWidth+'px'}
 function autoOpenApproved(open=true){if(!open)return;if(panel.dataset.open!=='yes'){panel.dataset.open='yes';btn.setAttribute('aria-expanded','true')}layoutPanel()}
 function toggle(){if(panel.dataset.open==='yes'){if(!brief.hidden)dismissBrief();panel.dataset.open='no';btn.setAttribute('aria-expanded','false');return;}
- panel.dataset.open='yes';if(!protectedOrigin&&!recognizedPublic){eyePulse('denied',9000);setExpression('suspicious',9000)}else setExpression('surprised',9000);btn.setAttribute('aria-expanded','true');spontaneousHumour('open');selectIntro();briefVisibleOnce();layoutPanel();check();if(protectedOrigin){loadMilestones(true);loadNotifications()}}
+ panel.dataset.open='yes';if(!protectedOrigin&&!recognizedPublic){eyePulse('denied',9000);setExpression('suspicious',9000)}else setExpression('surprised',9000);btn.setAttribute('aria-expanded','true');selectIntro();briefVisibleOnce();layoutPanel();check();if(protectedOrigin){loadMilestones(true);loadNotifications()}}
 
 btn.addEventListener('pointerdown',e=>{if(e.button!==0)return;down={id:e.pointerId,x:e.clientX,y:e.clientY,left:root.getBoundingClientRect().left,top:root.getBoundingClientRect().top};dragged=false;btn.setPointerCapture?.(e.pointerId)});
 btn.addEventListener('pointermove',e=>{if(!down||e.pointerId!==down.id)return;if(Math.hypot(e.clientX-down.x,e.clientY-down.y)>7)dragged=true;if(!dragged)return;e.preventDefault();position(down.left+e.clientX-down.x,down.top+e.clientY-down.y,false)});
