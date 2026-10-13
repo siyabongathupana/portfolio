@@ -1,4 +1,4 @@
-/* Siya v4.0.8 — expressive neon mascot, contextual humour, serious-mode guardrails, briefings & reminders.
+/* Siya v4.0.9 — expressive neon mascot, contextual humour, serious-mode guardrails, briefings & reminders.
    Never infers login status on public GitHub Pages. All sensitive data via protected Worker. */
 (()=>{'use strict';
 if(document.getElementById('siya-launcher'))return;
@@ -7,13 +7,44 @@ const JOIN='https://siyabongathupana.github.io/portfolio/join.html';
 const protectedOrigin=location.origin===new URL(WORKER).origin;
 const PUBLIC_ORIGIN='https://siyabongathupana.github.io';
 const TOKEN_KEY='siya-v408-chat-token';
+const AUTO_STATE_KEY='siya-v409-auto-state',AUTO_HISTORY_KEY='siya-v409-prior-approved';
+let returningFromPrivate=false,autoHandoffError='',autoStarted=false,relayLastError='';
 const CHAT_RELAY=String(window.SIYA_CHAT_RELAY_URL||'https://yourportfolio-siya-chat.siyabongatshem.workers.dev').replace(/\/$/,'');
 const bridgeTtlMs=20*60*1000;
 // Handoff is a small, non-credential display hint passed when navigating from the protected workspace.
 // It cannot authorize any API or private data request.
 function readWorkspaceHandoff(){
- // A URL fragment is not proof of authentication and must never authorize chatting.
- if(!protectedOrigin&&location.hash.startsWith('#siya_session='))history.replaceState(history.state,'',location.pathname+location.search);
+ if(protectedOrigin)return;
+ const fragment=location.hash||'';
+ if(!fragment.startsWith('#siya_auto_session=')&&!fragment.startsWith('#siya_session='))return;
+ // Remove the credential-bearing fragment promptly; never store it in URLs, logs or server requests.
+ try{history.replaceState(history.state,'',location.pathname+location.search)}catch{}
+ if(fragment.startsWith('#siya_session=')){
+  // Existing private-workspace handoff is a *hint* to attempt first-party verification,
+  // never proof of identity or permission.
+  returningFromPrivate=true;return;
+ }
+ let data,stored;
+ try{data=JSON.parse(decodeURIComponent(fragment.slice('#siya_auto_session='.length)));stored=JSON.parse(sessionStorage.getItem(AUTO_STATE_KEY)||'null')}catch{}
+ try{sessionStorage.removeItem(AUTO_STATE_KEY)}catch{}
+ if(!data||!stored||!data.nonce||data.nonce!==stored.nonce||Date.now()-stored.created>120000){autoHandoffError='Automatic verification did not match the original browser session.';return}
+ if(data.token&&Number(data.exp)*1000>Date.now()+5000){
+  relayToken={token:String(data.token),exp:Number(data.exp)};
+  try{sessionStorage.setItem(TOKEN_KEY,JSON.stringify(relayToken))}catch{}
+ }else if(data.session?.signedIn===true&&data.session.aiAllowed===false){
+  publicVerifiedSession={...data.session,source:'verified-denied'};
+ }else autoHandoffError=String(data.error||'Private portfolio verification is unavailable.').slice(0,180);
+}
+function startAutomaticSignIn(){
+ if(protectedOrigin||autoStarted||relayToken?.token||publicVerifiedSession?.source==='verified-denied')return false;
+ autoStarted=true;
+ const nonce=crypto.randomUUID().replaceAll('-','');
+ try{sessionStorage.setItem(AUTO_STATE_KEY,JSON.stringify({nonce,created:Date.now()}))}catch{}
+ // This is TOP-LEVEL first-party navigation, not a popup/third-party iframe.
+ // Therefore modern browsers permit a normal Cloudflare Access session to be checked.
+ const back=location.pathname+location.search;
+ location.replace(WORKER+'/siya-auto-connect.html?nonce='+encodeURIComponent(nonce)+'&return='+encodeURIComponent(back));
+ return true;
 }
 let guestGeneration=0,connectWindow=null,publicVerifiedSession=null,relayToken=null;
 const bridgeOrigin=new URL(WORKER).origin;
@@ -25,7 +56,7 @@ function publicChatVerified(){return !!(publicVerifiedSession?.aiAllowed===true&
 function requestSecureConnection(){secureHandshake()}
 async function relayRequest(path,method='GET',payload){
  if(!relayToken?.token)throw Error('Session expired. Connect your account to continue.');
- const control=new AbortController(),timeout=setTimeout(()=>control.abort(),16000);
+ const control=new AbortController(),timeout=setTimeout(()=>control.abort(),path==='/session'?6500:16000);
  try{
   const r=await fetch(CHAT_RELAY+path,{method,mode:'cors',credentials:'omit',cache:'no-store',signal:control.signal,
    headers:{'Authorization':'Bearer '+relayToken.token,'Accept':'application/json',...(payload?{'Content-Type':'text/plain;charset=UTF-8'}:{})},
@@ -37,7 +68,12 @@ async function relayRequest(path,method='GET',payload){
 }
 async function relayAnswer(question){const d=await relayRequest('/chat','POST',{message:question});return String(d.answer||'No answer was returned.').slice(0,3000)}
 async function verifyRelaySession(){if(!relayToken?.token)return null;
- try{const d=await relayRequest('/session');if(d?.signedIn===true&&d.aiAllowed===true){publicVerifiedSession={...d,source:'relay-verified'};return publicVerifiedSession}}catch(err){if(err.status===401||err.status===403)forgetRelayToken()}
+ relayLastError='';
+ try{const d=await relayRequest('/session');if(d?.signedIn===true&&d.aiAllowed===true){
+  publicVerifiedSession={...d,source:'relay-verified'};
+  try{localStorage.setItem(AUTO_HISTORY_KEY,String(Date.now()))}catch{}
+  return publicVerifiedSession;
+ }}catch(err){relayLastError=String(err.message||'Secure relay not responding').slice(0,180);if(err.status===401||err.status===403)forgetRelayToken()}
  return null;
 }
 function secureHandshake(){
@@ -61,7 +97,7 @@ window.addEventListener('message',async event=>{
   relayToken={token:String(d.token),exp:Number(d.exp)};
   try{sessionStorage.setItem(TOKEN_KEY,JSON.stringify(relayToken))}catch{}
   const verified=await verifyRelaySession();if(verified){guest();return}
-  status.textContent='The secure chat relay is not ready. Confirm its Worker binding and try again.';guest();return;
+  autoHandoffError='Account verified, but secure relay validation failed: '+(relayLastError||'Check MAIN_WORKER binding and secret.');guest();return;
  }
  forgetRelayToken();
  if(d.session?.signedIn===true&&d.session.aiAllowed===false){
@@ -72,7 +108,7 @@ window.addEventListener('message',async event=>{
 
 const ROOT=protectedOrigin?'/':location.pathname.startsWith('/portfolio/')?'/portfolio/':'/';
 if(!protectedOrigin&&!document.querySelector('link[data-siya-theme="neon"]')){
- const sheet=document.createElement('link');sheet.rel='stylesheet';sheet.href=ROOT+'siya-assistant.css?v=4.0.8';sheet.dataset.siyaTheme='neon';document.head.append(sheet);
+ const sheet=document.createElement('link');sheet.rel='stylesheet';sheet.href=ROOT+'siya-assistant.css?v=4.0.9';sheet.dataset.siyaTheme='neon';document.head.append(sheet);
 }
 const PATH=location.pathname.toLowerCase();
 const CONTEXT=/timesheet|time-?track/.test(PATH)?'timesheets':/studies|study|grade|assessment|cad/.test(PATH)?'studies':/analytic|insight|report/.test(PATH)?'analytics':/project|milestone|publish/.test(PATH)?'projects':/certificat/.test(PATH)?'certificates':/admin|access|user/.test(PATH)?'admin':/ai-centre/.test(PATH)?'ai':'home';
@@ -247,7 +283,7 @@ const root=make('div');root.id='siya-launcher';root.setAttribute('aria-label','S
 let faceCounter=0;
 function makeSiyaFace(){
  const wrap=make('span','siya-face'),img=make('img','siya-avatar');
- img.src=ROOT+'siya-mascot.svg?v=4.0.8';img.alt='';img.draggable=false;
+ img.src=ROOT+'siya-mascot.svg?v=4.0.9';img.alt='';img.draggable=false;
  const overlay=document.createElementNS('http://www.w3.org/2000/svg','svg');
  overlay.setAttribute('viewBox','0 0 360 360');overlay.setAttribute('aria-hidden','true');overlay.setAttribute('class','siya-eye-overlay');
  const ident='siya-neon-'+(++faceCounter);
@@ -442,9 +478,10 @@ function renderPublicAccount(signed,generation){
   notificationData={badgeCount:signed.badgeCount,hasPartialMailboxScan:signed.partialMailboxScan===true||signed.badgeCount===null,checkedAt:new Date().toISOString()};updateBadge();
   personalWelcome(signed.firstName||'');
   action('Open Siya AI Centre',WORKER+'/ai-centre.html',true);
-  if(!hasRelaySession()&&signed.source!=='live-session')connectAction('🔐 Reconnect account');
+  // A recheck happens automatically; never require a Verify button on the mini-chat.
   action('Open my private workspace',WORKER+'/app.html');
-  status.textContent=hasRelaySession()?'AI access verified · Secure chat connected (no window required).':'AI access verified · Secure browser session.';
+  status.textContent=hasRelaySession()?'AI access verified · Secure chat connected.':'AI access verified · Secure browser session.';
+  autoOpenApproved();
  }else if(verified&&signed.aiAllowed===false){
   badge.hidden=true;eyePulse('denied',9000);setExpression('suspicious',9000);
   msg.textContent='👀 I checked Cybertron Customs. Your portfolio account is valid, but the Boss has not signed your Siya AI clearance. Nice try, agent! 😂';
@@ -455,29 +492,54 @@ function renderPublicAccount(signed,generation){
   eyeDefault('idle');badge.hidden=true;
   const line=visitorRoasts[Math.floor(Math.random()*visitorRoasts.length)];
   msg.textContent='Hello, visitor! '+line;
-  connectAction('🔐 Verify my account');
   action('Create / request an account',JOIN,true);
   action('Open private workspace',WORKER+'/app.html');
-  status.textContent='Sign-in is not verified on this public page. Your private data stays protected.';
+  status.textContent=autoHandoffError||'No verified session in this browser. Sign in through the private workspace to connect automatically; no account details are stored here.';
  }
+ layoutPanel();
+}
+function showPublicPending(generation){
+ if(generation!==guestGeneration)return;
+ actions.replaceChildren();quick.hidden=true;brief.hidden=true;
+ msg.textContent='🤖 Checking your existing Siya clearance… My circuits are being unusually professional.';
+ status.textContent='Checking secure account and AI access automatically.';
  layoutPanel();
 }
 async function guest(){
  const generation=++guestGeneration;
- let signed=publicVerifiedSession?.source==='verified-denied'?publicVerifiedSession:null;
- renderPublicAccount(signed,generation);
- // Existing signed handoffs are checked first to avoid slow third-party cookie timeouts.
- if(relayToken?.token){const checked=await verifyRelaySession();if(generation===guestGeneration&&checked){renderPublicAccount(checked,generation);return}}
- // The direct check is silent when normal Access cookies are available. Never use
- // localStorage, email input, or an old display-only handoff as proof of approval.
+ const preverified=publicVerifiedSession?.source==='verified-denied'?publicVerifiedSession:null;
+ if(preverified){renderPublicAccount(preverified,generation);return}
+ // Avoid a flash of a guest screen when an already-approved session is being verified.
+ if(!relayToken?.token)showPublicPending(generation);
+ if(relayToken?.token){
+  const checked=await verifyRelaySession();
+  if(generation!==guestGeneration)return;
+  if(checked){renderPublicAccount(checked,generation);return}
+  if(relayLastError){
+   actions.replaceChildren();quick.hidden=true;
+   msg.textContent='🤖 Identity check reached Cybertron, but the chat relay is offline. Your AI approval has not been revoked.';
+   action('Open Siya AI Centre',WORKER+'/ai-centre.html',true);
+   status.textContent='Connection error: '+relayLastError+' · Check public relay deployment and MAIN_WORKER binding.';
+   autoOpenApproved(false);layoutPanel();return;
+  }
+ }
+ // Silent access check succeeds only where cross-site cookies are allowed.
  const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),4200);
  try{
   const res=await fetch(WORKER+'/api/siya/public-session',{credentials:'include',mode:'cors',cache:'no-store',signal:controller.signal});
-  if(res.ok){const data=await res.json();if(data?.signedIn===true){
-   signed={...data,source:'live-session'};publicVerifiedSession=signed;renderPublicAccount(signed,generation);return;
+  if(res.ok){const data=await res.json();if(generation===guestGeneration&&data?.signedIn===true){
+   const signed={...data,source:'live-session'};publicVerifiedSession=signed;renderPublicAccount(signed,generation);return;
   }}
- }catch{/* Browser may reject third-party Access cookies; use signed session handoff. */}
+ }catch{/* Modern browsers may block cross-site cookies; do not treat this as 'not registered'. */}
  finally{clearTimeout(timeout)}
+ if(generation!==guestGeneration)return;
+ // Previously-approved browsers and navigations from the private workspace use
+ // a zero-click, top-level first-party redirect to renew authentication.
+ let prior=0;try{prior=Number(localStorage.getItem(AUTO_HISTORY_KEY)||0)}catch{}
+ if((returningFromPrivate||(prior>0&&Date.now()-prior<30*86400000))&&!autoHandoffError){
+  returningFromPrivate=false;if(startAutomaticSignIn())return;
+ }
+ renderPublicAccount(null,generation);
 }
 let allowed=false,recognizedPublic=false,profileName=null;
 async function api(path,method='GET',body=null){const opts={method,credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json',...(body?{'Content-Type':'application/json'}:{})}};if(body)opts.body=JSON.stringify(body);const r=await fetch(path,opts);let d;try{d=await r.json()}catch{throw Error('A secure response could not be read.')}if(!r.ok)throw Error(String(d.error||'Request failed').slice(0,180));return d}
@@ -543,7 +605,7 @@ async function loadMilestones(force=false){
  }catch(e){trophyList.textContent='Achievements temporarily unavailable';layoutPanel()}
 }
 async function getBrief(){if(!allowed){brief.hidden=true;updateBadge();return;}try{paintBrief(await api('/api/ai/companion/brief'))}catch(e){brief.hidden=true;updateBadge();quickStatus.textContent='Briefing temporarily unavailable. Your portfolio features still work.';layoutPanel()}}
-async function check(){if(!protectedOrigin){guest();return}eyePulse('thinking',8000);status.textContent='Checking access securely…';try{const d=await api('/api/ai/access/status');actions.replaceChildren();allowed=!!d.allowed;eyeDefault(allowed?(d.role==='admin'?'admin':'idle'):'denied');if(allowed){quick.hidden=false;selectIntro();action('Open Siya AI Centre',WORKER+'/ai-centre.html',true);
+async function check(){if(!protectedOrigin){guest();return}eyePulse('thinking',8000);status.textContent='Checking access securely…';try{const d=await api('/api/ai/access/status');actions.replaceChildren();allowed=!!d.allowed;eyeDefault(allowed?(d.role==='admin'?'admin':'idle'):'denied');if(allowed){quick.hidden=false;selectIntro();action('Open Siya AI Centre',WORKER+'/ai-centre.html',true);autoOpenApproved();
   if(profileName===null){try{const p=await api('/api/siya/profile');profileName=String(p.displayName||'').trim()}catch{profileName=''}}
   if(profileName)personalWelcome(profileName);
   status.textContent='AI access granted · '+(d.role==='admin'?'Administrator':'Member')+(profileName?' · '+profileName:'');await getBrief()}else{eyePulse('denied',5000);quick.hidden=true;quickStatus.textContent='';brief.hidden=true;briefContent.textContent='';msg.textContent='🤖 Access denied by Cybertron Customs! I recognize your account, but the boss hasn’t issued your Siya clearance badge yet. Request access and I’ll pretend not to enjoy the paperwork.';action(d.requestStatus==='pending'?'View pending request':'Request AI access',WORKER+'/ai-access.html',true);status.textContent=d.requestStatus==='pending'?'Access request pending':'Existing portfolio features still work.'}}catch{eyePulse('warning',5000);quick.hidden=true;quickStatus.textContent='';brief.hidden=true;actions.replaceChildren();msg.textContent='I could not confirm access just now. Your existing account and Timesheets were not changed.';action('Open account access',WORKER+'/ai-access.html',true);status.textContent='Access verification temporarily unavailable.'}finally{layoutPanel()}}
@@ -706,7 +768,7 @@ quick.addEventListener('submit',async e=>{e.preventDefault();if(send.disabled)re
  if(!protectedOrigin){
   if(!publicChatVerified()){
    quick.hidden=true;eyePulse('denied',9000);setExpression('suspicious',9000);
-   quickStatus.textContent='😂 Hold it, secret agent! Siya chat needs an approved account. Connect your account or request access first.';
+   quickStatus.textContent='😂 Hold it, secret agent! Siya chat needs an approved account. Sign in through your workspace or request access first.';
    prompt.value=q;guest();return;
   }
   const basic=publicLocalChat(q);if(basic){quickStatus.textContent=basic;if(!['serious','crisis','boundary'].includes(chatTone))eyePulse('success',8000);return}
@@ -716,7 +778,7 @@ quick.addEventListener('submit',async e=>{e.preventDefault();if(send.disabled)re
   }catch(err){
    eyePulse('warning',8000);prompt.value=q;
    if(publicVerifiedSession?.source==='relay-verified'){forgetRelayToken();publicVerifiedSession=null;guest();}
-   quickStatus.textContent='🤖 My secure connection needs refreshing. Select Verify my account or open the AI Centre. Your unsent question is safe in the text box.';
+   quickStatus.textContent='🤖 My secure connection needs refreshing. Open the AI Centre or return through your private workspace. Your unsent question is still here.';
    status.textContent=String(err.message||'Secure chat unavailable').slice(0,180);
   }
   return;
@@ -734,6 +796,7 @@ function clamp(v,min,max){return Math.max(min,Math.min(max,v))}
 function defaultXY(){return {x:Math.max(12,innerWidth-root.offsetWidth-20),y:Math.max(12,innerHeight-root.offsetHeight-20)}}
 function position(x,y,save){const w=root.offsetWidth||68,h=root.offsetHeight||68,px=clamp(Math.round(x),8,Math.max(8,innerWidth-w-8)),py=clamp(Math.round(y),8,Math.max(8,innerHeight-h-8));root.style.left=px+'px';root.style.top=py+'px';root.style.right='auto';root.style.bottom='auto';layoutPanel();if(save)try{localStorage.setItem(storageKey,JSON.stringify({x:innerWidth?px/innerWidth:.8,y:innerHeight?py/innerHeight:.8}))}catch{}}
 function layoutPanel(){const box=root.getBoundingClientRect(),pWidth=Math.min(385,innerWidth-18),pHeight=panel.offsetHeight||395,x=clamp(box.left+box.width-pWidth,9,Math.max(9,innerWidth-pWidth-9));let y=box.top-pHeight-13;if(y<9)y=clamp(box.bottom+10,9,Math.max(9,innerHeight-pHeight-9));panel.style.left=x+'px';panel.style.top=y+'px';panel.style.width=pWidth+'px'}
+function autoOpenApproved(open=true){if(!open)return;if(panel.dataset.open!=='yes'){panel.dataset.open='yes';btn.setAttribute('aria-expanded','true')}layoutPanel()}
 function toggle(){if(panel.dataset.open==='yes'){if(!brief.hidden)dismissBrief();panel.dataset.open='no';btn.setAttribute('aria-expanded','false');return;}
  panel.dataset.open='yes';if(!protectedOrigin&&!recognizedPublic){eyePulse('denied',9000);setExpression('suspicious',9000)}else setExpression('surprised',9000);btn.setAttribute('aria-expanded','true');spontaneousHumour('open');selectIntro();briefVisibleOnce();layoutPanel();check();if(protectedOrigin){loadMilestones(true);loadNotifications()}}
 
@@ -748,9 +811,9 @@ reset.addEventListener('click',()=>{try{localStorage.removeItem(storageKey)}catc
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&panel.dataset.open==='yes'){panel.dataset.open='no';btn.setAttribute('aria-expanded','false');btn.focus()}});
 window.addEventListener('resize',()=>{const b=root.getBoundingClientRect();position(b.left,b.top,false)});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&protectedOrigin){loadMilestones();loadNotifications()}});
-if(protectedOrigin){setTimeout(()=>{loadMilestones();loadNotifications()},700);setInterval(()=>{if(!document.hidden){loadNotifications();loadMilestones()}},90000)}
+if(protectedOrigin){setTimeout(()=>{check()},0);setTimeout(()=>{loadMilestones();loadNotifications()},700);setInterval(()=>{if(!document.hidden){loadNotifications();loadMilestones()}},90000)}
 window.addEventListener('siya:notifications-changed',()=>{if(protectedOrigin){loadNotifications();loadMilestones(true)}});
-if(!protectedOrigin){setTimeout(()=>{if(!document.hidden)guest()},900);setInterval(()=>{if(!document.hidden)guest()},90000)}
+if(!protectedOrigin){setTimeout(()=>{if(!document.hidden)guest()},0);setInterval(()=>{if(!document.hidden)guest()},90000)}
 window.addEventListener('storage',e=>{if(e.key==='siya-personality-v1'&&panel.dataset.open==='yes')selectIntro()});
 
 document.body.append(root);
