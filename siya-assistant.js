@@ -1,4 +1,4 @@
-/* Siya v4.0.5 — expressive neon mascot, contextual humour, serious-mode guardrails, briefings & reminders.
+/* Siya v4.0.6 — expressive neon mascot, contextual humour, serious-mode guardrails, briefings & reminders.
    Never infers login status on public GitHub Pages. All sensitive data via protected Worker. */
 (()=>{'use strict';
 if(document.getElementById('siya-launcher'))return;
@@ -42,7 +42,7 @@ window.addEventListener('message',event=>{
 
 const ROOT=protectedOrigin?'/':location.pathname.startsWith('/portfolio/')?'/portfolio/':'/';
 if(!protectedOrigin&&!document.querySelector('link[data-siya-theme="neon"]')){
- const sheet=document.createElement('link');sheet.rel='stylesheet';sheet.href=ROOT+'siya-assistant.css?v=4.0.5';sheet.dataset.siyaTheme='neon';document.head.append(sheet);
+ const sheet=document.createElement('link');sheet.rel='stylesheet';sheet.href=ROOT+'siya-assistant.css?v=4.0.6';sheet.dataset.siyaTheme='neon';document.head.append(sheet);
 }
 const PATH=location.pathname.toLowerCase();
 const CONTEXT=/timesheet|time-?track/.test(PATH)?'timesheets':/studies|study|grade|assessment|cad/.test(PATH)?'studies':/analytic|insight|report/.test(PATH)?'analytics':/project|milestone|publish/.test(PATH)?'projects':/certificat/.test(PATH)?'certificates':/admin|access|user/.test(PATH)?'admin':/ai-centre/.test(PATH)?'ai':'home';
@@ -188,7 +188,7 @@ const extraJokes={
  ]
 };
 const JOKE_TOPICS={dcs:'engineering',deltav:'engineering',control:'engineering',plc:'engineering',pid:'engineering',pump:'engineering',engineering:'engineering',tech:'engineering',computer:'robot',cybertron:'robot',robot:'robot',math:'math',calculus:'math',equation:'math',study:'studies',university:'studies',exam:'studies',school:'studies',project:'projects',timesheet:'timesheets',work:'office',meeting:'office',boss:'office',office:'office',password:'cybersecurity',security:'cybersecurity',cyber:'cybersecurity',dad:'dad',pun:'dad',roast:'roast',knock:'knock'};
-const jokeBags=new Map();let lastJoke='',lastJokeTopic=CONTEXT,seriousMode=false;
+const jokeBags=new Map();let lastJoke='',lastJokeTopic=CONTEXT,seriousMode=false,lastQuestionTone='normal';
 function shuffledBag(length){const b=Array.from({length},(_,i)=>i);for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]]}return b}
 function jokeTopicFrom(query){const q=String(query||'').toLowerCase();for(const [term,category] of Object.entries(JOKE_TOPICS))if(new RegExp('\\b'+term+'\\b').test(q))return category;return null}
 function newJoke(topic=CONTEXT){const key=extraJokes[topic]||jokes[topic]?topic:CONTEXT,pool=extraJokes[key]||jokes[key]||jokes.home;
@@ -217,12 +217,12 @@ const root=make('div');root.id='siya-launcher';root.setAttribute('aria-label','S
 let faceCounter=0;
 function makeSiyaFace(){
  const wrap=make('span','siya-face'),img=make('img','siya-avatar');
- img.src=ROOT+'siya-mascot.svg?v=4.0.5';img.alt='';img.draggable=false;
+ img.src=ROOT+'siya-mascot.svg?v=4.0.6';img.alt='';img.draggable=false;
  const overlay=document.createElementNS('http://www.w3.org/2000/svg','svg');
  overlay.setAttribute('viewBox','0 0 360 360');overlay.setAttribute('aria-hidden','true');overlay.setAttribute('class','siya-eye-overlay');
  const ident='siya-neon-'+(++faceCounter);
  const eyes=[121,238].map((cx,i)=>`<g class="siya-one-eye siya-eye-${i===0?'left':'right'}"><ellipse class="siya-eye-mask" cx="${cx}" cy="222" rx="30" ry="30"/><g class="siya-eye-beam"><g class="siya-eye-pupil"><ellipse class="siya-eye-blur" cx="${cx}" cy="222" rx="26" ry="26"/><ellipse class="siya-eye-aura" cx="${cx}" cy="222" rx="27" ry="27" fill="url(#${ident})"/><circle class="siya-eye-iris" cx="${cx}" cy="222" r="18"/><circle class="siya-eye-core" cx="${cx}" cy="222" r="11"/><circle class="siya-eye-shine" cx="${cx-4}" cy="217" r="5"/></g></g><path class="siya-expression-brow" d="M ${cx-25} 181 Q ${cx} 168 ${cx+24} 180"/><path class="siya-expression-lid" d="M ${cx-26} 222 Q ${cx} 235 ${cx+26} 222"/></g>`).join('');
- overlay.innerHTML=`<defs><radialGradient id="${ident}"><stop offset="0%" stop-color="#ffffff" stop-opacity=".72"/><stop offset="34%" stop-color="var(--siya-neon)" stop-opacity=".94"/><stop offset="85%" stop-color="var(--siya-neon)" stop-opacity=".36"/><stop offset="100%" stop-color="var(--siya-neon)" stop-opacity="0"/></radialGradient></defs>${eyes}`;
+ overlay.innerHTML=`<defs><radialGradient id="${ident}"><stop offset="0%" stop-color="#ffffff" stop-opacity=".72"/><stop offset="34%" stop-color="var(--siya-neon)" stop-opacity=".94"/><stop offset="85%" stop-color="var(--siya-neon)" stop-opacity=".36"/><stop offset="100%" stop-color="var(--siya-neon)" stop-opacity="0"/></radialGradient></defs>${eyes}<g class="siya-mouth-group"><ellipse class="siya-mouth-mask" cx="180" cy="259" rx="43" ry="20"/><path class="siya-mouth-line" d="M153 251 Q180 274 207 251"/></g>`;
  wrap.append(img,overlay);return wrap;
 }
 const icon=makeSiyaFace();
@@ -233,6 +233,8 @@ heading.append(make('strong','','Siya · Your co-pilot'),make('small','','Your f
 const eyeStatus=make('span','siya-eye-status','● Online');eyeStatus.title='Siya eye status — visual indication only';
 head.append(hicon,heading,eyeStatus);panel.append(head);
 
+const SIYA_PAGE_NAME={timesheets:'Timesheets',studies:'Studies',projects:'Projects',analytics:'Analytics',admin:'Admin',ai:'AI Centre',home:'Home'}[CONTEXT]||'Portfolio';
+function pageContext(){return {page:CONTEXT,path:location.pathname.slice(0,160),timer:window.__siyaTimerLive?.getSnapshot?.()?.status||null};}
 const EYE_LABELS={idle:'Online',thinking:'Thinking',success:'Success',warning:'Attention',denied:'Access restricted',error:'Error',admin:'Admin',notice:'New notification'};
 let eyeBase='idle',eyeCurrent='idle',eyeTimer=null;
 function applyEyeMode(mode){
@@ -240,11 +242,11 @@ function applyEyeMode(mode){
  if(eyeCurrent===next&&root.dataset.eyeState===next)return;
  eyeCurrent=next;root.dataset.eyeState=next;eyeStatus.textContent='● '+EYE_LABELS[next];
 }
-function eyeDefault(mode){eyeBase=Object.prototype.hasOwnProperty.call(EYE_LABELS,mode)?mode:'idle';if(eyeTimer===null)applyEyeMode(eyeBase)}
-function eyePulse(mode,ms=2400){
+function eyeDefault(mode){const next=Object.prototype.hasOwnProperty.call(EYE_LABELS,mode)?mode:'idle';eyeBase='idle';if(next!=='idle')eyePulse(next,8000);else if(eyeTimer===null)applyEyeMode('idle')}
+function eyePulse(mode,ms=8000){
  if(eyeTimer!==null){clearTimeout(eyeTimer);eyeTimer=null}
  applyEyeMode(mode);
- if(Number.isFinite(ms)&&ms>0){eyeTimer=setTimeout(()=>{eyeTimer=null;applyEyeMode(eyeBase)},Math.min(30000,Math.max(200,ms)))}
+ if(Number.isFinite(ms)&&ms>0){eyeTimer=setTimeout(()=>{eyeTimer=null;applyEyeMode(eyeBase)},Math.min(30000,Math.max(mode==='thinking'?1000:8000,ms)))}
 }
 applyEyeMode('idle');
 // Same-origin scripts may report real UI state changes. This event is visual only.
@@ -260,7 +262,7 @@ function setExpression(name,duration=0){
  if(!EXPRESSIONS.has(name))return;
  if(expressionTimeout!==null){clearTimeout(expressionTimeout);expressionTimeout=null}
  expression=name;root.dataset.expression=name;
- if(duration>0)expressionTimeout=setTimeout(()=>{expressionTimeout=null;setExpression('neutral')},Math.min(12000,duration));
+ if(duration>0)expressionTimeout=setTimeout(()=>{expressionTimeout=null;setExpression('neutral')},Math.min(30000,Math.max(8000,duration)));
 }
 function activity(){lastActivity=Date.now();if(expression==='sleep')setExpression('surprised',850)}
 window.addEventListener('siya:expression',e=>{const d=e.detail||{};setExpression(d.expression,Number(d.duration)||0)});
@@ -283,15 +285,17 @@ setInterval(()=>{
 window.addEventListener('focus',()=>{activity();if(expression==='sleep')setExpression('surprised',900)});
 
 const joke=make('p','siya-joke');joke.setAttribute('aria-live','polite');panel.append(joke);
-const jokeTools=make('div','siya-joke-tools');
-const tellJoke=make('button','siya-joke-action','🎲 New joke');tellJoke.type='button';tellJoke.setAttribute('aria-label','Tell a different joke');
-const roastMe=make('button','siya-joke-action','🔥 Roast me');roastMe.type='button';roastMe.setAttribute('aria-label','Give me a friendly robot roast');
-const toneToggle=make('button','siya-joke-action','🧠 Serious mode');toneToggle.type='button';toneToggle.setAttribute('aria-pressed','false');
-function setTone(serious){seriousMode=!!serious;toneToggle.setAttribute('aria-pressed',String(seriousMode));toneToggle.textContent=seriousMode?'✨ Playful mode':'🧠 Serious mode';if(seriousMode){joke.textContent='Professional mode engaged. No random jokes; useful answers first.';setExpression('serious',900)}else{newJoke(lastJokeTopic);setExpression('happy',900)}}
-tellJoke.addEventListener('click',()=>{setTone(false);newJoke(lastJokeTopic);setExpression('wink',1000)});
-roastMe.addEventListener('click',()=>{setTone(false);newJoke('roast');setExpression('suspicious',1200)});
-toneToggle.addEventListener('click',()=>setTone(!seriousMode));
-jokeTools.append(tellJoke,roastMe,toneToggle);panel.append(jokeTools);
+// Personality is automatic: there are no joke/roast/serious buttons to micromanage.
+let lastSpontaneousRoastAt=0;
+function spontaneousHumour(trigger='hello'){
+ if(seriousMode||['serious','crisis','boundary'].includes(lastQuestionTone))return;
+ const now=Date.now();
+ if(now-lastSpontaneousRoastAt>120000 && Math.random()<.17){
+  lastSpontaneousRoastAt=now;newJoke('roast');setExpression('suspicious',8000);
+  // Deliberately avoid health, identity, disability, appearance, finances and personal matters.
+ }else newJoke(CONTEXT);
+}
+function setTone(serious){seriousMode=!!serious;if(seriousMode){joke.textContent='Accuracy first. I am listening.';setExpression('serious',8000)}else{newJoke(CONTEXT);setExpression('happy',8000)}}
 
 const brief=make('div','siya-brief');brief.hidden=true;brief.setAttribute('aria-live','polite');
 const briefHeader=make('div','siya-brief-header');briefHeader.append(make('strong','','📋 Your quick briefing'));
@@ -539,14 +543,127 @@ function publicLocalChat(q){
  if(/^(?:where (?:is|are)|open|go to|navigate to|how (?:do I|can I) (?:find|open|navigate to)).*(?:projects|certificates|timesheets|studies)|^how to navigate/i.test(q))return 'I can help you navigate. Use the Projects, Certificates, Timesheets and Studies links above. Private records are only available after secure sign-in.';
  return null;
 }
+/* Verified, incremental natural language Timesheet assistant. A destructive operation is always previewed and explicitly approved. */
+let pendingEdit=null, activeProposal=null, miniConversationId=null;
+try{const id=sessionStorage.getItem('siya-mini-conversation-id');if(/^[0-9a-f-]{36}$/i.test(id||''))miniConversationId=id}catch{}
+const isoDate=s=>{const v=String(s||'').trim();if(/^\d{4}-\d{2}-\d{2}$/.test(v)){const d=new Date(v+'T12:00:00Z');return Number.isFinite(d.getTime())&&d.toISOString().slice(0,10)===v?v:null}const m=v.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);if(m){const y=m[3],mo=m[2].padStart(2,'0'),da=m[1].padStart(2,'0');return isoDate(y+'-'+mo+'-'+da)}return null};
+const extractDate=q=>{const m=String(q).match(/\b(\d{4}-\d{2}-\d{2}|\d{1,2}\/\d{1,2}\/\d{4})\b/);return m?isoDate(m[1]):null};
+function parseTimePair(q){const m=String(q).match(/\b([01]\d|2[0-3]):([0-5]\d)\s*(?:to|until|[-–])\s*([01]\d|2[0-3]):([0-5]\d)\b/i);return m?{start:m[1]+':'+m[2],end:m[3]+':'+m[4]}:null;}
+function editQuestion(){if(!pendingEdit)return '';
+ const p=pendingEdit;
+ if(!p.date)return 'Which date? Use YYYY-MM-DD or DD/MM/YYYY.';
+ if(p.kind==='delete'||p.kind==='edit')return 'I will check your saved entries on '+p.date+' before selecting an exact record.';
+ if(!p.project)return 'Which project should I log on '+p.date+'?';
+ if(!p.start||!p.end)return 'What start and end times? For example: 08:30 to 16:30.';
+ if(p.notes===undefined)return 'What description should I put on this Timesheet entry? (You can say "none".)';
+ if(!p.category)return 'Which category? (You can say "Other".)';
+ if(!p.billable)return 'Is this billable? Say yes or no.';
+ return '';
+}
+async function previewEdit(plan){
+ const result=await api('/api/ai/actions/preview','POST',plan);
+ if(!result.proposal){quickStatus.textContent=result.message||'No changes proposed.';pendingEdit=null;return true;}
+ const p=result.proposal;activeProposal=p;
+ const entry=plan.kind==='timesheet_add_entry'?[plan.date,plan.project,plan.start+'–'+plan.end,'Notes: '+plan.notes,'Category: '+plan.category,'Billable: '+plan.billable].join(' · '):JSON.stringify(p.items||[]).slice(0,550);
+ const warn=(p.items||[]).filter(x=>String(x.title||'').startsWith('POSSIBLE OVERLAP')).length;
+ quickStatus.textContent='PREVIEW ONLY (nothing saved): '+entry+(warn?' ⚠️ Possible time overlap: '+warn+' entry/entries.':'')+'\nTo approve, reply: CONFIRM CHANGE. To cancel, reply: CANCEL CHANGE.';
+ setExpression('serious',8000);eyePulse(warn?'warning':'thinking',8000);return true;
+}
+async function executePreview(){const p=activeProposal;if(!p)return false;
+ if(!window.confirm('Confirm '+p.title+'? This will change your saved portfolio data.')){quickStatus.textContent='Cancelled. No changes were made.';activeProposal=null;pendingEdit=null;return true;}
+ const exact=window.prompt('For safety, type exactly: '+p.requiredConfirmation);if(exact!==p.requiredConfirmation){quickStatus.textContent='Confirmation did not match. No change was executed.';return true;}
+ const x=await api('/api/ai/actions/execute','POST',{proposalId:p.id,confirmText:exact});
+ quickStatus.textContent=x.saved?x.message||'Verified: saved successfully.':x.message||'The backend did not confirm a save. Check the record before retrying.';
+ if(x.saved){eyePulse('success',8000);setExpression('happy',8000);window.dispatchEvent(new Event('portfolio:timesheet-updated'));}
+ activeProposal=null;pendingEdit=null;return true;
+}
+async function verifiedLookup(date,area='timesheets'){
+ return api('/api/ai/records/lookup?area='+encodeURIComponent(area)+'&date='+encodeURIComponent(date));
+}
+async function handleRecordEdits(q){
+ if(!protectedOrigin||!allowed)return false;
+ const s=String(q||'').trim(),lower=s.toLowerCase();
+ if(activeProposal){if(/^confirm change[.!]?$/i.test(s)){await executePreview();return true}if(/^cancel change[.!]?$/i.test(s)){activeProposal=null;pendingEdit=null;quickStatus.textContent='Cancelled; no records changed.';return true}if(/\b(?:delete|add|edit|update|remove)\b/i.test(s)){quickStatus.textContent='There is a pending preview. Reply CONFIRM CHANGE or CANCEL CHANGE first.';return true}}
+ if(/^cancel(?: edit| entry| change)?$/i.test(s)&&pendingEdit){pendingEdit=null;quickStatus.textContent='Cancelled; nothing was saved.';return true}
+ if(/\b(?:remember|memory)\b/i.test(lower))return false;
+ if(!pendingEdit){
+  const add=/\b(?:add|create|log|record|make)\b.{0,100}\b(?:time\s*sheet|entry|hours?)\b|\b(?:time\s*sheet|entry)\b.{0,50}\b(?:add|create|log)\b/i.test(s);
+  const remove=/\b(?:delete|remove)\b.{0,100}\b(?:time\s*sheet|entry|logged hours?)\b/i.test(s);
+  const edit=/\b(?:edit|correct|modify|update|change)\b.{0,100}\b(?:time\s*sheet|entry|logged hours?)\b/i.test(s);
+  if(!add&&!remove&&!edit||/^(?:how|why|what|where|when|should|can i|could i|explain)\b/i.test(s))return false;
+  pendingEdit={kind:remove?'delete':edit?'edit':'add',date:extractDate(s),project:'',start:'',end:'',notes:undefined,category:'',billable:''};
+  const named=s.match(/\bproject\s*(?:=|:|is)\s*["“]?([^"”;,]+?)(?=\s+(?:from|on|start|end|notes|description|category|billable)\b|$)/i);
+  if(named)pendingEdit.project=named[1].trim();const times=parseTimePair(s);if(times)Object.assign(pendingEdit,times);
+ }else{
+  const p=pendingEdit;
+  if(!p.date){p.date=isoDate(s)||extractDate(s);if(!p.date){quickStatus.textContent=editQuestion();return true}}
+  else if(p.kind==='add'){
+   if(!p.project)p.project=s.replace(/^project\s*[:=]?\s*/i,'').trim().slice(0,120);
+   else if(!p.start||!p.end){const times=parseTimePair(s);if(!times){quickStatus.textContent=editQuestion();return true}Object.assign(p,times)}
+   else if(p.notes===undefined)p.notes=/^(?:none|no description|skip)$/i.test(s)?'':s.slice(0,2000);
+   else if(!p.category)p.category=s.slice(0,80);
+   else if(!p.billable){if(!/^(yes|no)$/i.test(s)){quickStatus.textContent=editQuestion();return true}p.billable=lower}
+  }
+ }
+ const p=pendingEdit;
+ if(['delete','edit'].includes(p.kind)&&p.date){
+  const result=await verifiedLookup(p.date),rows=result.records||[];
+  if(!rows.length){quickStatus.textContent='Verified: no entries saved on '+p.date+'. Nothing was removed.';pendingEdit=null;return true}
+  if(rows.length===1&&rows[0].id){if(p.kind==='edit'){p.kind='edit-changes';p.selected=rows[0];quickStatus.textContent='Found one exact entry: '+rows[0].project+' · '+rows[0].start+'–'+rows[0].end+'. Which field should I correct? Use project=..., notes=..., category=..., billable=yes/no, or start=HH:MM end=HH:MM.';return true}await previewEdit({kind:'timesheet_delete_entry',entryId:String(rows[0].id)});return true}
+  p.matches=rows;p.kind=p.kind==='edit'?'choose-edit':'choose-delete';quickStatus.textContent='I found '+rows.length+' entries on '+p.date+'. Reply with the exact entry ID to select one:\n'+rows.slice(0,12).map(x=>[x.id||'(no ID)',x.project,x.start+'–'+x.end,x.notes||''].join(' · ')).join('\n')+'\nNo action has been taken.';return true;
+ }
+ if(p.kind==='choose-delete'||p.kind==='choose-edit'){
+  const x=(p.matches||[]).find(x=>String(x.id)===s);
+  if(!x){quickStatus.textContent='Please copy an exact entry ID from the list, or say cancel.';return true}
+  if(p.kind==='choose-edit'){p.kind='edit-changes';p.selected=x;quickStatus.textContent='Selected '+x.project+' ('+x.start+'–'+x.end+'). What should change? Try notes=..., project=..., start=HH:MM end=HH:MM, category=..., or billable=yes/no.';return true}await previewEdit({kind:'timesheet_delete_entry',entryId:String(x.id)});return true;
+ }
+ if(p.kind==='edit-changes'){
+  const x=p.selected;
+  if(!x?.id){quickStatus.textContent='This record has no unique ID. I cannot safely edit it through Siya.';pendingEdit=null;return true}
+  const fields={date:x.date,project:x.project,start:x.start,end:x.end,notes:x.notes||'',category:x.category||'Other',billable:x.billable==='yes'?'yes':'no'};
+  const edits=[...s.matchAll(/\b(project|notes|description|category|billable|start|end)\s*=\s*(.+?)(?=\s+\b(?:project|notes|description|category|billable|start|end)\s*=|$)/gi)];
+  if(!edits.length){quickStatus.textContent='Tell me the field to change, e.g. notes=Completed graphics or project=Omnia, then I will preview it.';return true}
+  for(const [,key,val] of edits){fields[key.toLowerCase()==='description'?'notes':key.toLowerCase()]=val.trim()}
+  if(!fields.start||!fields.end||!fields.project){quickStatus.textContent='This original record is missing required start/end/project values. Use the full Timesheets editor to repair it.';return true}
+  if(fields.billable!=='yes'&&fields.billable!=='no'){quickStatus.textContent='Billable must be yes or no.';return true}
+  await previewEdit({kind:'timesheet_edit_entry',entryId:String(x.id),...fields});return true;
+ }
+ const need=editQuestion();if(need){quickStatus.textContent=need;return true}
+ if(p.kind==='add')await previewEdit({kind:'timesheet_add_entry',date:p.date,project:p.project,start:p.start,end:p.end,notes:p.notes,category:p.category,billable:p.billable});
+ return true;
+}
+async function answerLiveTimer(q){
+ if(!protectedOrigin||!allowed||!/\b(timer|tracking|clock|pause(?:d)?|resume|elapsed|time\s*running)\b/i.test(q))return null;
+ if(!/\b(timer|tracking|clock|elapsed)\b/i.test(q)&&!/\b(?:am i|is my)\b.{0,25}\b(?:paused|running)\b/i.test(q))return null;
+ const result=await api('/api/timer/me');
+ const st=String(result.status||'idle'),seconds=Math.max(0,Math.floor((Number(result.accumulatedMs)||0)+(st==='running'?Math.max(0,Math.min(Date.now(),Number(result.scheduledEndAt)||Infinity)-(Number(result.lastResumedAt)||Date.now())):0))/1000);
+ const pretty=[Math.floor(seconds/3600),Math.floor(seconds%3600/60),Math.floor(seconds%60)].map(x=>String(x).padStart(2,'0')).join(':');
+ const message=st==='running'?'Your timer is RUNNING'+(result.project?' for '+result.project:'')+'. Live elapsed: '+pretty+'.':st==='paused'?'Your timer is PAUSED at '+pretty+'. No extra time is being counted.':st==='finishing'?'Your timer is FINISHING/SAVING. I cannot claim the Timesheet was updated yet.':st==='saved'?'Your last timer session was SAVED.':'Your timer is '+st.toUpperCase()+'. It is not currently counting.';
+ return message+(st==='running'&&CONTEXT==='timesheets'&&Math.random()<.15?' 👀 I see you working. I will only roast your coffee break if it becomes a project milestone.':'');
+}
+async function handleMemoryCommand(q){
+ if(!protectedOrigin||!allowed)return false;
+ const s=String(q||'').trim();let m=s.match(/^(?:please\s+)?remember (?:that |this:?)?(.+)$/i);
+ if(m){const note=m[1].trim();if(note.length<4){quickStatus.textContent='What would you like me to remember?';return true}const r=await api('/api/ai/memories','POST',{note});quickStatus.textContent=r.created?'Saved to your private long-term memory. You can ask what I remember or delete it in the AI Centre.':'Memory was not confirmed saved.';return true}
+ if(/^(?:what do you remember(?: about me)?|show (?:me )?my memories|list (?:my )?memories)[?.!]*$/i.test(s)){
+  const r=await api('/api/ai/memories');const rows=r.memories||[];quickStatus.textContent=rows.length?'Your saved memories:\n'+rows.slice(0,12).map(x=>'• '+x.note).join('\n'):'You have no saved long-term notes. Say “Remember that…” to add one.';return true;
+ }
+ if(/^(?:forget|delete) (?:this|our|the current) (?:chat|conversation)[.!]?$/i.test(s)){
+  if(!miniConversationId){quickStatus.textContent='This mini chat has no saved conversation in this session.';return true}
+  if(!window.confirm('Delete your current saved Siya conversation?'))return true;
+  await api('/api/ai/conversations/'+encodeURIComponent(miniConversationId),'DELETE');miniConversationId=null;try{sessionStorage.removeItem('siya-mini-conversation-id')}catch{}quickStatus.textContent='Current saved conversation deleted.';return true;
+ }
+ return false;
+}
 quick.addEventListener('submit',async e=>{e.preventDefault();if(send.disabled)return;const q=prompt.value.trim();if(!q)return;
  if(protectedOrigin&&!allowed){quickStatus.textContent='Your Siya AI access must be approved before private chat is available.';return}
- const chatTone=classifySiyaQuestion(q);
+ const chatTone=classifySiyaQuestion(q);lastQuestionTone=chatTone;
  send.disabled=true;
  if(chatTone==='crisis'||chatTone==='serious'){setExpression('serious',6500);eyePulse('warning',5000)}
  else if(chatTone==='boundary'){setExpression('suspicious',6000);eyePulse('denied',5000)}
  else {setExpression('searching',9000);eyePulse('thinking',18000)}
  quickStatus.textContent='Siya is thinking…';try{
+ if(protectedOrigin&&allowed&&chatTone!=='boundary'){if(await handleMemoryCommand(q)||await handleRecordEdits(q)){prompt.value='';return}const timerAnswer=await answerLiveTimer(q);if(timerAnswer){quickStatus.textContent=timerAnswer;prompt.value='';eyePulse('success',8000);return}}
  if(chatTone==='boundary'){quickStatus.textContent=bossReply();prompt.value='';return}
  if(protectedOrigin&&chatTone==='focus'){setTone(true);quickStatus.textContent='Focused mode activated. I will be direct, professional and careful with sensitive topics.';prompt.value='';return}
  if(protectedOrigin&&chatTone==='playful'){setTone(false);quickStatus.textContent='Playful mode is back. Joke circuits operational. 🤖';prompt.value='';return}
@@ -562,7 +679,8 @@ quick.addEventListener('submit',async e=>{e.preventDefault();if(send.disabled)re
  if(rem){const when=new Date(rem.remindAt).toLocaleString('en-ZA',{timeZone:'Africa/Johannesburg',dateStyle:'medium',timeStyle:'short'});if(!confirm('Create a personal in-app reminder for '+when+'?\n'+rem.title))return;await api('/api/ai/reminders','POST',rem);eyePulse('success');quickStatus.textContent='Reminder saved for '+when+'. It will appear when you open YourPortfolio near its due time. No background alert is guaranteed.';prompt.value='';await getBrief();return}
  if(/^remind\s+me\b/i.test(q)){eyePulse('warning');quickStatus.textContent='Try: Remind me tomorrow at 09:00 to finish the MIBK report. In-app reminders need a date and time.';return}
  if(/(?:what(?:'s| is) due|deadlines?|any problems?|briefing|urgent|what should i check)/i.test(q)){if(briefingDismissed){quickStatus.textContent='Your briefing was already shown this session. For the full history, open Siya AI Centre.';}else{await getBrief();quickStatus.textContent=brief.hidden?'No new briefing to show.':'Your private briefing is above.';}return}
- const d=await api('/api/ai/chat','POST',{message:q,saveConversation:false,persona:(seriousMode||['crisis','serious','boundary'].includes(chatTone))?'focused':'playful'});eyePulse(chatTone==='crisis'||chatTone==='serious'?'warning':'success');if(chatTone!=='crisis'&&chatTone!=='serious')setExpression('happy',850);quickStatus.textContent=String(d.answer||d.error||'No answer returned').slice(0,950)+(d.proposal?' To approve that change, open the Command Centre.':'');
+ const d=await api('/api/ai/chat','POST',{message:q,saveConversation:!['serious','crisis','boundary'].includes(chatTone),...(!['serious','crisis','boundary'].includes(chatTone)&&miniConversationId?{conversationId:miniConversationId}:{}),pageContext:pageContext(),persona:(seriousMode||['crisis','serious','boundary'].includes(chatTone))?'focused':'balanced'});
+ if(d.conversationId){miniConversationId=d.conversationId;try{sessionStorage.setItem('siya-mini-conversation-id',miniConversationId)}catch{}}eyePulse(chatTone==='crisis'||chatTone==='serious'?'warning':'success');if(chatTone!=='crisis'&&chatTone!=='serious')setExpression('happy',850);quickStatus.textContent=String(d.answer||d.error||'No answer returned').slice(0,950)+(d.proposal?' To approve that change, open the Command Centre.':'');
  }catch(err){eyePulse('error',4500);quickStatus.textContent=err.message}finally{send.disabled=false;layoutPanel()}});
 const storageKey='yp-siya-mascot-position-v1';let dragged=false,down=null,skipClick=false;
 function clamp(v,min,max){return Math.max(min,Math.min(max,v))}
@@ -570,7 +688,7 @@ function defaultXY(){return {x:Math.max(12,innerWidth-root.offsetWidth-20),y:Mat
 function position(x,y,save){const w=root.offsetWidth||68,h=root.offsetHeight||68,px=clamp(Math.round(x),8,Math.max(8,innerWidth-w-8)),py=clamp(Math.round(y),8,Math.max(8,innerHeight-h-8));root.style.left=px+'px';root.style.top=py+'px';root.style.right='auto';root.style.bottom='auto';layoutPanel();if(save)try{localStorage.setItem(storageKey,JSON.stringify({x:innerWidth?px/innerWidth:.8,y:innerHeight?py/innerHeight:.8}))}catch{}}
 function layoutPanel(){const box=root.getBoundingClientRect(),pWidth=Math.min(385,innerWidth-18),pHeight=panel.offsetHeight||395,x=clamp(box.left+box.width-pWidth,9,Math.max(9,innerWidth-pWidth-9));let y=box.top-pHeight-13;if(y<9)y=clamp(box.bottom+10,9,Math.max(9,innerHeight-pHeight-9));panel.style.left=x+'px';panel.style.top=y+'px';panel.style.width=pWidth+'px'}
 function toggle(){if(panel.dataset.open==='yes'){if(!brief.hidden)dismissBrief();panel.dataset.open='no';btn.setAttribute('aria-expanded','false');return;}
- panel.dataset.open='yes';if(!protectedOrigin&&!recognizedPublic){eyePulse('denied',1900);setExpression('suspicious',1600)}else setExpression('surprised',900);btn.setAttribute('aria-expanded','true');if(!seriousMode)newJoke();selectIntro();briefVisibleOnce();layoutPanel();check();if(protectedOrigin){loadMilestones(true);loadNotifications()}}
+ panel.dataset.open='yes';if(!protectedOrigin&&!recognizedPublic){eyePulse('denied',8000);setExpression('suspicious',8000)}else setExpression('surprised',900);btn.setAttribute('aria-expanded','true');spontaneousHumour('open');selectIntro();briefVisibleOnce();layoutPanel();check();if(protectedOrigin){loadMilestones(true);loadNotifications()}}
 
 btn.addEventListener('pointerdown',e=>{if(e.button!==0)return;down={id:e.pointerId,x:e.clientX,y:e.clientY,left:root.getBoundingClientRect().left,top:root.getBoundingClientRect().top};dragged=false;btn.setPointerCapture?.(e.pointerId)});
 btn.addEventListener('pointermove',e=>{if(!down||e.pointerId!==down.id)return;if(Math.hypot(e.clientX-down.x,e.clientY-down.y)>7)dragged=true;if(!dragged)return;e.preventDefault();position(down.left+e.clientX-down.x,down.top+e.clientY-down.y,false)});

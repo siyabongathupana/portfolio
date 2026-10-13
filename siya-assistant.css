@@ -162,3 +162,21 @@
 #siya-launcher .siya-joke-action[aria-pressed="true"]{border-color:var(--siya-neon);box-shadow:0 0 9px var(--siya-neon-soft)}
 @media(max-width:380px){#siya-launcher .siya-joke-action{font-size:10px;padding:7px 5px}}
 @media(prefers-reduced-motion:reduce){#siya-launcher .siya-eye-pupil,#siya-launcher .siya-expression-brow,#siya-launcher .siya-expression-lid,#siya-launcher .siya-joke-action{animation:none!important;transition:none!important}}
+
+/* v4.0.6 · Mouth reacts with eyes. Only visual; status/permissions come from the server. */
+#siya-launcher .siya-mouth-mask{fill:#010a16;stroke:#010a16;stroke-width:5;filter:drop-shadow(0 0 3px #000a)}
+#siya-launcher .siya-mouth-line{fill:none;stroke:var(--siya-neon);stroke-width:7;stroke-linecap:round;filter:drop-shadow(0 0 4px var(--siya-neon)) drop-shadow(0 0 8px var(--siya-neon));transition:d .3s ease,opacity .3s ease,stroke .35s ease}
+#siya-launcher[data-expression="suspicious"] .siya-mouth-line,#siya-launcher[data-eye-state="denied"] .siya-mouth-line{d:path('M153 258 Q180 253 207 258')}
+#siya-launcher[data-expression="sleep"] .siya-mouth-line{d:path('M162 257 Q180 258 198 257');opacity:.5}
+#siya-launcher[data-expression="surprised"] .siya-mouth-line{d:path('M166 257 C166 237 194 237 194 257 C194 277 166 277 166 257 Z')}
+#siya-launcher[data-expression="happy"] .siya-mouth-line{d:path('M148 248 Q180 290 212 248')}
+#siya-launcher[data-expression="wink"] .siya-mouth-line{d:path('M153 249 Q180 278 207 251')}
+#siya-launcher[data-expression="serious"] .siya-mouth-line,#siya-launcher[data-eye-state="warning"] .siya-mouth-line{d:path('M154 258 Q180 259 206 258')}
+#siya-launcher[data-eye-state="thinking"] .siya-mouth-line{d:path('M157 255 Q180 263 203 255')}
+#siya-launcher[data-eye-state="error"] .siya-mouth-line{d:path('M153 264 Q180 248 207 264')}
+#siya-launcher .siya-eye-overlay{filter:drop-shadow(0 0 14px var(--siya-neon)) drop-shadow(0 0 6px var(--siya-neon-soft))}
+#siya-launcher .siya-joke-tools{display:none!important}
+@media(prefers-reduced-motion:reduce){#siya-launcher .siya-mouth-line{transition:none!important}}
+
+/* Guided edits have multiline, scannable previews and exact record IDs. */
+#siya-launcher .siya-message{white-space:pre-line;overflow-wrap:anywhere}
