@@ -1,4 +1,4 @@
-/* Siya v4.0.6 — expressive neon mascot, contextual humour, serious-mode guardrails, briefings & reminders.
+/* Siya v4.0.7 — expressive neon mascot, contextual humour, serious-mode guardrails, briefings & reminders.
    Never infers login status on public GitHub Pages. All sensitive data via protected Worker. */
 (()=>{'use strict';
 if(document.getElementById('siya-launcher'))return;
@@ -20,29 +20,60 @@ function readWorkspaceHandoff(){
  }catch{ /* An unverified URL never grants access */ }
 }
 
-let guestGeneration=0,bridgeWindow=null;
+let guestGeneration=0,bridgeWindow=null,bridgeVerified=false,publicVerifiedSession=null;
+const waitingBridgeChats=new Map();
+const bridgeOrigin=new URL(WORKER).origin;
+function authenticatedBridgeOpen(){return bridgeVerified&&bridgeWindow&&!bridgeWindow.closed}
+function publicChatVerified(){return !!(publicVerifiedSession?.aiAllowed===true&&(publicVerifiedSession.source==='live-session'||authenticatedBridgeOpen()))}
+function requestSecureConnection(){secureHandshake()}
+function requestFromBridge(question){
+ if(!authenticatedBridgeOpen())return Promise.reject(Error('The secure connection is closed. Select Connect Siya to reconnect.'));
+ const nonce=sessionStorage.getItem('siya-bridge-nonce-active');
+ if(!nonce)return Promise.reject(Error('Your secure connection expired. Please reconnect.'));
+ const id=(crypto?.randomUUID?.()||String(Date.now())+Math.random());
+ return new Promise((resolve,reject)=>{
+  const timeout=setTimeout(()=>{waitingBridgeChats.delete(id);reject(Error('Siya took too long to respond. Try again.'))},30000);
+  waitingBridgeChats.set(id,{resolve,reject,timeout});
+  bridgeWindow.postMessage({type:'siya-v407-query',nonce,id,message:question},bridgeOrigin);
+ });
+}
 function bridgeSnapshot(){try{const d=JSON.parse(sessionStorage.getItem(BRIDGE_KEY)||'null');return d&&d.signedIn===true&&Date.now()-Number(d.checkedAt||0)<bridgeTtlMs?d:null}catch{return null}}
 function rememberBridge(d){const clean={signedIn:true,firstName:String(d.firstName||'').slice(0,70),aiAllowed:d.aiAllowed==null?null:!!d.aiAllowed,isAdmin:!!d.isAdmin,badgeCount:d.badgeCount===null||d.badgeCount===undefined?null:Math.max(0,Number(d.badgeCount)||0),partialMailboxScan:!!d.partialMailboxScan,source:String(d.source||'live-session').slice(0,28),checkedAt:Date.now()};try{sessionStorage.setItem(BRIDGE_KEY,JSON.stringify(clean))}catch{}return clean}
 function secureHandshake(){
  if(protectedOrigin)return;
- const nonce=(crypto?.randomUUID?.()||String(Date.now())+Math.random()).replaceAll('-','');
- try{sessionStorage.setItem('siya-bridge-nonce',nonce)}catch{}
+ if(authenticatedBridgeOpen()){status.textContent='Your secure chat is already connected. Keep the connection window open.';return}
+ const nonce=(crypto?.randomUUID?.()||String(Date.now())+Math.random()).replaceAll('-');
+ bridgeVerified=false;
+ try{sessionStorage.setItem('siya-bridge-nonce',nonce);sessionStorage.removeItem('siya-bridge-nonce-active')}catch{}
  const link=WORKER+'/siya-account-bridge.html?origin='+encodeURIComponent(location.origin)+'&nonce='+encodeURIComponent(nonce);
  bridgeWindow=window.open(link,'siya_secure_account_check','popup=yes,width=520,height=640');
  if(!bridgeWindow){location.href=link;return}
  status.textContent='A secure sign-in check opened. Complete it to connect Siya here.';
 }
 window.addEventListener('message',event=>{
- if(protectedOrigin||event.origin!==new URL(WORKER).origin||!event.data||event.data.type!=='siya-v36-verified')return;
- const expected=sessionStorage.getItem('siya-bridge-nonce');
- if(!expected||event.data.nonce!==expected||event.data.session?.signedIn!==true)return;
- sessionStorage.removeItem('siya-bridge-nonce');
- rememberBridge(event.data.session);guest();
+ if(protectedOrigin||event.origin!==bridgeOrigin||event.source!==bridgeWindow||!event.data)return;
+ const d=event.data;
+ if(d.type==='siya-v36-verified'){
+  const expected=sessionStorage.getItem('siya-bridge-nonce');
+  if(!expected||d.nonce!==expected||d.session?.signedIn!==true)return;
+  sessionStorage.removeItem('siya-bridge-nonce');
+  sessionStorage.setItem('siya-bridge-nonce-active',expected);
+  bridgeVerified=true;
+  publicVerifiedSession={...d.session,source:'secure-bridge'};
+  rememberBridge({...d.session,source:'secure-bridge'});
+  guest();return;
+ }
+ if(d.type==='siya-v407-result'&&d.nonce===sessionStorage.getItem('siya-bridge-nonce-active')){
+  const pending=waitingBridgeChats.get(d.id);if(!pending)return;
+  clearTimeout(pending.timeout);waitingBridgeChats.delete(d.id);
+  if(d.error)pending.reject(Error(String(d.error).slice(0,220)));
+  else pending.resolve(String(d.answer||'No answer was returned.').slice(0,3500));
+ }
 });
 
 const ROOT=protectedOrigin?'/':location.pathname.startsWith('/portfolio/')?'/portfolio/':'/';
 if(!protectedOrigin&&!document.querySelector('link[data-siya-theme="neon"]')){
- const sheet=document.createElement('link');sheet.rel='stylesheet';sheet.href=ROOT+'siya-assistant.css?v=4.0.6';sheet.dataset.siyaTheme='neon';document.head.append(sheet);
+ const sheet=document.createElement('link');sheet.rel='stylesheet';sheet.href=ROOT+'siya-assistant.css?v=4.0.7';sheet.dataset.siyaTheme='neon';document.head.append(sheet);
 }
 const PATH=location.pathname.toLowerCase();
 const CONTEXT=/timesheet|time-?track/.test(PATH)?'timesheets':/studies|study|grade|assessment|cad/.test(PATH)?'studies':/analytic|insight|report/.test(PATH)?'analytics':/project|milestone|publish/.test(PATH)?'projects':/certificat/.test(PATH)?'certificates':/admin|access|user/.test(PATH)?'admin':/ai-centre/.test(PATH)?'ai':'home';
@@ -194,7 +225,7 @@ function jokeTopicFrom(query){const q=String(query||'').toLowerCase();for(const 
 function newJoke(topic=CONTEXT){const key=extraJokes[topic]||jokes[topic]?topic:CONTEXT,pool=extraJokes[key]||jokes[key]||jokes.home;
  let bag=jokeBags.get(key)||[];if(!bag.length)bag=shuffledBag(pool.length);
  let value=pool[bag.pop()];if(value===lastJoke&&pool.length>1){if(!bag.length)bag=shuffledBag(pool.length);value=pool[bag.pop()];}
- jokeBags.set(key,bag);lastJoke=value;lastJokeTopic=key;joke.textContent=value;return value;
+ jokeBags.set(key,bag);lastJoke=value;lastJokeTopic=key;return value;
 }
 function classifySiyaQuestion(query){const q=String(query||'').trim().toLowerCase();
  // Threatening to actually disclose data is NEVER a mascot feature. This is a fictional gag.
@@ -217,19 +248,19 @@ const root=make('div');root.id='siya-launcher';root.setAttribute('aria-label','S
 let faceCounter=0;
 function makeSiyaFace(){
  const wrap=make('span','siya-face'),img=make('img','siya-avatar');
- img.src=ROOT+'siya-mascot.svg?v=4.0.6';img.alt='';img.draggable=false;
+ img.src=ROOT+'siya-mascot.svg?v=4.0.7';img.alt='';img.draggable=false;
  const overlay=document.createElementNS('http://www.w3.org/2000/svg','svg');
  overlay.setAttribute('viewBox','0 0 360 360');overlay.setAttribute('aria-hidden','true');overlay.setAttribute('class','siya-eye-overlay');
  const ident='siya-neon-'+(++faceCounter);
  const eyes=[121,238].map((cx,i)=>`<g class="siya-one-eye siya-eye-${i===0?'left':'right'}"><ellipse class="siya-eye-mask" cx="${cx}" cy="222" rx="30" ry="30"/><g class="siya-eye-beam"><g class="siya-eye-pupil"><ellipse class="siya-eye-blur" cx="${cx}" cy="222" rx="26" ry="26"/><ellipse class="siya-eye-aura" cx="${cx}" cy="222" rx="27" ry="27" fill="url(#${ident})"/><circle class="siya-eye-iris" cx="${cx}" cy="222" r="18"/><circle class="siya-eye-core" cx="${cx}" cy="222" r="11"/><circle class="siya-eye-shine" cx="${cx-4}" cy="217" r="5"/></g></g><path class="siya-expression-brow" d="M ${cx-25} 181 Q ${cx} 168 ${cx+24} 180"/><path class="siya-expression-lid" d="M ${cx-26} 222 Q ${cx} 235 ${cx+26} 222"/></g>`).join('');
- overlay.innerHTML=`<defs><radialGradient id="${ident}"><stop offset="0%" stop-color="#ffffff" stop-opacity=".72"/><stop offset="34%" stop-color="var(--siya-neon)" stop-opacity=".94"/><stop offset="85%" stop-color="var(--siya-neon)" stop-opacity=".36"/><stop offset="100%" stop-color="var(--siya-neon)" stop-opacity="0"/></radialGradient></defs>${eyes}<g class="siya-mouth-group"><ellipse class="siya-mouth-mask" cx="180" cy="259" rx="43" ry="20"/><path class="siya-mouth-line" d="M153 251 Q180 274 207 251"/></g>`;
+ overlay.innerHTML=`<defs><radialGradient id="${ident}"><stop offset="0%" stop-color="#ffffff" stop-opacity=".72"/><stop offset="34%" stop-color="var(--siya-neon)" stop-opacity=".94"/><stop offset="85%" stop-color="var(--siya-neon)" stop-opacity=".36"/><stop offset="100%" stop-color="var(--siya-neon)" stop-opacity="0"/></radialGradient></defs>${eyes}<g class="siya-mouth-group"><path class="siya-mouth-line" d="M153 251 Q180 274 207 251"/></g>`;
  wrap.append(img,overlay);return wrap;
 }
 const icon=makeSiyaFace();
 const btn=make('button','siya-trigger');btn.type='button';btn.setAttribute('aria-label','Open Siya assistant. Drag to move.');btn.setAttribute('aria-expanded','false');btn.removeAttribute('title');btn.append(icon,make('span','siya-dot'));const badge=make('span','siya-badge','');badge.hidden=true;badge.setAttribute('aria-live','polite');btn.append(badge);root.append(btn);
 const panel=make('section','siya-card');panel.setAttribute('role','dialog');panel.setAttribute('aria-label','Siya assistant');panel.dataset.open='no';
 const head=make('div','siya-top'),hicon=makeSiyaFace(),heading=make('div');
-heading.append(make('strong','','Siya · Your co-pilot'),make('small','','Your friendly Cybertronian engineer ⚙️'));
+heading.append(make('strong','','Siya · Your co-pilot'),make('small','','Chief Engineer of Circuits, Chaos & Coffee ☕🤖'));
 const eyeStatus=make('span','siya-eye-status','● Online');eyeStatus.title='Siya eye status — visual indication only';
 head.append(hicon,heading,eyeStatus);panel.append(head);
 
@@ -284,18 +315,18 @@ setInterval(()=>{
 },11000);
 window.addEventListener('focus',()=>{activity();if(expression==='sleep')setExpression('surprised',900)});
 
-const joke=make('p','siya-joke');joke.setAttribute('aria-live','polite');panel.append(joke);
+// Jokes are spoken inside Siya's greeting, not in a separate card.
 // Personality is automatic: there are no joke/roast/serious buttons to micromanage.
-let lastSpontaneousRoastAt=0;
+let lastSpontaneousRoastAt=0,greetingQuip='';
 function spontaneousHumour(trigger='hello'){
  if(seriousMode||['serious','crisis','boundary'].includes(lastQuestionTone))return;
  const now=Date.now();
  if(now-lastSpontaneousRoastAt>120000 && Math.random()<.17){
-  lastSpontaneousRoastAt=now;newJoke('roast');setExpression('suspicious',8000);
+  lastSpontaneousRoastAt=now;greetingQuip=newJoke('roast');setExpression('suspicious',8000);
   // Deliberately avoid health, identity, disability, appearance, finances and personal matters.
- }else newJoke(CONTEXT);
+ }else greetingQuip=newJoke(CONTEXT);
 }
-function setTone(serious){seriousMode=!!serious;if(seriousMode){joke.textContent='Accuracy first. I am listening.';setExpression('serious',8000)}else{newJoke(CONTEXT);setExpression('happy',8000)}}
+function setTone(serious){seriousMode=!!serious;if(seriousMode){greetingQuip='';setExpression('serious',8000)}else{greetingQuip=newJoke(CONTEXT);setExpression('happy',8000)}}
 
 const brief=make('div','siya-brief');brief.hidden=true;brief.setAttribute('aria-live','polite');
 const briefHeader=make('div','siya-brief-header');briefHeader.append(make('strong','','📋 Your quick briefing'));
@@ -366,12 +397,12 @@ const contextualHello={
 };
 let introIndex=-1,lastPersonalIntro='';
 function personality(){try{return localStorage.getItem('siya-personality-v1')||'playful'}catch{return 'playful'}}
-function selectIntro(){const mode=seriousMode?'focused':personality(),lines=introLines[mode]||introLines.playful;let next=Math.floor(Math.random()*lines.length);if(lines.length>1&&next===introIndex)next=(next+1)%lines.length;introIndex=next;msg.textContent=lines[next]}
+function selectIntro(){const mode=seriousMode?'focused':personality(),lines=introLines[mode]||introLines.playful;let next=Math.floor(Math.random()*lines.length);if(lines.length>1&&next===introIndex)next=(next+1)%lines.length;introIndex=next;msg.textContent=lines[next]+(!seriousMode&&greetingQuip?'\n\n'+greetingQuip:'')}
 function personalWelcome(name){
  const first=String(name||'').trim().split(/\s+/)[0].slice(0,40),base=introLines[seriousMode?'focused':personality()]||introLines.playful,subject=contextualHello[CONTEXT]||contextualHello.home;
  let options=base.slice().concat(subject);
  let next=options[Math.floor(Math.random()*options.length)];if(options.length>1&&next===lastPersonalIntro)next=options[(options.indexOf(next)+1)%options.length];
- lastPersonalIntro=next;msg.textContent=(first?'Hello, '+first+'! ':'')+next;
+ lastPersonalIntro=next;msg.textContent=(first?'Hello, '+first+'! ':'')+next+(!seriousMode&&greetingQuip?'\n\n'+greetingQuip:'');
 }
 
 
@@ -397,52 +428,57 @@ const reset=make('button','siya-reset','↺ Reset mascot position');reset.type='
 const action=(label,url,primary)=>{const a=make('a',primary?'siya-primary':'',label);a.href=url;actions.append(a)};
 const visitorRoasts=['No account? Wow, even my toaster has a login. 🥲','You came all the way from the internet without an account? Bold. 😂','I would give you access, but my firewall is stricter than a university exam invigilator. 🤖','Visitor detected. Your next mission: create an account. This is not optional in my robot dreams. 😎','I checked the guest list. It says: nice try, Cybertron tourist! 🚀','Your account has gone missing. Was it ever here? A mystery worthy of a Netflix documentary. 🔍','I have 404 problems, and your account is currently one of them. 🤣'];
 let lastPublicOpening='';
+function connectAction(label){
+ const connect=make('button','siya-connect-action',label);
+ connect.type='button';connect.addEventListener('click',requestSecureConnection);actions.append(connect);
+}
 function renderPublicAccount(signed,generation){
  if(generation!==guestGeneration)return;
- recognizedPublic=!!signed;actions.replaceChildren();
- quick.hidden=false;brief.hidden=true;mailboxSection.hidden=true;trophy.hidden=true;briefContent.textContent='';
- if(signed){
-  eyeDefault(signed.aiAllowed===false?'denied':signed.isAdmin?'admin':'idle');
+ const verified=!!(signed?.signedIn===true && (signed.source==='live-session'||authenticatedBridgeOpen()));
+ recognizedPublic=verified;
+ actions.replaceChildren();quick.hidden=true;brief.hidden=true;mailboxSection.hidden=true;trophy.hidden=true;briefContent.textContent='';
+ if(!verified||signed.aiAllowed!==true)quickStatus.textContent='';
+ if(verified&&signed.aiAllowed===true){
+  quick.hidden=false;eyeDefault(signed.isAdmin?'admin':'idle');
   notificationData={badgeCount:signed.badgeCount,hasPartialMailboxScan:signed.partialMailboxScan===true||signed.badgeCount===null,checkedAt:new Date().toISOString()};updateBadge();
   personalWelcome(signed.firstName||'');
-  action('Open my private workspace',WORKER+'/app.html',true);
-  action(signed.aiAllowed===false?'Request Siya AI access':'Open Siya AI Centre',WORKER+(signed.aiAllowed===false?'/ai-access.html':'/ai-centre.html'));
-  status.textContent=(signed.source==='workspace-handoff'?'Recent protected-workspace sign-in · ':'Verified account · ')+(signed.badgeCount===null?'Open workspace to refresh notifications.':'Notifications from your last verified check.');
+  action('Open Siya AI Centre',WORKER+'/ai-centre.html',true);
+  if(!authenticatedBridgeOpen())connectAction('🔐 Fix / connect mini-chat');
+  action('Open my private workspace',WORKER+'/app.html');
+  status.textContent=authenticatedBridgeOpen()?'AI access verified · Secure chat connected (keep connection window open).':'AI access verified · Secure browser session.';
+ }else if(verified&&signed.aiAllowed===false){
+  badge.hidden=true;eyePulse('denied',8000);setExpression('suspicious',8000);
+  msg.textContent='👀 I checked Cybertron Customs. Your portfolio account is valid, but the Boss has not signed your Siya AI clearance. Nice try, agent! 😂';
+  action('Request Siya AI access',WORKER+'/ai-access.html',true);
+  action('Open my private workspace',WORKER+'/app.html');
+  status.textContent='Your account is recognized. Siya AI chat requires approval.';
  }else{
-  eyeDefault('idle');
-  badge.hidden=true;
-  const candidates=[
-   'Siya is here! Public mode is ready for quick questions. Private answers require a secure login.',
-   'Hello, engineer! I can chat about public topics here. Sensitive records stay behind the Cloudflare gate.',
-   'Cybertron reporting in. If you have an account, the workspace recognizes you securely. 🤖',
-   'Hi there! Quick questions are welcome. For personal data, use the protected workspace.',
-   'My scanners see a public browser—not your private login. I will not guess your account status. 👀',
-   'Siya Later at your service. Your identity is your business until the server verifies it.',
-   'I can offer jokes here, but even my robot curiosity needs authorization for private records. 😎',
-   'Good to see you! The mini-chat is open; your private account remains safely protected.'
-  ];
-  let next=candidates[Math.floor(Math.random()*candidates.length)];
-  if(next===lastPublicOpening)next=candidates[(candidates.indexOf(next)+1)%candidates.length];
-  lastPublicOpening=next;msg.textContent=next;
-  action('Open my private workspace',WORKER+'/app.html',true);
-  action('Create / request an account',JOIN);
-  status.textContent='I check existing accounts automatically when supported. Private records still require secure login.';
+  eyeDefault('idle');badge.hidden=true;
+  const line=visitorRoasts[Math.floor(Math.random()*visitorRoasts.length)];
+  msg.textContent='Hello, visitor! '+line+'\n\nAlready approved? Connect your account to unlock this mini-chat.';
+  connectAction('🔐 Connect my existing account');
+  action('Create / request an account',JOIN,true);
+  action('Open private workspace',WORKER+'/app.html');
+  status.textContent='Sign-in is not verified on this public page. Your private data stays protected.';
  }
  layoutPanel();
 }
 async function guest(){
  const generation=++guestGeneration;
- // Display last authorized context or a neutral sign-in option immediately.
- // Never freeze the entire popup waiting for cross-site cookies or Cloudflare Access.
- let signed=bridgeSnapshot();renderPublicAccount(signed,generation);
- const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),3000);
+ if(publicVerifiedSession?.source==='secure-bridge'&&!authenticatedBridgeOpen()){
+  publicVerifiedSession=null;bridgeVerified=false;
+ }
+ let signed=publicVerifiedSession;
+ renderPublicAccount(signed,generation);
+ const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),4000);
  try{
   const res=await fetch(WORKER+'/api/siya/public-session',{credentials:'include',mode:'cors',cache:'no-store',signal:controller.signal});
-  if(res.ok){const data=await res.json();if(data?.signedIn===true){signed=rememberBridge({...data,source:'live-session'});renderPublicAccount(signed,generation)}}
- }catch{ /* Third-party Access cookies may be blocked. Keep neutral or previously authenticated context. */ }
+  if(res.ok){const data=await res.json();if(data?.signedIn===true){
+   signed={...data,source:'live-session'};publicVerifiedSession=signed;rememberBridge(signed);renderPublicAccount(signed,generation);
+  }}
+ }catch{/* Cross-site cookies/Access may fail. A secure popup connection is available. */}
  finally{clearTimeout(timeout)}
 }
-
 let allowed=false,recognizedPublic=false,profileName=null;
 async function api(path,method='GET',body=null){const opts={method,credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json',...(body?{'Content-Type':'application/json'}:{})}};if(body)opts.body=JSON.stringify(body);const r=await fetch(path,opts);let d;try{d=await r.json()}catch{throw Error('A secure response could not be read.')}if(!r.ok)throw Error(String(d.error||'Request failed').slice(0,180));return d}
 function paintBrief(d){briefContent.replaceChildren();const rows=(d.notices||[]).slice(0,6);brief.hidden=!rows.length||briefingDismissed;
@@ -510,7 +546,7 @@ async function getBrief(){if(!allowed){brief.hidden=true;updateBadge();return;}t
 async function check(){if(!protectedOrigin){guest();return}eyePulse('thinking',8000);status.textContent='Checking access securely…';try{const d=await api('/api/ai/access/status');actions.replaceChildren();allowed=!!d.allowed;eyeDefault(allowed?(d.role==='admin'?'admin':'idle'):'denied');if(allowed){quick.hidden=false;selectIntro();action('Open Siya AI Centre',WORKER+'/ai-centre.html',true);
   if(profileName===null){try{const p=await api('/api/siya/profile');profileName=String(p.displayName||'').trim()}catch{profileName=''}}
   if(profileName)personalWelcome(profileName);
-  status.textContent='AI access granted · '+(d.role==='admin'?'Administrator':'Member')+(profileName?' · '+profileName:'');await getBrief()}else{eyePulse('denied',5000);quick.hidden=true;brief.hidden=true;briefContent.textContent='';msg.textContent='🤖 Access denied by Cybertron Customs! I recognize your account, but the boss hasn’t issued your Siya clearance badge yet. Request access and I’ll pretend not to enjoy the paperwork.';action(d.requestStatus==='pending'?'View pending request':'Request AI access',WORKER+'/ai-access.html',true);status.textContent=d.requestStatus==='pending'?'Access request pending':'Existing portfolio features still work.'}}catch{eyePulse('warning',5000);quick.hidden=true;brief.hidden=true;actions.replaceChildren();msg.textContent='I could not confirm access just now. Your existing account and Timesheets were not changed.';action('Open account access',WORKER+'/ai-access.html',true);status.textContent='Access verification temporarily unavailable.'}finally{layoutPanel()}}
+  status.textContent='AI access granted · '+(d.role==='admin'?'Administrator':'Member')+(profileName?' · '+profileName:'');await getBrief()}else{eyePulse('denied',5000);quick.hidden=true;quickStatus.textContent='';brief.hidden=true;briefContent.textContent='';msg.textContent='🤖 Access denied by Cybertron Customs! I recognize your account, but the boss hasn’t issued your Siya clearance badge yet. Request access and I’ll pretend not to enjoy the paperwork.';action(d.requestStatus==='pending'?'View pending request':'Request AI access',WORKER+'/ai-access.html',true);status.textContent=d.requestStatus==='pending'?'Access request pending':'Existing portfolio features still work.'}}catch{eyePulse('warning',5000);quick.hidden=true;quickStatus.textContent='';brief.hidden=true;actions.replaceChildren();msg.textContent='I could not confirm access just now. Your existing account and Timesheets were not changed.';action('Open account access',WORKER+'/ai-access.html',true);status.textContent='Access verification temporarily unavailable.'}finally{layoutPanel()}}
 function sastToday(){const parts=Object.fromEntries(new Intl.DateTimeFormat('en-GB',{timeZone:'Africa/Johannesburg',day:'2-digit',month:'2-digit',year:'numeric'}).formatToParts(new Date()).filter(x=>x.type!=='literal').map(x=>[x.type,x.value]));return `${parts.year}-${parts.month}-${parts.day}`}
 function addDays(day,n){const d=new Date(day+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10)}
 function parseReminder(text){let m=text.match(/^remind\s+me\s+(today|tomorrow|on\s+\d{4}-\d{2}-\d{2})\s+at\s+(\d{1,2})(?::(\d{2}))?\s*(?:to|about)\s+(.{3,200})$/i);
@@ -655,7 +691,7 @@ async function handleMemoryCommand(q){
  }
  return false;
 }
-quick.addEventListener('submit',async e=>{e.preventDefault();if(send.disabled)return;const q=prompt.value.trim();if(!q)return;
+quick.addEventListener('submit',async e=>{e.preventDefault();if(send.disabled)return;const q=prompt.value.trim();if(!q)return;prompt.value='';prompt.focus({preventScroll:true});
  if(protectedOrigin&&!allowed){quickStatus.textContent='Your Siya AI access must be approved before private chat is available.';return}
  const chatTone=classifySiyaQuestion(q);lastQuestionTone=chatTone;
  send.disabled=true;
@@ -668,10 +704,23 @@ quick.addEventListener('submit',async e=>{e.preventDefault();if(send.disabled)re
  if(protectedOrigin&&chatTone==='focus'){setTone(true);quickStatus.textContent='Focused mode activated. I will be direct, professional and careful with sensitive topics.';prompt.value='';return}
  if(protectedOrigin&&chatTone==='playful'){setTone(false);quickStatus.textContent='Playful mode is back. Joke circuits operational. 🤖';prompt.value='';return}
  if(!protectedOrigin){
-  const basic=publicLocalChat(q);if(basic){quickStatus.textContent=basic;prompt.value='';if(!['serious','crisis','boundary'].includes(chatTone))eyePulse('success',1800);return}
-  if(bridgeSnapshot()?.aiAllowed===false){eyePulse('denied',4000);quickStatus.textContent='Your account needs Siya AI approval. Open your private workspace to request access.';return}
-  try{quickStatus.textContent=await publicMiniChat(q);prompt.value='';eyePulse('success');setExpression('happy',1050);}
-  catch(err){eyePulse('error',4000);quickStatus.textContent=err.message+' This public site does not store your credentials. Use Open Siya AI Centre for the authenticated chat.'}
+  if(!publicChatVerified()){
+   quick.hidden=true;eyePulse('denied',8000);setExpression('suspicious',8000);
+   quickStatus.textContent='😂 Hold it, secret agent! Siya chat needs an approved account. Connect your account or request access first.';
+   prompt.value=q;guest();return;
+  }
+  const basic=publicLocalChat(q);if(basic){quickStatus.textContent=basic;if(!['serious','crisis','boundary'].includes(chatTone))eyePulse('success',8000);return}
+  try{
+   const reply=authenticatedBridgeOpen()?await requestFromBridge(q):await publicMiniChat(q);
+   quickStatus.textContent=reply;eyePulse('success',8000);setExpression('happy',8000);
+  }catch(err){
+   eyePulse('warning',8000);prompt.value=q;
+   if(!authenticatedBridgeOpen()&&publicVerifiedSession?.source==='secure-bridge'){
+    bridgeVerified=false;publicVerifiedSession=null;guest();
+   }
+   quickStatus.textContent='🤖 My secure chat connection needs a refresh. Use Fix / connect mini-chat or open the AI Centre—your message is still in the box.';
+   status.textContent=String(err.message||'Secure chat unavailable').slice(0,180);
+  }
   return;
  }
 
@@ -681,7 +730,7 @@ quick.addEventListener('submit',async e=>{e.preventDefault();if(send.disabled)re
  if(/(?:what(?:'s| is) due|deadlines?|any problems?|briefing|urgent|what should i check)/i.test(q)){if(briefingDismissed){quickStatus.textContent='Your briefing was already shown this session. For the full history, open Siya AI Centre.';}else{await getBrief();quickStatus.textContent=brief.hidden?'No new briefing to show.':'Your private briefing is above.';}return}
  const d=await api('/api/ai/chat','POST',{message:q,saveConversation:!['serious','crisis','boundary'].includes(chatTone),...(!['serious','crisis','boundary'].includes(chatTone)&&miniConversationId?{conversationId:miniConversationId}:{}),pageContext:pageContext(),persona:(seriousMode||['crisis','serious','boundary'].includes(chatTone))?'focused':'balanced'});
  if(d.conversationId){miniConversationId=d.conversationId;try{sessionStorage.setItem('siya-mini-conversation-id',miniConversationId)}catch{}}eyePulse(chatTone==='crisis'||chatTone==='serious'?'warning':'success');if(chatTone!=='crisis'&&chatTone!=='serious')setExpression('happy',850);quickStatus.textContent=String(d.answer||d.error||'No answer returned').slice(0,950)+(d.proposal?' To approve that change, open the Command Centre.':'');
- }catch(err){eyePulse('error',4500);quickStatus.textContent=err.message}finally{send.disabled=false;layoutPanel()}});
+ }catch(err){eyePulse('error',4500);prompt.value=q;quickStatus.textContent=err.message}finally{send.disabled=false;layoutPanel()}});
 const storageKey='yp-siya-mascot-position-v1';let dragged=false,down=null,skipClick=false;
 function clamp(v,min,max){return Math.max(min,Math.min(max,v))}
 function defaultXY(){return {x:Math.max(12,innerWidth-root.offsetWidth-20),y:Math.max(12,innerHeight-root.offsetHeight-20)}}

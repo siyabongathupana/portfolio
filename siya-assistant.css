@@ -163,8 +163,7 @@
 @media(max-width:380px){#siya-launcher .siya-joke-action{font-size:10px;padding:7px 5px}}
 @media(prefers-reduced-motion:reduce){#siya-launcher .siya-eye-pupil,#siya-launcher .siya-expression-brow,#siya-launcher .siya-expression-lid,#siya-launcher .siya-joke-action{animation:none!important;transition:none!important}}
 
-/* v4.0.6 · Mouth reacts with eyes. Only visual; status/permissions come from the server. */
-#siya-launcher .siya-mouth-mask{fill:#010a16;stroke:#010a16;stroke-width:5;filter:drop-shadow(0 0 3px #000a)}
+/* v4.0.7 · Clean seamless smile, no oval/recess. Reactions remain visual only. */
 #siya-launcher .siya-mouth-line{fill:none;stroke:var(--siya-neon);stroke-width:7;stroke-linecap:round;filter:drop-shadow(0 0 4px var(--siya-neon)) drop-shadow(0 0 8px var(--siya-neon));transition:d .3s ease,opacity .3s ease,stroke .35s ease}
 #siya-launcher[data-expression="suspicious"] .siya-mouth-line,#siya-launcher[data-eye-state="denied"] .siya-mouth-line{d:path('M153 258 Q180 253 207 258')}
 #siya-launcher[data-expression="sleep"] .siya-mouth-line{d:path('M162 257 Q180 258 198 257');opacity:.5}
@@ -180,3 +179,8 @@
 
 /* Guided edits have multiline, scannable previews and exact record IDs. */
 #siya-launcher .siya-message{white-space:pre-line;overflow-wrap:anywhere}
+
+/* v4.0.7 secure public connection button; never substitute an auth hint for permissions. */
+#siya-launcher .siya-connect-action{display:block;width:100%;text-align:center;padding:10px 9px;border:1px solid var(--siya-neon);border-radius:10px;background:linear-gradient(110deg,#62f6f1,#7baeff);color:#08253a;font-weight:800;cursor:pointer;box-shadow:0 0 12px var(--siya-neon-soft)}
+#siya-launcher .siya-mouth-line{stroke-width:6.5;filter:drop-shadow(0 0 3px var(--siya-neon)) drop-shadow(0 0 7px var(--siya-neon))}
+#siya-launcher .siya-message{white-space:pre-wrap}
