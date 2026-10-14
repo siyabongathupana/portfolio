@@ -3,7 +3,7 @@
 #siya-launcher *{box-sizing:border-box}#siya-launcher button,#siya-launcher a{font:inherit}
 #siya-launcher .siya-trigger{width:70px;height:70px;border-radius:23px;display:grid;place-items:center;border:2px solid #72ecf3;background:linear-gradient(140deg,#122f55,#122033);box-shadow:0 8px 32px #0007;touch-action:none;cursor:grab;position:relative;z-index:2;padding:2px;transition:box-shadow .2s,transform .2s}#siya-launcher .siya-trigger:hover{transform:scale(1.045);box-shadow:0 12px 30px #39ddff54}#siya-launcher .siya-trigger:active{cursor:grabbing}
 #siya-launcher .siya-avatar{width:100%;height:100%;object-fit:contain;pointer-events:none;filter:drop-shadow(0 4px 8px #14dcff70)}#siya-launcher .siya-dot{position:absolute;right:-2px;top:-3px;width:14px;height:14px;background:#56dfae;border:3px solid #0d1f36;border-radius:50%}
-#siya-launcher .siya-card{position:fixed;z-index:1;display:none;padding:17px;border-radius:19px;border:1px solid var(--sedge);background:var(--spanel);color:var(--sfg);box-shadow:0 18px 60px #0008;max-height:calc(100dvh - 18px);overflow-y:auto;user-select:text}#siya-launcher .siya-card[data-open="yes"]{display:block;animation:siya-open .18s ease-out}
+#siya-launcher .siya-card{position:fixed;z-index:3;display:none;padding:17px;border-radius:19px;border:1px solid var(--sedge);background:var(--spanel);color:var(--sfg);box-shadow:0 18px 60px #0008;max-height:calc(100dvh - 18px);overflow-y:auto;user-select:text}#siya-launcher .siya-card[data-open="yes"]{display:block;animation:siya-open .18s ease-out}
 #siya-launcher .siya-top{display:flex;align-items:center;gap:10px;margin-bottom:10px}#siya-launcher .siya-top img{width:55px;height:55px;flex-shrink:0}#siya-launcher .siya-top strong{font-size:17px}#siya-launcher .siya-top small{display:block;font-size:12px;color:var(--smuted)}#siya-launcher .siya-close{margin-left:auto;background:transparent;border:0;color:var(--sfg);font-size:25px;min-width:34px;cursor:pointer}
 
 #siya-launcher .siya-message{color:var(--smuted);font-size:13px;margin:4px 0 12px}#siya-launcher .siya-actions{display:grid;gap:8px}#siya-launcher .siya-actions a{display:block;text-align:center;padding:10px 9px;background:var(--sbtn);border:1px solid var(--sedge);border-radius:10px;color:var(--sfg);text-decoration:none;font-size:13px;font-weight:700}#siya-launcher .siya-actions a.siya-primary{background:linear-gradient(115deg,#55d8eb,#87adff);border:0;color:#07192f}#siya-launcher .siya-state{font-size:11px;color:var(--smuted);margin-top:11px}#siya-launcher .siya-reset{font-size:11px!important;border:0;background:transparent;color:var(--smuted);text-decoration:underline;cursor:pointer;padding:10px 0 0}
@@ -66,10 +66,10 @@
 /* Siya v3.5: clean interaction, stable red badge, and no focus ring on mouse clicks. */
 #siya-launcher .siya-trigger:focus:not(:focus-visible){outline:none!important}
 #siya-launcher .siya-trigger:focus-visible{outline:3px solid #68def6!important;outline-offset:4px}
-#siya-launcher .siya-close{display:none!important}
+#siya-launcher .siya-close{display:inline-grid!important;place-items:center}
 .siya-easter-egg{position:fixed;z-index:2147482001;left:50%;bottom:24px;transform:translateX(-50%);max-width:min(480px,calc(100vw - 30px));padding:13px 16px;background:#0d2842;border:1px solid #60dffa;box-shadow:0 16px 48px #000a;border-radius:14px;color:#e7faff;font-size:13px;line-height:1.45;pointer-events:none;text-align:center}
 #siya-launcher .siya-badge{background:#df2443!important;color:#fff!important;border-color:#fff!important;opacity:1!important;filter:none!important}
-#siya-launcher .siya-trigger[aria-expanded="true"]{outline:none}
+#siya-launcher .siya-trigger[aria-expanded="true"]{outline:none;opacity:0;pointer-events:none}
 
 /* Siya v3.6 — crisp professional visual identity, brief-dismiss and overlap cards. */
 #siya-launcher .siya-trigger{border:1px solid #46bcd3;border-radius:19px;background:linear-gradient(145deg,#102b42,#071528);box-shadow:0 11px 34px #01111c9b, inset 0 0 0 1px #a6e9ff22}
@@ -129,7 +129,7 @@
 #siya-launcher .siya-eye-status{flex:0 0 auto;max-width:100%;font:800 10px/1.4 system-ui,sans-serif;letter-spacing:.02em;color:var(--siya-neon);border:1px solid var(--siya-neon-soft);border-radius:999px;background:color-mix(in srgb,var(--siya-neon-bg) 60%,#06131f);padding:4px 7px;box-shadow:0 0 10px color-mix(in srgb,var(--siya-neon) 25%,transparent);white-space:nowrap;transition:color .32s,border-color .32s}
 @keyframes siya-natural-blink{0%,52%,56%,65%,100%{transform:scaleY(1)}58%,61%{transform:scaleY(.08)}63%{transform:scaleY(.42)}}
 #siya-launcher[data-eye-state="thinking"] .siya-eye-beam{animation:siya-natural-blink 5.4s ease-in-out infinite,siya-eye-think 1.2s ease-in-out infinite}
-@keyframes siya-eye-think{0%,100%{opacity:1}50%{opacity:.7}}
+@keyframes siya-eye-think{0%,100%{display:block;opacity:1}50%{opacity:.7}}
 #siya-launcher[data-eye-state="denied"] .siya-eye-iris,#siya-launcher[data-eye-state="error"] .siya-eye-iris{filter:drop-shadow(0 0 13px var(--siya-neon))}
 @media(max-width:460px){#siya-launcher .siya-trigger{width:62px;height:62px}}
 @media(prefers-reduced-motion:reduce){#siya-launcher .siya-eye-beam{animation:none!important}#siya-launcher .siya-face .siya-avatar,#siya-launcher .siya-eye-overlay,#siya-launcher .siya-trigger,#siya-launcher .siya-eye-status{transition:none!important}}
@@ -201,46 +201,48 @@
 /* v4.0.18 — Design A Compact Hero. Six exact artwork stages, never a fake growth estimate.
    The stage comes from verified D1 activity; the image and animations are cosmetic. */
 #siya-launcher[data-eye-state="idle"]{--siya-neon:var(--siya-personal-neon,#14deff);--siya-neon-soft:color-mix(in srgb,var(--siya-neon) 75%,transparent);--siya-neon-bg:color-mix(in srgb,var(--siya-neon) 22%,#07172c)}
-#siya-launcher{--hero-width:78px;--hero-height:92px;--hero-eye-left:-3%;--hero-eye-top:12%;--hero-eye-width:104%}
-#siya-launcher[data-growth-stage="1"]{--hero-width:82px;--hero-height:106px;--hero-eye-left:0%;--hero-eye-top:7%;--hero-eye-width:100%}
-#siya-launcher[data-growth-stage="2"]{--hero-width:90px;--hero-height:130px;--hero-eye-left:-8%;--hero-eye-top:-4%;--hero-eye-width:116%}
-#siya-launcher[data-growth-stage="3"]{--hero-width:100px;--hero-height:140px;--hero-eye-left:4%;--hero-eye-top:1%;--hero-eye-width:92%}
-#siya-launcher[data-growth-stage="4"]{--hero-width:100px;--hero-height:181px;--hero-eye-left:0%;--hero-eye-top:2%;--hero-eye-width:95%}
-#siya-launcher[data-growth-stage="5"]{--hero-width:112px;--hero-height:184px;--hero-eye-left:12%;--hero-eye-top:8%;--hero-eye-width:74%}
+#siya-launcher{--hero-width:78px;--hero-height:92px;--hero-eye-left:-17.4%;--hero-eye-top:-38.3%;--hero-eye-width:135.1%}
+#siya-launcher[data-growth-stage="1"]{--hero-width:82px;--hero-height:106px;--hero-eye-left:-9%;--hero-eye-top:-33.6%;--hero-eye-width:118.3%}
+#siya-launcher[data-growth-stage="2"]{--hero-width:90px;--hero-height:130px;--hero-eye-left:-3.2%;--hero-eye-top:-29.3%;--hero-eye-width:106.6%}
+#siya-launcher[data-growth-stage="3"]{--hero-width:100px;--hero-height:140px;--hero-eye-left:5.3%;--hero-eye-top:-19.2%;--hero-eye-width:89.5%}
+#siya-launcher[data-growth-stage="4"]{--hero-width:100px;--hero-height:181px;--hero-eye-left:5.6%;--hero-eye-top:-18%;--hero-eye-width:88.9%}
+#siya-launcher[data-growth-stage="5"]{--hero-width:112px;--hero-height:184px;--hero-eye-left:15.1%;--hero-eye-top:-10.9%;--hero-eye-width:70%}
 #siya-launcher{width:var(--hero-width);height:var(--hero-height);transition:width .8s ease,height .8s ease}
 #siya-launcher .siya-trigger{width:100%!important;height:100%!important;min-height:0;border:0!important;padding:0!important;border-radius:18px;background:transparent!important;box-shadow:none!important;overflow:visible}
 #siya-launcher .siya-trigger:hover{box-shadow:none!important}
 #siya-launcher .siya-trigger .siya-face{overflow:visible}
 #siya-launcher .siya-compact-hero{position:absolute;inset:0;display:block;pointer-events:none;z-index:1}
-#siya-launcher .siya-compact-stage{position:absolute;inset:0;display:block;width:100%;height:100%;object-fit:fill;opacity:0;pointer-events:none;filter:hue-rotate(var(--siya-hero-shift,0deg)) drop-shadow(0 0 7px var(--siya-neon-soft));transition:opacity .9s ease,filter .4s ease}
+#siya-launcher .siya-compact-stage{position:absolute;inset:0;display:none;width:100%;height:100%;object-fit:contain;opacity:0;pointer-events:none;filter:hue-rotate(var(--siya-hero-shift,0deg)) drop-shadow(0 0 7px var(--siya-neon-soft));transition:opacity .35s ease,filter .4s ease}
 #siya-launcher[data-growth-stage="0"] .siya-compact-stage[data-stage="0"],
 #siya-launcher[data-growth-stage="1"] .siya-compact-stage[data-stage="1"],
 #siya-launcher[data-growth-stage="2"] .siya-compact-stage[data-stage="2"],
 #siya-launcher[data-growth-stage="3"] .siya-compact-stage[data-stage="3"],
 #siya-launcher[data-growth-stage="4"] .siya-compact-stage[data-stage="4"],
-#siya-launcher[data-growth-stage="5"] .siya-compact-stage[data-stage="5"]{opacity:1}
+#siya-launcher[data-growth-stage="5"] .siya-compact-stage[data-stage="5"]{display:block;opacity:1}
 #siya-launcher .siya-trigger .siya-face>.siya-avatar{display:none}
-#siya-launcher .siya-trigger .siya-face>.siya-eye-overlay{display:none;position:absolute;left:var(--hero-eye-left);top:var(--hero-eye-top);width:var(--hero-eye-width);height:auto;aspect-ratio:1;z-index:3;inset-inline-end:auto;filter:drop-shadow(0 0 6px var(--siya-neon-soft))}
+#siya-launcher .siya-trigger .siya-face>.siya-eye-overlay{display:block;position:absolute;left:var(--hero-eye-left);top:var(--hero-eye-top);width:var(--hero-eye-width);height:auto;aspect-ratio:1;z-index:3;inset-inline-end:auto;filter:drop-shadow(0 0 5px var(--siya-neon-soft))}
 #siya-launcher .siya-trigger .siya-eye-mask{fill:#9cd9f7;stroke:#247ab4;stroke-width:1}
 #siya-launcher .siya-trigger .siya-eye-iris{opacity:.78}
 #siya-launcher .siya-trigger .siya-mouth-line{stroke-width:5;opacity:.92}
+#siya-launcher .siya-trigger .siya-one-eye,#siya-launcher .siya-trigger .siya-expression-brow{display:none}
+#siya-launcher .siya-trigger .siya-mouth-group{display:block}
 #siya-launcher .siya-top .siya-face{width:55px;height:55px}
 #siya-launcher .siya-growth-hint{display:block;font-size:11px;color:var(--smuted);border-bottom:1px solid var(--sedge);padding-bottom:8px;margin-bottom:8px}
 #siya-launcher[data-art-fallback="yes"] .siya-compact-hero{display:none}
 #siya-launcher[data-art-fallback="yes"] .siya-trigger .siya-face>.siya-avatar{display:block}
 #siya-launcher[data-art-fallback="yes"] .siya-trigger .siya-face>.siya-eye-overlay{inset:0;width:100%;height:100%}
 #siya-launcher[data-art-fallback="yes"]{--hero-width:70px;--hero-height:70px}
-@media(max-width:460px){#siya-launcher{--hero-width:72px;--hero-height:86px}#siya-launcher[data-growth-stage="1"]{--hero-width:76px;--hero-height:100px}#siya-launcher[data-growth-stage="2"]{--hero-width:82px;--hero-height:120px}#siya-launcher[data-growth-stage="3"]{--hero-width:90px;--hero-height:128px}#siya-launcher[data-growth-stage="4"]{--hero-width:88px;--hero-height:160px}#siya-launcher[data-growth-stage="5"]{--hero-width:98px;--hero-height:164px}}
+@media(max-width:460px){#siya-launcher{--hero-width:72px;--hero-height:86px;--hero-eye-left:-17.4%;--hero-eye-top:-38.3%;--hero-eye-width:135.1%}#siya-launcher[data-growth-stage="1"]{--hero-width:76px;--hero-height:100px;--hero-eye-left:-9%;--hero-eye-top:-33.6%;--hero-eye-width:118.3%}#siya-launcher[data-growth-stage="2"]{--hero-width:82px;--hero-height:120px;--hero-eye-left:-3.2%;--hero-eye-top:-29.3%;--hero-eye-width:106.6%}#siya-launcher[data-growth-stage="3"]{--hero-width:90px;--hero-height:128px;--hero-eye-left:5.3%;--hero-eye-top:-19.2%;--hero-eye-width:89.5%}#siya-launcher[data-growth-stage="4"]{--hero-width:88px;--hero-height:160px;--hero-eye-left:5.6%;--hero-eye-top:-18%;--hero-eye-width:88.9%}#siya-launcher[data-growth-stage="5"]{--hero-width:98px;--hero-height:164px;--hero-eye-left:15.1%;--hero-eye-top:-10.9%;--hero-eye-width:70%}}
 @media(prefers-reduced-motion:reduce){#siya-launcher .siya-compact-stage,#siya-launcher{transition:none!important}}
 
 /* The selected reference already contains bright eyes and a smile. Avoid drawing a second
    set of pupils on top of the reference artwork. Blink with a visor-coloured lid instead. */
-#siya-launcher{--hero-lid-left:25%;--hero-lid-right:56%;--hero-lid-top:57%;--hero-lid-size:18%}
-#siya-launcher[data-growth-stage="1"]{--hero-lid-left:24%;--hero-lid-right:56%;--hero-lid-top:47%;--hero-lid-size:17%}
-#siya-launcher[data-growth-stage="2"]{--hero-lid-left:22%;--hero-lid-right:58%;--hero-lid-top:41%;--hero-lid-size:17%}
-#siya-launcher[data-growth-stage="3"]{--hero-lid-left:26%;--hero-lid-right:57%;--hero-lid-top:37%;--hero-lid-size:17%}
-#siya-launcher[data-growth-stage="4"]{--hero-lid-left:25%;--hero-lid-right:55%;--hero-lid-top:30%;--hero-lid-size:17%}
-#siya-launcher[data-growth-stage="5"]{--hero-lid-left:27%;--hero-lid-right:52%;--hero-lid-top:29%;--hero-lid-size:17%}
+#siya-launcher{--hero-lid-left:19%;--hero-lid-right:61%;--hero-lid-top:36.1%;--hero-lid-size:18%}
+#siya-launcher[data-growth-stage="1"]{--hero-lid-left:22.3%;--hero-lid-right:60.7%;--hero-lid-top:30.8%;--hero-lid-size:17%}
+#siya-launcher[data-growth-stage="2"]{--hero-lid-left:24.6%;--hero-lid-right:59.3%;--hero-lid-top:28.4%;--hero-lid-size:16%}
+#siya-launcher[data-growth-stage="3"]{--hero-lid-left:27.4%;--hero-lid-right:56.5%;--hero-lid-top:28%;--hero-lid-size:16%}
+#siya-launcher[data-growth-stage="4"]{--hero-lid-left:27.5%;--hero-lid-right:56.4%;--hero-lid-top:28.8%;--hero-lid-size:16%}
+#siya-launcher[data-growth-stage="5"]{--hero-lid-left:31.6%;--hero-lid-right:54.4%;--hero-lid-top:25.3%;--hero-lid-size:14%}
 #siya-launcher .siya-hero-lids{position:absolute;inset:0;z-index:4;pointer-events:none}
 #siya-launcher .siya-hero-lid{position:absolute;top:var(--hero-lid-top);width:var(--hero-lid-size);aspect-ratio:1;border-radius:50%;background:linear-gradient(160deg,#b8eeff,#84d5fa 80%);box-shadow:inset 0 0 4px #72bff4,0 0 4px var(--siya-neon);opacity:0;transform:scaleY(.1);animation:siya-hero-blink 5.4s ease-in-out infinite}
 #siya-launcher .siya-hero-left{left:var(--hero-lid-left)}#siya-launcher .siya-hero-right{left:var(--hero-lid-right)}
@@ -258,3 +260,5 @@
 #siya-launcher[data-art-fallback="yes"] .siya-hero-lids{display:none}
 #siya-launcher[data-art-fallback="yes"] .siya-trigger .siya-face>.siya-eye-overlay{display:block}
 @media(prefers-reduced-motion:reduce){#siya-launcher .siya-hero-lid,#siya-launcher .siya-compact-stage{animation:none!important}}
+
+#siya-launcher .siya-card[data-open="yes"]{z-index:4}

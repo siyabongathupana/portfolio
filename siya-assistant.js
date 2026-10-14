@@ -313,7 +313,7 @@ function makeSiyaFace(){
     const hero=make('span','siya-compact-hero');
     for(let stage=0;stage<=5;stage++){
       const layer=make('img','siya-compact-stage');
-      layer.src=ROOT+'siya-hero/stage-'+stage+'.webp?v=4.0.18';
+      layer.src=ROOT+'siya-hero/stage-'+stage+'.webp?v=4.0.18c';
       layer.alt='';layer.draggable=false;layer.decoding='async';
       layer.dataset.stage=String(stage);
       layer.addEventListener('error',()=>{root.dataset.artFallback='yes';});
@@ -331,7 +331,8 @@ const panel=make('section','siya-card');panel.setAttribute('role','dialog');pane
 const head=make('div','siya-top'),hicon=makeSiyaFace(),heading=make('div');
 heading.append(make('strong','','Siya.Brain'),make('small','','I own everything here😎'));
 const eyeStatus=make('span','siya-eye-status','● Online');eyeStatus.title='Siya eye status — visual indication only';
-head.append(hicon,heading,eyeStatus);panel.append(head);const growthHint=make('small','siya-growth-hint');growthHint.hidden=true;panel.append(growthHint);
+const closeBtn=make('button','siya-close','×');closeBtn.type='button';closeBtn.setAttribute('aria-label','Close Siya');
+head.append(hicon,heading,eyeStatus,closeBtn);panel.append(head);const growthHint=make('small','siya-growth-hint');growthHint.hidden=true;panel.append(growthHint);
 
 const SIYA_PAGE_NAME={timesheets:'Timesheets',studies:'Studies',projects:'Projects',analytics:'Analytics',admin:'Admin',ai:'AI Centre',home:'Home'}[CONTEXT]||'Portfolio';
 function pageContext(){return {page:CONTEXT,path:location.pathname.slice(0,160),timer:window.__siyaTimerLive?.getSnapshot?.()?.status||null};}
@@ -945,6 +946,7 @@ btn.addEventListener('pointermove',e=>{if(!down||e.pointerId!==down.id)return;if
 btn.addEventListener('pointerup',e=>{if(!down||e.pointerId!==down.id)return;if(dragged){position(root.getBoundingClientRect().left,root.getBoundingClientRect().top,true);skipClick=true;setTimeout(()=>skipClick=false,70)}down=null});
 btn.addEventListener('pointercancel',()=>{down=null;dragged=false});
 btn.addEventListener('click',e=>{if(skipClick||dragged){e.preventDefault();dragged=false;skipClick=false;return}toggle()});
+closeBtn.addEventListener('click',()=>{panel.dataset.open='no';btn.setAttribute('aria-expanded','false');btn.focus();});
 btn.addEventListener('keydown',e=>{if(!e.altKey||!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))return;e.preventDefault();const b=root.getBoundingClientRect(),step=e.shiftKey?50:15;position(b.left+(e.key==='ArrowRight'?step:e.key==='ArrowLeft'?-step:0),b.top+(e.key==='ArrowDown'?step:e.key==='ArrowUp'?-step:0),true)});
 
 reset.addEventListener('click',()=>{try{localStorage.removeItem(storageKey)}catch{}const p=defaultXY();position(p.x,p.y,false)});
