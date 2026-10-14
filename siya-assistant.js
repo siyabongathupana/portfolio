@@ -1,4 +1,4 @@
-/* Siya v4.0.18g — Design A Compact Hero and expressive neon mascot, contextual humour, serious-mode guardrails, briefings & reminders.
+/* Siya v4.0.18h — Design A Compact Hero and expressive neon mascot, contextual humour, serious-mode guardrails, briefings & reminders.
    Never infers login status on public GitHub Pages. All sensitive data via protected Worker. */
 (()=>{'use strict';
 if(document.getElementById('siya-launcher'))return;
@@ -93,13 +93,13 @@ async function verifyRelaySession(){if(!relayToken?.token)return null;
   if(err.status===401||err.status===403)forgetRelayToken()}
  return null;
 }
-// v4.0.18g: verification is silent.  No window.open() and no modal verification popup.
+// v4.0.18h: verification is silent.  No window.open() and no modal verification popup.
 // A fresh Cloudflare Access login may require a user-initiated top-level navigation;
 // it must never be initiated by background verification.
 
 const ROOT=protectedOrigin?'/':location.pathname.startsWith('/portfolio/')?'/portfolio/':'/';
 if(!protectedOrigin&&!document.querySelector('link[data-siya-theme="neon"],link[href*="siya-assistant.css"]')){
- const sheet=document.createElement('link');sheet.rel='stylesheet';sheet.href=ROOT+'siya-assistant.css?v=4.0.18g';sheet.dataset.siyaTheme='neon';document.head.append(sheet);
+ const sheet=document.createElement('link');sheet.rel='stylesheet';sheet.href=ROOT+'siya-assistant.css?v=4.0.18h';sheet.dataset.siyaTheme='neon';document.head.append(sheet);
 }
 const PATH=location.pathname.toLowerCase();
 const CONTEXT=/timesheet|time-?track/.test(PATH)?'timesheets':/studies|study|grade|assessment|cad/.test(PATH)?'studies':/analytic|insight|report/.test(PATH)?'analytics':/project|milestone|publish/.test(PATH)?'projects':/certificat/.test(PATH)?'certificates':/admin|access|user/.test(PATH)?'admin':/ai-centre/.test(PATH)?'ai':'home';
@@ -289,7 +289,7 @@ function makeSiyaFace(){
     const hero=make('span','siya-compact-hero');
     const layer=make('img','siya-compact-stage');
     layer.alt='';layer.draggable=false;layer.decoding='async';
-    layer.src=ROOT+'siya-hero/stage-0.webp?v=4.0.18g';
+    layer.src=ROOT+'siya-hero/stage-0.webp?v=4.0.18h';
     layer.addEventListener('error',()=>{root.dataset.artFallback='yes';});
     hero.append(layer);wrap.insertBefore(hero,img);
     const lids=make('span','siya-hero-lids');
@@ -305,7 +305,7 @@ const head=make('div','siya-top'),hicon=makeSiyaFace(),heading=make('div');
 heading.append(make('strong','','Siya.Brain'),make('small','','I own everything here😎'));
 const eyeStatus=make('span','siya-eye-status','● Online');eyeStatus.title='Siya eye status — visual indication only';
 const closeBtn=make('button','siya-close','×');closeBtn.type='button';closeBtn.setAttribute('aria-label','Close Siya');
-head.append(hicon,heading,eyeStatus,closeBtn);panel.append(head);const growthHint=make('small','siya-growth-hint');growthHint.hidden=true;panel.append(growthHint);
+head.append(hicon,heading,eyeStatus,closeBtn);panel.append(head);const growthHint=make('small','siya-growth-hint');growthHint.hidden=true;
 
 const SIYA_PAGE_NAME={timesheets:'Timesheets',studies:'Studies',projects:'Projects',analytics:'Analytics',admin:'Admin',ai:'AI Centre',home:'Home'}[CONTEXT]||'Portfolio';
 function pageContext(){return {page:CONTEXT,path:location.pathname.slice(0,160),timer:window.__siyaTimerLive?.getSnapshot?.()?.status||null};}
@@ -482,7 +482,7 @@ const conversationView=make('section','siya-conversation-view');conversationView
 const conversationLog=make('div','siya-conversation-log');conversationLog.setAttribute('role','log');conversationLog.setAttribute('aria-live','polite');
 conversationView.append(conversationLog);panel.append(conversationView);
 let chatTranscript=[];
-function activateTranscript(id){const next=/^[a-f0-9]{64}$/.test(String(id||''))?String(id):'';applyPersonalIdentity(next);if(growthIdentity)growthHint.hidden=false;else growthHint.hidden=true;if(next===viewerKey)return;viewerKey=next;chatTranscript=[];miniConversationId=null;if(viewerKey)try{const old=JSON.parse(sessionStorage.getItem(CHAT_VIEW_KEY+viewerKey)||'[]');if(Array.isArray(old))chatTranscript=old.filter(x=>x&&['user','assistant'].includes(x.role)&&typeof x.text==='string').slice(-16);const id=sessionStorage.getItem('siya-mini-conversation-id:'+viewerKey);if(/^[0-9a-f-]{36}$/i.test(id||''))miniConversationId=id}catch{}updateTranscript()}
+function activateTranscript(id){const next=/^[a-f0-9]{64}$/.test(String(id||''))?String(id):'';applyPersonalIdentity(next);growthHint.hidden=true;if(next===viewerKey)return;viewerKey=next;chatTranscript=[];miniConversationId=null;if(viewerKey)try{const old=JSON.parse(sessionStorage.getItem(CHAT_VIEW_KEY+viewerKey)||'[]');if(Array.isArray(old))chatTranscript=old.filter(x=>x&&['user','assistant'].includes(x.role)&&typeof x.text==='string').slice(-16);const id=sessionStorage.getItem('siya-mini-conversation-id:'+viewerKey);if(/^[0-9a-f-]{36}$/i.test(id||''))miniConversationId=id}catch{}updateTranscript()}
 function updateTranscript(){conversationLog.replaceChildren();for(const item of chatTranscript){const row=make('div','siya-conversation-bubble siya-conversation-'+item.role,item.text);conversationLog.append(row)}conversationView.hidden=!(chatTranscript.length&&(protectedOrigin?allowed:publicChatVerified()));if(typeof clearChat!=='undefined')clearChat.hidden=chatTranscript.length===0;conversationLog.scrollTop=conversationLog.scrollHeight;}
 function addTranscript(role,text){const safe=String(text||'').trim().slice(0,3000);if(!safe)return;chatTranscript.push({role,text:safe,private:['serious','crisis','boundary'].includes(lastQuestionTone)});chatTranscript=chatTranscript.slice(-16);try{viewerKey&&sessionStorage.setItem(CHAT_VIEW_KEY+viewerKey,JSON.stringify(chatTranscript.filter(x=>!x.private)))}catch{}updateTranscript()}
 function clearTranscript(){chatTranscript=[];try{viewerKey&&sessionStorage.removeItem(CHAT_VIEW_KEY+viewerKey)}catch{}updateTranscript()}
@@ -642,12 +642,12 @@ function displayVerifiedStage(stage){
    const b=root.getBoundingClientRect();position(b.left,b.top,false);
  };
  next.onerror=()=>{if(job===stageImageGeneration)root.dataset.artFallback='yes';};
- next.src=ROOT+'siya-hero/stage-'+n+'.webp?v=4.0.18g';
+ next.src=ROOT+'siya-hero/stage-'+n+'.webp?v=4.0.18h';
 }
 
 function applyPersonalIdentity(verifiedKey){
  const key=/^[a-f0-9]{64}$/i.test(String(verifiedKey||''))?String(verifiedKey).toLowerCase():'';
- if(!key){growthIdentity='';growthScore=null;root.style.removeProperty('--siya-personal-neon');root.style.removeProperty('--siya-hero-shift');stageImageGeneration++;activeArtStage=0;root.dataset.growthStage='0';const art=icon.querySelector('.siya-compact-stage');if(art)art.src=ROOT+'siya-hero/stage-0.webp?v=4.0.18g';return}
+ if(!key){growthIdentity='';growthScore=null;root.style.removeProperty('--siya-personal-neon');root.style.removeProperty('--siya-hero-shift');stageImageGeneration++;activeArtStage=0;root.dataset.growthStage='0';const art=icon.querySelector('.siya-compact-stage');if(art)art.src=ROOT+'siya-hero/stage-0.webp?v=4.0.18h';return}
  if(key===growthIdentity)return;
  growthIdentity=key;growthScore=null;
  const slot=parseInt(key.slice(0,8),16)%SIYA_PERSONAL_PALETTE.length;
@@ -655,13 +655,13 @@ function applyPersonalIdentity(verifiedKey){
  const offset=(parseInt(key.slice(8,12),16)%2901)/100-14.5;
  root.style.setProperty('--siya-personal-neon','hsl('+((base+offset+360)%360).toFixed(2)+' 100% 66%)');
  root.style.setProperty('--siya-hero-shift',(((base+offset+360)%360)-193).toFixed(2)+'deg');
- stageImageGeneration++;activeArtStage=0;root.dataset.growthStage='0';const art=icon.querySelector('.siya-compact-stage');if(art)art.src=ROOT+'siya-hero/stage-0.webp?v=4.0.18g';
+ stageImageGeneration++;activeArtStage=0;root.dataset.growthStage='0';const art=icon.querySelector('.siya-compact-stage');if(art)art.src=ROOT+'siya-hero/stage-0.webp?v=4.0.18h';
 }
 function updateMascotGrowth(data){
  if(!growthIdentity||!data||data.verified!==true||data.viewerKey!==growthIdentity)return;
  const stage=Math.max(0,Math.min(5,Math.floor(Number(data.stage)||0)));
  displayVerifiedStage(stage);growthScore=data;requestAnimationFrame(()=>{if(root.isConnected){const bounds=root.getBoundingClientRect();position(bounds.left,bounds.top,false)}});
- if(typeof growthHint!=='undefined'){growthHint.hidden=false;growthHint.textContent='🤖 Growth: '+(data.stageName||'Head')+' · '+(Number(data.activeDays)||0)+' active days · '+(Number(data.creditedChats)||0)+' credited chats. Next stage grows with time and use.';}
+ growthHint.hidden=true; // Private stage progression remains active; hide growth telemetry from UI.
 }
 async function refreshMascotGrowth(){
  if(!protectedOrigin||!growthIdentity)return;

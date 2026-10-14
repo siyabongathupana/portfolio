@@ -289,3 +289,5 @@
 
 /* Prevent growth-size transitions from leaving a newly unlocked stage beyond viewport edges. */
 #siya-launcher{transition:none!important}
+
+#siya-launcher .siya-growth-hint{display:none!important}
