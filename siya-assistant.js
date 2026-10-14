@@ -1,4 +1,4 @@
-/* Siya v4.0.18f — Design A Compact Hero and expressive neon mascot, contextual humour, serious-mode guardrails, briefings & reminders.
+/* Siya v4.0.18g — Design A Compact Hero and expressive neon mascot, contextual humour, serious-mode guardrails, briefings & reminders.
    Never infers login status on public GitHub Pages. All sensitive data via protected Worker. */
 (()=>{'use strict';
 if(document.getElementById('siya-launcher'))return;
@@ -93,39 +93,13 @@ async function verifyRelaySession(){if(!relayToken?.token)return null;
   if(err.status===401||err.status===403)forgetRelayToken()}
  return null;
 }
-function secureHandshake(){
- if(protectedOrigin)return;
- if(connectWindow&&!connectWindow.closed){status.textContent='Your account verification is already opening.';return}
- const nonce=(crypto?.randomUUID?.()||String(Date.now())+Math.random()).replaceAll('-');
- try{sessionStorage.setItem('siya-v408-pending',nonce)}catch{}
- const link=WORKER+'/siya-connect.html?nonce='+encodeURIComponent(nonce);
- connectWindow=window.open(link,'siya_secure_account_check','popup=yes,width=500,height=480');
- if(!connectWindow){status.textContent='Your browser blocked the verification window. Allow popups for this site and try Connect again.';return}
- status.textContent='Verifying your existing account securely. The window will close automatically.';
-}
-window.addEventListener('message',async event=>{
- if(protectedOrigin||event.origin!==bridgeOrigin||event.source!==connectWindow||!event.data)return;
- const d=event.data;
- if(d.type!=='siya-v408-handoff')return;
- const expected=sessionStorage.getItem('siya-v408-pending');
- if(!expected||d.nonce!==expected)return;
- sessionStorage.removeItem('siya-v408-pending');connectWindow=null;
- if(d.token&&d.session?.aiAllowed===true&&Number(d.exp)*1000>Date.now()+5000){
-  relayToken={token:String(d.token),exp:Number(d.exp)};
-  try{sessionStorage.setItem(TOKEN_KEY,JSON.stringify(relayToken))}catch{}
-  const verified=await verifyRelaySession();if(verified){guest();return}
-  autoHandoffError='Account verified, but secure relay validation failed: '+(relayLastError||'Check MAIN_WORKER binding and secret.');guest();return;
- }
- forgetRelayToken();
- if(d.session?.signedIn===true&&d.session.aiAllowed===false){
-  publicVerifiedSession={...d.session,source:'verified-denied'};renderPublicAccount(publicVerifiedSession,++guestGeneration);return;
- }
- publicVerifiedSession=null;guest();
-});
+// v4.0.18g: verification is silent.  No window.open() and no modal verification popup.
+// A fresh Cloudflare Access login may require a user-initiated top-level navigation;
+// it must never be initiated by background verification.
 
 const ROOT=protectedOrigin?'/':location.pathname.startsWith('/portfolio/')?'/portfolio/':'/';
-if(!protectedOrigin&&!document.querySelector('link[data-siya-theme="neon"]')){
- const sheet=document.createElement('link');sheet.rel='stylesheet';sheet.href=ROOT+'siya-assistant.css?v=4.0.18f';sheet.dataset.siyaTheme='neon';document.head.append(sheet);
+if(!protectedOrigin&&!document.querySelector('link[data-siya-theme="neon"],link[href*="siya-assistant.css"]')){
+ const sheet=document.createElement('link');sheet.rel='stylesheet';sheet.href=ROOT+'siya-assistant.css?v=4.0.18g';sheet.dataset.siyaTheme='neon';document.head.append(sheet);
 }
 const PATH=location.pathname.toLowerCase();
 const CONTEXT=/timesheet|time-?track/.test(PATH)?'timesheets':/studies|study|grade|assessment|cad/.test(PATH)?'studies':/analytic|insight|report/.test(PATH)?'analytics':/project|milestone|publish/.test(PATH)?'projects':/certificat/.test(PATH)?'certificates':/admin|access|user/.test(PATH)?'admin':/ai-centre/.test(PATH)?'ai':'home';
@@ -315,7 +289,7 @@ function makeSiyaFace(){
     const hero=make('span','siya-compact-hero');
     const layer=make('img','siya-compact-stage');
     layer.alt='';layer.draggable=false;layer.decoding='async';
-    layer.src=ROOT+'siya-hero/stage-0.webp?v=4.0.18f';
+    layer.src=ROOT+'siya-hero/stage-0.webp?v=4.0.18g';
     layer.addEventListener('error',()=>{root.dataset.artFallback='yes';});
     hero.append(layer);wrap.insertBefore(hero,img);
     const lids=make('span','siya-hero-lids');
@@ -325,7 +299,7 @@ function makeSiyaFace(){
   return wrap;
 }
 const icon=makeSiyaFace();
-const btn=make('button','siya-trigger');btn.type='button';btn.setAttribute('aria-label','Open Siya assistant. Drag to move.');btn.setAttribute('aria-expanded','false');btn.removeAttribute('title');btn.append(icon,make('span','siya-dot'));const badge=make('span','siya-badge','');badge.hidden=true;badge.setAttribute('aria-live','polite');btn.append(badge);root.append(btn);
+const btn=make('button','siya-trigger');btn.type='button';btn.setAttribute('aria-label','Open Siya assistant. Drag to move.');btn.setAttribute('aria-expanded','false');btn.removeAttribute('title');btn.append(icon);const badge=make('span','siya-badge','');badge.hidden=true;badge.setAttribute('aria-live','polite');btn.append(badge);root.append(btn);
 const panel=make('section','siya-card');panel.setAttribute('role','dialog');panel.setAttribute('aria-label','Siya assistant');panel.dataset.open='no';
 const head=make('div','siya-top'),hicon=makeSiyaFace(),heading=make('div');
 heading.append(make('strong','','Siya.Brain'),make('small','','I own everything here😎'));
@@ -364,7 +338,7 @@ function setExpression(name,duration=0){
  expression=name;root.dataset.expression=name;
  if(duration>0)expressionTimeout=setTimeout(()=>{expressionTimeout=null;setExpression('neutral')},Math.min(30000,Math.max(9000,duration)));
 }
-function activity(){lastActivity=Date.now();if(expression==='sleep')setExpression('surprised',9000)}
+function activity(){lastActivity=Date.now();if(expression==='sleep')setExpression('neutral')}
 window.addEventListener('siya:expression',e=>{const d=e.detail||{};setExpression(d.expression,Number(d.duration)||0)});
 window.addEventListener('pointermove',e=>{
  if(reduceMotion?.matches||document.hidden||Date.now()-lastPointerUpdate<65)return;
@@ -380,9 +354,9 @@ window.addEventListener('pointerdown',activity,{passive:true});
 window.addEventListener('keydown',activity,{passive:true});
 setInterval(()=>{
  if(document.hidden||reduceMotion?.matches||expression!=='neutral'||eyeCurrent==='thinking'||panel.dataset.open==='yes')return;
- if(Date.now()-lastActivity>55000)setExpression('sleep');
+ if(Date.now()-lastActivity>300000)setExpression('sleep');
 },11000);
-window.addEventListener('focus',()=>{activity();if(expression==='sleep')setExpression('surprised',9000)});
+window.addEventListener('focus',activity);
 
 // Jokes are spoken inside Siya's greeting, not in a separate card.
 // Personality is automatic: there are no joke/roast/serious buttons to micromanage.
@@ -391,7 +365,7 @@ function spontaneousHumour(trigger='hello'){
  if(seriousMode||['serious','crisis','boundary'].includes(lastQuestionTone))return;
  const now=Date.now();
  if(now-lastSpontaneousRoastAt>120000 && Math.random()<.12){
-  lastSpontaneousRoastAt=now;greetingQuip=newJoke('roast');setExpression('suspicious',9000);
+  lastSpontaneousRoastAt=now;greetingQuip=newJoke('roast');
   // Deliberately avoid health, identity, disability, appearance, finances and personal matters.
  }else greetingQuip=Math.random()<.34?newJoke(CONTEXT):'';
 }
@@ -668,12 +642,12 @@ function displayVerifiedStage(stage){
    const b=root.getBoundingClientRect();position(b.left,b.top,false);
  };
  next.onerror=()=>{if(job===stageImageGeneration)root.dataset.artFallback='yes';};
- next.src=ROOT+'siya-hero/stage-'+n+'.webp?v=4.0.18f';
+ next.src=ROOT+'siya-hero/stage-'+n+'.webp?v=4.0.18g';
 }
 
 function applyPersonalIdentity(verifiedKey){
  const key=/^[a-f0-9]{64}$/i.test(String(verifiedKey||''))?String(verifiedKey).toLowerCase():'';
- if(!key){growthIdentity='';growthScore=null;root.style.removeProperty('--siya-personal-neon');root.style.removeProperty('--siya-hero-shift');stageImageGeneration++;activeArtStage=0;root.dataset.growthStage='0';const art=icon.querySelector('.siya-compact-stage');if(art)art.src=ROOT+'siya-hero/stage-0.webp?v=4.0.18f';return}
+ if(!key){growthIdentity='';growthScore=null;root.style.removeProperty('--siya-personal-neon');root.style.removeProperty('--siya-hero-shift');stageImageGeneration++;activeArtStage=0;root.dataset.growthStage='0';const art=icon.querySelector('.siya-compact-stage');if(art)art.src=ROOT+'siya-hero/stage-0.webp?v=4.0.18g';return}
  if(key===growthIdentity)return;
  growthIdentity=key;growthScore=null;
  const slot=parseInt(key.slice(0,8),16)%SIYA_PERSONAL_PALETTE.length;
@@ -681,7 +655,7 @@ function applyPersonalIdentity(verifiedKey){
  const offset=(parseInt(key.slice(8,12),16)%2901)/100-14.5;
  root.style.setProperty('--siya-personal-neon','hsl('+((base+offset+360)%360).toFixed(2)+' 100% 66%)');
  root.style.setProperty('--siya-hero-shift',(((base+offset+360)%360)-193).toFixed(2)+'deg');
- stageImageGeneration++;activeArtStage=0;root.dataset.growthStage='0';const art=icon.querySelector('.siya-compact-stage');if(art)art.src=ROOT+'siya-hero/stage-0.webp?v=4.0.18f';
+ stageImageGeneration++;activeArtStage=0;root.dataset.growthStage='0';const art=icon.querySelector('.siya-compact-stage');if(art)art.src=ROOT+'siya-hero/stage-0.webp?v=4.0.18g';
 }
 function updateMascotGrowth(data){
  if(!growthIdentity||!data||data.verified!==true||data.viewerKey!==growthIdentity)return;
@@ -950,10 +924,36 @@ const storageKey='yp-siya-mascot-position-v1';let dragged=false,down=null,skipCl
 function clamp(v,min,max){return Math.max(min,Math.min(max,v))}
 function defaultXY(){return {x:Math.max(12,innerWidth-root.offsetWidth-20),y:Math.max(12,innerHeight-root.offsetHeight-20)}}
 function position(x,y,save){const w=root.offsetWidth||68,h=root.offsetHeight||68,level=Math.max(0,Math.min(5,Number(root.dataset.growthStage)||0)),extra=root.dataset.artFallback==='yes'?(level>=4?82:level>=2?58:level>=1?22:0):0,px=clamp(Math.round(x),8,Math.max(8,innerWidth-w-8)),py=clamp(Math.round(y),8,Math.max(8,innerHeight-h-extra-8));root.style.left=px+'px';root.style.top=py+'px';root.style.right='auto';root.style.bottom='auto';layoutPanel();if(save)try{localStorage.setItem(storageKey,JSON.stringify({x:innerWidth?px/innerWidth:.8,y:innerHeight?py/innerHeight:.8}))}catch{}}
-function layoutPanel(){const box=root.getBoundingClientRect(),pWidth=Math.min(385,innerWidth-18),pHeight=panel.offsetHeight||395,x=clamp(box.left+box.width-pWidth,9,Math.max(9,innerWidth-pWidth-9));let y=box.top-pHeight-13;if(y<9)y=clamp(box.bottom+10,9,Math.max(9,innerHeight-pHeight-9));panel.style.left=x+'px';panel.style.top=y+'px';panel.style.width=pWidth+'px'}
+function layoutPanel(){
+ // The mascot never disappears, even when the mini chat is open.  Keep the panel
+ // close to the draggable mascot, but avoid overlapping its illuminated figure.
+ const r=root.getBoundingClientRect(),g=12,W=innerWidth,H=innerHeight;
+ const width=Math.min(385,Math.max(240,W-18));
+ panel.style.width=width+'px';panel.style.maxHeight='min(740px, calc(100dvh - 18px))';
+ const wanted=Math.min(740,Math.max(panel.scrollHeight||0,panel.offsetHeight||395),H-18);
+ let x=9,y=9,capacity=H-18;
+ const left=r.left-g,right=W-r.right-g,above=r.top-g,below=H-r.bottom-g;
+ if(left>=width+g||right>=width+g){
+  const toLeft=left>=width+g&&(left>=right||right<width+g);
+  x=toLeft?r.left-width-g:r.right+g;
+  y=clamp(r.top,9,Math.max(9,H-wanted-9));
+ }else{
+  // On narrow viewports a side-by-side layout is physically impossible.
+  // Reserve the largest vertical region, so the robot always stays visible.
+  const toAbove=above>=below;
+  capacity=Math.max(110,(toAbove?above:below)-9);
+  const maxHeight=Math.max(110,Math.min(H-18,capacity));
+  panel.style.maxHeight=maxHeight+'px';
+  const height=Math.min(wanted,maxHeight);
+  x=clamp(r.left+r.width/2-width/2,9,Math.max(9,W-width-9));
+  y=toAbove?r.top-g-height:r.bottom+g;
+ }
+ panel.style.left=Math.round(clamp(x,9,Math.max(9,W-width-9)))+'px';
+ panel.style.top=Math.round(clamp(y,9,Math.max(9,H-50)))+'px';
+}
 function autoOpenApproved(open=true){if(!open)return;if(panel.dataset.open!=='yes'){panel.dataset.open='yes';btn.setAttribute('aria-expanded','true')}layoutPanel()}
 function toggle(){if(panel.dataset.open==='yes'){if(!brief.hidden)dismissBrief();panel.dataset.open='no';btn.setAttribute('aria-expanded','false');return;}
- panel.dataset.open='yes';if(!protectedOrigin&&!recognizedPublic){eyePulse('denied',9000);setExpression('suspicious',9000)}else setExpression('surprised',9000);btn.setAttribute('aria-expanded','true');selectIntro();briefVisibleOnce();layoutPanel();check();if(protectedOrigin){loadMilestones(true);loadNotifications()}}
+ panel.dataset.open='yes';btn.setAttribute('aria-expanded','true');selectIntro();briefVisibleOnce();layoutPanel();check();if(protectedOrigin){loadMilestones(true);loadNotifications()}}
 
 btn.addEventListener('pointerdown',e=>{if(e.button!==0)return;down={id:e.pointerId,x:e.clientX,y:e.clientY,left:root.getBoundingClientRect().left,top:root.getBoundingClientRect().top};dragged=false;btn.setPointerCapture?.(e.pointerId)});
 btn.addEventListener('pointermove',e=>{if(!down||e.pointerId!==down.id)return;if(Math.hypot(e.clientX-down.x,e.clientY-down.y)>7)dragged=true;if(!dragged)return;e.preventDefault();position(down.left+e.clientX-down.x,down.top+e.clientY-down.y,false)});

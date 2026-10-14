@@ -254,3 +254,38 @@
 #siya-launcher .siya-top .siya-hero-left{left:24.7%}
 #siya-launcher .siya-top .siya-hero-right{left:56.9%}
 #siya-launcher .siya-top .siya-mouth-line{stroke-width:5}
+
+/* v4.0.18g — CONSISTENT MASCOT FRAME, NO CLIPPED GLOW, ONE ACCESS STATE.
+   Applied after all legacy rules, shared by GitHub Pages and the Main Worker. */
+#siya-launcher .siya-dot{display:none!important}
+#siya-launcher .siya-trigger,
+#siya-launcher .siya-trigger[aria-expanded="true"]{
+  visibility:visible!important;opacity:1!important;pointer-events:auto!important;
+  overflow:visible!important;border:0!important;border-radius:25%!important;
+  background:transparent!important;box-shadow:none!important;
+  padding:0!important;isolation:isolate;
+}
+#siya-launcher .siya-trigger::before{
+  content:"";display:block;position:absolute;inset:1px;z-index:0;
+  border:2px solid color-mix(in srgb,var(--siya-neon) 76%,#ffffff 24%);
+  border-radius:25%;background:linear-gradient(145deg,rgba(4,26,45,.20),rgba(5,22,42,.08));
+  box-shadow:0 0 8px color-mix(in srgb,var(--siya-neon) 48%,transparent),inset 0 0 11px rgba(24,190,235,.06);
+  pointer-events:none;transition:border-color .35s ease,box-shadow .35s ease;
+}
+#siya-launcher .siya-trigger:hover{box-shadow:none!important;transform:scale(1.02)}
+#siya-launcher .siya-trigger .siya-face{
+  width:100%;height:100%;overflow:visible!important;z-index:1;
+  transform:scale(.865);transform-origin:center center;
+}
+#siya-launcher .siya-trigger .siya-compact-hero,
+#siya-launcher .siya-trigger .siya-compact-stage,
+#siya-launcher .siya-trigger .siya-eye-overlay,
+#siya-launcher .siya-trigger .siya-hero-lids{overflow:visible!important}
+#siya-launcher .siya-card[data-open="yes"]{z-index:6}
+#siya-launcher .siya-trigger[aria-expanded="true"]:focus-visible{outline:2px solid var(--siya-neon)!important;outline-offset:4px}
+#siya-launcher .siya-close{display:inline-grid!important;place-items:center}
+@media (max-width:460px){#siya-launcher .siya-trigger .siya-face{transform:scale(.85)}}
+@media (prefers-reduced-motion:reduce){#siya-launcher .siya-trigger::before{transition:none!important}}
+
+/* Prevent growth-size transitions from leaving a newly unlocked stage beyond viewport edges. */
+#siya-launcher{transition:none!important}
