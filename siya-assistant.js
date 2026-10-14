@@ -1,4 +1,4 @@
-/* Siya v4.0.12 — expressive neon mascot, contextual humour, serious-mode guardrails, briefings & reminders.
+/* Siya v4.0.18 — Design A Compact Hero and expressive neon mascot, contextual humour, serious-mode guardrails, briefings & reminders.
    Never infers login status on public GitHub Pages. All sensitive data via protected Worker. */
 (()=>{'use strict';
 if(document.getElementById('siya-launcher'))return;
@@ -125,7 +125,7 @@ window.addEventListener('message',async event=>{
 
 const ROOT=protectedOrigin?'/':location.pathname.startsWith('/portfolio/')?'/portfolio/':'/';
 if(!protectedOrigin&&!document.querySelector('link[data-siya-theme="neon"]')){
- const sheet=document.createElement('link');sheet.rel='stylesheet';sheet.href=ROOT+'siya-assistant.css?v=4.0.17';sheet.dataset.siyaTheme='neon';document.head.append(sheet);
+ const sheet=document.createElement('link');sheet.rel='stylesheet';sheet.href=ROOT+'siya-assistant.css?v=4.0.18';sheet.dataset.siyaTheme='neon';document.head.append(sheet);
 }
 const PATH=location.pathname.toLowerCase();
 const CONTEXT=/timesheet|time-?track/.test(PATH)?'timesheets':/studies|study|grade|assessment|cad/.test(PATH)?'studies':/analytic|insight|report/.test(PATH)?'analytics':/project|milestone|publish/.test(PATH)?'projects':/certificat/.test(PATH)?'certificates':/admin|access|user/.test(PATH)?'admin':/ai-centre/.test(PATH)?'ai':'home';
@@ -308,18 +308,20 @@ function makeSiyaFace(){
  overlay.innerHTML=`<defs><radialGradient id="${ident}"><stop offset="0%" stop-color="#ffffff" stop-opacity=".72"/><stop offset="34%" stop-color="var(--siya-neon)" stop-opacity=".94"/><stop offset="85%" stop-color="var(--siya-neon)" stop-opacity=".36"/><stop offset="100%" stop-color="var(--siya-neon)" stop-opacity="0"/></radialGradient></defs>${eyes}<g class="siya-mouth-group"><path class="siya-mouth-line" d="M153 251 Q180 274 207 251"/></g>`;
   wrap.append(img,overlay);
   if(faceCounter===1){
-    const evo=document.createElementNS('http://www.w3.org/2000/svg','svg');
-    evo.setAttribute('viewBox','0 0 120 145');
-    evo.setAttribute('aria-hidden','true');
-    evo.setAttribute('class','siya-evo-body');
-    evo.innerHTML=`<defs><linearGradient id="siya-evo-metal" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#f2fbff"/><stop offset=".44" stop-color="#8dd9ff"/><stop offset="1" stop-color="#1e5c9b"/></linearGradient></defs>
-      <g class="siya-evo-neck"><rect x="48" y="6" width="24" height="26" rx="9" fill="#123858" stroke="var(--siya-neon)" stroke-width="3"/></g>
-      <g class="siya-evo-torso"><path d="M36 28 Q60 18 84 28 L93 77 Q60 92 27 77 Z" fill="url(#siya-evo-metal)" stroke="#1c5180" stroke-width="4"/><path d="M43 39 L77 39 L81 64 Q60 75 39 64Z" fill="#123454" stroke="var(--siya-neon)" stroke-width="2"/><circle cx="60" cy="53" r="10" fill="var(--siya-neon)" opacity=".8"/><circle cx="60" cy="53" r="5" fill="#faffff"/></g>
-      <g class="siya-evo-shoulders"><path d="M35 30 Q15 20 8 38 L17 59 33 51Z" fill="url(#siya-evo-metal)" stroke="var(--siya-neon)" stroke-width="3"/><path d="M85 30 Q105 20 112 38 L103 59 87 51Z" fill="url(#siya-evo-metal)" stroke="var(--siya-neon)" stroke-width="3"/></g>
-      <g class="siya-evo-arms"><path d="M17 52 L9 83 Q10 91 19 91 L30 60 Z" fill="url(#siya-evo-metal)" stroke="#2369a3" stroke-width="3"/><path d="M103 52 L111 83 Q110 91 101 91 L90 60 Z" fill="url(#siya-evo-metal)" stroke="#2369a3" stroke-width="3"/><circle cx="14" cy="91" r="10" fill="var(--siya-neon)"/><circle cx="106" cy="91" r="10" fill="var(--siya-neon)"/></g>
-      <g class="siya-evo-legs"><path d="M34 77 L54 81 L50 124 L28 124Z" fill="url(#siya-evo-metal)" stroke="#1c5180" stroke-width="3"/><path d="M86 77 L66 81 L70 124 L92 124Z" fill="url(#siya-evo-metal)" stroke="#1c5180" stroke-width="3"/><path d="M27 121 Q19 127 20 137 L54 137 52 121Z" fill="#103557" stroke="var(--siya-neon)" stroke-width="3"/><path d="M93 121 Q101 127 100 137 L66 137 68 121Z" fill="#103557" stroke="var(--siya-neon)" stroke-width="3"/></g>
-      <g class="siya-evo-finishing"><path d="M39 79 H81" stroke="var(--siya-neon)" stroke-width="3"/><path d="M39 100 H49 M71 100 H81" stroke="var(--siya-neon)" stroke-width="3"/><circle cx="60" cy="53" r="15" fill="none" stroke="var(--siya-neon)" stroke-width="2" stroke-dasharray="3 5"/></g>`;
-    wrap.append(evo);
+    // v4.0.18: the real, user-selected Design A artwork is used in all six stages.
+    // The original neon SVG face remains underneath as a graceful missing-asset fallback.
+    const hero=make('span','siya-compact-hero');
+    for(let stage=0;stage<=5;stage++){
+      const layer=make('img','siya-compact-stage');
+      layer.src=ROOT+'siya-hero/stage-'+stage+'.webp?v=4.0.18';
+      layer.alt='';layer.draggable=false;layer.decoding='async';
+      layer.dataset.stage=String(stage);
+      layer.addEventListener('error',()=>{root.dataset.artFallback='yes';});
+      hero.append(layer);
+    }
+    const lids=make('span','siya-hero-lids');
+    lids.append(make('span','siya-hero-lid siya-hero-left'),make('span','siya-hero-lid siya-hero-right'));
+    wrap.insertBefore(hero,img);wrap.append(lids);
   }
   return wrap;
 }
@@ -656,13 +658,14 @@ const SIYA_PERSONAL_PALETTE=['#17e8ff','#45ffab','#b77bff','#ffca43','#ff76c4','
 let growthIdentity='',growthScore=null;
 function applyPersonalIdentity(verifiedKey){
  const key=/^[a-f0-9]{64}$/i.test(String(verifiedKey||''))?String(verifiedKey).toLowerCase():'';
- if(!key){growthIdentity='';growthScore=null;root.style.removeProperty('--siya-personal-neon');root.dataset.growthStage='0';return}
+ if(!key){growthIdentity='';growthScore=null;root.style.removeProperty('--siya-personal-neon');root.style.removeProperty('--siya-hero-shift');root.dataset.growthStage='0';return}
  if(key===growthIdentity)return;
  growthIdentity=key;growthScore=null;
  const slot=parseInt(key.slice(0,8),16)%SIYA_PERSONAL_PALETTE.length;
  const base=[190,150,275,43,327,230,23,94,175,305][slot];
  const offset=(parseInt(key.slice(8,12),16)%2901)/100-14.5;
  root.style.setProperty('--siya-personal-neon','hsl('+((base+offset+360)%360).toFixed(2)+' 100% 66%)');
+ root.style.setProperty('--siya-hero-shift',(((base+offset+360)%360)-193).toFixed(2)+'deg');
  root.dataset.growthStage='0';
 }
 function updateMascotGrowth(data){
@@ -931,7 +934,7 @@ quick.addEventListener('submit',async e=>{e.preventDefault();if(send.disabled)re
 const storageKey='yp-siya-mascot-position-v1';let dragged=false,down=null,skipClick=false;
 function clamp(v,min,max){return Math.max(min,Math.min(max,v))}
 function defaultXY(){return {x:Math.max(12,innerWidth-root.offsetWidth-20),y:Math.max(12,innerHeight-root.offsetHeight-20)}}
-function position(x,y,save){const w=root.offsetWidth||68,h=root.offsetHeight||68,level=Math.max(0,Math.min(5,Number(root.dataset.growthStage)||0)),extra=level>=4?82:level>=2?58:level>=1?22:0,px=clamp(Math.round(x),8,Math.max(8,innerWidth-w-8)),py=clamp(Math.round(y),8,Math.max(8,innerHeight-h-extra-8));root.style.left=px+'px';root.style.top=py+'px';root.style.right='auto';root.style.bottom='auto';layoutPanel();if(save)try{localStorage.setItem(storageKey,JSON.stringify({x:innerWidth?px/innerWidth:.8,y:innerHeight?py/innerHeight:.8}))}catch{}}
+function position(x,y,save){const w=root.offsetWidth||68,h=root.offsetHeight||68,level=Math.max(0,Math.min(5,Number(root.dataset.growthStage)||0)),extra=root.dataset.artFallback==='yes'?(level>=4?82:level>=2?58:level>=1?22:0):0,px=clamp(Math.round(x),8,Math.max(8,innerWidth-w-8)),py=clamp(Math.round(y),8,Math.max(8,innerHeight-h-extra-8));root.style.left=px+'px';root.style.top=py+'px';root.style.right='auto';root.style.bottom='auto';layoutPanel();if(save)try{localStorage.setItem(storageKey,JSON.stringify({x:innerWidth?px/innerWidth:.8,y:innerHeight?py/innerHeight:.8}))}catch{}}
 function layoutPanel(){const box=root.getBoundingClientRect(),pWidth=Math.min(385,innerWidth-18),pHeight=panel.offsetHeight||395,x=clamp(box.left+box.width-pWidth,9,Math.max(9,innerWidth-pWidth-9));let y=box.top-pHeight-13;if(y<9)y=clamp(box.bottom+10,9,Math.max(9,innerHeight-pHeight-9));panel.style.left=x+'px';panel.style.top=y+'px';panel.style.width=pWidth+'px'}
 function autoOpenApproved(open=true){if(!open)return;if(panel.dataset.open!=='yes'){panel.dataset.open='yes';btn.setAttribute('aria-expanded','true')}layoutPanel()}
 function toggle(){if(panel.dataset.open==='yes'){if(!brief.hidden)dismissBrief();panel.dataset.open='no';btn.setAttribute('aria-expanded','false');return;}
