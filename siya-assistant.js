@@ -1,4 +1,4 @@
-/* Siya v4.0.18 — Design A Compact Hero and expressive neon mascot, contextual humour, serious-mode guardrails, briefings & reminders.
+/* Siya v4.0.18f — Design A Compact Hero and expressive neon mascot, contextual humour, serious-mode guardrails, briefings & reminders.
    Never infers login status on public GitHub Pages. All sensitive data via protected Worker. */
 (()=>{'use strict';
 if(document.getElementById('siya-launcher'))return;
@@ -125,7 +125,7 @@ window.addEventListener('message',async event=>{
 
 const ROOT=protectedOrigin?'/':location.pathname.startsWith('/portfolio/')?'/portfolio/':'/';
 if(!protectedOrigin&&!document.querySelector('link[data-siya-theme="neon"]')){
- const sheet=document.createElement('link');sheet.rel='stylesheet';sheet.href=ROOT+'siya-assistant.css?v=4.0.18';sheet.dataset.siyaTheme='neon';document.head.append(sheet);
+ const sheet=document.createElement('link');sheet.rel='stylesheet';sheet.href=ROOT+'siya-assistant.css?v=4.0.18f';sheet.dataset.siyaTheme='neon';document.head.append(sheet);
 }
 const PATH=location.pathname.toLowerCase();
 const CONTEXT=/timesheet|time-?track/.test(PATH)?'timesheets':/studies|study|grade|assessment|cad/.test(PATH)?'studies':/analytic|insight|report/.test(PATH)?'analytics':/project|milestone|publish/.test(PATH)?'projects':/certificat/.test(PATH)?'certificates':/admin|access|user/.test(PATH)?'admin':/ai-centre/.test(PATH)?'ai':'home';
@@ -307,21 +307,20 @@ function makeSiyaFace(){
  const eyes=[121,238].map((cx,i)=>`<g class="siya-one-eye siya-eye-${i===0?'left':'right'}"><ellipse class="siya-eye-mask" cx="${cx}" cy="222" rx="30" ry="30"/><g class="siya-eye-beam"><g class="siya-eye-pupil"><ellipse class="siya-eye-blur" cx="${cx}" cy="222" rx="26" ry="26"/><ellipse class="siya-eye-aura" cx="${cx}" cy="222" rx="27" ry="27" fill="url(#${ident})"/><circle class="siya-eye-iris" cx="${cx}" cy="222" r="18"/><circle class="siya-eye-core" cx="${cx}" cy="222" r="11"/><circle class="siya-eye-shine" cx="${cx-4}" cy="217" r="5"/></g></g><path class="siya-expression-brow" d="M ${cx-25} 181 Q ${cx} 168 ${cx+24} 180"/><path class="siya-expression-lid" d="M ${cx-26} 222 Q ${cx} 235 ${cx+26} 222"/></g>`).join('');
  overlay.innerHTML=`<defs><radialGradient id="${ident}"><stop offset="0%" stop-color="#ffffff" stop-opacity=".72"/><stop offset="34%" stop-color="var(--siya-neon)" stop-opacity=".94"/><stop offset="85%" stop-color="var(--siya-neon)" stop-opacity=".36"/><stop offset="100%" stop-color="var(--siya-neon)" stop-opacity="0"/></radialGradient></defs>${eyes}<g class="siya-mouth-group"><path class="siya-mouth-line" d="M153 251 Q180 274 207 251"/></g>`;
   wrap.append(img,overlay);
-  if(faceCounter===1){
-    // v4.0.18: the real, user-selected Design A artwork is used in all six stages.
-    // The original neon SVG face remains underneath as a graceful missing-asset fallback.
+  if(faceCounter<=2){
+    // Both the launcher and the small header use the same clean Stage 0 face.
+    // Only the launcher can evolve; the header remains a compact head.
+    if(faceCounter===2)wrap.classList.add('siya-header-face');
+    // Exactly ONE stage image is ever mounted. Switching it never puts the next stage on screen until it is verified.
     const hero=make('span','siya-compact-hero');
-    for(let stage=0;stage<=5;stage++){
-      const layer=make('img','siya-compact-stage');
-      layer.src=ROOT+'siya-hero/stage-'+stage+'.webp?v=4.0.18c';
-      layer.alt='';layer.draggable=false;layer.decoding='async';
-      layer.dataset.stage=String(stage);
-      layer.addEventListener('error',()=>{root.dataset.artFallback='yes';});
-      hero.append(layer);
-    }
+    const layer=make('img','siya-compact-stage');
+    layer.alt='';layer.draggable=false;layer.decoding='async';
+    layer.src=ROOT+'siya-hero/stage-0.webp?v=4.0.18f';
+    layer.addEventListener('error',()=>{root.dataset.artFallback='yes';});
+    hero.append(layer);wrap.insertBefore(hero,img);
     const lids=make('span','siya-hero-lids');
     lids.append(make('span','siya-hero-lid siya-hero-left'),make('span','siya-hero-lid siya-hero-right'));
-    wrap.insertBefore(hero,img);wrap.append(lids);
+    wrap.append(lids);
   }
   return wrap;
 }
@@ -657,9 +656,24 @@ async function guest(){
 }
 const SIYA_PERSONAL_PALETTE=['#17e8ff','#45ffab','#b77bff','#ffca43','#ff76c4','#76a3ff','#ff9754','#a3fa57','#5dffdf','#f9a2ff'];
 let growthIdentity='',growthScore=null;
+let activeArtStage=0,stageImageGeneration=0;
+function displayVerifiedStage(stage){
+ const n=Math.max(0,Math.min(5,Math.floor(Number(stage)||0)));
+ const image=icon?.querySelector('.siya-compact-stage');
+ if(!image||n===activeArtStage)return;
+ const job=++stageImageGeneration;
+ const next=new Image();next.onload=()=>{
+   if(job!==stageImageGeneration||!image.isConnected)return;
+   image.src=next.src;activeArtStage=n;root.dataset.growthStage=String(n);
+   const b=root.getBoundingClientRect();position(b.left,b.top,false);
+ };
+ next.onerror=()=>{if(job===stageImageGeneration)root.dataset.artFallback='yes';};
+ next.src=ROOT+'siya-hero/stage-'+n+'.webp?v=4.0.18f';
+}
+
 function applyPersonalIdentity(verifiedKey){
  const key=/^[a-f0-9]{64}$/i.test(String(verifiedKey||''))?String(verifiedKey).toLowerCase():'';
- if(!key){growthIdentity='';growthScore=null;root.style.removeProperty('--siya-personal-neon');root.style.removeProperty('--siya-hero-shift');root.dataset.growthStage='0';return}
+ if(!key){growthIdentity='';growthScore=null;root.style.removeProperty('--siya-personal-neon');root.style.removeProperty('--siya-hero-shift');stageImageGeneration++;activeArtStage=0;root.dataset.growthStage='0';const art=icon.querySelector('.siya-compact-stage');if(art)art.src=ROOT+'siya-hero/stage-0.webp?v=4.0.18f';return}
  if(key===growthIdentity)return;
  growthIdentity=key;growthScore=null;
  const slot=parseInt(key.slice(0,8),16)%SIYA_PERSONAL_PALETTE.length;
@@ -667,12 +681,12 @@ function applyPersonalIdentity(verifiedKey){
  const offset=(parseInt(key.slice(8,12),16)%2901)/100-14.5;
  root.style.setProperty('--siya-personal-neon','hsl('+((base+offset+360)%360).toFixed(2)+' 100% 66%)');
  root.style.setProperty('--siya-hero-shift',(((base+offset+360)%360)-193).toFixed(2)+'deg');
- root.dataset.growthStage='0';
+ stageImageGeneration++;activeArtStage=0;root.dataset.growthStage='0';const art=icon.querySelector('.siya-compact-stage');if(art)art.src=ROOT+'siya-hero/stage-0.webp?v=4.0.18f';
 }
 function updateMascotGrowth(data){
  if(!growthIdentity||!data||data.verified!==true||data.viewerKey!==growthIdentity)return;
  const stage=Math.max(0,Math.min(5,Math.floor(Number(data.stage)||0)));
- root.dataset.growthStage=String(stage);growthScore=data;requestAnimationFrame(()=>{if(root.isConnected){const bounds=root.getBoundingClientRect();position(bounds.left,bounds.top,false)}});
+ displayVerifiedStage(stage);growthScore=data;requestAnimationFrame(()=>{if(root.isConnected){const bounds=root.getBoundingClientRect();position(bounds.left,bounds.top,false)}});
  if(typeof growthHint!=='undefined'){growthHint.hidden=false;growthHint.textContent='🤖 Growth: '+(data.stageName||'Head')+' · '+(Number(data.activeDays)||0)+' active days · '+(Number(data.creditedChats)||0)+' credited chats. Next stage grows with time and use.';}
 }
 async function refreshMascotGrowth(){
