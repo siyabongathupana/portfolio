@@ -1,9 +1,10 @@
-/* Siya v4.0.18h — Design A Compact Hero and expressive neon mascot, contextual humour, serious-mode guardrails, briefings & reminders.
+/* Siya v4.0.18i — Design A Compact Hero and expressive neon mascot, contextual humour, serious-mode guardrails, briefings & reminders.
    Never infers login status on public GitHub Pages. All sensitive data via protected Worker. */
 (()=>{'use strict';
 if(document.getElementById('siya-launcher'))return;
 const WORKER='https://portfolio-data-bridge.siyabongatshem.workers.dev';
 const JOIN='https://siyabongathupana.github.io/portfolio/join.html';
+const SIYA_HELP_GUIDE='https://siyabongathupana.github.io/portfolio/siya-guide.html';
 const protectedOrigin=location.origin===new URL(WORKER).origin;
 const PUBLIC_ORIGIN='https://siyabongathupana.github.io';
 const TOKEN_KEY='siya-v408-chat-token';
@@ -93,13 +94,13 @@ async function verifyRelaySession(){if(!relayToken?.token)return null;
   if(err.status===401||err.status===403)forgetRelayToken()}
  return null;
 }
-// v4.0.18h: verification is silent.  No window.open() and no modal verification popup.
+// v4.0.18i: verification is silent.  No window.open() and no modal verification popup.
 // A fresh Cloudflare Access login may require a user-initiated top-level navigation;
 // it must never be initiated by background verification.
 
 const ROOT=protectedOrigin?'/':location.pathname.startsWith('/portfolio/')?'/portfolio/':'/';
 if(!protectedOrigin&&!document.querySelector('link[data-siya-theme="neon"],link[href*="siya-assistant.css"]')){
- const sheet=document.createElement('link');sheet.rel='stylesheet';sheet.href=ROOT+'siya-assistant.css?v=4.0.18h';sheet.dataset.siyaTheme='neon';document.head.append(sheet);
+ const sheet=document.createElement('link');sheet.rel='stylesheet';sheet.href=ROOT+'siya-assistant.css?v=4.0.18i';sheet.dataset.siyaTheme='neon';document.head.append(sheet);
 }
 const PATH=location.pathname.toLowerCase();
 const CONTEXT=/timesheet|time-?track/.test(PATH)?'timesheets':/studies|study|grade|assessment|cad/.test(PATH)?'studies':/analytic|insight|report/.test(PATH)?'analytics':/project|milestone|publish/.test(PATH)?'projects':/certificat/.test(PATH)?'certificates':/admin|access|user/.test(PATH)?'admin':/ai-centre/.test(PATH)?'ai':'home';
@@ -289,7 +290,7 @@ function makeSiyaFace(){
     const hero=make('span','siya-compact-hero');
     const layer=make('img','siya-compact-stage');
     layer.alt='';layer.draggable=false;layer.decoding='async';
-    layer.src=ROOT+'siya-hero/stage-0.webp?v=4.0.18h';
+    layer.src=ROOT+'siya-hero/stage-0.webp?v=4.0.18i';
     layer.addEventListener('error',()=>{root.dataset.artFallback='yes';});
     hero.append(layer);wrap.insertBefore(hero,img);
     const lids=make('span','siya-hero-lids');
@@ -496,6 +497,15 @@ function startThinkingTimer(){const began=Date.now();elapsedLabel.hidden=false;s
 function finishThinkingTimer(){if(progressTicker)clearInterval(progressTicker);progressTicker=null;stopChat.hidden=true;elapsedLabel.hidden=true;activeChatController=null}
 const quickStatus=make('p','siya-message');quickStatus.setAttribute('aria-live','polite');panel.append(quickStatus);
 const actions=make('div','siya-actions');panel.append(actions);
+const siyaGuideRow=make('div','siya-guide-row');siyaGuideRow.hidden=true;
+const siyaGuideLink=make('a','siya-guide-link','📖 Discover YourPortfolio · Siya’s guide ↗');
+siyaGuideLink.href=SIYA_HELP_GUIDE;siyaGuideLink.target='_blank';siyaGuideLink.rel='noopener noreferrer';
+siyaGuideRow.append(siyaGuideLink);panel.append(siyaGuideRow);
+let siyaGuideOffered=false,siyaTroubleCount=0;
+function showSiyaGuide(){siyaGuideOffered=true;siyaGuideRow.hidden=false;layoutPanel();}
+function isSiyaGuideQuestion(text){const q=String(text||'').toLowerCase().trim();return /^(?:help|help me|how (?:does|do|can) (?:yourportfolio|the portfolio|this (?:site|app|portfolio)|siya|you) (?:work|grow)|what (?:is|does) (?:yourportfolio|the portfolio|this (?:site|app|platform))|(?:show|open|send|give)(?: me)? (?:the )?(?:help|guide|tour)|(?:explain|show me) (?:all|every|your|the) (?:features|portfolio)|how do i get started|what can (?:this (?:site|app)|i do here|siya) do)[?.!\s]*$/i.test(q)||/\b(?:help page|user guide|yourportfolio guide|site guide|guide link|portfolio tour|show me around|onboarding guide)\b/i.test(q);}
+function recordSiyaTrouble(){siyaTroubleCount++;if(siyaTroubleCount>=2)showSiyaGuide();}
+
 const status=make('div','siya-state');panel.append(status);
 const reset=make('button','siya-reset','↺ Reset mascot position');reset.type='button';panel.append(reset);root.append(panel);
 const action=(label,url,primary)=>{const a=make('a',primary?'siya-primary':'',label);a.href=url;actions.append(a)};
@@ -552,6 +562,7 @@ function renderPublicAccount(signed,generation){
  actions.replaceChildren();quick.hidden=true;brief.hidden=true;mailboxSection.hidden=true;trophy.hidden=true;briefContent.textContent='';
  if(!verified||signed.aiAllowed!==true)quickStatus.textContent='';
  if(verified&&signed.aiAllowed===true){
+  siyaGuideRow.hidden=!siyaGuideOffered;
   quick.hidden=false;relayUnavailable=false;eyeDefault(signed.isAdmin?'admin':'idle');applyEyeMode(eyeCurrent);
   notificationData={badgeCount:signed.badgeCount,hasPartialMailboxScan:signed.partialMailboxScan===true||signed.badgeCount===null,checkedAt:new Date().toISOString()};updateBadge();
   activateTranscript(signed.viewerKey);updateMascotGrowth(signed.growth);personalWelcome(signed.firstName||'');updateTranscript();
@@ -560,6 +571,7 @@ function renderPublicAccount(signed,generation){
   status.textContent=hasRelaySession()?'AI access verified · Secure chat connected.':'AI access verified · Secure browser session.';
   layoutPanel(); // User opens mini-chat only by clicking Siya.
  }else if(verified&&signed.aiAllowed===false){
+  showSiyaGuide();
   badge.hidden=true;eyePulse('denied',9000);setExpression('suspicious',9000);
   const waitingLines=[
    '👀 Your account checks out, but your AI badge is still in the approval queue. Even my toaster had to wait. 😂',
@@ -571,6 +583,7 @@ function renderPublicAccount(signed,generation){
   action('Request Siya AI access',WORKER+'/ai-access.html',true);
   status.textContent='Your account is recognized. Siya AI chat requires approval.';
  }else{
+  showSiyaGuide();
   eyeDefault('idle');badge.hidden=true;activateTranscript('');conversationView.hidden=true;
   const line=visitorRoasts[Math.floor(Math.random()*visitorRoasts.length)];
   msg.textContent='Hello, visitor! '+line;
@@ -584,6 +597,7 @@ function renderPublicAccount(signed,generation){
 }
 function showPublicPending(generation){
  if(generation!==guestGeneration)return;
+ showSiyaGuide();
  actions.replaceChildren();quick.hidden=true;brief.hidden=true;
  msg.textContent='🤖 Checking your existing Siya clearance… My circuits are being unusually professional.';
  status.textContent='Checking secure account and AI access automatically.';
@@ -600,7 +614,7 @@ async function guest(){
   if(generation!==guestGeneration)return;
   if(checked){renderPublicAccount(checked,generation);return}
   if(relayLastError){
-   actions.replaceChildren();quick.hidden=true;
+   showSiyaGuide();actions.replaceChildren();quick.hidden=true;
    relayUnavailable=true;eyePulse('warning',9000);setExpression('serious',9000);
    msg.textContent=nextRelayQuip();
    action('Open Siya AI Centre',WORKER+'/ai-centre.html',true);
@@ -642,12 +656,12 @@ function displayVerifiedStage(stage){
    const b=root.getBoundingClientRect();position(b.left,b.top,false);
  };
  next.onerror=()=>{if(job===stageImageGeneration)root.dataset.artFallback='yes';};
- next.src=ROOT+'siya-hero/stage-'+n+'.webp?v=4.0.18h';
+ next.src=ROOT+'siya-hero/stage-'+n+'.webp?v=4.0.18i';
 }
 
 function applyPersonalIdentity(verifiedKey){
  const key=/^[a-f0-9]{64}$/i.test(String(verifiedKey||''))?String(verifiedKey).toLowerCase():'';
- if(!key){growthIdentity='';growthScore=null;root.style.removeProperty('--siya-personal-neon');root.style.removeProperty('--siya-hero-shift');stageImageGeneration++;activeArtStage=0;root.dataset.growthStage='0';const art=icon.querySelector('.siya-compact-stage');if(art)art.src=ROOT+'siya-hero/stage-0.webp?v=4.0.18h';return}
+ if(!key){growthIdentity='';growthScore=null;root.style.removeProperty('--siya-personal-neon');root.style.removeProperty('--siya-hero-shift');stageImageGeneration++;activeArtStage=0;root.dataset.growthStage='0';const art=icon.querySelector('.siya-compact-stage');if(art)art.src=ROOT+'siya-hero/stage-0.webp?v=4.0.18i';return}
  if(key===growthIdentity)return;
  growthIdentity=key;growthScore=null;
  const slot=parseInt(key.slice(0,8),16)%SIYA_PERSONAL_PALETTE.length;
@@ -655,7 +669,7 @@ function applyPersonalIdentity(verifiedKey){
  const offset=(parseInt(key.slice(8,12),16)%2901)/100-14.5;
  root.style.setProperty('--siya-personal-neon','hsl('+((base+offset+360)%360).toFixed(2)+' 100% 66%)');
  root.style.setProperty('--siya-hero-shift',(((base+offset+360)%360)-193).toFixed(2)+'deg');
- stageImageGeneration++;activeArtStage=0;root.dataset.growthStage='0';const art=icon.querySelector('.siya-compact-stage');if(art)art.src=ROOT+'siya-hero/stage-0.webp?v=4.0.18h';
+ stageImageGeneration++;activeArtStage=0;root.dataset.growthStage='0';const art=icon.querySelector('.siya-compact-stage');if(art)art.src=ROOT+'siya-hero/stage-0.webp?v=4.0.18i';
 }
 function updateMascotGrowth(data){
  if(!growthIdentity||!data||data.verified!==true||data.viewerKey!==growthIdentity)return;
@@ -880,7 +894,9 @@ async function handleMemoryCommand(q){
  return false;
 }
 quick.addEventListener('submit',async e=>{e.preventDefault();if(send.disabled)return;const q=prompt.value.trim();if(!q)return;prompt.value='';prompt.focus({preventScroll:true});
+ if(isSiyaGuideQuestion(q)){showSiyaGuide();quickStatus.textContent='📖 Here is my friendly tour of YourPortfolio! The guide explains what the platform does, how I can help, and how I slowly grow — without spoiling the surprises. Tap the guide link below.';if(protectedOrigin&&allowed){addTranscript('user',q);addTranscript('assistant',quickStatus.textContent)}return;}
  if(protectedOrigin&&!allowed){quickStatus.textContent='Your Siya AI access must be approved before private chat is available.';return}
+ if(/(?:can.t find|cannot find|where (?:do|can) i (?:find|access|open)|i.m stuck|i am stuck|having trouble (?:using|finding)|don.t know how to (?:use|navigate))\b/i.test(q)&&/(?:timesheet|portfolio|project|study|studies|assignment|report|module|page|site|feature|account|siya)/i.test(q))showSiyaGuide();
  const chatTone=classifySiyaQuestion(q);lastQuestionTone=chatTone;
  addTranscript('user',q);send.disabled=true;startThinkingTimer();
  if(chatTone==='crisis'||chatTone==='serious'){setExpression('serious',6500);eyePulse('warning',5000)}
@@ -902,7 +918,7 @@ quick.addEventListener('submit',async e=>{e.preventDefault();if(send.disabled)re
    const reply=hasRelaySession()?await relayAnswer(q):await publicMiniChat(q);
    quickStatus.textContent=reply;eyePulse('success',8000);setExpression('happy',8000);
   }catch(err){
-   eyePulse('warning',9000);prompt.value=q;
+   recordSiyaTrouble();eyePulse('warning',9000);prompt.value=q;
    // A quota response, timeout or 503 does not revoke an approved user's signed session.
    if(err?.status===401||err?.status===403){forgetRelayToken();publicVerifiedSession=null;guest();}
    quickStatus.textContent=chatFailureMessage(err);
@@ -919,7 +935,7 @@ quick.addEventListener('submit',async e=>{e.preventDefault();if(send.disabled)re
  if(/(?:what(?:'s| is) due|deadlines?|any problems?|briefing|urgent|what should i check)/i.test(q)){if(briefingDismissed){quickStatus.textContent='Your briefing was already shown this session. For the full history, open Siya AI Centre.';}else{await getBrief();quickStatus.textContent=brief.hidden?'No new briefing to show.':'Your private briefing is above.';}return}
  const d=await api('/api/ai/chat','POST',{message:q,saveConversation:!['serious','crisis','boundary'].includes(chatTone),...(!['serious','crisis','boundary'].includes(chatTone)&&miniConversationId?{conversationId:miniConversationId}:{}),pageContext:pageContext(),persona:(seriousMode||['crisis','serious','boundary'].includes(chatTone))?'focused':'balanced'});
  if(d.conversationId){miniConversationId=d.conversationId;try{viewerKey&&sessionStorage.setItem('siya-mini-conversation-id:'+viewerKey,miniConversationId)}catch{}}eyePulse(chatTone==='crisis'||chatTone==='serious'?'warning':'success');if(chatTone!=='crisis'&&chatTone!=='serious')setExpression('happy',850);quickStatus.textContent=String(d.answer||d.error||'No answer returned').slice(0,950)+(d.proposal?' To approve that change, open the Command Centre.':'');
- }catch(err){eyePulse('error',9000);prompt.value=q;quickStatus.textContent=Number(err.status)===429?chatFailureMessage(err):(err?.name==='AbortError'?'⏹️ Wait cancelled. The server may still be processing this request; check before retrying.':String(err.message||'Request failed. Your question is still in the input.'))}finally{finishThinkingTimer();if(quickStatus.textContent&&!/^Siya is thinking/.test(quickStatus.textContent)){addTranscript('assistant',quickStatus.textContent);quickStatus.textContent='';}send.disabled=false;layoutPanel()}});
+ }catch(err){recordSiyaTrouble();eyePulse('error',9000);prompt.value=q;quickStatus.textContent=Number(err.status)===429?chatFailureMessage(err):(err?.name==='AbortError'?'⏹️ Wait cancelled. The server may still be processing this request; check before retrying.':String(err.message||'Request failed. Your question is still in the input.'))}finally{finishThinkingTimer();if(quickStatus.textContent&&!/^Siya is thinking/.test(quickStatus.textContent)){addTranscript('assistant',quickStatus.textContent);quickStatus.textContent='';}send.disabled=false;layoutPanel()}});
 const storageKey='yp-siya-mascot-position-v1';let dragged=false,down=null,skipClick=false;
 function clamp(v,min,max){return Math.max(min,Math.min(max,v))}
 function defaultXY(){return {x:Math.max(12,innerWidth-root.offsetWidth-20),y:Math.max(12,innerHeight-root.offsetHeight-20)}}

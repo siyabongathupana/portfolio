@@ -291,3 +291,10 @@
 #siya-launcher{transition:none!important}
 
 #siya-launcher .siya-growth-hint{display:none!important}
+
+/* v4.0.18i — user-requested Siya-curated, public Help & Discover link */
+#siya-launcher .siya-guide-row{margin:9px 0 3px}
+#siya-launcher .siya-guide-row[hidden]{display:none!important}
+#siya-launcher .siya-guide-link{display:block;padding:11px 12px;border:1px solid color-mix(in srgb,var(--siya-neon) 62%,#355c7e);border-radius:12px;background:linear-gradient(115deg,#123950,#1b2b4a);color:#c5faff;text-decoration:none;font-weight:750;font-size:12.5px;line-height:1.4}
+#siya-launcher .siya-guide-link:hover{background:linear-gradient(115deg,#1b4b61,#29375a)}
+#siya-launcher .siya-guide-link:focus-visible{outline:3px solid #6cebf6;outline-offset:3px}
