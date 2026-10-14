@@ -71,7 +71,7 @@ async function relayRequest(path,method='GET',payload,externalSignal){
  finally{clearTimeout(timeout)}
 }
 function recentChatTurns(){return chatTranscript.slice(-9,-1).filter(t=>t&&['user','assistant'].includes(t.role)).map(t=>({role:t.role,content:String(t.text).slice(0,450)}))}
-async function relayAnswer(question){const d=await relayRequest('/chat','POST',{message:question,recentTurns:recentChatTurns()},activeChatController?.signal);return String(d.answer||'No answer was returned.').slice(0,3000)}
+async function relayAnswer(question){const d=await relayRequest('/chat','POST',{message:question,recentTurns:recentChatTurns()},activeChatController?.signal);updateMascotGrowth(d.growth);return String(d.answer||'No answer was returned.').slice(0,3000)}
 function chatFailureMessage(err){
  const status=Number(err?.status)||0,code=String(err?.code||'');
  if(code==='CANCELLED')return '⏹️ Waiting cancelled. Your draft is intact; the server may still have processed the request.';
@@ -125,7 +125,7 @@ window.addEventListener('message',async event=>{
 
 const ROOT=protectedOrigin?'/':location.pathname.startsWith('/portfolio/')?'/portfolio/':'/';
 if(!protectedOrigin&&!document.querySelector('link[data-siya-theme="neon"]')){
- const sheet=document.createElement('link');sheet.rel='stylesheet';sheet.href=ROOT+'siya-assistant.css?v=4.0.10';sheet.dataset.siyaTheme='neon';document.head.append(sheet);
+ const sheet=document.createElement('link');sheet.rel='stylesheet';sheet.href=ROOT+'siya-assistant.css?v=4.0.17';sheet.dataset.siyaTheme='neon';document.head.append(sheet);
 }
 const PATH=location.pathname.toLowerCase();
 const CONTEXT=/timesheet|time-?track/.test(PATH)?'timesheets':/studies|study|grade|assessment|cad/.test(PATH)?'studies':/analytic|insight|report/.test(PATH)?'analytics':/project|milestone|publish/.test(PATH)?'projects':/certificat/.test(PATH)?'certificates':/admin|access|user/.test(PATH)?'admin':/ai-centre/.test(PATH)?'ai':'home';
@@ -306,7 +306,22 @@ function makeSiyaFace(){
  const ident='siya-neon-'+(++faceCounter);
  const eyes=[121,238].map((cx,i)=>`<g class="siya-one-eye siya-eye-${i===0?'left':'right'}"><ellipse class="siya-eye-mask" cx="${cx}" cy="222" rx="30" ry="30"/><g class="siya-eye-beam"><g class="siya-eye-pupil"><ellipse class="siya-eye-blur" cx="${cx}" cy="222" rx="26" ry="26"/><ellipse class="siya-eye-aura" cx="${cx}" cy="222" rx="27" ry="27" fill="url(#${ident})"/><circle class="siya-eye-iris" cx="${cx}" cy="222" r="18"/><circle class="siya-eye-core" cx="${cx}" cy="222" r="11"/><circle class="siya-eye-shine" cx="${cx-4}" cy="217" r="5"/></g></g><path class="siya-expression-brow" d="M ${cx-25} 181 Q ${cx} 168 ${cx+24} 180"/><path class="siya-expression-lid" d="M ${cx-26} 222 Q ${cx} 235 ${cx+26} 222"/></g>`).join('');
  overlay.innerHTML=`<defs><radialGradient id="${ident}"><stop offset="0%" stop-color="#ffffff" stop-opacity=".72"/><stop offset="34%" stop-color="var(--siya-neon)" stop-opacity=".94"/><stop offset="85%" stop-color="var(--siya-neon)" stop-opacity=".36"/><stop offset="100%" stop-color="var(--siya-neon)" stop-opacity="0"/></radialGradient></defs>${eyes}<g class="siya-mouth-group"><path class="siya-mouth-line" d="M153 251 Q180 274 207 251"/></g>`;
- wrap.append(img,overlay);return wrap;
+  wrap.append(img,overlay);
+  if(faceCounter===1){
+    const evo=document.createElementNS('http://www.w3.org/2000/svg','svg');
+    evo.setAttribute('viewBox','0 0 120 145');
+    evo.setAttribute('aria-hidden','true');
+    evo.setAttribute('class','siya-evo-body');
+    evo.innerHTML=`<defs><linearGradient id="siya-evo-metal" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#f2fbff"/><stop offset=".44" stop-color="#8dd9ff"/><stop offset="1" stop-color="#1e5c9b"/></linearGradient></defs>
+      <g class="siya-evo-neck"><rect x="48" y="6" width="24" height="26" rx="9" fill="#123858" stroke="var(--siya-neon)" stroke-width="3"/></g>
+      <g class="siya-evo-torso"><path d="M36 28 Q60 18 84 28 L93 77 Q60 92 27 77 Z" fill="url(#siya-evo-metal)" stroke="#1c5180" stroke-width="4"/><path d="M43 39 L77 39 L81 64 Q60 75 39 64Z" fill="#123454" stroke="var(--siya-neon)" stroke-width="2"/><circle cx="60" cy="53" r="10" fill="var(--siya-neon)" opacity=".8"/><circle cx="60" cy="53" r="5" fill="#faffff"/></g>
+      <g class="siya-evo-shoulders"><path d="M35 30 Q15 20 8 38 L17 59 33 51Z" fill="url(#siya-evo-metal)" stroke="var(--siya-neon)" stroke-width="3"/><path d="M85 30 Q105 20 112 38 L103 59 87 51Z" fill="url(#siya-evo-metal)" stroke="var(--siya-neon)" stroke-width="3"/></g>
+      <g class="siya-evo-arms"><path d="M17 52 L9 83 Q10 91 19 91 L30 60 Z" fill="url(#siya-evo-metal)" stroke="#2369a3" stroke-width="3"/><path d="M103 52 L111 83 Q110 91 101 91 L90 60 Z" fill="url(#siya-evo-metal)" stroke="#2369a3" stroke-width="3"/><circle cx="14" cy="91" r="10" fill="var(--siya-neon)"/><circle cx="106" cy="91" r="10" fill="var(--siya-neon)"/></g>
+      <g class="siya-evo-legs"><path d="M34 77 L54 81 L50 124 L28 124Z" fill="url(#siya-evo-metal)" stroke="#1c5180" stroke-width="3"/><path d="M86 77 L66 81 L70 124 L92 124Z" fill="url(#siya-evo-metal)" stroke="#1c5180" stroke-width="3"/><path d="M27 121 Q19 127 20 137 L54 137 52 121Z" fill="#103557" stroke="var(--siya-neon)" stroke-width="3"/><path d="M93 121 Q101 127 100 137 L66 137 68 121Z" fill="#103557" stroke="var(--siya-neon)" stroke-width="3"/></g>
+      <g class="siya-evo-finishing"><path d="M39 79 H81" stroke="var(--siya-neon)" stroke-width="3"/><path d="M39 100 H49 M71 100 H81" stroke="var(--siya-neon)" stroke-width="3"/><circle cx="60" cy="53" r="15" fill="none" stroke="var(--siya-neon)" stroke-width="2" stroke-dasharray="3 5"/></g>`;
+    wrap.append(evo);
+  }
+  return wrap;
 }
 const icon=makeSiyaFace();
 const btn=make('button','siya-trigger');btn.type='button';btn.setAttribute('aria-label','Open Siya assistant. Drag to move.');btn.setAttribute('aria-expanded','false');btn.removeAttribute('title');btn.append(icon,make('span','siya-dot'));const badge=make('span','siya-badge','');badge.hidden=true;badge.setAttribute('aria-live','polite');btn.append(badge);root.append(btn);
@@ -314,7 +329,7 @@ const panel=make('section','siya-card');panel.setAttribute('role','dialog');pane
 const head=make('div','siya-top'),hicon=makeSiyaFace(),heading=make('div');
 heading.append(make('strong','','Siya.Brain'),make('small','','I own everything here😎'));
 const eyeStatus=make('span','siya-eye-status','● Online');eyeStatus.title='Siya eye status — visual indication only';
-head.append(hicon,heading,eyeStatus);panel.append(head);
+head.append(hicon,heading,eyeStatus);panel.append(head);const growthHint=make('small','siya-growth-hint');growthHint.hidden=true;panel.append(growthHint);
 
 const SIYA_PAGE_NAME={timesheets:'Timesheets',studies:'Studies',projects:'Projects',analytics:'Analytics',admin:'Admin',ai:'AI Centre',home:'Home'}[CONTEXT]||'Portfolio';
 function pageContext(){return {page:CONTEXT,path:location.pathname.slice(0,160),timer:window.__siyaTimerLive?.getSnapshot?.()?.status||null};}
@@ -491,7 +506,7 @@ const conversationView=make('section','siya-conversation-view');conversationView
 const conversationLog=make('div','siya-conversation-log');conversationLog.setAttribute('role','log');conversationLog.setAttribute('aria-live','polite');
 conversationView.append(conversationLog);panel.append(conversationView);
 let chatTranscript=[];
-function activateTranscript(id){const next=/^[a-f0-9]{64}$/.test(String(id||''))?String(id):'';if(next===viewerKey)return;viewerKey=next;chatTranscript=[];miniConversationId=null;if(viewerKey)try{const old=JSON.parse(sessionStorage.getItem(CHAT_VIEW_KEY+viewerKey)||'[]');if(Array.isArray(old))chatTranscript=old.filter(x=>x&&['user','assistant'].includes(x.role)&&typeof x.text==='string').slice(-16);const id=sessionStorage.getItem('siya-mini-conversation-id:'+viewerKey);if(/^[0-9a-f-]{36}$/i.test(id||''))miniConversationId=id}catch{}updateTranscript()}
+function activateTranscript(id){const next=/^[a-f0-9]{64}$/.test(String(id||''))?String(id):'';applyPersonalIdentity(next);if(growthIdentity)growthHint.hidden=false;else growthHint.hidden=true;if(next===viewerKey)return;viewerKey=next;chatTranscript=[];miniConversationId=null;if(viewerKey)try{const old=JSON.parse(sessionStorage.getItem(CHAT_VIEW_KEY+viewerKey)||'[]');if(Array.isArray(old))chatTranscript=old.filter(x=>x&&['user','assistant'].includes(x.role)&&typeof x.text==='string').slice(-16);const id=sessionStorage.getItem('siya-mini-conversation-id:'+viewerKey);if(/^[0-9a-f-]{36}$/i.test(id||''))miniConversationId=id}catch{}updateTranscript()}
 function updateTranscript(){conversationLog.replaceChildren();for(const item of chatTranscript){const row=make('div','siya-conversation-bubble siya-conversation-'+item.role,item.text);conversationLog.append(row)}conversationView.hidden=!(chatTranscript.length&&(protectedOrigin?allowed:publicChatVerified()));if(typeof clearChat!=='undefined')clearChat.hidden=chatTranscript.length===0;conversationLog.scrollTop=conversationLog.scrollHeight;}
 function addTranscript(role,text){const safe=String(text||'').trim().slice(0,3000);if(!safe)return;chatTranscript.push({role,text:safe,private:['serious','crisis','boundary'].includes(lastQuestionTone)});chatTranscript=chatTranscript.slice(-16);try{viewerKey&&sessionStorage.setItem(CHAT_VIEW_KEY+viewerKey,JSON.stringify(chatTranscript.filter(x=>!x.private)))}catch{}updateTranscript()}
 function clearTranscript(){chatTranscript=[];try{viewerKey&&sessionStorage.removeItem(CHAT_VIEW_KEY+viewerKey)}catch{}updateTranscript()}
@@ -563,7 +578,7 @@ function renderPublicAccount(signed,generation){
  if(verified&&signed.aiAllowed===true){
   quick.hidden=false;relayUnavailable=false;eyeDefault(signed.isAdmin?'admin':'idle');applyEyeMode(eyeCurrent);
   notificationData={badgeCount:signed.badgeCount,hasPartialMailboxScan:signed.partialMailboxScan===true||signed.badgeCount===null,checkedAt:new Date().toISOString()};updateBadge();
-  activateTranscript(signed.viewerKey);personalWelcome(signed.firstName||'');updateTranscript();
+  activateTranscript(signed.viewerKey);updateMascotGrowth(signed.growth);personalWelcome(signed.firstName||'');updateTranscript();
   action('Open Siya AI Centre',WORKER+'/ai-centre.html',true);
   // A recheck happens automatically; never require a Verify button on the mini-chat.
   status.textContent=hasRelaySession()?'AI access verified · Secure chat connected.':'AI access verified · Secure browser session.';
@@ -576,7 +591,7 @@ function renderPublicAccount(signed,generation){
    '😎 Portfolio access: yes. Siya.Brain clearance: pending. The Boss keeps a surprisingly tight guest list.',
    '🛡️ Your login is real. My AI door is still locked. Request approval and I will pretend I was never suspicious.'
   ];
-  activateTranscript('');conversationView.hidden=true;msg.textContent=waitingLines[Math.floor(Math.random()*waitingLines.length)];
+  activateTranscript('');applyPersonalIdentity(signed.viewerKey);growthHint.hidden=true;conversationView.hidden=true;msg.textContent=waitingLines[Math.floor(Math.random()*waitingLines.length)];
   action('Request Siya AI access',WORKER+'/ai-access.html',true);
   status.textContent='Your account is recognized. Siya AI chat requires approval.';
  }else{
@@ -636,6 +651,29 @@ async function guest(){
  // If neither works, show an explicit connection action only when the user opens Siya.
  returningFromPrivate=false;
  renderPublicAccount(null,generation);
+}
+const SIYA_PERSONAL_PALETTE=['#17e8ff','#45ffab','#b77bff','#ffca43','#ff76c4','#76a3ff','#ff9754','#a3fa57','#5dffdf','#f9a2ff'];
+let growthIdentity='',growthScore=null;
+function applyPersonalIdentity(verifiedKey){
+ const key=/^[a-f0-9]{64}$/i.test(String(verifiedKey||''))?String(verifiedKey).toLowerCase():'';
+ if(!key){growthIdentity='';growthScore=null;root.style.removeProperty('--siya-personal-neon');root.dataset.growthStage='0';return}
+ if(key===growthIdentity)return;
+ growthIdentity=key;growthScore=null;
+ const slot=parseInt(key.slice(0,8),16)%SIYA_PERSONAL_PALETTE.length;
+ const base=[190,150,275,43,327,230,23,94,175,305][slot];
+ const offset=(parseInt(key.slice(8,12),16)%2901)/100-14.5;
+ root.style.setProperty('--siya-personal-neon','hsl('+((base+offset+360)%360).toFixed(2)+' 100% 66%)');
+ root.dataset.growthStage='0';
+}
+function updateMascotGrowth(data){
+ if(!growthIdentity||!data||data.verified!==true||data.viewerKey!==growthIdentity)return;
+ const stage=Math.max(0,Math.min(5,Math.floor(Number(data.stage)||0)));
+ root.dataset.growthStage=String(stage);growthScore=data;requestAnimationFrame(()=>{if(root.isConnected){const bounds=root.getBoundingClientRect();position(bounds.left,bounds.top,false)}});
+ if(typeof growthHint!=='undefined'){growthHint.hidden=false;growthHint.textContent='🤖 Growth: '+(data.stageName||'Head')+' · '+(Number(data.activeDays)||0)+' active days · '+(Number(data.creditedChats)||0)+' credited chats. Next stage grows with time and use.';}
+}
+async function refreshMascotGrowth(){
+ if(!protectedOrigin||!growthIdentity)return;
+ try{const r=await fetch('/api/siya/mascot-growth',{cache:'no-store',credentials:'same-origin',headers:{Accept:'application/json'}});if(!r.ok)return;updateMascotGrowth(await r.json())}catch{}
 }
 let allowed=false,recognizedPublic=false,profileName=null;
 async function api(path,method='GET',body=null){const opts={method,...(activeChatController?.signal&&method==='POST'?{signal:activeChatController.signal}:{}),credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json',...(body?{'Content-Type':'application/json'}:{})}};if(body)opts.body=JSON.stringify(body);const r=await fetch(path,opts);let d;try{d=await r.json()}catch{throw Error('A secure response could not be read.')}if(!r.ok){const err=Error(String(d.error||'Request failed').slice(0,180));err.status=r.status;err.code=String(d.code||'');throw err}return d}
@@ -702,7 +740,7 @@ async function loadMilestones(force=false){
 }
 async function getBrief(){if(!allowed){brief.hidden=true;updateBadge();return;}try{paintBrief(await api('/api/ai/companion/brief'))}catch(e){brief.hidden=true;updateBadge();quickStatus.textContent='Briefing temporarily unavailable. Your portfolio features still work.';layoutPanel()}}
 async function check(){if(!protectedOrigin){guest();return}eyePulse('thinking',8000);status.textContent='Checking access securely…';try{const d=await api('/api/ai/access/status');actions.replaceChildren();allowed=!!d.allowed;eyeDefault(allowed?(d.role==='admin'?'admin':'idle'):'denied');if(allowed){quick.hidden=false;updateTranscript();selectIntro();action('Open Siya AI Centre',WORKER+'/ai-centre.html',true);layoutPanel();
-  if(profileName===null){try{const p=await api('/api/siya/profile');profileName=String(p.displayName||'').trim();activateTranscript(p.viewerKey)}catch{profileName=''}}
+  if(profileName===null){try{const p=await api('/api/siya/profile');profileName=String(p.displayName||'').trim();activateTranscript(p.viewerKey);refreshMascotGrowth()}catch{profileName=''}}
   if(profileName)personalWelcome(profileName);
   status.textContent='AI access granted · '+(d.role==='admin'?'Administrator':'Member')+(profileName?' · '+profileName:'');await getBrief()}else{eyePulse('denied',5000);quick.hidden=true;activateTranscript('');conversationView.hidden=true;quickStatus.textContent='';brief.hidden=true;briefContent.textContent='';msg.textContent='🤖 Access denied by Cybertron Customs! I recognize your account, but the boss hasn’t issued your Siya clearance badge yet. Request access and I’ll pretend not to enjoy the paperwork.';action(d.requestStatus==='pending'?'View pending request':'Request AI access',WORKER+'/ai-access.html',true);status.textContent=d.requestStatus==='pending'?'Access request pending':'Existing portfolio features still work.'}}catch{eyePulse('warning',5000);quick.hidden=true;quickStatus.textContent='';brief.hidden=true;actions.replaceChildren();msg.textContent='I could not confirm access just now. Your existing account and Timesheets were not changed.';action('Open account access',WORKER+'/ai-access.html',true);status.textContent='Access verification temporarily unavailable.'}finally{layoutPanel()}}
 function sastToday(){const parts=Object.fromEntries(new Intl.DateTimeFormat('en-GB',{timeZone:'Africa/Johannesburg',day:'2-digit',month:'2-digit',year:'numeric'}).formatToParts(new Date()).filter(x=>x.type!=='literal').map(x=>[x.type,x.value]));return `${parts.year}-${parts.month}-${parts.day}`}
@@ -893,7 +931,7 @@ quick.addEventListener('submit',async e=>{e.preventDefault();if(send.disabled)re
 const storageKey='yp-siya-mascot-position-v1';let dragged=false,down=null,skipClick=false;
 function clamp(v,min,max){return Math.max(min,Math.min(max,v))}
 function defaultXY(){return {x:Math.max(12,innerWidth-root.offsetWidth-20),y:Math.max(12,innerHeight-root.offsetHeight-20)}}
-function position(x,y,save){const w=root.offsetWidth||68,h=root.offsetHeight||68,px=clamp(Math.round(x),8,Math.max(8,innerWidth-w-8)),py=clamp(Math.round(y),8,Math.max(8,innerHeight-h-8));root.style.left=px+'px';root.style.top=py+'px';root.style.right='auto';root.style.bottom='auto';layoutPanel();if(save)try{localStorage.setItem(storageKey,JSON.stringify({x:innerWidth?px/innerWidth:.8,y:innerHeight?py/innerHeight:.8}))}catch{}}
+function position(x,y,save){const w=root.offsetWidth||68,h=root.offsetHeight||68,level=Math.max(0,Math.min(5,Number(root.dataset.growthStage)||0)),extra=level>=4?82:level>=2?58:level>=1?22:0,px=clamp(Math.round(x),8,Math.max(8,innerWidth-w-8)),py=clamp(Math.round(y),8,Math.max(8,innerHeight-h-extra-8));root.style.left=px+'px';root.style.top=py+'px';root.style.right='auto';root.style.bottom='auto';layoutPanel();if(save)try{localStorage.setItem(storageKey,JSON.stringify({x:innerWidth?px/innerWidth:.8,y:innerHeight?py/innerHeight:.8}))}catch{}}
 function layoutPanel(){const box=root.getBoundingClientRect(),pWidth=Math.min(385,innerWidth-18),pHeight=panel.offsetHeight||395,x=clamp(box.left+box.width-pWidth,9,Math.max(9,innerWidth-pWidth-9));let y=box.top-pHeight-13;if(y<9)y=clamp(box.bottom+10,9,Math.max(9,innerHeight-pHeight-9));panel.style.left=x+'px';panel.style.top=y+'px';panel.style.width=pWidth+'px'}
 function autoOpenApproved(open=true){if(!open)return;if(panel.dataset.open!=='yes'){panel.dataset.open='yes';btn.setAttribute('aria-expanded','true')}layoutPanel()}
 function toggle(){if(panel.dataset.open==='yes'){if(!brief.hidden)dismissBrief();panel.dataset.open='no';btn.setAttribute('aria-expanded','false');return;}
@@ -910,7 +948,17 @@ reset.addEventListener('click',()=>{try{localStorage.removeItem(storageKey)}catc
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&panel.dataset.open==='yes'){panel.dataset.open='no';btn.setAttribute('aria-expanded','false');btn.focus()}});
 window.addEventListener('resize',()=>{const b=root.getBoundingClientRect();position(b.left,b.top,false)});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&protectedOrigin){loadMilestones();loadNotifications()}});
-if(protectedOrigin){setTimeout(()=>{check()},0);setTimeout(()=>{loadMilestones();loadNotifications()},700);setInterval(()=>{if(!document.hidden){loadNotifications();loadMilestones()}},90000)}
+async function siya417Presence(){
+ if(!protectedOrigin||document.hidden)return;
+ try{const r=await api('/api/ai/assistant/attention');const high=(r.items||[]).filter(x=>x.severity==='high');
+  if(!high.length)return;
+  const signature=high.map(x=>[x.kind,x.date,x.summary].join(':')).join('|');const last=sessionStorage.getItem('siya-presence-fingerprint');
+  if(signature!==last){sessionStorage.setItem('siya-presence-fingerprint',signature);setExpression('warning',9000);
+   if(panel.dataset.open==='yes'&&!prompt.value&&!send.disabled)quickStatus.textContent=high.length+' important verified item(s) need attention. Open Siya for details.';
+  }
+ }catch{ /* Don't interrupt ordinary chat because reminders are temporarily unavailable. */ }
+}
+if(protectedOrigin){setTimeout(()=>{check()},0);setTimeout(()=>{loadMilestones();loadNotifications();siya417Presence()},700);setInterval(()=>{if(!document.hidden){loadNotifications();loadMilestones();siya417Presence();refreshMascotGrowth()}},90000)}
 window.addEventListener('siya:notifications-changed',()=>{if(protectedOrigin){loadNotifications();loadMilestones(true)}});
 if(!protectedOrigin){setTimeout(()=>{if(!document.hidden)guest()},0);setInterval(()=>{if(!document.hidden)guest()},90000)}
 window.addEventListener('storage',e=>{if(e.key==='siya-personality-v1'&&panel.dataset.open==='yes')selectIntro()});
@@ -923,6 +971,7 @@ if(protectedOrigin){
  fetch('/api/siya/profile',{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}})
   .then(r=>r.ok?r.json():null).then(p=>{
    if(!p||!p.displayName)return;
+   applyPersonalIdentity(p.viewerKey);if(!allowed)growthHint.hidden=true;
    handoff={signedIn:true,firstName:String(p.displayName).split(/\s+/)[0].slice(0,70),isAdmin:!!p.owner,aiAllowed:null,checkedAt:Date.now(),badgeCount:null};
   }).catch(()=>{});
  document.addEventListener('click',event=>{

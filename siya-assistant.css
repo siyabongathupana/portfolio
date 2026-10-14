@@ -197,3 +197,23 @@
 #siya-launcher .siya-chat-tools button{font:650 11px/1.25 system-ui,sans-serif;border:1px solid var(--sedge);background:var(--sbtn);color:var(--sfg);padding:6px 8px;border-radius:8px;cursor:pointer}
 #siya-launcher .siya-chat-tools button[hidden],#siya-launcher .siya-elapsed[hidden]{display:none!important}
 #siya-launcher .siya-stop-chat{border-color:#ed9d7d!important}
+
+/* v4.0.17 — Account-specific idle eye color and slow robot evolution. */
+#siya-launcher[data-eye-state="idle"]{--siya-neon:var(--siya-personal-neon,#14deff);--siya-neon-soft:color-mix(in srgb,var(--siya-neon) 75%,transparent);--siya-neon-bg:color-mix(in srgb,var(--siya-neon) 22%,#07172c)}
+#siya-launcher .siya-trigger .siya-face{overflow:visible}
+#siya-launcher .siya-evo-body{position:absolute;z-index:-1;top:75%;left:5%;width:90%;height:112%;overflow:visible;filter:drop-shadow(0 0 8px var(--siya-neon-soft));pointer-events:none;transform-origin:50% 0;transition:filter .4s ease}
+#siya-launcher .siya-evo-body g{opacity:0;transform:scaleY(.12);transform-origin:60px 15px;transition:opacity 1.2s ease,transform 1.7s cubic-bezier(.21,.69,.3,1.01)}
+#siya-launcher[data-growth-stage="1"] .siya-evo-neck,#siya-launcher[data-growth-stage="2"] .siya-evo-neck,#siya-launcher[data-growth-stage="3"] .siya-evo-neck,#siya-launcher[data-growth-stage="4"] .siya-evo-neck,#siya-launcher[data-growth-stage="5"] .siya-evo-neck{opacity:1;transform:scaleY(1)}
+#siya-launcher[data-growth-stage="2"] .siya-evo-torso,#siya-launcher[data-growth-stage="3"] .siya-evo-torso,#siya-launcher[data-growth-stage="4"] .siya-evo-torso,#siya-launcher[data-growth-stage="5"] .siya-evo-torso,#siya-launcher[data-growth-stage="2"] .siya-evo-shoulders,#siya-launcher[data-growth-stage="3"] .siya-evo-shoulders,#siya-launcher[data-growth-stage="4"] .siya-evo-shoulders,#siya-launcher[data-growth-stage="5"] .siya-evo-shoulders{opacity:1;transform:scaleY(1)}
+#siya-launcher[data-growth-stage="3"] .siya-evo-arms,#siya-launcher[data-growth-stage="4"] .siya-evo-arms,#siya-launcher[data-growth-stage="5"] .siya-evo-arms{opacity:1;transform:scaleY(1)}
+#siya-launcher[data-growth-stage="4"] .siya-evo-legs,#siya-launcher[data-growth-stage="5"] .siya-evo-legs{opacity:1;transform:scaleY(1)}
+#siya-launcher[data-growth-stage="5"] .siya-evo-finishing{opacity:1;transform:scaleY(1)}
+#siya-launcher .siya-growth-hint{display:block;font-size:11px;color:var(--smuted);border-bottom:1px solid var(--sedge);padding-bottom:8px;margin-bottom:8px}
+#siya-launcher .siya-trigger .siya-evo-body{top:78%;height:125%}
+#siya-launcher .siya-top .siya-evo-body{display:none}
+@media(prefers-reduced-motion:reduce){#siya-launcher .siya-evo-body g{transition:none!important}}
+
+/* Evolving body sits behind the head, above the launcher background. */
+#siya-launcher .siya-evo-body{z-index:0}
+#siya-launcher .siya-face .siya-avatar{position:relative;z-index:1}
+#siya-launcher .siya-face .siya-eye-overlay{z-index:2}
