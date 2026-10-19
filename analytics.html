@@ -34,7 +34,7 @@ body.light{color-scheme:light;--page:#f0f2fa;--side:#e1e5f1;--card:#fff;--raised
 <div class="coach-popover" id="coachPopup"><strong>Siya's timesheet insights</strong><div id="miniCoach" style="margin-top:8px">Insights will appear when your timesheet loads.</div></div>
 </div></header>
 <div id="demoNotice" class="notice" hidden><strong>DESIGN PREVIEW MODE:</strong> These are generated example timesheet entries, not your data. Remove <code>?demo=1</code> from the URL for live data.</div>
-<div id="connectionHelp" class="notice" hidden><strong>Worker data connection needed:</strong> <span id="connectionText">The dashboard requires access to your authenticated timesheet API.</span> Your existing records have not been changed. <a href="https://portfolio-data-bridge.siyabongatshem.workers.dev/analytics.html" style="color:#a5b6ff;text-decoration:underline;font-weight:700">Open the current secure Analytics dashboard ↗</a></div>
+<div id="connectionHelp" class="notice" hidden><strong>Worker data connection needed:</strong> <span id="connectionText">The dashboard requires access to your authenticated timesheet API.</span> Your existing records have not been changed. <div style="margin-top:11px;display:flex;gap:11px;align-items:center;flex-wrap:wrap"><label class="button" style="display:inline-flex;cursor:pointer;background:#717ff1;padding:9px 13px;border-radius:9px;color:white;font-weight:700"><i class="fa fa-upload" style="margin-right:7px"></i> Import local timesheet <input id="importTimesheet" type="file" accept=".json,.csv,application/json,text/csv" style="display:none" /></label><a href="https://portfolio-data-bridge.siyabongatshem.workers.dev/analytics.html" target="_blank" rel="noopener noreferrer" style="color:#a5b6ff;text-decoration:underline;font-weight:700">Current secure Analytics ↗</a><span style="opacity:.8">File is processed only in your browser. Nothing is uploaded.</span></div></div>
 <div class="dashboard">
 <div class="main-column"><div class="kpi-strip">
 <div class="panel stat-panel"><div class="stat-head"><span class="circle-icon"><i class="fa fa-clock-o"></i></span></div><div class="stat-title">Total time tracked <span class="stat-value" id="todayTotal">0h</span></div><div class="stat-sub"><span id="totalEntriesLabel">0 recorded entries</span></div></div>
@@ -55,7 +55,7 @@ body.light{color-scheme:light;--page:#f0f2fa;--side:#e1e5f1;--card:#fff;--raised
 <section class="panel radar-panel"><div class="panel-top"><span class="panel-title">Productivity Chart</span><span class="text-muted" id="topCategory">Overview</span></div><div class="radar-container"><canvas id="chartProductivity"></canvas></div></section>
 <section class="panel analysis-panel"><div class="panel-top"><span class="panel-title">Time spent analysis</span><span class="text-muted">Tracked hours by project</span></div><div class="filter-strip"><select id="analysisProj" aria-label="Project" onchange="document.getElementById('analyticsProject').value=this.value;document.getElementById('analyticsProject').dispatchEvent(new Event('change'))"><option value="all">All projects</option></select><select id="analysisCat" aria-label="Category" onchange="document.getElementById('analyticsCategory').value=this.value;document.getElementById('analyticsCategory').dispatchEvent(new Event('change'))"><option value="all">All categories</option></select><span class="text-muted"><i class="fa fa-calendar"></i> Last 7 days</span></div><div class="analysis-canvas"><canvas id="chartTimeSpent"></canvas></div><div class="project-legend" id="projectLegend"></div></section>
 </div></div>
-<div class="detail-section"><div class="section-header"><h2>Detailed analytics</h2><div class="buttons"><button class="pill-btn" id="syncGitHubBtn"><i class="fa fa-refresh"></i> Refresh data</button><button class="pill-btn" id="exportAnalyticsPdfBtn"><i class="fa fa-file-pdf-o"></i> Export PDF</button><a class="pill-btn" href="timesheet.html">View timesheets <i class="fa fa-arrow-right"></i></a></div></div>
+<div class="detail-section"><div class="section-header"><h2>Detailed analytics</h2><div class="buttons"><button class="pill-btn" id="syncGitHubBtn"><i class="fa fa-refresh"></i> Sync data</button><button class="pill-btn" id="exportAnalyticsPdfBtn"><i class="fa fa-file-pdf-o"></i> Export PDF</button><a class="pill-btn" href="timesheet.html">View timesheets <i class="fa fa-arrow-right"></i></a></div></div>
 <div class="info-line"><span id="sourceStatus" class="status-pill" data-state="loading">Connecting…</span><span id="recordCount">0 entries</span><span id="lastUpdated">Not yet updated</span></div>
 <div class="filters"><span class="filter-title">Period</span><select id="analyticsRange"><option value="week">This week</option><option value="month" selected>This month</option><option value="lastWeek">Last week</option><option value="lastMonth">Last month</option><option value="last30">Last 30 days</option><option value="all">All time</option></select><span class="filter-title">Project</span><select id="analyticsProject"><option value="all">All projects</option></select><span class="filter-title">Category</span><select id="analyticsCategory"><option value="all">All categories</option><option>Training</option><option>Meetings</option><option>CFAT</option><option>IFAT</option><option>Implementation</option><option>Documentation</option><option>Graphics</option><option>Software</option><option>Hardware</option><option>Study Leave</option><option>Admin</option><option>Back-Punching</option><option>Site</option><option>Other</option></select></div>
 <div class="advanced-charts" id="chartGrid"><section class="panel"><h3 class="panel-title">Hours by project</h3><div class="canvas-holder"><canvas id="chartProject"></canvas></div></section><section class="panel"><h3 class="panel-title">Hours by category</h3><div class="canvas-holder"><canvas id="chartCategory"></canvas></div></section><section class="panel"><h3 class="panel-title">Billable vs non-billable</h3><div class="canvas-holder"><canvas id="chartBillable"></canvas></div></section><section class="panel"><h3 class="panel-title">Weekly hours trend</h3><div class="canvas-holder"><canvas id="chartWeeklyTrend"></canvas></div></section><section class="panel"><h3 class="panel-title">Admin vs project hours</h3><div class="canvas-holder"><canvas id="chartAdminProject"></canvas></div></section><section class="panel"><h3 class="panel-title">Top projects</h3><div class="canvas-holder"><canvas id="chartTopProjects"></canvas></div></section></div>
@@ -158,6 +158,35 @@ body.light{color-scheme:light;--page:#f0f2fa;--side:#e1e5f1;--card:#fff;--raised
                 }
                 document.getElementById('miniCoach').textContent = entries.length ? 'Your recorded activity is ready for review below.' : 'No entries yet.';
                 renderAll();
+            }
+            function parseCSV(text) {
+                // RFC-style CSV reader: handles commas, quoted fields, embedded newlines.
+                const rows=[], row=[]; let part='', quoted=false;
+                for(let i=0;i<text.length;i++) {
+                    const ch=text[i];
+                    if(ch==='"'){if(quoted && text[i+1]==='"'){part+='"';i++;}else{quoted=!quoted;} }
+                    else if(ch===','&&!quoted){row.push(part);part='';}
+                    else if((ch==='\n'||ch==='\r')&&!quoted){if(ch==='\r'&&text[i+1]==='\n')i++;row.push(part);if(row.some(v=>v.trim()))rows.push(row.slice());row.length=0;part='';}
+                    else part+=ch;
+                }
+                row.push(part);if(row.some(v=>v.trim()))rows.push(row);
+                if(rows.length<2)return [];
+                const headers=rows.shift().map(h=>h.replace(/^\uFEFF/,'').trim());
+                return rows.map(cols=>Object.fromEntries(headers.map((h,i)=>[h,cols[i]||''])));
+            }
+            async function importTimesheetFile(event){
+                const input=event.target, file=input.files?.[0]; if(!file)return;
+                try {
+                    if(file.size>8*1024*1024)throw Error('File exceeds 8 MB; use a smaller export.');
+                    const text=await file.text();
+                    const parsed=file.name.toLowerCase().endsWith('.csv')?parseCSV(text):JSON.parse(text);
+                    const list=normalizeRows(parsed);
+                    if(!list)throw Error('Expected a JSON timesheet array or a CSV with date, project and hours columns.');
+                    document.getElementById('connectionHelp').hidden=true;
+                    document.getElementById('demoNotice').hidden=true;
+                    applyEntries(list,'LOCAL FILE · '+file.name+' · not uploaded');
+                }catch(err){document.getElementById('connectionText').textContent='Could not read the selected file: '+err.message;document.getElementById('connectionHelp').hidden=false;}
+                finally{input.value='';}
             }
             function makeDemo() {
                 const projects=['Omnia NAP2','MIBK Dosing','ATKSS','Training'];
@@ -736,17 +765,19 @@ body.light{color-scheme:light;--page:#f0f2fa;--side:#e1e5f1;--card:#fff;--raised
                 document.getElementById('exportAnalyticsPdfBtn').addEventListener('click',exportPDF);
                 document.getElementById('reportNav').addEventListener('click',exportPDF);
                 document.getElementById('search').addEventListener('input',renderActivity);
+                document.getElementById('importTimesheet')?.addEventListener('change',importTimesheetFile);
                 document.getElementById('themeToggle').addEventListener('click',()=>{
                     document.body.classList.toggle('light');
-                    localStorage.setItem('yp-analytics-theme',document.body.classList.contains('light')?'light':'dark');
+                    try{localStorage.setItem('yp-analytics-theme',document.body.classList.contains('light')?'light':'dark')}catch(_){}
                 });
-                if(localStorage.getItem('yp-analytics-theme')==='light')document.body.classList.add('light');
+                try{if(localStorage.getItem('yp-analytics-theme')==='light')document.body.classList.add('light')}catch(_){}
                 document.getElementById('menuToggle').addEventListener('click',()=>document.body.classList.toggle('menu-open'));
                 document.getElementById('coachToggle').addEventListener('click',()=>document.getElementById('coachPopup').classList.toggle('open'));
                 document.getElementById('timerButton').addEventListener('click',toggleTimer);
                 document.getElementById('timerReset').addEventListener('click',()=>{timerElapsed=0;timerStarted=null;timerRunning=false;updateTimer();});
                 document.addEventListener('timesheetUpdated',fetchFromGitHub);
                 window.addEventListener('focus',()=>{if(Date.now()-(lastFetchTime?.getTime()||0)>300000)fetchFromGitHub();});
+                window.addEventListener('resize',()=>{if(!window.Chart)renderFallbackCharts(getFilteredEntries());});
             }
             let timerElapsed=0,timerStarted=null,timerRunning=false;
             function updateTimer(){
@@ -778,10 +809,57 @@ body.light{color-scheme:light;--page:#f0f2fa;--side:#e1e5f1;--card:#fff;--raised
                     tbody.append(tr);
                 }
             }
+            // Local Canvas charts keep the dashboard useful when a CDN is blocked by a CSP or offline.
+            // Chart.js, when available, remains the preferred renderer.
+            function fallbackCanvas(id,paint){
+                const canvas=document.getElementById(id);if(!canvas)return;
+                const rect=canvas.getBoundingClientRect(),w=Math.max(220,rect.width||320),h=Math.max(120,rect.height||220);
+                const dpr=Math.min(2,window.devicePixelRatio||1);
+                canvas.width=Math.ceil(w*dpr);canvas.height=Math.ceil(h*dpr);
+                const ctx=canvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);
+                ctx.clearRect(0,0,w,h);paint(ctx,w,h);
+            }
+            function renderFallbackCharts(filtered){
+                const palette=['#7e8df5','#ffaf25','#1fdaa0','#f32776','#b28cff'];
+                const recent=Array.from({length:7},(_,i)=>{let d=new Date();d.setDate(d.getDate()-6+i);return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');});
+                const sum=(date,pred)=>filtered.filter(e=>e.date===date&&pred(e)).reduce((t,e)=>t+e.hours,0);
+                const total=recent.map(d=>sum(d,()=>true)),bill=recent.map(d=>sum(d,e=>e.billable==='yes')),other=recent.map(d=>sum(d,e=>e.billable!=='yes'));
+                const projHours=new Map();const catHours=new Map();filtered.forEach(e=>{projHours.set(e.project,(projHours.get(e.project)||0)+e.hours);catHours.set(e.category,(catHours.get(e.category)||0)+e.hours);});
+                const projects=[...projHours].sort((a,b)=>b[1]-a[1]).slice(0,4),cats=[...catHours].sort((a,b)=>b[1]-a[1]).slice(0,5);
+                const graph=(id,series)=>fallbackCanvas(id,(c,w,h)=>{
+                    const L=22,R=8,T=18,B=24,gw=w-L-R,gh=h-T-B,mx=Math.max(1,...series.flatMap(v=>v.values));
+                    c.font='10px Inter, Arial';c.lineWidth=1;c.strokeStyle='rgba(255,255,255,.085)';c.fillStyle='#989caf';
+                    for(let j=0;j<4;j++){const y=T+gh*j/3;c.beginPath();c.moveTo(L,y);c.lineTo(w-R,y);c.stroke();c.fillText((mx*(3-j)/3).toFixed(0)+'h',0,y+3);}
+                    ['MON','TUE','WED','THU','FRI','SAT','SUN'].forEach((name,i)=>c.fillText(name,L+gw*i/6-8,h-5));
+                    for(const s of series){const values=s.values;const pts=values.map((v,i)=>[L+gw*i/6,T+gh*(1-v/mx)]);
+                      c.beginPath();c.moveTo(pts[0][0],T+gh);c.lineTo(pts[0][0],pts[0][1]);pts.slice(1).forEach(p=>c.lineTo(...p));c.lineTo(pts[6][0],T+gh);c.closePath();
+                      const g=c.createLinearGradient(0,T,0,T+gh);g.addColorStop(0,s.color+'99');g.addColorStop(1,s.color+'22');c.fillStyle=g;c.fill();
+                      c.beginPath();pts.forEach((p,i)=>i?c.lineTo(...p):c.moveTo(...p));c.strokeStyle=s.color;c.lineWidth=2;c.stroke();}
+                });
+                graph('chartBalance',[{values:bill,color:'#ffaf25'},{values:total,color:'#7e8df5'}]);
+                graph('chartDay',[{values:other,color:'#7e8df5'},{values:bill,color:'#1fdaa0'}]);
+                fallbackCanvas('chartImplementation',(c,w,h)=>{
+                    const cx=w/2,cy=h/2,r=Math.min(w,h)*.35,tot=projects.reduce((a,p)=>a+p[1],0)||1;
+                    let angle=-Math.PI/2;
+                    (projects.length?projects:[['No data',1]]).forEach(([p,v],i)=>{let sweep=(v/tot)*(Math.PI*2-.1*projects.length);c.beginPath();c.arc(cx,cy,r,angle,angle+sweep);c.strokeStyle=projects.length?palette[i]:'#555b71';c.lineWidth=9;c.lineCap='round';c.stroke();angle+=sweep+.1;});
+                });
+                const legend=document.getElementById('implementationLegend');legend.replaceChildren();projects.forEach(([name],i)=>{const line=document.createElement('div');line.className='legend-row';const dot=document.createElement('span');dot.className='dot';dot.style.background=palette[i];line.append(dot,document.createTextNode(name));legend.append(line);});
+                document.getElementById('ringValue').textContent=filtered.length?Math.round(bill.reduce((a,b)=>a+b,0)/Math.max(.001,filtered.reduce((a,e)=>a+e.hours,0))*100)+'%':'—';
+                fallbackCanvas('chartProductivity',(c,w,h)=>{if(!cats.length)return;const cx=w/2,cy=h/2,r=Math.min(w,h)*.34,n=Math.max(3,cats.length),max=Math.max(1,...cats.map(v=>v[1]));
+                  for(let ring=1;ring<=4;ring++){c.beginPath();for(let i=0;i<n;i++){const ang=-Math.PI/2+Math.PI*2*i/n;const x=cx+Math.cos(ang)*r*ring/4,y=cy+Math.sin(ang)*r*ring/4;i?c.lineTo(x,y):c.moveTo(x,y)}c.closePath();c.strokeStyle='rgba(255,255,255,.12)';c.stroke();}
+                  c.beginPath();for(let i=0;i<n;i++){const ang=-Math.PI/2+Math.PI*2*i/n,frac=(cats[i]?.[1]||0)/max;const x=cx+Math.cos(ang)*r*frac,y=cy+Math.sin(ang)*r*frac;i?c.lineTo(x,y):c.moveTo(x,y)}c.closePath();c.fillStyle='rgba(126,141,245,.55)';c.fill();c.strokeStyle='#7e8df5';c.lineWidth=2;c.stroke();
+                  c.font='10px Inter, Arial';c.fillStyle='#b7b9ce';cats.forEach(([name],i)=>{const a=-Math.PI/2+Math.PI*2*i/n;c.fillText(name.slice(0,12),cx+Math.cos(a)*(r+19)-18,cy+Math.sin(a)*(r+12));});
+                });
+                fallbackCanvas('chartTimeSpent',(c,w,h)=>{const L=27,T=15,B=30,R=8,gw=w-L-R,gh=h-T-B,max=Math.max(1,...projects.flatMap(([p])=>recent.map(d=>sum(d,e=>e.project===p))));
+                 c.font='10px Inter, Arial';for(let j=0;j<4;j++){const y=T+gh*j/3;c.strokeStyle='rgba(255,255,255,.075)';c.beginPath();c.moveTo(L,y);c.lineTo(w-R,y);c.stroke();c.fillStyle='#989caf';c.fillText((max*(3-j)/3).toFixed(0)+'h',0,y+3)}
+                 recent.forEach((d,i)=>{const cx=L+(i+.5)*gw/7;projects.forEach(([p],j)=>{const v=sum(d,e=>e.project===p),bw=Math.min(8,gw/(7*Math.max(1,projects.length)+12));c.fillStyle=palette[j];c.fillRect(cx+(j-(projects.length-1)/2)*bw*1.35-bw/2,T+gh*(1-v/max),bw,gh*v/max)});c.fillStyle='#a0a3b7';c.fillText(['MON','TUE','WED','THU','FRI','SAT','SUN'][i],cx-10,h-7)});
+                });
+                const legend2=document.getElementById('projectLegend');legend2.replaceChildren();projects.forEach(([p],i)=>{const el=document.createElement('span'),dot=document.createElement('span');el.className='legend-row';dot.className='dot';dot.style.background=palette[i];el.append(dot,document.createTextNode(p));legend2.append(el)});
+            }
             let bonusCharts={};
             function renderBonusCharts(filtered){
                 for(const c of Object.values(bonusCharts))c.destroy();bonusCharts={};
-                if(!window.Chart)return;
+                if(!window.Chart){renderFallbackCharts(filtered);return;}
                 const colors=['#7c8cff','#ffaf27','#1fd99f','#ff267d','#a88bff'];
                 const recent = Array.from({length:7},(_,i)=>{const d=new Date();d.setDate(d.getDate()-6+i);return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');});
                 const projects=[...new Set(filtered.map(e=>e.project))].sort((a,b)=>filtered.filter(e=>e.project===b).reduce((s,e)=>s+e.hours,0)-filtered.filter(e=>e.project===a).reduce((s,e)=>s+e.hours,0)).slice(0,4);
