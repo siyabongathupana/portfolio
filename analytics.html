@@ -1,1 +1,853 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Analytics · Portfolio</title><link rel="icon" type="image/png" href="favicon.png"><meta name="referrer" content="no-referrer"><meta http-equiv="refresh" content="0;url=https://portfolio-data-bridge.siyabongatshem.workers.dev/analytics.html"><link rel="stylesheet" href="site.css"><link rel="stylesheet" href="portfolio-site-theme.css"><script defer src="portfolio-site-theme.js"></script></head><body><main class="wrap" style="padding-top:20vh"><p class="eyebrow">OPENING YOUR WORKSPACE</p><h1>Analytics</h1><p><a class="button button-primary" href="https://portfolio-data-bridge.siyabongatshem.workers.dev/analytics.html">Continue ↗</a></p></main></body></html>
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="referrer" content="same-origin"><title>Time Intelligence · YourPortfolio</title><link rel="icon" type="image/png" href="favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script><script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root{color-scheme:dark;--page:#313342;--side:#272939;--card:#3b3d50;--raised:#343647;--ink:#e5e6f2;--muted:#9b9eb4;--primary:#7e8df5;--line:rgba(255,255,255,.055);--pink:#f12676;--green:#1fda9e;--gold:#ffa921}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;min-height:100vh;background:var(--page);color:var(--ink);font-family:Inter,Arial,sans-serif;font-size:12px;-webkit-font-smoothing:antialiased}button,input,select{font:inherit}button{cursor:pointer}button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--primary);outline-offset:3px}a{color:inherit;text-decoration:none}a:hover{color:#b7befd}p{margin:0}.layout{display:flex;min-height:100vh}.sidebar{position:fixed;z-index:20;top:0;bottom:0;left:0;width:190px;background:var(--side);display:flex;flex-direction:column;border-radius:0 25px 0 0}.brand{height:73px;display:flex;align-items:center;padding:0 30px 0 42px;font-size:20px;letter-spacing:-.85px;font-weight:800;white-space:nowrap}.brand span{color:#a9afff}.side-nav{padding:0 0 8px;flex:1;overflow-y:auto}.side-link{width:100%;height:45px;display:flex;align-items:center;gap:14px;padding:0 27px 0 46px;font-size:12px;font-weight:500;color:#b2b4c6;border-radius:26px 0 0 26px;transition:background .2s}.side-link i{font-size:16px;width:16px;text-align:center}.side-link.active{background:var(--page);color:#e7e9f9}.side-link:hover{background:#36394d;color:white}.side-gap{height:33px}.sidebar-footer{padding:17px 30px 22px 45px}.switch-line{display:flex;gap:9px;align-items:center;font-size:10px;white-space:nowrap;color:#bfc2d2}.toggle{height:15px;width:32px;padding:2px;border:0;border-radius:30px;background:#7d90f8;position:relative}.toggle:after{content:'';display:block;position:absolute;right:2px;top:2px;height:11px;width:11px;background:white;border-radius:50%;transition:transform .2s}.light .toggle:after{transform:translateX(-17px)}.app-main{margin-left:190px;width:calc(100% - 190px);padding:7px 8px 32px 27px}.topbar{height:64px;display:flex;align-items:flex-start;justify-content:space-between;gap:20px}.top-left{display:flex;align-items:center;gap:13px;min-width:0;flex:1}.menu-toggle{display:none;background:none;border:0;color:var(--ink);font-size:20px}.searchbox{height:30px;width:min(378px,100%);margin-top:11px;border-radius:22px;background:#3c3e50;display:flex;align-items:center;color:#777c93;padding:0 17px}.searchbox .fa{font-size:12px}.searchbox input{flex:1;min-width:0;border:0;background:none;outline:0;color:var(--ink);padding-left:9px;font-size:11px}.searchbox input::placeholder{color:#818499}.top-right{height:45px;margin-top:1px;background:var(--side);border-radius:26px;display:flex;align-items:center;gap:13px;padding:2px 12px 2px 18px;max-width:480px}.congrats{display:flex;min-width:215px;max-width:260px;align-items:center;gap:6px}.congrats strong{display:block;font-size:10px;font-weight:700;color:#edeefa}.congrats small{display:block;font-size:9px;color:#ccd0e0;max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.congrats button{padding:0;border:0;background:transparent;color:#c8c9d7;font-size:9px;white-space:nowrap}.trophy{font-size:22px;color:#f7be32}.tiny-icon-btn{background:transparent;border:0;color:#c8ccdf;font-size:18px;position:relative;flex-shrink:0}.notification-count{position:absolute;right:-6px;top:-6px;background:#7d90f8;color:white;font-size:9px;border-radius:8px;padding:1px 4px}.avatar{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:#606580;color:#e2e6ff;font-weight:700;font-size:13px}.dashboard{display:grid;grid-template-columns:minmax(0,2.05fr) minmax(326px,1fr);gap:18px;align-items:start}.main-column,.right-column{min-width:0;display:flex;flex-direction:column;gap:17px}.kpi-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:17px}.panel{background:var(--card);border-radius:22px;min-width:0}.stat-panel{height:112px;padding:16px 17px 14px;overflow:hidden}.stat-head{display:flex;align-items:center;justify-content:space-between}.circle-icon{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;color:#202337;background:#8190ef;font-size:17px;flex-shrink:0}.stat-delta{font-size:10px;color:#a6a9b8;white-space:nowrap}.stat-delta i{color:#50d444;font-size:14px;margin-right:3px}.stat-title{font-size:10px;color:#c8cbde;margin-top:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.stat-value{font-size:11px;font-weight:700;color:#8494ff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.stat-sub{margin-top:5px;color:#9da1b5;font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.stat-head .fa-users{font-size:26px;color:#8293ff}.chart-row{display:grid;grid-template-columns:1fr 1fr;gap:17px}.chart-panel{height:272px;padding:23px 21px 14px;display:flex;flex-direction:column}.panel-title{font-size:11px;font-weight:600;color:#dedfeb;letter-spacing:-.1px}.panel-top{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:18px}.text-muted{font-size:10px;color:#a3a6ba}.mini-segment{display:flex;align-items:center;gap:9px}.mini-segment label{font-size:10px;color:#999db2;cursor:pointer}.mini-segment input{display:none}.mini-segment label:has(input:checked){border:1px solid #8696ff;color:#c6caff;border-radius:10px;padding:1px 7px}.canvas-holder{position:relative;flex:1;min-height:0;margin-top:12px}.chart-panel .canvas-holder{height:195px}.chart-foot{height:20px;display:flex;gap:13px;align-items:center;color:#aaadc0;font-size:9px;white-space:nowrap;overflow:hidden}.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;flex-shrink:0}.legend-row{display:inline-flex;align-items:center;gap:2px;max-width:100%;font-size:9px;color:#b0b3c5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bottom-panel{height:269px;padding:22px;overflow:hidden}.activity-table,.data-table{width:100%;border-collapse:collapse;font-size:10px;color:#bac0d1;table-layout:fixed}.activity-table{margin-top:17px}.activity-table thead th{background:#303242;color:#e0e2eb;font-weight:500;padding:9px 9px;text-align:left}.activity-table td{padding:10px 9px;border-bottom:1px solid var(--line);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.activity-table tbody tr:hover td{background:rgba(255,255,255,.025)}.activity-table th:nth-child(1){width:32%}.activity-table th:nth-child(2){width:35%}.activity-table th:nth-child(3){width:13%}.activity-table th:nth-child(4){width:20%}.empty{text-align:center;color:var(--muted)!important;padding:30px 8px!important}.action-link{font-size:10px;color:#a0a4b9;background:none;border:none}.action-link i{color:#68d849;font-size:13px;margin-left:6px}.side-top{display:grid;grid-template-columns:minmax(0,1.9fr) minmax(126px,1.1fr);gap:16px}.implementation-panel{height:165px;padding:17px 16px;min-width:0}.implementation-flex{display:flex;align-items:center;justify-content:space-between;gap:4px;margin-top:9px}.donut-small{height:100px;width:100px;position:relative;flex:0 0 100px}.ring-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:12px;color:#c8cbdb;font-weight:600}.implementation-legend{display:flex;flex-direction:column;gap:8px;min-width:0}.implementation-legend .legend-row{font-size:9px}.timer-panel{height:165px;padding:15px 13px;text-align:center}.timer-project{margin-top:13px;font-size:10px;color:#b8bbcf;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.timer-project a{color:inherit}.timer-circle{display:grid;place-items:center;position:relative;width:92px;height:92px;margin:3px auto 0}.timer-circle svg{position:absolute;inset:0;transform:rotate(-90deg)}.timer-circle svg circle{fill:none;stroke:#686a82;stroke-width:2}.timer-circle svg circle.progress{stroke:#7f8ff9;stroke-width:2;stroke-dasharray:263.9;stroke-dashoffset:263.9;transition:stroke-dashoffset 1s linear}.timer-controls{display:grid;gap:3px;justify-items:center;margin-top:11px}.timer-controls button.play{color:#fd2378;background:none;border:2px solid #fd2378;border-radius:50%;height:27px;width:27px;font-size:12px}.timer-controls span{font-size:10px;color:#d3d5e4}.timer-reset{font-size:8px!important;color:#8f92a9!important;background:none;border:0;padding:0}.radar-panel{height:219px;padding:21px 20px;position:relative}.radar-container{height:166px;position:relative}.analysis-panel{height:269px;padding:23px 21px 18px;display:flex;flex-direction:column}.filter-strip{margin-top:17px;height:30px;background:#303242;display:flex;gap:10px;justify-content:space-between;align-items:center;padding:3px 10px}.filter-strip select,.filter-strip button{color:#dedfea;border:0;background:transparent;font-size:10px;max-width:33%;min-width:0;cursor:pointer}.filter-strip select option,.filters select option{background:var(--side);color:var(--ink)}.analysis-canvas{position:relative;flex:1;min-height:0;margin-top:8px}.project-legend{display:flex;justify-content:center;gap:14px;min-height:18px;white-space:nowrap;overflow:hidden}.section-header{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:15px 0 12px}.section-header h2{font-size:14px;font-weight:650;margin:0}.detail-section{margin-top:2px}.filters{display:flex;gap:9px;align-items:center;flex-wrap:wrap}.filters select{background:var(--card);border:1px solid rgba(255,255,255,.06);border-radius:9px;color:var(--ink);padding:8px 10px;font-size:10px}.filter-title{font-size:10px;color:var(--muted)}.info-line{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;color:#9397ab;font-size:10px;margin-bottom:14px}.status-pill{display:inline-flex;gap:5px;align-items:center;font-size:10px}.status-pill:before{content:'';width:6px;height:6px;background:#38d99f;border-radius:50%}.status-pill[data-state=error]:before{background:#fa467e}.status-pill[data-state=loading]:before{background:#ffb62e}.details-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-bottom:16px}.details-grid .panel{padding:19px;min-height:265px}.data-table{margin-top:13px;table-layout:auto}.data-table th{text-align:left;font-size:10px;font-weight:600;color:#e5e7ef;padding:8px 9px;background:#303242}.data-table td{padding:8px 9px;border-bottom:1px solid var(--line)}.highlight-green{color:#2adc99}.highlight-red{color:#fa4a8c}.advanced-charts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:15px}.advanced-charts .panel{padding:18px;min-height:270px}.advanced-charts .canvas-holder{height:220px}.health-row{display:flex;align-items:center;gap:20px}.health-ring{width:105px;height:105px;position:relative;flex-shrink:0}.health-ring canvas{width:100%!important;height:100%!important}.health-label{position:absolute;inset:0;display:grid;place-content:center;text-align:center;pointer-events:none}.health-label .score{font-weight:800;font-size:25px}.health-label .label{font-size:9px;color:var(--muted)}.health-details{font-size:10px;color:#c2c4d3}.health-details ul{padding-left:16px}.health-badge{font-weight:600;font-size:10px;border-radius:16px;padding:3px 8px;background:rgba(64,210,151,.2);color:#56dba4}.health-badge.ok{background:rgba(255,175,41,.2);color:#ffaf29}.health-badge.bad{background:rgba(241,38,118,.18);color:#fa659c}.coach-copy{font-size:11px;color:#d7d9e9;line-height:1.7;padding-top:12px}.coach-card-tip{font-size:10px;color:var(--muted);border-top:1px solid var(--line);margin-top:12px;padding-top:12px}.toast-wrap{position:fixed;bottom:22px;right:20px;z-index:99}.toast{padding:12px;background:#191b2b;border-radius:12px;color:white;margin-top:8px;box-shadow:0 12px 30px #0005}.bg-danger{border-left:3px solid #ff267d}.bg-success{border-left:3px solid #1fd99f}.bg-info{border-left:3px solid #7c8cff}.notice{border:1px solid rgba(255,175,41,.36);background:rgba(255,175,41,.07);border-radius:12px;color:#e9cb96;padding:12px 16px;margin:13px 0;font-size:11px}.notice[hidden]{display:none}.buttons{display:flex;gap:8px}.pill-btn{border:1px solid #515369;border-radius:10px;color:var(--ink);background:var(--card);padding:8px 12px;font-size:10px}.pill-btn:hover{background:#4a4d65}.hidden-analytics-ids{display:none!important}.footer{padding:14px;text-align:center;color:var(--muted);font-size:10px}.coach-popover{display:none;position:absolute;right:22px;top:54px;z-index:40;background:var(--side);width:260px;padding:16px;border-radius:16px;box-shadow:0 13px 32px #0006;color:#dfe1ed;line-height:1.5}.coach-popover.open{display:block}.ring-legend{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+body.light{color-scheme:light;--page:#f0f2fa;--side:#e1e5f1;--card:#fff;--raised:#f5f6ff;--ink:#273147;--muted:#667189;--line:rgba(15,25,50,.1)}body.light .searchbox,body.light .top-right,body.light .filter-strip,body.light .activity-table thead th,body.light .data-table th{background:#e8eaf7;color:#26304c}body.light .congrats strong,body.light .congrats small,body.light .activity-table thead th,body.light .data-table th,body.light .panel-title{color:#33394f}body.light .side-link.active{color:#2e3550}body.light .stat-title,body.light .stat-sub,body.light .timer-project,body.light .activity-table,body.light .data-table{color:#606980}body.light .side-link{color:#49536a}body.light .side-link:hover{color:#253049}body.light .legend-row{color:#4e5971}body.light .timer-controls span{color:#394057}
+@media(max-width:1220px){.dashboard{grid-template-columns:1fr}.right-column{display:grid;grid-template-columns:1fr 1fr;align-items:start}.side-top{grid-column:1/-1}.radar-panel{height:250px}.details-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.advanced-charts{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:900px){.kpi-strip{grid-template-columns:repeat(2,minmax(0,1fr))}.app-main{padding-left:16px}.top-right .congrats{display:none}.top-right{padding:2px 10px}.chart-row{gap:12px}.details-grid{grid-template-columns:1fr}}
+@media(max-width:700px){.sidebar{transform:translateX(-100%);transition:transform .24s}.menu-open .sidebar{transform:translateX(0);box-shadow:0 0 0 100vmax rgba(0,0,0,.55)}.app-main{margin-left:0;width:100%;padding:8px 13px}.menu-toggle{display:inline-block;margin-top:15px}.topbar{height:70px}.top-right{gap:7px}.chart-row{grid-template-columns:1fr}.chart-panel{height:255px}.right-column{grid-template-columns:1fr}.side-top{grid-column:auto}.advanced-charts{grid-template-columns:1fr}.detail-section .filters{gap:6px}.analysis-panel{height:260px}.section-header{align-items:flex-start;flex-direction:column}.details-grid .panel{min-height:240px}}
+@media(max-width:370px){.side-top{grid-template-columns:1fr}.kpi-strip{gap:8px}.stat-panel{padding:13px}.stat-title{margin-top:8px}.congrats{display:none}}
+@media print{.sidebar,.topbar,.filters,.buttons,.no-print,.coach-popover{display:none!important}.app-main{margin:0;width:100%;padding:0}.panel{break-inside:avoid}.dashboard{display:block}.main-column,.right-column{display:block}.chart-panel{display:inline-flex;width:48%;margin:1%}.advanced-charts{grid-template-columns:repeat(2,1fr)}body{background:#313342!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+</style></head>
+<body><div class="layout">
+<aside class="sidebar"><a class="brand" href="index.html">Your<span>Portfolio</span></a><nav class="side-nav" aria-label="Main menu">
+<a class="side-link active" href="analytics.html"><i class="fa fa-th-large"></i> Dashboard</a>
+<a class="side-link" href="timesheet.html"><i class="fa fa-clock-o"></i> Time tracker</a>
+<a class="side-link" href="#activity"><i class="fa fa-calendar-o"></i> Calendar</a>
+<button class="side-link" id="reportNav" style="border:0;background:transparent;text-align:left"><i class="fa fa-bar-chart"></i> Reports</button>
+<div class="side-gap"></div>
+<a class="side-link" href="manage-projects.html"><i class="fa fa-suitcase"></i> Projects</a>
+<a class="side-link" href="admin-analytics.html"><i class="fa fa-users"></i> Team</a>
+<a class="side-link" href="projects.html"><i class="fa fa-address-card-o"></i> Portfolio</a>
+<a class="side-link" href="studies.html"><i class="fa fa-graduation-cap"></i> Studies</a>
+<a class="side-link" href="timesheet.html"><i class="fa fa-tags"></i> Timesheets</a>
+<a class="side-link" href="index.html"><i class="fa fa-cog"></i> Home</a>
+</nav><div class="sidebar-footer"><div class="switch-line"><button class="toggle" id="themeToggle" aria-label="Toggle light mode"></button><span>Switch to light</span></div></div></aside>
+<main class="app-main" id="analyticsApp"><header class="topbar"><div class="top-left"><button class="menu-toggle" id="menuToggle" aria-label="Open menu"><i class="fa fa-bars"></i></button><label class="searchbox"><i class="fa fa-search"></i><input id="search" type="search" placeholder="Search here" aria-label="Search entries"></label></div><div class="top-right">
+<div class="congrats"><div><strong>Make every hour count!</strong><small>See how your projects are progressing</small></div><button id="coachToggle" title="Open work insights">read more</button></div>
+<i class="fa fa-trophy trophy" aria-hidden="true"></i><button class="tiny-icon-btn" id="refreshAnalyticsBtn" aria-label="Refresh data" title="Refresh"><i class="fa fa-bell-o"></i></button><span class="avatar" aria-label="User profile">YP</span><i class="fa fa-angle-down" style="color:#afb1c7"></i>
+<div class="coach-popover" id="coachPopup"><strong>Siya's timesheet insights</strong><div id="miniCoach" style="margin-top:8px">Insights will appear when your timesheet loads.</div></div>
+</div></header>
+<div id="demoNotice" class="notice" hidden><strong>DESIGN PREVIEW MODE:</strong> These are generated example timesheet entries, not your data. Remove <code>?demo=1</code> from the URL for live data.</div>
+<div id="connectionHelp" class="notice" hidden><strong>Worker data connection needed:</strong> <span id="connectionText">The dashboard requires access to your authenticated timesheet API.</span> Your existing records have not been changed. <a href="https://portfolio-data-bridge.siyabongatshem.workers.dev/analytics.html" style="color:#a5b6ff;text-decoration:underline;font-weight:700">Open the current secure Analytics dashboard ↗</a></div>
+<div class="dashboard">
+<div class="main-column"><div class="kpi-strip">
+<div class="panel stat-panel"><div class="stat-head"><span class="circle-icon"><i class="fa fa-clock-o"></i></span></div><div class="stat-title">Total time tracked <span class="stat-value" id="todayTotal">0h</span></div><div class="stat-sub"><span id="totalEntriesLabel">0 recorded entries</span></div></div>
+<div class="panel stat-panel"><div class="stat-head"><span class="circle-icon"><i class="fa fa-cube"></i></span><span class="stat-delta"><i class="fa fa-arrow-circle-up"></i> Active</span></div><div class="stat-title">Top project</div><div class="stat-value" id="topProjectName">—</div><div class="stat-sub" id="topProjectHours">No hours tracked</div></div>
+<div class="panel stat-panel"><div class="stat-head"><span class="circle-icon"><i class="fa fa-briefcase"></i></span><span class="stat-delta"><i class="fa fa-arrow-circle-up"></i> Insights</span></div><div class="stat-title">Billable hours <span class="stat-value" id="kpiBillable">0</span></div><div class="stat-sub">Work allocated to projects</div></div>
+<div class="panel stat-panel"><div class="stat-head"><span class="circle-icon" style="background:transparent;color:#8194ff"><i class="fa fa-users"></i></span><span class="stat-delta"><i class="fa fa-dot-circle-o" style="color:#f12676"></i> Overview</span></div><div class="stat-title">Non-billable <span class="stat-value" id="kpiNonBillable">0</span></div><div class="stat-sub">Time outside billable work</div></div>
+</div>
+<div class="chart-row">
+<section class="panel chart-panel"><div class="panel-top"><span class="panel-title">Project balance</span><span class="mini-segment"><label><input type="radio" name="balance" checked>Weekly</label><label><input type="radio" name="balance" id="monthBalance">Monthly</label></span></div><div class="canvas-holder"><canvas id="chartBalance"></canvas></div><div class="chart-foot"><span><i class="dot" style="background:#ffad29"></i>Billable</span><span><i class="dot" style="background:#7c8cff"></i>Total hours</span></div></section>
+<section class="panel chart-panel"><div class="panel-top"><span class="panel-title">Time by day</span><span class="text-muted"><i class="fa fa-arrow-circle-down" style="color:#fa2475"></i> Weekly activity</span></div><div class="canvas-holder"><canvas id="chartDay"></canvas></div><div class="chart-foot"><span><i class="dot" style="background:#1fd99f"></i>Billable</span><span><i class="dot" style="background:#7c8cff"></i>Non-billable</span></div></section>
+</div>
+<section class="panel bottom-panel" id="activity"><div class="panel-top"><span class="panel-title">Recent activity</span><a href="timesheet.html" class="action-link">Add new entry <i class="fa fa-plus-circle"></i></a></div><table class="activity-table"><thead><tr><th>Project</th><th>Activity</th><th>Hours</th><th>Date</th></tr></thead><tbody id="activityBody"><tr><td colspan="4" class="empty">Loading activity…</td></tr></tbody></table></section>
+</div>
+<div class="right-column"><div class="side-top">
+<section class="panel implementation-panel"><div class="panel-title">Project implementation</div><div class="implementation-flex"><div class="donut-small"><canvas id="chartImplementation"></canvas><span class="ring-center" id="ringValue">—</span></div><div class="implementation-legend" id="implementationLegend"><span class="text-muted">Your projects</span></div></div></section>
+<section class="panel timer-panel"><div class="panel-title">Track time</div><div class="timer-project" id="timerProject"><a href="timesheet.html">Start a work session <i class="fa fa-angle-down"></i></a></div><div class="timer-circle"><svg width="92" height="92" viewBox="0 0 92 92" aria-hidden="true"><circle cx="46" cy="46" r="42"/><circle class="progress" id="timerRing" cx="46" cy="46" r="42"/></svg><div class="timer-controls"><button class="play" id="timerButton" aria-label="Start timer"><i id="timerIcon" class="fa fa-play"></i></button><span id="timerReadout">00:00</span><button class="timer-reset" id="timerReset">reset</button></div></div></section>
+</div>
+<section class="panel radar-panel"><div class="panel-top"><span class="panel-title">Productivity Chart</span><span class="text-muted" id="topCategory">Overview</span></div><div class="radar-container"><canvas id="chartProductivity"></canvas></div></section>
+<section class="panel analysis-panel"><div class="panel-top"><span class="panel-title">Time spent analysis</span><span class="text-muted">Tracked hours by project</span></div><div class="filter-strip"><select id="analysisProj" aria-label="Project" onchange="document.getElementById('analyticsProject').value=this.value;document.getElementById('analyticsProject').dispatchEvent(new Event('change'))"><option value="all">All projects</option></select><select id="analysisCat" aria-label="Category" onchange="document.getElementById('analyticsCategory').value=this.value;document.getElementById('analyticsCategory').dispatchEvent(new Event('change'))"><option value="all">All categories</option></select><span class="text-muted"><i class="fa fa-calendar"></i> Last 7 days</span></div><div class="analysis-canvas"><canvas id="chartTimeSpent"></canvas></div><div class="project-legend" id="projectLegend"></div></section>
+</div></div>
+<div class="detail-section"><div class="section-header"><h2>Detailed analytics</h2><div class="buttons"><button class="pill-btn" id="syncGitHubBtn"><i class="fa fa-refresh"></i> Refresh data</button><button class="pill-btn" id="exportAnalyticsPdfBtn"><i class="fa fa-file-pdf-o"></i> Export PDF</button><a class="pill-btn" href="timesheet.html">View timesheets <i class="fa fa-arrow-right"></i></a></div></div>
+<div class="info-line"><span id="sourceStatus" class="status-pill" data-state="loading">Connecting…</span><span id="recordCount">0 entries</span><span id="lastUpdated">Not yet updated</span></div>
+<div class="filters"><span class="filter-title">Period</span><select id="analyticsRange"><option value="week">This week</option><option value="month" selected>This month</option><option value="lastWeek">Last week</option><option value="lastMonth">Last month</option><option value="last30">Last 30 days</option><option value="all">All time</option></select><span class="filter-title">Project</span><select id="analyticsProject"><option value="all">All projects</option></select><span class="filter-title">Category</span><select id="analyticsCategory"><option value="all">All categories</option><option>Training</option><option>Meetings</option><option>CFAT</option><option>IFAT</option><option>Implementation</option><option>Documentation</option><option>Graphics</option><option>Software</option><option>Hardware</option><option>Study Leave</option><option>Admin</option><option>Back-Punching</option><option>Site</option><option>Other</option></select></div>
+<div class="advanced-charts" id="chartGrid"><section class="panel"><h3 class="panel-title">Hours by project</h3><div class="canvas-holder"><canvas id="chartProject"></canvas></div></section><section class="panel"><h3 class="panel-title">Hours by category</h3><div class="canvas-holder"><canvas id="chartCategory"></canvas></div></section><section class="panel"><h3 class="panel-title">Billable vs non-billable</h3><div class="canvas-holder"><canvas id="chartBillable"></canvas></div></section><section class="panel"><h3 class="panel-title">Weekly hours trend</h3><div class="canvas-holder"><canvas id="chartWeeklyTrend"></canvas></div></section><section class="panel"><h3 class="panel-title">Admin vs project hours</h3><div class="canvas-holder"><canvas id="chartAdminProject"></canvas></div></section><section class="panel"><h3 class="panel-title">Top projects</h3><div class="canvas-holder"><canvas id="chartTopProjects"></canvas></div></section></div>
+<div class="details-grid"><section class="panel"><h3 class="panel-title">Monthly comparison</h3><div style="overflow-x:auto"><table class="data-table" id="monthlyTable"><thead><tr><th>Month</th><th>Hours</th><th>Billable</th><th>Overtime</th><th>Avg/day</th><th>Growth</th></tr></thead><tbody id="monthlyBody"></tbody></table></div></section><section class="panel"><h3 class="panel-title">Busiest day of week</h3><table class="data-table" id="busiestDayTable"><thead><tr><th>Day</th><th>Total</th><th>Average</th></tr></thead><tbody id="busiestDayBody"></tbody></table></section><section class="panel"><h3 class="panel-title">Category insights</h3><table class="data-table" id="categoryInsightsTable"><thead><tr><th>Category</th><th>Entries</th><th>Share</th></tr></thead><tbody id="categoryInsightsBody"></tbody></table></section></div>
+<div class="details-grid" style="grid-template-columns:repeat(2,minmax(0,1fr))"><section class="panel"><h3 class="panel-title">Portfolio Health</h3><div class="health-row" style="margin-top:20px"><div class="health-ring"><canvas id="healthRingCanvas" width="260" height="260"></canvas><div class="health-label"><div class="score" id="healthScoreNum">—</div><div class="label">Health</div></div></div><div class="health-details"><ul id="healthBullets"><li>Loading…</li></ul><span class="health-badge" id="healthBadge">—</span></div></div></section><section class="panel" id="coachCard"><h3 class="panel-title">Siya's Work Insights</h3><div class="coach-copy" id="coachMessage">Analysing work data…</div><div class="coach-card-tip" id="tipText">Consistency beats intensity.</div></section></div>
+</div>
+<div class="hidden-analytics-ids"><span id="kpiTotal">0</span><span id="kpiOvertime">0</span><span id="kpiDays">0</span><span id="kpiStreak">0</span><span id="kpiHealth">—</span><span id="kpiHealthLabel"></span><span id="userFooterStatus"></span><span id="footerStatus"></span></div>
+<footer class="footer">© 2026 YourPortfolio · Your data stays private to your authorised account.</footer></main></div>
+<script>
+
+        (function() {
+            'use strict';
+
+            // Access is controlled by the existing Cloudflare Worker, not a public GitHub token.
+            const user = window.SessionManager?.getCurrentUser?.() || null;
+
+            let entries = [];
+            let allProjects = [];
+            let chartInstances = {};
+            let lastFetchTime = null;
+            let coachTimeout = null;
+            let prevKPI = {};
+
+            // ── Helpers ──
+            function formatDate(d) { return d.toISOString().split('T')[0]; }
+            function getWeekNumber(date) {
+                const d = new Date(date);
+                d.setHours(0,0,0,0);
+                d.setDate(d.getDate() + 3 - (d.getDay() + 6) % 7);
+                const week1 = new Date(d.getFullYear(), 0, 4);
+                return 1 + Math.round(((d - week1) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
+            }
+            function getWeekKey(date) {
+                const d = new Date(date);
+                return d.getFullYear() + '-W' + String(getWeekNumber(d)).padStart(2,'0');
+            }
+            function formatMonthKey(m) {
+                const [year, month] = m.split('-');
+                const names = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                return names[parseInt(month)-1] + ' ' + year;
+            }
+            function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m] || m); }
+            function showToast(msg, type) {
+                const wrap = document.getElementById('toastContainer') || (()=>{const el=document.createElement('div');el.id='toastContainer';el.className='toast-wrap';document.body.append(el);return el})();
+                const item=document.createElement('div');item.className='toast '+(type==='error'?'bg-danger':type==='success'?'bg-success':'bg-info');item.textContent=String(msg);wrap.append(item);setTimeout(()=>item.remove(),3600);
+            }
+
+            // ── Animated Counter ──
+            function animateNumber(element, target, duration = 800) {
+                const start = parseFloat(element.textContent) || 0;
+                const diff = target - start;
+                if (Math.abs(diff) < 0.1) { element.textContent = target.toFixed(1); return; }
+                const startTime = performance.now();
+                const isInt = Number.isInteger(target);
+                function update(now) {
+                    const elapsed = now - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+                    const eased = 1 - Math.pow(1 - progress, 3); // easeOutCubic
+                    const current = start + diff * eased;
+                    element.textContent = isInt ? Math.round(current) : current.toFixed(1);
+                    if (progress < 1) requestAnimationFrame(update);
+                    else element.textContent = isInt ? Math.round(target) : target.toFixed(1);
+                }
+                requestAnimationFrame(update);
+            }
+
+            // ── Same-origin, read-only, owner-scoped Worker data adapter ──
+            // Set window.YP_ANALYTICS_GET_ENTRIES or window.YP_ANALYTICS_DATA_URL in your
+            // authenticated Worker page if its existing route differs from these candidates.
+            // No personal-access tokens or private data are shipped inside HTML.
+            function normalizeRows(raw) {
+                const candidates = [raw, raw?.entries, raw?.items, raw?.timesheets,
+                    raw?.data?.entries, raw?.data?.items, raw?.data?.timesheets, raw?.data];
+                const data = candidates.find(Array.isArray);
+                if (!data) return null;
+                return data.map((r) => {
+                    const h = Number(r.hours ?? r.totalHours ?? r.durationHours ?? (Number(r.minutes ?? 0)/60));
+                    return {
+                        date: String(r.date ?? r.workDate ?? '').slice(0,10),
+                        project: String(r.project ?? r.projectName ?? r.project_name ?? 'Unassigned'),
+                        category: String(r.category ?? r.taskCategory ?? r.type ?? 'Other'),
+                        notes: String(r.notes ?? r.description ?? r.activity ?? ''),
+                        billable: (r.billable === true || String(r.billable).toLowerCase() === 'yes' || String(r.billable).toLowerCase() === 'true') ? 'yes' : 'no',
+                        hours: Number.isFinite(h) ? Math.max(0,h) : 0
+                    };
+                }).filter(r => /^\d{4}-\d{2}-\d{2}$/.test(r.date));
+            }
+            function applyEntries(list, sourceLabel) {
+                entries = list.sort((a,b) => b.date.localeCompare(a.date));
+                window.__timesheetEntries = entries;
+                lastFetchTime = new Date();
+                document.getElementById('lastUpdated').textContent = 'Updated ' + lastFetchTime.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+                document.getElementById('sourceStatus').textContent = sourceLabel;
+                document.getElementById('sourceStatus').dataset.state = 'ok';
+                loadProjects();
+                for (const [source,target] of [['analyticsProject','analysisProj'],['analyticsCategory','analysisCat']]) {
+                    const a=document.getElementById(source),b=document.getElementById(target);
+                    b.innerHTML='';[...a.options].forEach(opt=>b.append(new Option(opt.textContent,opt.value)));
+                    b.value=a.value;
+                }
+                document.getElementById('miniCoach').textContent = entries.length ? 'Your recorded activity is ready for review below.' : 'No entries yet.';
+                renderAll();
+            }
+            function makeDemo() {
+                const projects=['Omnia NAP2','MIBK Dosing','ATKSS','Training'];
+                const cats=['Implementation','Documentation','IFAT','Training','Graphics','Admin'];
+                const now = new Date(); const data=[];
+                for(let i=0;i<56;i++) {
+                    const d=new Date(now);d.setDate(d.getDate()-i);
+                    if(d.getDay()===0||d.getDay()===6)continue;
+                    const date=[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');
+                    const j=(i*3+Math.floor(i/7))%4;
+                    data.push({date,project:projects[j],category:cats[(i*2)%cats.length],notes:['Configuration and testing','Documentation update','System review','Project implementation'][j],billable:(i%5?'yes':'no'),hours:4+(i%4)*.5});
+                    data.push({date,project:projects[(j+1)%4],category:cats[(i+1)%cats.length],notes:'Technical activities',billable:(i%3?'yes':'no'),hours:2+(i%3)*.5});
+                }
+                return data;
+            }
+            async function fetchFromGitHub() {
+                const status = document.getElementById('sourceStatus');
+                status.textContent = 'Syncing…'; status.dataset.state = 'loading';
+                try {
+                    if (new URLSearchParams(location.search).get('demo') === '1') {
+                        applyEntries(makeDemo(), 'DEMO DATA · not saved');
+                        document.getElementById('demoNotice').hidden=false;
+                        return;
+                    }
+                    if(typeof window.YP_ANALYTICS_GET_ENTRIES === 'function') {
+                        const rows = normalizeRows(await window.YP_ANALYTICS_GET_ENTRIES());
+                        if(!rows)throw Error('The Worker adapter returned an unrecognised data format.');
+                        applyEntries(rows,'Secure data connected'); return;
+                    }
+                    const embedded = normalizeRows(window.__timesheetEntries);
+                    if(embedded) { applyEntries(embedded,'Secure page data'); return; }
+                    const configured = window.YP_ANALYTICS_DATA_URL || document.querySelector('meta[name="yourportfolio-timesheet-endpoint"]')?.content;
+                    const candidates = configured ? [configured] : ['/api/timesheet','/api/timesheets','/api/me/timesheets'];
+                    let message='No authorised timesheet endpoint found';
+                    for (const path of candidates) {
+                        try {
+                            const controller = new AbortController();
+                            const stop=setTimeout(()=>controller.abort(),8000);
+                            let resp;
+                            const resolved = new URL(path, location.href);
+                            if(resolved.origin !== location.origin) throw Error('Analytics data source must be same-origin');
+                            try { resp=await fetch(resolved.href,{method:'GET',credentials:'same-origin',headers:{Accept:'application/json'},signal:controller.signal}); }
+                            finally {clearTimeout(stop);}
+                            if(resp.status===401||resp.status===403) {message='Sign-in or access is required';break;}
+                            if(!resp.ok)continue;
+                            if(!(resp.headers.get('content-type')||'').includes('json'))continue;
+                            const rows=normalizeRows(await resp.json());
+                            if(rows){applyEntries(rows,'Secure data connected');return;}
+                            message='Endpoint returned an unexpected JSON shape';
+                        } catch(e){message=e?.message||'Request failed';}
+                    }
+                    throw Error(message);
+                } catch (err) {
+                    console.warn('Analytics data unavailable:',err);
+                    status.textContent = 'Data not connected';status.dataset.state='error';
+                    document.getElementById('connectionHelp').hidden=false;
+                    document.getElementById('connectionText').textContent = 'This dashboard is ready, but the Worker data endpoint needs connecting: ' + err.message;
+                    renderAll();
+                }
+            }
+            function loadFromCache() {
+                // Private multi-user system: do not read unscoped cached timesheets from localStorage.
+                return false;
+            }
+
+            function loadProjects() {
+                const projSet = new Set();
+                entries.forEach(e => { if (e.project) projSet.add(e.project); });
+                allProjects = Array.from(projSet);
+                const sel = document.getElementById('analyticsProject');
+                if (sel) {
+                    const current = sel.value;
+                    sel.innerHTML = '<option value="all">All Projects</option>';
+                    allProjects.forEach(p => {
+                        const opt = document.createElement('option');
+                        opt.value = p;
+                        opt.textContent = p;
+                        sel.appendChild(opt);
+                    });
+                    if (current && allProjects.includes(current)) sel.value = current;
+                }
+            }
+
+            // ── Filtering ──
+            function getFilteredEntries() {
+                const range = document.getElementById('analyticsRange').value;
+                const project = document.getElementById('analyticsProject').value;
+                const category = document.getElementById('analyticsCategory').value;
+
+                const now = new Date();
+                const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+                const todayYMD = formatDate(today);
+                const thisMonthPrefix = todayYMD.substring(0, 7);
+                const thirtyDaysAgo = new Date(today);
+                thirtyDaysAgo.setUTCDate(today.getUTCDate() - 30);
+                const thirtyDaysAgoStr = formatDate(thirtyDaysAgo);
+                const todayDay = today.getUTCDay();
+                const currentMonday = new Date(today);
+                currentMonday.setUTCDate(today.getUTCDate() - (todayDay === 0 ? 6 : todayDay - 1));
+                currentMonday.setUTCHours(0,0,0,0);
+                const lastMonday = new Date(currentMonday);
+                lastMonday.setUTCDate(currentMonday.getUTCDate() - 7);
+                const lastSunday = new Date(lastMonday);
+                lastSunday.setUTCDate(lastMonday.getUTCDate() + 6);
+                const lastMondayStr = formatDate(lastMonday);
+                const lastSundayStr = formatDate(lastSunday);
+                const lastMonth = new Date(today);
+                lastMonth.setUTCMonth(today.getUTCMonth() - 1);
+                const lastMonthStart = new Date(lastMonth.getUTCFullYear(), lastMonth.getUTCMonth(), 1);
+                const lastMonthEnd = new Date(lastMonth.getUTCFullYear(), lastMonth.getUTCMonth() + 1, 0);
+                const lastMonthStartStr = formatDate(lastMonthStart);
+                const lastMonthEndStr = formatDate(lastMonthEnd);
+
+                let filtered = [...entries];
+                if (range !== 'all') {
+                    filtered = filtered.filter(entry => {
+                        const entryDate = entry.date;
+                        if (range === 'day') return entryDate === todayYMD;
+                        if (range === 'week') {
+                            const d = new Date(entryDate);
+                            d.setUTCHours(0,0,0,0);
+                            const start = new Date(currentMonday); start.setUTCHours(0,0,0,0);
+                            const end = new Date(start); end.setUTCDate(start.getUTCDate()+6); end.setUTCHours(23,59,59,999);
+                            return d >= start && d <= end;
+                        }
+                        if (range === 'month') return entryDate.substring(0,7) === thisMonthPrefix;
+                        if (range === 'lastWeek') return entryDate >= lastMondayStr && entryDate <= lastSundayStr;
+                        if (range === 'lastMonth') return entryDate >= lastMonthStartStr && entryDate <= lastMonthEndStr;
+                        if (range === 'last30') return entryDate >= thirtyDaysAgoStr;
+                        return true;
+                    });
+                }
+                if (project !== 'all') filtered = filtered.filter(e => e.project === project);
+                if (category !== 'all') filtered = filtered.filter(e => e.category === category);
+                return filtered;
+            }
+
+            // ── Overtime ──
+            function calcOvertime(list) {
+                const daily = {};
+                list.forEach(e => { daily[e.date] = (daily[e.date] || 0) + e.hours; });
+                return Object.values(daily).reduce((sum, hrs) => sum + (hrs > 8 ? hrs - 8 : 0), 0);
+            }
+
+            // ── Streak ──
+            function computeStreak(list) {
+                if (!list.length) return 0;
+                const dates = [...new Set(list.map(e => e.date))].sort((a,b) => new Date(b) - new Date(a));
+                let streak = 0;
+                for (let d of dates) {
+                    const dayHours = list.filter(e => e.date === d).reduce((s,e) => s + e.hours, 0);
+                    if (dayHours >= 7.5) streak++;
+                    else break;
+                }
+                return streak;
+            }
+
+            // ── Health ──
+            function computeHealth(list) {
+                if (!list.length) return { score: 0, status: 'No data', issues: [] };
+                const total = list.reduce((s,e) => s + e.hours, 0);
+                const billable = list.filter(e => e.billable === 'yes').reduce((s,e) => s + e.hours, 0);
+                const admin = list.filter(e => e.category === 'Admin').reduce((s,e) => s + e.hours, 0);
+                const adminRatio = total > 0 ? (admin/total)*100 : 0;
+                const overtime = calcOvertime(list);
+                const uniqueProjects = new Set(list.map(e => e.project)).size;
+                const missingNotes = list.filter(e => !e.notes || e.notes.trim() === '').length;
+                let score = 100;
+                const issues = [];
+                if (adminRatio > 15) { score -= 10; issues.push('Admin >15%'); }
+                if (overtime > 5) { score -= 8; issues.push('High overtime'); }
+                if (uniqueProjects === 0) { score -= 20; issues.push('No projects'); }
+                if (missingNotes/list.length > 0.3) { score -= 5; issues.push('Many missing notes'); }
+                if (list.length < 5) { score -= 10; issues.push('Too few entries'); }
+                score = Math.max(0, Math.min(100, score));
+                let status = 'good';
+                if (score < 50) status = 'bad';
+                else if (score < 75) status = 'ok';
+                return { score, status, issues };
+            }
+
+            // ── Coach ──
+            function generateCoach(filtered) {
+                if (!filtered.length) {
+                    return { message: "No data to analyse yet. Start logging your time!", tip: "Log your first entry today." };
+                }
+                const total = filtered.reduce((s,e) => s + e.hours, 0);
+                const admin = filtered.filter(e => e.category === 'Admin').reduce((s,e) => s + e.hours, 0);
+                const adminRatio = total > 0 ? (admin/total)*100 : 0;
+                const overtime = calcOvertime(filtered);
+                const missingNotes = filtered.filter(e => !e.notes || e.notes.trim() === '').length;
+                const noteRatio = filtered.length ? missingNotes/filtered.length : 0;
+                const streak = computeStreak(filtered);
+
+                let message = '', tip = '';
+
+                if (adminRatio > 15) {
+                    message = '⚡ You’re spending a lot of time on admin (' + adminRatio.toFixed(1) + '%). Try to batch admin tasks or delegate routine work.';
+                    tip = 'Block 30 min daily for admin and stick to it.';
+                } else if (overtime > 5) {
+                    message = '⏰ Overtime is piling up (' + overtime.toFixed(1) + 'h). Your health matters – consider taking a half‑day off or adjusting your workload.';
+                    tip = 'Use a "no‑overtime" day this week to reset.';
+                } else if (noteRatio > 0.3) {
+                    message = '📝 ' + (noteRatio*100).toFixed(0) + '% of your entries lack notes. Adding a few words helps you recall context later.';
+                    tip = 'Write at least one sentence per task – it pays off in reviews.';
+                } else if (filtered.length < 5) {
+                    message = '🌱 You’re building your timesheet habit. Keep it up – every entry counts.';
+                    tip = 'Try to log at least one entry every working day.';
+                } else if (streak >= 5) {
+                    message = '🔥 You’re on a ' + streak + '‑day streak with 7.5h+ each day! That’s impressive.';
+                    tip = 'Keep the momentum – reward yourself with a short break after a full week.';
+                } else if (streak >= 2) {
+                    message = '💪 You’ve logged 7.5h+ for ' + streak + ' days in a row. Consistency is building!';
+                    tip = 'Aim for a full workweek streak – you’re almost there.';
+                } else {
+                    message = '✅ Your portfolio looks balanced. Keep tracking to maintain this healthy rhythm.';
+                    tip = 'Review your weekly totals every Friday to spot trends.';
+                }
+                return { message, tip };
+            }
+
+            // ── Typewriter effect ──
+            function typewriter(element, text, speed = 30) {
+                if (coachTimeout) clearTimeout(coachTimeout);
+                element.innerHTML = '';
+                let index = 0;
+                function type() {
+                    if (index < text.length) {
+                        element.append(document.createTextNode(text.charAt(index)));
+                        index++;
+                        coachTimeout = setTimeout(type, speed);
+                    } else {
+                        // add blinking cursor
+                        const cursor = document.createElement('span'); cursor.className = 'cursor'; element.append(cursor);
+                    }
+                }
+                type();
+            }
+
+            // ── Render functions ──
+            function renderKPI(filtered) {
+                const total = filtered.reduce((s,e) => s + e.hours, 0);
+                const billable = filtered.filter(e => e.billable === 'yes').reduce((s,e) => s + e.hours, 0);
+                const nonBillable = total - billable;
+                const overtime = calcOvertime(filtered);
+                const days = new Set(filtered.map(e => e.date)).size;
+                const streak = computeStreak(filtered);
+                const health = computeHealth(filtered);
+
+                const kpiMap = {
+                    kpiTotal: total,
+                    kpiBillable: billable,
+                    kpiNonBillable: nonBillable,
+                    kpiOvertime: overtime,
+                    kpiDays: days,
+                    kpiStreak: streak
+                };
+                for (const [id, val] of Object.entries(kpiMap)) {
+                    const el = document.getElementById(id);
+                    if (el) {
+                        const prev = prevKPI[id] || 0;
+                        if (Math.abs(prev - val) > 0.01) {
+                            animateNumber(el, val, 600);
+                        } else {
+                            el.textContent = Number.isInteger(val) ? val : val.toFixed(1);
+                        }
+                        prevKPI[id] = val;
+                    }
+                }
+
+                // Health KPI
+                const healthEl = document.getElementById('kpiHealth');
+                if (health.score > 0) {
+                    animateNumber(healthEl, health.score, 600);
+                    const label = document.getElementById('kpiHealthLabel');
+                    const emoji = health.status === 'good' ? '💚' : (health.status === 'ok' ? '💛' : '❤️');
+                    label.textContent = emoji + ' ' + health.status.toUpperCase();
+                } else {
+                    healthEl.textContent = '—';
+                }
+
+                document.getElementById('recordCount').textContent = filtered.length + ' entries';
+            }
+
+            function renderCharts(filtered) {
+                if(!window.Chart) return; // If the chart CDN is unavailable, preserve functional tables and counts.
+                Object.keys(chartInstances).forEach(key => {
+                    if (chartInstances[key]) { chartInstances[key].destroy(); delete chartInstances[key]; }
+                });
+                if (!filtered.length) {
+                    ['chartProject','chartCategory','chartBillable','chartWeeklyTrend','chartAdminProject','chartTopProjects'].forEach(id => {
+                        const ctx = document.getElementById(id);
+                        if (ctx) {
+                            chartInstances[id] = new Chart(ctx, {
+                                type: 'doughnut',
+                                data: { labels: ['No Data'], datasets: [{ data: [1], backgroundColor: ['#55576a'] }] },
+                                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+                            });
+                        }
+                    });
+                    return;
+                }
+                // Hours by Project
+                const projMap = {};
+                filtered.forEach(e => { projMap[e.project] = (projMap[e.project] || 0) + e.hours; });
+                const projLabels = Object.keys(projMap);
+                const projData = Object.values(projMap);
+                const colors = ['#7c8cff','#20d7a1','#ffaf29','#ff267d','#ab8aff','#45c6ff','#b487f4','#ffd26d','#2fba8b','#9c7dec'];
+                const bgColors = projLabels.map((_,i) => colors[i % colors.length]);
+                const ctx1 = document.getElementById('chartProject');
+                if (ctx1) {
+                    chartInstances['chartProject'] = new Chart(ctx1, {
+                        type: 'bar',
+                        data: { labels: projLabels, datasets: [{ label: 'Hours', data: projData, backgroundColor: bgColors, borderRadius: 6 }] },
+                        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { font: { size: 9 }, maxRotation: 45 } }, y: { beginAtZero: true, ticks: { font: { size: 9 } } } } }
+                    });
+                }
+                // Category Pie
+                const catMap = {};
+                filtered.forEach(e => { catMap[e.category] = (catMap[e.category] || 0) + e.hours; });
+                const catLabels = Object.keys(catMap);
+                const catData = Object.values(catMap);
+                const ctx2 = document.getElementById('chartCategory');
+                if (ctx2) {
+                    chartInstances['chartCategory'] = new Chart(ctx2, {
+                        type: 'pie',
+                        data: { labels: catLabels, datasets: [{ data: catData, backgroundColor: colors.slice(0, catLabels.length) }] },
+                        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 9 } } } } }
+                    });
+                }
+                // Billable Doughnut
+                const billable = filtered.filter(e => e.billable === 'yes').reduce((s,e) => s + e.hours, 0);
+                const nonBill = filtered.reduce((s,e) => s + e.hours, 0) - billable;
+                const ctx3 = document.getElementById('chartBillable');
+                if (ctx3) {
+                    chartInstances['chartBillable'] = new Chart(ctx3, {
+                        type: 'doughnut',
+                        data: { labels: ['Billable', 'Non-Billable'], datasets: [{ data: [billable, nonBill], backgroundColor: ['#1fd99f','#ff267d'] }] },
+                        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 9 } } } } }
+                    });
+                }
+                // Weekly Trend
+                const weekly = {};
+                filtered.forEach(e => { const wk = getWeekKey(e.date); weekly[wk] = (weekly[wk] || 0) + e.hours; });
+                const weeks = Object.keys(weekly).sort();
+                const weekData = weeks.map(w => weekly[w]);
+                const ctx4 = document.getElementById('chartWeeklyTrend');
+                if (ctx4) {
+                    chartInstances['chartWeeklyTrend'] = new Chart(ctx4, {
+                        type: 'line',
+                        data: { labels: weeks, datasets: [{ label: 'Hours', data: weekData, borderColor: '#7c8cff', backgroundColor: 'rgba(47,199,255,0.08)', fill: true, tension: 0.3, pointBackgroundColor: '#7c8cff' }] },
+                        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { font: { size: 8 }, maxRotation: 30 } }, y: { beginAtZero: true, ticks: { font: { size: 9 } } } } }
+                    });
+                }
+                // Admin vs Project
+                const weeklyAdmin = {};
+                const weeklyProject = {};
+                filtered.forEach(e => {
+                    const wk = getWeekKey(e.date);
+                    if (e.category === 'Admin') weeklyAdmin[wk] = (weeklyAdmin[wk] || 0) + e.hours;
+                    else weeklyProject[wk] = (weeklyProject[wk] || 0) + e.hours;
+                });
+                const allWeeks = [...new Set([...Object.keys(weeklyAdmin), ...Object.keys(weeklyProject)])].sort();
+                const ctx5 = document.getElementById('chartAdminProject');
+                if (ctx5) {
+                    chartInstances['chartAdminProject'] = new Chart(ctx5, {
+                        type: 'bar',
+                        data: { labels: allWeeks, datasets: [ { label: 'Admin', data: allWeeks.map(w => weeklyAdmin[w] || 0), backgroundColor: '#ffaf29' }, { label: 'Project', data: allWeeks.map(w => weeklyProject[w] || 0), backgroundColor: '#7c8cff' } ] },
+                        options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: true, ticks: { font: { size: 8 }, maxRotation: 30 } }, y: { stacked: true, ticks: { font: { size: 9 } } } }, plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { size: 9 } } } } }
+                    });
+                }
+                // Top Projects
+                const projSorted = Object.entries(projMap).sort((a,b) => b[1] - a[1]).slice(0, 8);
+                const ctx6 = document.getElementById('chartTopProjects');
+                if (ctx6) {
+                    chartInstances['chartTopProjects'] = new Chart(ctx6, {
+                        type: 'bar',
+                        data: { labels: projSorted.map(p => p[0]), datasets: [{ label: 'Hours', data: projSorted.map(p => p[1]), backgroundColor: ['#7c8cff','#1fd99f','#ffaf29','#ff267d','#6f42c1','#fd7e14','#17a2b8','#e83e8c'], borderRadius: 4 }] },
+                        options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { font: { size: 9 } } }, y: { ticks: { font: { size: 9 } } } } }
+                    });
+                }
+            }
+
+            function renderTables(filtered) {
+                // Monthly
+                const monthly = {};
+                filtered.forEach(e => {
+                    const m = e.date.substring(0,7);
+                    if (!monthly[m]) monthly[m] = { total:0, billable:0, days: new Set() };
+                    monthly[m].total += e.hours;
+                    if (e.billable === 'yes') monthly[m].billable += e.hours;
+                    monthly[m].days.add(e.date);
+                });
+                const monthlyOvertime = {};
+                const dailyByMonth = {};
+                filtered.forEach(e => {
+                    const m = e.date.substring(0,7);
+                    if (!dailyByMonth[m]) dailyByMonth[m] = {};
+                    if (!dailyByMonth[m][e.date]) dailyByMonth[m][e.date] = 0;
+                    dailyByMonth[m][e.date] += e.hours;
+                });
+                for (const m in dailyByMonth) {
+                    let ot = 0;
+                    for (const day in dailyByMonth[m]) {
+                        const hrs = dailyByMonth[m][day];
+                        if (hrs > 8) ot += (hrs - 8);
+                    }
+                    monthlyOvertime[m] = ot;
+                }
+                const monthKeys = Object.keys(monthly).sort();
+                const tbody = document.getElementById('monthlyBody');
+                if (!monthKeys.length) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No data</td></tr>';
+                } else {
+                    let prevTotal = null;
+                    let html = '';
+                    for (const m of monthKeys) {
+                        const data = monthly[m];
+                        const total = data.total;
+                        const billable = data.billable;
+                        const days = data.days.size;
+                        const avg = days > 0 ? total / days : 0;
+                        const ot = monthlyOvertime[m] || 0;
+                        let growth = null;
+                        if (prevTotal !== null) {
+                            const diff = total - prevTotal;
+                            growth = prevTotal > 0 ? ((diff / prevTotal) * 100) : 0;
+                        }
+                        const growthStr = growth !== null ? (growth >= 0 ? '+' : '') + growth.toFixed(1) + '%' : '-';
+                        const growClass = growth !== null ? (growth >= 0 ? 'highlight-green' : 'highlight-red') : '';
+                        html += `<tr><td>${formatMonthKey(m)}</td><td><strong>${total.toFixed(1)}</strong></td><td>${billable.toFixed(1)}</td><td>${ot.toFixed(1)}</td><td>${avg.toFixed(1)}</td><td class="${growClass}">${growthStr}</td></tr>`;
+                        prevTotal = total;
+                    }
+                    tbody.innerHTML = html;
+                }
+                // Busiest Day
+                const dayMap = { Monday:0, Tuesday:0, Wednesday:0, Thursday:0, Friday:0, Saturday:0, Sunday:0 };
+                const dayCount = { Monday:0, Tuesday:0, Wednesday:0, Thursday:0, Friday:0, Saturday:0, Sunday:0 };
+                filtered.forEach(e => {
+                    const d = new Date(e.date);
+                    const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+                    const dayName = dayNames[d.getUTCDay()];
+                    dayMap[dayName] += e.hours;
+                    dayCount[dayName] += 1;
+                });
+                const dayBody = document.getElementById('busiestDayBody');
+                const dayEntries = Object.keys(dayMap).map(day => ({ day, total: dayMap[day], avg: dayCount[day] > 0 ? dayMap[day]/dayCount[day] : 0 }));
+                dayEntries.sort((a,b) => b.total - a.total);
+                if (!dayEntries.length || dayEntries.every(d => d.total === 0)) {
+                    dayBody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">No data</td></tr>';
+                } else {
+                    let html = '';
+                    const maxTotal = dayEntries[0].total;
+                    dayEntries.forEach(d => {
+                        const highlight = d.total > 0 && d.total === maxTotal ? 'highlight-green' : '';
+                        html += `<tr><td><strong>${d.day}</strong></td><td>${d.total.toFixed(1)}</td><td class="${highlight}">${d.avg.toFixed(1)}</td></tr>`;
+                    });
+                    dayBody.innerHTML = html;
+                }
+                // Category Insights
+                const catCount = {};
+                filtered.forEach(e => { catCount[e.category] = (catCount[e.category] || 0) + 1; });
+                const sortedCats = Object.entries(catCount).sort((a,b) => b[1] - a[1]);
+                const catBody = document.getElementById('categoryInsightsBody');
+                const totalEntries = filtered.length;
+                if (!sortedCats.length) {
+                    catBody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">No data</td></tr>';
+                } else {
+                    let html = '';
+                    sortedCats.slice(0,10).forEach(([cat, count]) => {
+                        const pct = totalEntries > 0 ? (count / totalEntries) * 100 : 0;
+                        html += `<tr><td><strong>${escapeHtml(cat)}</strong></td><td>${count}</td><td>${pct.toFixed(1)}%</td></tr>`;
+                    });
+                    catBody.innerHTML = html;
+                }
+            }
+
+            function renderHealth(filtered) {
+                const health = computeHealth(filtered);
+                document.getElementById('healthScoreNum').textContent = health.score || '—';
+                const badge = document.getElementById('healthBadge');
+                if (!filtered.length) {
+                    badge.textContent = 'No Data';
+                    badge.className = 'health-badge bad';
+                    document.getElementById('healthBullets').innerHTML = '<li>No entries to analyse.</li>';
+                    return;
+                }
+                let cls = 'health-badge ';
+                let txt = '';
+                if (health.status === 'good') { cls += 'good'; txt = '💚 Healthy'; }
+                else if (health.status === 'ok') { cls += 'ok'; txt = '💛 Needs Attention'; }
+                else { cls += 'bad'; txt = '❤️ Needs Action'; }
+                badge.className = cls;
+                badge.textContent = txt;
+
+                const total = filtered.reduce((s,e) => s + e.hours, 0);
+                const billable = filtered.filter(e => e.billable === 'yes').reduce((s,e) => s + e.hours, 0);
+                const admin = filtered.filter(e => e.category === 'Admin').reduce((s,e) => s + e.hours, 0);
+                const adminRatio = total > 0 ? (admin/total)*100 : 0;
+                const overtime = calcOvertime(filtered);
+                const days = new Set(filtered.map(e => e.date)).size;
+                const avg = days > 0 ? total / days : 0;
+                let issuesHtml = health.issues.length ? health.issues.map(i => `<li>⚠️ ${i}</li>`).join('') : '<li>✅ All metrics look good!</li>';
+                document.getElementById('healthBullets').innerHTML = `
+                    <li>📊 Total hours: ${total.toFixed(1)}</li>
+                    <li>✅ Billable: ${billable.toFixed(1)} (${total > 0 ? ((billable/total)*100).toFixed(1) : 0}%)</li>
+                    <li>⚙️ Admin: ${admin.toFixed(1)} (${adminRatio.toFixed(1)}%)</li>
+                    <li>⏰ Overtime: ${overtime.toFixed(1)}</li>
+                    <li>📅 Working days: ${days}</li>
+                    <li>📈 Avg daily: ${avg.toFixed(1)}h</li>
+                    ${issuesHtml}
+                `;
+                // Draw ring
+                const canvas = document.getElementById('healthRingCanvas');
+                if (!canvas) return;
+                const ctx = canvas.getContext('2d');
+                const w = canvas.width, h = canvas.height;
+                const cx = w/2, cy = h/2, radius = 100, lineWidth = 24;
+                ctx.clearRect(0,0,w,h);
+                ctx.beginPath(); ctx.arc(cx,cy,radius,0,Math.PI*2); ctx.strokeStyle = '#55576a'; ctx.lineWidth = lineWidth; ctx.stroke();
+                const pct = Math.min(100, Math.max(0, health.score));
+                const endAngle = -Math.PI/2 + (pct/100)*Math.PI*2;
+                ctx.beginPath(); ctx.arc(cx,cy,radius,-Math.PI/2,endAngle);
+                let color = '#1fd99f';
+                if (pct < 50) color = '#ff267d';
+                else if (pct < 75) color = '#ffaf29';
+                ctx.strokeStyle = color;
+                ctx.lineWidth = lineWidth;
+                ctx.lineCap = 'round';
+                ctx.stroke();
+            }
+
+            function renderCoach(filtered) {
+                const coach = generateCoach(filtered);
+                const msgEl = document.getElementById('coachMessage');
+                // Clear any existing timeout
+                if (coachTimeout) clearTimeout(coachTimeout);
+                // Typewriter effect
+                typewriter(msgEl, coach.message, 25);
+                document.getElementById('tipText').textContent = coach.tip;
+            }
+
+            function renderAll() {
+                const filtered = getFilteredEntries();
+                renderKPI(filtered);
+                renderCharts(filtered);
+                renderTables(filtered);
+                renderHealth(filtered);
+                renderCoach(filtered);
+                renderBonusCharts(filtered);
+                renderActivity();
+                const top = [...filtered.reduce((m,e)=>(m.set(e.project,(m.get(e.project)||0)+e.hours),m),new Map())].sort((a,b)=>b[1]-a[1])[0];
+                document.getElementById('topProjectName').textContent=top?top[0]:'No project';
+                document.getElementById('topProjectHours').textContent=top?top[1].toFixed(1)+' hours tracked':'No hours tracked';
+                document.getElementById('todayTotal').textContent=filtered.reduce((s,e)=>s+e.hours,0).toFixed(1)+'h';
+                document.getElementById('totalEntriesLabel').textContent=filtered.length+' recorded entries';
+                document.getElementById('topCategory').textContent=(()=>{const m={};filtered.forEach(e=>m[e.category]=(m[e.category]||0)+e.hours);return Object.keys(m).sort((a,b)=>m[b]-m[a])[0]||'No activity';})();
+            }
+
+            // ── Init ──
+            function init() {
+                // ChartJS palette matches the reference dashboard.
+                if(window.Chart){
+                    Chart.defaults.color='#9b9db5';
+                    Chart.defaults.font.family="Inter, system-ui, sans-serif";
+                    Chart.defaults.borderColor='rgba(255,255,255,.06)';
+                }
+                renderAll();
+                fetchFromGitHub();
+                document.getElementById('analyticsRange').addEventListener('change',renderAll);
+                document.querySelectorAll('input[name=balance]').forEach(el=>el.addEventListener('change',()=>{document.getElementById('analyticsRange').value=document.getElementById('monthBalance').checked?'month':'week';renderAll();}));
+                document.getElementById('analyticsProject').addEventListener('change',renderAll);
+                document.getElementById('analyticsCategory').addEventListener('change',renderAll);
+                document.getElementById('refreshAnalyticsBtn').addEventListener('click',fetchFromGitHub);
+                document.getElementById('syncGitHubBtn').addEventListener('click',fetchFromGitHub);
+                document.getElementById('exportAnalyticsPdfBtn').addEventListener('click',exportPDF);
+                document.getElementById('reportNav').addEventListener('click',exportPDF);
+                document.getElementById('search').addEventListener('input',renderActivity);
+                document.getElementById('themeToggle').addEventListener('click',()=>{
+                    document.body.classList.toggle('light');
+                    localStorage.setItem('yp-analytics-theme',document.body.classList.contains('light')?'light':'dark');
+                });
+                if(localStorage.getItem('yp-analytics-theme')==='light')document.body.classList.add('light');
+                document.getElementById('menuToggle').addEventListener('click',()=>document.body.classList.toggle('menu-open'));
+                document.getElementById('coachToggle').addEventListener('click',()=>document.getElementById('coachPopup').classList.toggle('open'));
+                document.getElementById('timerButton').addEventListener('click',toggleTimer);
+                document.getElementById('timerReset').addEventListener('click',()=>{timerElapsed=0;timerStarted=null;timerRunning=false;updateTimer();});
+                document.addEventListener('timesheetUpdated',fetchFromGitHub);
+                window.addEventListener('focus',()=>{if(Date.now()-(lastFetchTime?.getTime()||0)>300000)fetchFromGitHub();});
+            }
+            let timerElapsed=0,timerStarted=null,timerRunning=false;
+            function updateTimer(){
+                const seconds=Math.floor(timerElapsed + (timerRunning?(Date.now()-timerStarted)/1000:0));
+                const s=String(seconds%60).padStart(2,'0');
+                const m=String(Math.floor(seconds/60)%60).padStart(2,'0');
+                const h=Math.floor(seconds/3600);
+                document.getElementById('timerReadout').textContent=(h?`${String(h).padStart(2,'0')}:`:'')+`${m}:${s}`;
+                document.getElementById('timerIcon').className=timerRunning?'fa fa-pause':'fa fa-play';
+                document.getElementById('timerButton').setAttribute('aria-label',timerRunning?'Pause timer':'Start timer');
+                const ring=document.getElementById('timerRing');
+                ring.style.strokeDashoffset=String(263.9*(1-(seconds%3600)/3600));
+            }
+            function toggleTimer(){
+                if(timerRunning){timerElapsed+=(Date.now()-timerStarted)/1000;timerRunning=false;timerStarted=null;}
+                else {timerRunning=true;timerStarted=Date.now();}
+                updateTimer();
+            }
+            setInterval(updateTimer,1000);
+            function renderActivity(){
+                const q=(document.getElementById('search')?.value||'').trim().toLowerCase();
+                const rows=getFilteredEntries().filter(e=> !q || [e.project,e.notes,e.category,e.date].some(v=>String(v||'').toLowerCase().includes(q))).slice(0,7);
+                const tbody=document.getElementById('activityBody');
+                tbody.innerHTML='';
+                if(!rows.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=4;td.className='empty';td.textContent='No matching activity recorded';tr.append(td);tbody.append(tr);return;}
+                for(const e of rows){
+                    const tr=document.createElement('tr');
+                    for(const v of [e.project,e.category,e.hours.toFixed(1)+'h',e.date]){const td=document.createElement('td');td.textContent=v;tr.append(td)}
+                    tbody.append(tr);
+                }
+            }
+            let bonusCharts={};
+            function renderBonusCharts(filtered){
+                for(const c of Object.values(bonusCharts))c.destroy();bonusCharts={};
+                if(!window.Chart)return;
+                const colors=['#7c8cff','#ffaf27','#1fd99f','#ff267d','#a88bff'];
+                const recent = Array.from({length:7},(_,i)=>{const d=new Date();d.setDate(d.getDate()-6+i);return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');});
+                const projects=[...new Set(filtered.map(e=>e.project))].sort((a,b)=>filtered.filter(e=>e.project===b).reduce((s,e)=>s+e.hours,0)-filtered.filter(e=>e.project===a).reduce((s,e)=>s+e.hours,0)).slice(0,4);
+                const daySum=(date,pred)=>filtered.filter(e=>e.date===date&&pred(e)).reduce((s,e)=>s+e.hours,0);
+                const optBase={responsive:true,maintainAspectRatio:false,animation:{duration:350},interaction:{mode:'index',intersect:false},plugins:{legend:{display:false},tooltip:{backgroundColor:'#242638',padding:12,cornerRadius:10}},scales:{x:{grid:{display:false},ticks:{color:'#888ba1',font:{size:10}}},y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.065)'},ticks:{color:'#888ba1',font:{size:10},callback:v=>v+'h'}}}};
+                const sumAll=recent.map(d=>daySum(d,()=>true));
+                const bill=recent.map(d=>daySum(d,e=>e.billable==='yes'));
+                const non=recent.map(d=>daySum(d,e=>e.billable!=='yes'));
+                const labels=recent.map(d=>new Date(d+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short'}).toUpperCase());
+                bonusCharts.balance=new Chart(document.getElementById('chartBalance'),{type:'line',data:{labels,datasets:[{label:'Total hours',data:sumAll,fill:true,borderColor:'#7c8cff',backgroundColor:'rgba(124,140,255,.4)',tension:.44,pointRadius:0},{label:'Billable hours',data:bill,fill:true,borderColor:'#ffad29',backgroundColor:'rgba(255,173,41,.5)',tension:.44,pointRadius:0}]},options:optBase});
+                bonusCharts.day=new Chart(document.getElementById('chartDay'),{type:'line',data:{labels,datasets:[{label:'Billable',data:bill,fill:true,borderColor:'#1fd99f',backgroundColor:'rgba(31,217,159,.6)',tension:.47,pointRadius:0},{label:'Non-billable',data:non,fill:true,borderColor:'#7c8cff',backgroundColor:'rgba(124,140,255,.5)',tension:.47,pointRadius:0}]},options:optBase});
+                bonusCharts.projectRing=new Chart(document.getElementById('chartImplementation'),{type:'doughnut',data:{labels:projects.length?projects:['No data'],datasets:[{data:projects.length?projects.map(p=>filtered.filter(e=>e.project===p).reduce((s,e)=>s+e.hours,0)):[1],backgroundColor:projects.length?colors:['#5a5d70'],borderWidth:0,spacing:3,borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,cutout:'76%',plugins:{legend:{display:false},tooltip:{enabled:!!projects.length}}}});
+                const implLegend=document.getElementById('implementationLegend');implLegend.innerHTML='';
+                projects.forEach((p,i)=>{let el=document.createElement('div');el.className='legend-row';let b=document.createElement('span');b.className='dot';b.style.background=colors[i];el.append(b,document.createTextNode(p));implLegend.append(el);});
+                const catTotals={};filtered.forEach(e=>catTotals[e.category]=(catTotals[e.category]||0)+e.hours);
+                const catNames=Object.keys(catTotals).sort((a,b)=>catTotals[b]-catTotals[a]).slice(0,5);
+                bonusCharts.radar=new Chart(document.getElementById('chartProductivity'),{type:'radar',data:{labels:catNames.length?catNames:['No data'],datasets:[{label:'Hours by activity',data:catNames.length?catNames.map(c=>catTotals[c]):[0],backgroundColor:'rgba(124,140,255,.45)',borderColor:'#7c8cff',pointRadius:0,borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{r:{pointLabels:{color:'#aaadc0',font:{size:10}},ticks:{display:false},grid:{color:'rgba(255,255,255,.09)'},angleLines:{color:'rgba(255,255,255,.09)'},beginAtZero:true}}}});
+                bonusCharts.spent=new Chart(document.getElementById('chartTimeSpent'),{type:'bar',data:{labels,datasets:projects.map((p,i)=>({label:p,data:recent.map(d=>daySum(d,e=>e.project===p)),backgroundColor:colors[i],maxBarThickness:12,borderRadius:2}))},options:{...optBase,plugins:{...optBase.plugins,legend:{display:false}},scales:{...optBase.scales,x:{...optBase.scales.x,stacked:false},y:{...optBase.scales.y,stacked:false}}}});
+                const legend=document.getElementById('projectLegend');legend.innerHTML='';projects.forEach((p,i)=>{const el=document.createElement('span');el.className='legend-row';const dot=document.createElement('span');dot.className='dot';dot.style.background=colors[i];el.append(dot,document.createTextNode(p));legend.append(el);});
+                document.getElementById('ringValue').textContent=filtered.length?Math.round(filtered.filter(e=>e.billable==='yes').reduce((s,e)=>s+e.hours,0)/Math.max(.01,filtered.reduce((s,e)=>s+e.hours,0))*100)+'%':'—';
+            }
+
+            // ── Export PDF ──
+            async function exportPDF() {
+                document.getElementById('sourceStatus').textContent='Preparing report…';
+                try {
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+                    const pageWidth = doc.internal.pageSize.getWidth();
+                    const container = document.getElementById('analyticsApp');
+                    const canvas = await html2canvas(container, { scale: 2, useCORS: true, logging: false, backgroundColor: '#313342' });
+                    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+                    const imgWidth = pageWidth - 20;
+                    const imgHeight = (canvas.height / canvas.width) * imgWidth;
+                    let remainingHeight = imgHeight;
+                    let yOffset = 0;
+                    const pageHeightMM = doc.internal.pageSize.getHeight() - 20;
+                    while (remainingHeight > 0) {
+                        if (yOffset > 0) doc.addPage();
+                        const sliceHeight = Math.min(remainingHeight, pageHeightMM);
+                        const ratio = sliceHeight / imgHeight;
+                        const srcY = yOffset / imgHeight * canvas.height;
+                        const srcH = ratio * canvas.height;
+                        const tempCanvas = document.createElement('canvas');
+                        tempCanvas.width = canvas.width;
+                        tempCanvas.height = Math.ceil(srcH);
+                        const ctx = tempCanvas.getContext('2d');
+                        ctx.drawImage(canvas, 0, srcY, canvas.width, srcH, 0, 0, canvas.width, srcH);
+                        const sliceData = tempCanvas.toDataURL('image/jpeg', 0.92);
+                        doc.addImage(sliceData, 'JPEG', 10, 10, imgWidth, sliceHeight);
+                        yOffset += sliceHeight;
+                        remainingHeight -= sliceHeight;
+                    }
+                    doc.save(`Analytics_${new Date().toISOString().slice(0,10)}.pdf`);
+                    showToast('PDF exported successfully!', 'success');
+                } catch (err) {
+                    console.error(err);
+                    showToast('PDF export failed: ' + err.message, 'error');
+                } finally {
+                    
+                }
+            }
+
+            if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+            else init();
+
+        })();
+
+</script></body></html>
