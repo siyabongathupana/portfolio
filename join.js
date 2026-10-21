@@ -2,6 +2,8 @@
 const $=id=>document.getElementById(id),form=$('requestForm');if(!form)return;
 const cfg=window.YP_ACCOUNT_REQUEST_CONFIG||{},status=$('requestStatus'),submit=$('reqSubmit');let widgetId=null;
 const setStatus=(message)=>{status.textContent=message};
+const emailOnly=!/^https:\/\//.test(cfg.endpoint||'')||!cfg.turnstileSiteKey||cfg.turnstileSiteKey.startsWith('PASTE_');
+if(emailOnly){submit.textContent='Prepare email request ↗';setStatus('Account requests currently use email: complete the form, then press Send in your email app. No Cloudflare OTP is required to request access.');}
 function fallback(name,email,reason){
  const subject=encodeURIComponent('YourPortfolio account request'),body=encodeURIComponent('Name: '+name+'\nEmail: '+email+'\nReason: '+reason+'\n\nPlease review my account request.');
  setStatus('Automatic requests are not ready. Your email app will open; review and press Send to submit.');
