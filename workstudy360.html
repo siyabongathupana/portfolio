@@ -68,6 +68,43 @@ html:not(.ws-authorized-shell) .topbar,html:not(.ws-authorized-shell) main{filte
 .ws-auto-footer{display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:space-between;margin-top:17px}
 .ws-auto-footer p{margin:0;color:var(--muted);font-size:11px}
 @media(max-width:700px){.ws-auto-panel{padding:17px}.ws-auto-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.ws-auto-sessions{grid-template-columns:1fr}.ws-auto-actions .btn{flex:1}}
+
+/* WorkStudy Decision Intelligence · scenario lab */
+.ws-sim-panel{margin:0 0 24px;padding:24px}
+.ws-sim-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px}
+.ws-sim-head h2{font-size:clamp(20px,3vw,26px);letter-spacing:-.04em;margin:7px 0}
+.ws-sim-head p{max-width:750px;font-size:13px;color:var(--muted);margin:0;line-height:1.65}
+.ws-sim-layout{display:grid;grid-template-columns:minmax(245px,.8fr) minmax(0,1.6fr);gap:18px}
+.ws-sim-controls,.ws-sim-out{background:var(--panel2);border:1px solid var(--line);border-radius:15px;padding:18px}
+.ws-sim-controls{display:grid;align-content:start;gap:15px}
+.ws-sim-controls label{font-size:12px;color:var(--muted);display:grid;gap:8px}
+.ws-sim-controls input[type="date"]{width:100%;min-width:0}
+.ws-sim-slider{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.ws-sim-slider output{font-weight:850;color:var(--cyan);font-size:13px}
+.ws-sim-controls input[type="range"]{accent-color:var(--cyan);width:100%}
+.ws-sim-check{display:flex!important;flex-direction:row!important;gap:9px!important;align-items:flex-start}
+.ws-sim-check input{accent-color:var(--cyan);margin-top:3px}
+.ws-sim-footnote{font-size:11px;color:var(--muted);line-height:1.6;margin:0}
+.ws-sim-out>p{font-size:13px;color:var(--muted);margin:0 0 12px;line-height:1.65}
+.ws-sim-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:15px 0}
+.ws-sim-metric{border-radius:11px;background:var(--panel);border:1px solid var(--line);padding:13px}
+.ws-sim-metric small{display:block;font-size:10px;color:var(--muted);margin-bottom:9px}
+.ws-sim-metric strong{font-size:19px;line-height:1.15;display:block}
+.ws-sim-metric span{display:block;font-size:10px;color:var(--muted);margin-top:5px}
+.ws-sim-metric b{color:var(--cyan)}
+.ws-sim-headline{font-size:13px;font-weight:790;color:var(--ink);margin:13px 0 8px}
+.ws-sim-insights{display:grid;gap:7px}
+.ws-sim-insight{border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:11px;font-size:12px;color:var(--muted);line-height:1.55}
+.ws-sim-insight b{color:var(--ink)}
+.ws-sim-cover{display:grid;gap:7px;max-height:235px;overflow:auto}
+.ws-sim-task{display:grid;grid-template-columns:1.8fr 1fr 1fr;gap:8px;align-items:center;font-size:11px;padding:9px;border:1px solid var(--line);border-radius:9px;background:var(--panel)}
+.ws-sim-task strong{min-width:0;overflow-wrap:anywhere}
+.ws-sim-task span{font-size:10px;color:var(--muted)}
+.ws-sim-placeholder{display:flex;align-items:center;justify-content:center;min-height:210px;text-align:center;color:var(--muted);font-size:13px;line-height:1.7}
+.ws-sim-status{font-size:12px;color:var(--muted);margin:8px 0 0}
+.ws-sim-out[aria-busy="true"]{opacity:.75}
+@media(max-width:850px){.ws-sim-layout{grid-template-columns:1fr}.ws-sim-metrics{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:560px){.ws-sim-panel{padding:15px}.ws-sim-metrics{grid-template-columns:1fr}.ws-sim-task{grid-template-columns:1.6fr 1fr 1fr}}
 </style>
 </head>
 <body>
@@ -89,6 +126,30 @@ html:not(.ws-authorized-shell) .topbar,html:not(.ws-authorized-shell) main{filte
   <div class="ws-auto-actions"><button class="btn primary" type="button" id="wsAutoApprove">✓ Approve & save plan</button><button class="btn" type="button" id="wsAutoDismiss">Discard proposal</button></div>
  </div>
  <div class="ws-auto-footer"><div><strong style="font-size:12px">Protect upcoming sessions</strong><div class="ws-auto-existing" id="wsAutoPinned">No Autopilot-created sessions yet.</div></div><button class="btn" id="wsAutoUndo" type="button" hidden>↶ Undo last Autopilot save</button></div>
+</section>
+<section class="panel ws-sim-panel" id="wsScenarioPanel" aria-labelledby="wsScenarioTitle">
+ <div class="ws-sim-head"><div><div class="eyebrow">DECISION INTELLIGENCE · EXPERIMENT BEFORE COMMITTING</div><h2 id="wsScenarioTitle">Work–Study Scenario Lab <span class="cyan">◇</span></h2><p>What if your workday runs late? What if you secure study leave or open a weekend morning? Compare your real plan against a hypothetical schedule without changing Timesheets, Studies, or saved sessions.</p></div><span class="ws-auto-pill">PRIVATE · READ ONLY</span></div>
+ <div class="ws-sim-layout">
+  <form class="ws-sim-controls" id="wsScenarioForm">
+   <label>Extra work on this date<input class="field" id="wsScenarioWorkDate" type="date" aria-describedby="wsSimScope"/></label>
+   <label><span class="ws-sim-slider">Additional work hours <output id="wsScenarioOvertimeValue">0h</output></span><input id="wsScenarioOvertime" type="range" min="0" max="5" step="0.5" value="0"/></label>
+   <label>Hypothetical approved study-leave day<input class="field" id="wsScenarioLeaveDate" type="date" aria-describedby="wsSimScope"/></label>
+   <label class="ws-sim-check"><input id="wsScenarioWeekend" type="checkbox"/> <span>Allow weekend morning study (from 09:00, up to two additional hours per non-working weekend day)</span></label>
+   <p class="ws-sim-footnote" id="wsSimScope">Study leave removes only the assumed shift; existing recorded work is never removed. Simulations never request leave or change work records.</p>
+   <button class="btn primary" type="submit" id="wsScenarioCompare" disabled>◇ Compare scenarios</button>
+   <p class="ws-sim-status" id="wsScenarioStatus" role="status" aria-live="polite">Sync your private records to activate this simulator.</p>
+  </form>
+  <div class="ws-sim-out" id="wsScenarioResults" aria-live="polite">
+   <div class="ws-sim-placeholder" id="wsScenarioEmpty">Select your hypothetical changes, then compare the next 14 days. Results use the same scheduling constraints as Autopilot.</div>
+   <div id="wsScenarioDetails" hidden>
+    <div class="ws-sim-metrics" id="wsScenarioMetrics"></div>
+    <div class="ws-sim-headline">Why the outcome changed</div>
+    <div class="ws-sim-insights" id="wsScenarioInsights"></div>
+    <div class="ws-sim-headline">Deadline coverage <span class="muted">(estimated time allocated, not completed)</span></div>
+    <div class="ws-sim-cover" id="wsScenarioCoverage"></div>
+   </div>
+  </div>
+ </div>
 </section>
 <section class="kpis" aria-label="Weekly performance"><div class="panel kpi"><div class="kpilabel">Recorded work this week</div><div id="workKpi" class="kpivalue">—</div><div class="kpisub" id="workDesc">From your Timesheets</div></div><div class="panel kpi"><div class="kpilabel">Study hours scheduled</div><div id="studyKpi" class="kpivalue">—</div><div class="kpisub" id="studyDesc">Personal planning blocks</div></div><div class="panel kpi"><div class="kpilabel">Upcoming deadlines</div><div id="deadlineKpi" class="kpivalue">—</div><div class="kpisub">Next 14 days · incomplete only</div></div><div class="panel kpi"><div class="kpilabel">Work–study conflicts</div><div id="conflictKpi" class="kpivalue">—</div><div class="kpisub" id="conflictDesc">Timing overlaps and capacity</div></div></section>
 <div class="main-grid"><section class="panel sectionpad"><div class="sectionhead"><div><h2>Unified work–study calendar</h2><p>Work shift expectations, logged time, due dates and optimised study sessions.</p></div><div class="toolbar"><button id="prevWeek" class="smallbtn" type="button" aria-label="Previous week">‹</button><span class="weeklabel" id="weekLabel">—</span><button id="nextWeek" class="smallbtn" type="button" aria-label="Next week">›</button><button id="todayWeek" class="smallbtn" type="button">Today</button></div></div><div class="week" id="weekGrid" aria-label="Weekly calendar"></div><div class="legend"><span><b class="w"></b>Work/shift</span><span><b class="s"></b>Study session</span><span><b class="d"></b>Deadline</span><span class="muted">Study recommendations require your approval.</span></div></section>
