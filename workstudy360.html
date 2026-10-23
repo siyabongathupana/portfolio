@@ -29,14 +29,66 @@ html:not(.ws-authorized-shell) .topbar,html:not(.ws-authorized-shell) main{filte
 #wsPublicGate p{color:var(--muted);line-height:1.65;margin-bottom:20px}
 #wsPublicGate a{display:inline-flex;align-items:center;padding:13px 18px;border-radius:11px;background:var(--cyan);color:#051823;font-size:13px;font-weight:850}
 #wsPublicGate small{display:block;margin-top:15px;color:var(--muted)}
+
+/* WorkStudy 360 · Adaptive Autopilot */
+.ws-auto-panel{margin:2px 0 24px;padding:25px;border-color:color-mix(in srgb,var(--cyan) 48%,var(--line));background:linear-gradient(120deg,var(--panel),var(--panel2))}
+.ws-auto-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
+.ws-auto-heading h2{margin:6px 0;font-size:clamp(21px,3vw,27px);letter-spacing:-.04em}
+.ws-auto-heading p{color:var(--muted);margin:0;max-width:720px;line-height:1.6;font-size:13px}
+.ws-auto-pill{font-size:10px;font-weight:800;letter-spacing:.08em;color:var(--cyan);border:1px solid var(--line);background:var(--panel2);padding:8px 12px;border-radius:999px;white-space:nowrap}
+.ws-auto-info{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}
+.ws-auto-info span{border:1px solid var(--line);border-radius:9px;padding:8px 12px;font-size:11px;color:var(--muted)}
+.ws-auto-status{margin:17px 0 0;color:var(--muted);font-size:13px;line-height:1.6}
+.ws-auto-status[data-tone=alert]{color:var(--amber)}
+.ws-auto-preview{margin-top:20px;border-top:1px solid var(--line);padding-top:22px}
+.ws-auto-preview[hidden]{display:none!important}
+.ws-auto-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:16px}
+.ws-auto-metric{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:13px}
+.ws-auto-metric strong{display:block;font-size:21px;color:var(--ink);line-height:1.2}
+.ws-auto-metric span{display:block;font-size:10px;color:var(--muted);margin-top:7px}
+.ws-auto-group{margin:16px 0 0}
+.ws-auto-group h3{font-size:13px;margin:0 0 9px}
+.ws-auto-flags{display:grid;gap:7px}
+.ws-auto-flag{padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);font-size:12px;color:var(--muted);line-height:1.55}
+.ws-auto-flag.important{border-color:color-mix(in srgb,var(--amber) 48%,var(--line));color:var(--ink)}
+.ws-auto-sessions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;max-height:290px;overflow:auto}
+.ws-auto-session{padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel2);display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.ws-auto-session strong{display:block;font-size:11px;overflow-wrap:anywhere}
+.ws-auto-session span{font-size:10px;color:var(--muted)}
+.ws-auto-session em{font-style:normal;white-space:nowrap;color:var(--cyan);font-size:10px}
+.ws-auto-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:18px}
+.ws-auto-ack{display:flex;gap:10px;align-items:flex-start;color:var(--muted);font-size:12px;line-height:1.6;margin-top:14px}
+.ws-auto-ack input{accent-color:var(--cyan);margin-top:4px}
+.ws-auto-existing{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.ws-auto-pin{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:10px;padding:9px;background:var(--panel2);font-size:11px;max-width:100%}
+.ws-auto-pin span{overflow-wrap:anywhere;color:var(--muted)}
+.ws-auto-pin button{background:transparent;border:1px solid var(--line);border-radius:8px;color:var(--cyan);font:inherit;padding:5px 9px;cursor:pointer}
+.ws-auto-pin button:focus-visible{outline:2px solid var(--cyan)}
+.ws-auto-footer{display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:space-between;margin-top:17px}
+.ws-auto-footer p{margin:0;color:var(--muted);font-size:11px}
+@media(max-width:700px){.ws-auto-panel{padding:17px}.ws-auto-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.ws-auto-sessions{grid-template-columns:1fr}.ws-auto-actions .btn{flex:1}}
 </style>
 </head>
 <body>
 <aside id="wsPublicGate" role="region" aria-label="Private WorkStudy access required"><div class="ws-gate-card"><div class="eyebrow">YOURPORTFOLIO · OWNER ACCESS</div><h2>WorkStudy <span class="cyan">360</span></h2><p>The complete interface is hosted here, but live Timesheets, academic information and planning tools run only after owner verification. Your private JavaScript and data are not served by GitHub Pages.</p><a href="https://portfolio-data-bridge.siyabongatshem.workers.dev/workstudy360.html">Open my secured workspace →</a><small>Other visitors cannot access personal records or save study plans.</small></div></aside>
 <header class="topbar"><div class="topinner shell"><a class="brand" href="/app.html"><span class="brandmark">W</span><span>YourPortfolio <span class="cyan">/ WorkStudy 360</span></span></a><span class="topcenter">WORK · LEARN · GROW</span><div class="topright"><span class="chip"><i></i> Owner workspace</span><button class="quiet" type="button" id="themeBtn" aria-label="Toggle theme">☼</button><a class="quiet" href="/app.html">← Workspace</a></div></div></header>
 <main class="shell">
-<section class="hero"><div><div class="eyebrow">Your personal operating system</div><h1>Make every hour <span class="cyan">count.</span></h1><p>A private intelligence layer that aligns real project hours, academic deadlines and available energy. No HR workspace, no shared grades and no changes to your existing records.</p></div><div class="actions"><button id="refreshBtn" class="btn" type="button">↻ Sync records</button><button id="generateBtn" class="btn primary" type="button">✦ Generate my week</button><button id="saveBtn" class="btn" type="button" disabled>Save plan</button></div></section>
+<section class="hero"><div><div class="eyebrow">Your personal operating system</div><h1>Make every hour <span class="cyan">count.</span></h1><p>A private intelligence layer that aligns real project hours, academic deadlines and available energy. No HR workspace, no shared grades and no changes to your existing records.</p></div><div class="actions"><button id="refreshBtn" class="btn" type="button">↻ Sync records</button><button id="generateBtn" class="btn primary" type="button">✦ Run Autopilot</button><button id="saveBtn" class="btn" type="button" disabled>Save plan</button></div></section>
 <div id="notice" class="notice" role="status" aria-live="polite">Connecting securely to your Timesheets, Studies and personal planner…</div>
+
+<section class="panel ws-auto-panel" id="wsAutoPanel" aria-labelledby="wsAutoTitle">
+ <div class="ws-auto-heading"><div><div class="eyebrow">INTELLIGENCE LAYER · V2</div><h2 id="wsAutoTitle">WorkStudy Autopilot <span class="cyan">✦</span></h2><p>Analyse the next 14 days, protect your work shifts and existing commitments, and prepare a deadline-aware study plan. <strong>Nothing changes without your approval.</strong></p></div><span class="ws-auto-pill">LOCAL SCHEDULER · NO AI KEY</span></div>
+ <div class="ws-auto-info"><span>✓ 30-minute study blocks</span><span>✓ Recovery windows and daily caps</span><span>✓ Conflict & deadline warnings</span><span>✓ Preview → Approve → Save</span></div>
+ <p class="ws-auto-status" id="wsAutoStatus" role="status" aria-live="polite">Connect your private planner and records, then run Autopilot to review a suggested schedule.</p>
+ <div class="ws-auto-preview" id="wsAutoPreview" hidden>
+  <div class="ws-auto-metrics" id="wsAutoMetrics" aria-label="Autopilot proposed changes"></div>
+  <div class="ws-auto-group"><h3>What you should know</h3><div class="ws-auto-flags" id="wsAutoFlags"></div></div>
+  <div class="ws-auto-group"><h3>Suggested sessions <span class="muted">(first 35 shown)</span></h3><div class="ws-auto-sessions" id="wsAutoSessions"></div></div>
+  <label class="ws-auto-ack" id="wsAutoAckRow" hidden><input type="checkbox" id="wsAutoAck"> <span>I reviewed the warnings and understand that estimated hours and incomplete source data cannot guarantee a deadline.</span></label>
+  <div class="ws-auto-actions"><button class="btn primary" type="button" id="wsAutoApprove">✓ Approve & save plan</button><button class="btn" type="button" id="wsAutoDismiss">Discard proposal</button></div>
+ </div>
+ <div class="ws-auto-footer"><div><strong style="font-size:12px">Protect upcoming sessions</strong><div class="ws-auto-existing" id="wsAutoPinned">No Autopilot-created sessions yet.</div></div><button class="btn" id="wsAutoUndo" type="button" hidden>↶ Undo last Autopilot save</button></div>
+</section>
 <section class="kpis" aria-label="Weekly performance"><div class="panel kpi"><div class="kpilabel">Recorded work this week</div><div id="workKpi" class="kpivalue">—</div><div class="kpisub" id="workDesc">From your Timesheets</div></div><div class="panel kpi"><div class="kpilabel">Study hours scheduled</div><div id="studyKpi" class="kpivalue">—</div><div class="kpisub" id="studyDesc">Personal planning blocks</div></div><div class="panel kpi"><div class="kpilabel">Upcoming deadlines</div><div id="deadlineKpi" class="kpivalue">—</div><div class="kpisub">Next 14 days · incomplete only</div></div><div class="panel kpi"><div class="kpilabel">Work–study conflicts</div><div id="conflictKpi" class="kpivalue">—</div><div class="kpisub" id="conflictDesc">Timing overlaps and capacity</div></div></section>
 <div class="main-grid"><section class="panel sectionpad"><div class="sectionhead"><div><h2>Unified work–study calendar</h2><p>Work shift expectations, logged time, due dates and optimised study sessions.</p></div><div class="toolbar"><button id="prevWeek" class="smallbtn" type="button" aria-label="Previous week">‹</button><span class="weeklabel" id="weekLabel">—</span><button id="nextWeek" class="smallbtn" type="button" aria-label="Next week">›</button><button id="todayWeek" class="smallbtn" type="button">Today</button></div></div><div class="week" id="weekGrid" aria-label="Weekly calendar"></div><div class="legend"><span><b class="w"></b>Work/shift</span><span><b class="s"></b>Study session</span><span><b class="d"></b>Deadline</span><span class="muted">Study recommendations require your approval.</span></div></section>
 <aside class="panel sectionpad"><div class="sectionhead"><div><h2>Conflict & priority radar</h2><p>Evidence-based flags, not fabricated AI predictions.</p></div><span class="chip" id="riskBadge">—</span></div><div class="risklist" id="riskList"></div><div class="summarybar"><span>Weekly study target</span><strong id="goalText">0 / 0h</strong></div><div class="meter" aria-label="Study target progress"><div class="fill" id="goalFill"></div></div><p class="muted" style="font-size:11px;margin:12px 0 0">Work shifts are assumed from your preferences; timesheet entries are actual records. Unlogged work cannot be inferred.</p></aside></div>
