@@ -140,14 +140,14 @@ body.qp-mode main.shell > :not(#quarterRoot){display:none!important}
 .qp-columns{display:grid;grid-template-columns:repeat(13,minmax(47px,1fr));gap:5px;overflow-x:auto;padding-bottom:4px}
 .qp-week{min-width:47px;text-align:center;font-size:10px;color:var(--muted);border:1px solid var(--line);border-radius:9px;padding:8px 3px;background:var(--panel2)}
 .qp-week b{display:block;color:var(--ink);font-size:11px}.qp-week.today{border-color:var(--cyan)}
-.qp-track{display:grid;grid-template-columns:175px repeat(13,minmax(47px,1fr));gap:5px;min-width:900px;align-items:center;margin:7px 0}
+.qp-track{display:grid;grid-template-columns:225px repeat(13,minmax(47px,1fr));gap:5px;min-width:980px;align-items:center;margin:7px 0}
 .qp-track-label{min-width:0;border-radius:9px;background:var(--panel2);border:1px solid var(--line);padding:9px 10px;font-size:11px;font-weight:760;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .qp-track-label small{display:block;color:var(--muted);font-size:9px;font-weight:550;margin-top:3px}
 .qp-track-cell{height:35px;background:var(--panel2);border:1px solid var(--line);border-radius:7px}
-.qp-track-cell.active{background:rgba(105,172,255,.25);border-color:var(--blue)}
+.qp-track-cell.active,.qp-track-cell.work{background:linear-gradient(180deg,rgba(96,155,255,.43),rgba(96,155,255,.23));border-color:var(--blue);box-shadow:inset 0 0 0 1px rgba(142,170,255,.22)}
 .qp-track-cell.study{background:rgba(104,220,150,.20);border-color:var(--lime)}
 .qp-track-cell.exam{background:rgba(255,183,113,.23);border-color:var(--amber)}
-.qp-track-cell.deadline{background:rgba(255,126,146,.22);border-color:var(--red)}
+.qp-track-cell.milestone{position:relative}.qp-track-cell.milestone:after{content:"";position:absolute;top:5px;bottom:5px;left:calc(50% - 2px);width:4px;border-radius:6px;background:var(--cyan)}.qp-track-cell.deadline{background:rgba(255,126,146,.22);border-color:var(--red)}
 .qp-gantt-scroll{overflow-x:auto;scrollbar-color:var(--line) transparent}
 .qp-track-header{display:grid;grid-template-columns:175px repeat(13,minmax(47px,1fr));gap:5px;min-width:900px;padding:0 0 8px}
 .qp-track-header span{text-align:center;color:var(--muted);font-size:10px}
@@ -155,7 +155,7 @@ body.qp-mode main.shell > :not(#quarterRoot){display:none!important}
 .qp-track-header b{display:block;color:var(--ink);font-size:11px}
 .qp-risks{display:grid;gap:8px;max-height:465px;overflow:auto}.qp-risk{border:1px solid var(--line);background:var(--panel2);border-radius:11px;padding:11px 13px}
 .qp-risk strong{display:block;font-size:12px;overflow-wrap:anywhere}.qp-risk small{color:var(--muted);font-size:10px}.qp-risk i{display:block;font-style:normal;font-weight:850;font-size:10px;margin-bottom:4px;color:var(--amber)}
-.qp-risk.danger{border-color:var(--red)}.qp-risk.danger i{color:var(--red)}.qp-risk.exam i{color:var(--lime)}
+.qp-risk.danger{border-color:var(--red)}.qp-risk.danger i{color:var(--red)}.qp-risk.exam i{color:var(--lime)}.qp-note{padding:10px 13px;border:1px solid var(--line);border-radius:10px;background:var(--panel2);color:var(--muted);font-size:11px;line-height:1.55}.qp-report-select{min-height:40px;max-width:284px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:8px 10px;color:var(--ink);font-size:12px;font-weight:700}
 .qp-bottom{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(320px,.86fr);gap:16px}
 .qp-filter{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}.qp-filter select,.qp-filter input{max-width:190px}
 .qp-table-wrap{max-height:490px;overflow:auto}.qp-table{border-collapse:collapse;width:100%;min-width:670px}.qp-table th{position:sticky;top:0;background:var(--panel2);color:var(--muted);font-size:10px;letter-spacing:.06em;text-align:left;z-index:1}
@@ -178,13 +178,13 @@ body.qp-mode main.shell > :not(#quarterRoot){display:none!important}
 <main class="shell">
 <section id="quarterRoot" aria-label="90-day project and study planning centre">
  <div class="qp-head"><div><div class="eyebrow">YOURPORTFOLIO · PRIVATE MISSION PLANNING</div><h1>90-Day <span class="cyan">Planning Centre</span></h1><p>Your Siya work schedule, upcoming engineering milestones, academic deadlines and final exams, in one owner-only planning cockpit. Move the window forward to see the rest of 2027.</p></div>
- <div class="qp-actions"><a href="/workstudy360.html" class="btn">← WorkStudy 360</a><button id="qpRefresh" class="btn" type="button">↻ Refresh</button><button id="qpSave" class="btn" type="button" disabled>Save private plan</button><button id="qpExcel" class="btn primary" type="button">↓ Export Excel (.xlsx)</button></div></div>
+ <div class="qp-actions"><a href="/workstudy360.html" class="btn">← WorkStudy 360</a><button id="qpRefresh" class="btn" type="button">↻ Refresh</button><button id="qpSave" class="btn" type="button" disabled>Save private plan</button><select class="qp-report-select" id="qpReportMode" aria-label="Choose the Excel report audience"><option value="manager">Manager briefing · work + final exams</option><option value="personal">Personal report · full study detail</option></select><button id="qpExcel" class="btn primary" type="button">↓ Export visual Excel</button></div></div>
  <div class="qp-kpis"><article class="panel qp-kpi"><span>Planned work milestones</span><strong id="qpCountWork">—</strong><small>Within the selected 91 days</small></article><article class="panel qp-kpi"><span>Academic deadlines</span><strong id="qpCountStudy">—</strong><small>Outstanding Studies + private entries</small></article><article class="panel qp-kpi"><span>Final exams</span><strong id="qpCountExam">—</strong><small>Review institutional exam timetable</small></article><article class="panel qp-kpi"><span>Schedule warnings</span><strong id="qpCountAlerts">—</strong><small>Close deadlines and overlapping weeks</small></article></div>
  <div class="panel qp-toolbar"><button id="qpPrevious" class="smallbtn" type="button" aria-label="Previous 13 weeks">‹</button><span class="qp-range" id="qpRange">Loading…</span><button id="qpNext" class="smallbtn" type="button" aria-label="Next 13 weeks">›</button><button id="qpToday" class="smallbtn" type="button">Start today</button><span class="muted" style="font-size:11px">13-week rolling view · entries stay in your private account</span></div>
  <div id="qpNotice" class="notice" role="status" aria-live="polite">Connecting securely to your records…</div>
  <div class="qp-main">
   <section class="panel qp-panel"><div class="sectionhead"><div><h2>Three-month delivery timeline</h2><p class="qp-sub">Each column represents one week. Work, study and exams have distinct colours.</p></div><span class="chip">13 weeks</span></div><div class="qp-gantt-scroll"><div class="qp-track-header" id="qpHeader"></div><div id="qpTimeline"></div></div><div class="legend"><span><b class="w"></b>Work</span><span><b class="s"></b>Study</span><span><b class="d"></b>Exam/deadline</span></div></section>
-  <aside class="panel qp-panel"><div class="sectionhead"><div><h2>Deadline and conflict radar</h2><p class="qp-sub">Exams are prioritised. Work overlaps are warnings, not automatic rescheduling.</p></div></div><div class="qp-risks" id="qpRadar"></div></aside>
+  <aside class="panel qp-panel"><div class="sectionhead"><div><h2>Deadline and conflict radar</h2><p class="qp-sub">Only final exams can trigger work–study clash warnings. Quizzes and assignments are planned after hours.</p></div></div><div class="qp-risks" id="qpRadar"></div><p class="qp-note" style="margin-top:13px">✓ Routine quizzes and assignments are treated as after-hours commitments, not work conflicts. Exam dates still need verification against the official timetable.</p></aside>
  </div>
  <div class="qp-bottom">
   <section class="panel qp-panel"><div class="sectionhead"><div><h2>Plan register</h2><p class="qp-sub">Edit your own work milestones and add private study, exam and personal goals.</p></div><span class="chip">Siya · personal</span></div>
@@ -206,7 +206,7 @@ body.qp-mode main.shell > :not(#quarterRoot){display:none!important}
    </form><p class="qp-msg" id="qpFormMessage">Your existing Timesheets, Studies and other WorkStudy functions are not modified by planning entries.</p>
   </section>
  </div>
- <p class="qp-msg" style="margin-top:20px">Work dates supplied in the workbook are week-start estimates, not guaranteed deadlines. Exams reflect current Studies data and should be checked against the official timetable. Excel includes both the selected 91-day plan and your full future roadmap.</p>
+ <p class="qp-msg" style="margin-top:20px">The manager Excel briefing shows work milestones and final-exam availability only; quizzes, assignments, grades and private study notes are excluded. The personal export contains all planning entries. Work dates supplied in the workbook are week-start estimates, not guaranteed deadlines. Exams reflect current Studies data and should be checked against the official timetable. Excel includes both the selected 91-day plan and your full future roadmap.</p>
 </section>
 
 <section class="hero"><div><div class="eyebrow">Your personal operating system</div><h1>Make every hour <span class="cyan">count.</span></h1><p>A private intelligence layer that aligns real project hours, academic deadlines and available energy. No HR workspace, no shared grades and no changes to your existing records.</p></div><div class="actions"><button id="refreshBtn" class="btn" type="button">↻ Sync records</button><button id="generateBtn" class="btn primary" type="button">✦ Run Autopilot</button><button id="saveBtn" class="btn" type="button" disabled>Save plan</button></div></section>
