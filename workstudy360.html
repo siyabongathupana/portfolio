@@ -201,6 +201,14 @@ body.qp-mode main.shell > :not(#quarterRoot){display:none!important}
 @media(max-width:1100px){.qp-intel,.qp-interact{grid-template-columns:1fr}}
 @media(max-width:760px){.qp-intel-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.qp-manager-grid{grid-template-columns:1fr}.qp-cap{overflow-x:auto}}
 
+
+.qp-onedrive-panel{border:1px solid var(--line);border-radius:14px;background:var(--panel2);padding:16px;margin-top:13px}
+.qp-onedrive-grid{display:grid;grid-template-columns:minmax(180px,1fr) minmax(150px,.5fr) auto;gap:9px;align-items:end}
+.qp-onedrive-grid label{min-width:0}
+.qp-onedrive-grid .field{margin-top:6px;width:100%}
+.qp-onedrive-status{font-size:11px;line-height:1.6;color:var(--muted);margin:11px 0 0}
+.qp-onedrive-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:11px}
+@media(max-width:780px){.qp-onedrive-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -237,9 +245,19 @@ body.qp-mode main.shell > :not(#quarterRoot){display:none!important}
 </section>
 </div>
 <section class="panel qp-panel qp-manager" id="qpManagement">
- <div class="sectionhead"><div><div class="eyebrow">MANAGEMENT REPORTING</div><h2>Share a live Excel workbook</h2><p class="qp-sub">Your reports exclude private quizzes, assessments, grades and study notes. Sharing is controlled by your Microsoft 365 permissions, not by a public GitHub link.</p></div><span class="chip">Manager-safe data</span></div>
- <div class="qp-manager-grid"><div class="qp-note"><strong>1. Export a valid manager workbook</strong><p>Use the Manager briefing export above. Charts and the week-by-week plan are regular Excel cells and data, so they can be updated in Excel.</p></div><div class="qp-note"><strong>2. Co-edit in Microsoft 365</strong><p>Open the workbook in your organisation's OneDrive or SharePoint, choose Share, and give specific people view or edit access. Your live link is issued by Microsoft 365.</p><a class="btn" href="https://www.microsoft365.com/launch/excel" rel="noopener noreferrer" target="_blank">Open Excel for web ↗</a></div></div>
- <p class="qp-msg">Automatic two-way Excel sync is not active yet: a connected Microsoft 365 location and its explicit sharing permissions are required. A public portfolio URL is not a safe substitute for an internal manager workbook.</p>
+ <div class="sectionhead"><div><div class="eyebrow">ONEDRIVE · LIVE EXCEL COLLABORATION</div><h2>Manager workbook and sharing</h2><p class="qp-sub">Keep one shared OneDrive workbook for your team. Invite specific people through Microsoft's sharing controls rather than publishing a public link.</p></div><span class="chip">Owner workspace</span></div>
+ <div class="qp-onedrive-panel">
+  <strong>Share the existing live workbook</strong><p class="qp-sub" style="margin-top:5px">Enter the recipients here, then open the workbook's OneDrive sharing dialog. OneDrive sends the invitation and maintains access permissions.</p>
+  <div class="qp-onedrive-grid">
+   <label>Recipient email address(es)<input id="qpOneDriveEmails" class="field" type="text" autocomplete="off" maxlength="600" placeholder="colleague@company.com, manager@company.com" aria-describedby="qpOneDriveStatus"></label>
+   <label>Permission requested<select id="qpOneDrivePermission" class="field"><option value="read">Can view</option><option value="write">Can edit</option></select></label>
+   <button type="button" class="btn primary" id="qpOneDrivePrepare">Copy emails + open OneDrive</button>
+  </div>
+  <div class="qp-onedrive-actions"><a id="qpOneDriveWorkbook" class="btn" href="#" target="_blank" rel="noopener noreferrer" hidden>Open the live Excel workbook ↗</a><button class="btn" id="qpOneDriveCopyLink" type="button">Copy workbook link</button></div>
+  <p id="qpOneDriveStatus" class="qp-onedrive-status" role="status">OneDrive is connected to ChatGPT, but this website has not been authorised for automated sharing or uploading. Microsoft OneDrive must confirm each invitation.</p>
+ </div>
+ <div class="qp-manager-grid" style="margin-top:15px"><div class="qp-note"><strong>Live collaboration</strong><p>After you invite people through OneDrive, everyone works on the same online Excel file; their Excel edits appear to other collaborators.</p></div><div class="qp-note"><strong>Portfolio-to-OneDrive publishing</strong><p>YourPortfolio still creates a new snapshot when you export. Automatic replacement is intentionally disabled to protect coworkers' Excel edits. A separate Microsoft authorisation and conflict-aware publishing flow are required.</p></div></div>
+ <p class="qp-msg">Quizzes, grades, assignments and private notes are excluded from the manager report. Never overwrite a co-edited workbook without reviewing outside changes.</p>
 </section>
 
 <div class="qp-main">
