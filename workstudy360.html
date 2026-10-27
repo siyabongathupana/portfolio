@@ -221,7 +221,7 @@ body.qp-mode main.shell > :not(#quarterRoot){display:none!important}
  <div id="qpCapacityBars" class="qp-cap" aria-label="13 week capacity estimate"></div><div class="qp-chart-legend"><span>Planned work allocation</span><span>Free working hours</span><span>Unverified exam availability</span></div>
  <p class="qp-msg" id="qpCapacityFootnote">Week-start milestones have unknown duration until you add estimated hours. Forecasts are estimates, not confirmed commitments.</p>
  </section>
- <aside class="panel qp-panel"><div class="sectionhead"><div><div class="eyebrow">SIYA PLANNING INTELLIGENCE</div><h2>Next best actions</h2><p class="qp-sub">Rule-based recommendations grounded in your schedule; optional existing AI coach remains separate.</p></div></div><div id="qpAdvice" aria-live="polite"></div><div class="qp-inline-action"><button class="btn" type="button" id="qpCopySummary">Copy manager briefing</button><button class="btn" type="button" id="qpBaseline">Save baseline snapshot</button></div><p class="qp-msg" id="qpBaselineStatus">No planning baseline recorded yet.</p></aside>
+ <aside class="panel qp-panel"><div class="sectionhead"><div><div class="eyebrow">SIYA PLANNING INTELLIGENCE</div><h2>Next best actions</h2><p class="qp-sub">Rule-based recommendations grounded in your schedule; optional existing AI coach remains separate.</p></div></div><div id="qpAdvice" aria-live="polite"></div><div class="qp-inline-action"><button class="btn" type="button" id="qpCopySummary">Copy manager briefing</button><button class="btn" type="button" id="qpBaseline">Save baseline snapshot</button><button class="btn" type="button" id="qpAskAI">✦ Ask connected AI</button></div><p class="qp-msg" id="qpBaselineStatus">No planning baseline recorded yet.</p></aside>
 </div>
 <div class="qp-interact">
 <section class="panel qp-panel"><div class="sectionhead"><div><h2>Project breakdown &amp; actuals</h2><p class="qp-sub">Select a work milestone, track subtasks and compare estimated hours with real Timesheet entries.</p></div><span class="chip">Private records</span></div>
@@ -233,7 +233,7 @@ body.qp-mode main.shell > :not(#quarterRoot){display:none!important}
 <p class="qp-msg">Timesheet matching is based on project names and may be incomplete. No timesheet entries are changed.</p>
 </section>
 <section class="panel qp-panel"><div class="sectionhead"><div><h2>Final-exam availability</h2><p class="qp-sub">Confirm dates before allocating work leave. After-hours quizzes never reduce work capacity.</p></div><span class="chip">Exam-sensitive only</span></div>
-<div id="qpExamCards" class="qp-risks" style="max-height:350px"></div><p class="qp-msg">Exam preparations are recommendations only. Use your normal leave approval process; this planner cannot book leave.</p>
+<div id="qpExamCards" class="qp-risks" style="max-height:350px"></div><div class="qp-inline-action" style="margin:12px 0"><button class="btn" id="qpPrepareExams" type="button">+ Propose private revision tasks</button><a href="/workstudy360.html" class="btn">Open Study Autopilot</a></div><p class="qp-msg">Exam preparations are recommendations only. Use your normal leave approval process; this planner cannot book leave.</p>
 </section>
 </div>
 <section class="panel qp-panel qp-manager" id="qpManagement">
