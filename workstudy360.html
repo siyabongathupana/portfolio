@@ -147,7 +147,7 @@ body.qp-mode main.shell > :not(#quarterRoot){display:none!important}
 .qp-track-cell.active,.qp-track-cell.work{background:linear-gradient(180deg,rgba(96,155,255,.43),rgba(96,155,255,.23));border-color:var(--blue);box-shadow:inset 0 0 0 1px rgba(142,170,255,.22)}
 .qp-track-cell.study{background:rgba(104,220,150,.20);border-color:var(--lime)}
 .qp-track-cell.exam{background:rgba(255,183,113,.23);border-color:var(--amber)}
-.qp-track-cell.milestone{position:relative}.qp-track-cell.milestone:after{content:"";position:absolute;top:5px;bottom:5px;left:calc(50% - 2px);width:4px;border-radius:6px;background:var(--cyan)}.qp-track-cell.deadline{background:rgba(255,126,146,.22);border-color:var(--red)}
+.qp-track-cell.milestone{position:relative}.qp-track-cell.milestone:after{content:"";position:absolute;width:12px;height:12px;top:calc(50% - 6px);left:calc(50% - 6px);background:var(--cyan);border:2px solid var(--bg);border-radius:2px;transform:rotate(45deg);box-shadow:0 0 0 1px var(--cyan)}.qp-track-cell.exam.milestone:after{background:var(--amber);box-shadow:0 0 0 1px var(--amber)}.qp-track-cell.study.milestone:after,.qp-track-cell.personal.milestone:after{background:var(--lime);box-shadow:0 0 0 1px var(--lime)}.qp-track-cell.deadline{background:rgba(255,126,146,.22);border-color:var(--red)}
 .qp-gantt-scroll{overflow-x:auto;scrollbar-color:var(--line) transparent}
 .qp-track-header{display:grid;grid-template-columns:175px repeat(13,minmax(47px,1fr));gap:5px;min-width:900px;padding:0 0 8px}
 .qp-track-header span{text-align:center;color:var(--muted);font-size:10px}
@@ -242,6 +242,7 @@ body.qp-mode main.shell > :not(#quarterRoot){display:none!important}
 .qe-map{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 11px;background:var(--panel);border:1px solid var(--line);border-radius:9px;font-size:11px}
 .qe-map button{border:1px solid var(--line);background:transparent;color:var(--red);border-radius:7px;padding:5px 8px;cursor:pointer}
 .qe-message{font-size:11px;color:var(--muted);margin-top:10px;line-height:1.5}
+#qpEngDelete:not(:disabled){color:var(--red);border-color:var(--red)}#qpEngUndoDelete:not([hidden]){border-color:var(--lime);color:var(--lime)}
 @media(max-width:1050px){.qe-layout,.qe-bottom{grid-template-columns:1fr}.qe-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:600px){.qe-panel{padding:15px}.qe-form{grid-template-columns:1fr}.qe-form .wide{grid-column:auto}.qe-control{flex-direction:column;align-items:stretch}.qe-control label{min-width:0}}
 
@@ -283,7 +284,7 @@ body.qp-mode main.shell > :not(#quarterRoot){display:none!important}
 
 <section class="panel qe-panel" id="qpEngPanel" aria-labelledby="qpEngTitle">
  <div class="qe-head"><div><div class="eyebrow">ENGINEERING INTELLIGENCE · OWNER ONLY</div><h2 id="qpEngTitle">Engineering project lifecycle <span class="cyan">✦</span></h2><p>Track engineering deliverables from preparation through commissioning, connect verified Timesheet projects, and see explainable project health. No fabricated progress or dates.</p></div><span id="qpEngHealth" class="qe-health">Not assessed</span></div>
- <div class="qe-control"><label>Engineering project<select class="field" id="qpEngProject" aria-label="Select engineering project"></select></label><label>Phase template<select class="field" id="qpEngTemplate"><option value="dcs">DCS / Automation</option><option value="commissioning">Commissioning / SAT</option><option value="it">PC / IT Deployment</option><option value="general">General Engineering</option></select></label><button type="button" id="qpEngInit" class="btn primary">+ Create lifecycle</button></div>
+ <div class="qe-control"><label>Engineering project<select class="field" id="qpEngProject" aria-label="Select engineering project"></select></label><label>Phase template<select class="field" id="qpEngTemplate"><option value="dcs">DCS / Automation</option><option value="commissioning">Commissioning / SAT</option><option value="it">PC / IT Deployment</option><option value="general">General Engineering</option></select></label><button type="button" id="qpEngInit" class="btn primary">+ Create lifecycle</button><button type="button" id="qpEngDelete" class="btn" disabled title="Delete this lifecycle only; projects and Timesheet entries remain untouched">Delete lifecycle</button><button type="button" id="qpEngUndoDelete" class="btn" hidden>Undo deletion</button></div>
  <div class="qe-stats"><div class="qe-stat"><span>Lifecycle completion</span><strong id="qpEngProgress">—</strong></div><div class="qe-stat"><span>Mapped actual work</span><strong id="qpEngActual">—</strong></div><div class="qe-stat"><span>Planned effort</span><strong id="qpEngEstimated">—</strong></div><div class="qe-stat"><span>Project milestones</span><strong id="qpEngMilestones">—</strong></div></div>
  <div class="qe-layout">
   <div class="qe-inset"><h3>Lifecycle and dependencies</h3><p>Click a phase to set its status, dates, effort and prerequisites. Blank target dates are intentionally not treated as deadlines.</p><div id="qpEngStages" class="qe-stages"></div><div class="qe-evidence" id="qpEngEvidence"></div></div>
@@ -322,7 +323,7 @@ body.qp-mode main.shell > :not(#quarterRoot){display:none!important}
 </section>
 
 <div class="qp-main">
-  <section class="panel qp-panel"><div class="sectionhead"><div><h2>Three-month delivery timeline</h2><p class="qp-sub">Each column represents one week. Work, study and exams have distinct colours.</p></div><span class="chip">13 weeks</span></div><div class="qp-gantt-scroll"><div class="qp-track-header" id="qpHeader"></div><div id="qpTimeline"></div></div><div class="legend"><span><b class="w"></b>Work</span><span><b class="s"></b>Study</span><span><b class="d"></b>Exam/deadline</span></div></section>
+  <section class="panel qp-panel"><div class="sectionhead"><div><h2>Three-month delivery timeline</h2><p class="qp-sub">Each column represents one week. Work, study and exams have distinct colours.</p></div><span class="chip">13 weeks</span></div><div class="qp-gantt-scroll"><div class="qp-track-header" id="qpHeader"></div><div id="qpTimeline"></div></div><div class="legend"><span><b class="w"></b>Work</span><span><b class="s"></b>Study</span><span><b class="d"></b>Exam/deadline</span><span title="One-day scheduled activity; not a confirmed completion deadline">◆ One-day milestone</span></div></section>
   <aside class="panel qp-panel"><div class="sectionhead"><div><h2>Deadline and conflict radar</h2><p class="qp-sub">Only final exams can trigger work–study clash warnings. Quizzes and assignments are planned after hours.</p></div></div><div class="qp-risks" id="qpRadar"></div><p class="qp-note" style="margin-top:13px">✓ Routine quizzes and assignments are treated as after-hours commitments, not work conflicts. Exam dates still need verification against the official timetable.</p></aside>
  </div>
  <div class="qp-bottom">
