@@ -121,12 +121,94 @@ html:not(.ws-authorized-shell) .topbar,html:not(.ws-authorized-shell) main{filte
 .ws-coach-result{font-size:12px;line-height:1.78;min-height:70px;background:var(--panel2);border:1px solid var(--line);border-radius:13px;padding:15px;white-space:pre-wrap;color:var(--ink)}
 .ws-coach-privacy{font-size:10px;color:var(--muted);line-height:1.6;margin-top:13px}
 @media(max-width:620px){.ws-coach-v2{padding:15px}.ws-coach-actions{flex-direction:column}.ws-coach-actions button{width:100%}}
+
+/* Owner-only 90 Day Planning Centre — WorkStudy protected route */
+body.qp-mode main.shell > :not(#quarterRoot){display:none!important}
+#quarterRoot{display:none;padding:30px 0 50px}body.qp-mode #quarterRoot{display:block}
+.qp-head{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:22px}
+.qp-head h1{font-size:clamp(32px,4vw,48px);line-height:1.04;letter-spacing:-.058em;margin:8px 0}
+.qp-head p{margin:0;color:var(--muted);max-width:780px;font-size:13px}
+.qp-actions{display:flex;gap:9px;flex-wrap:wrap}.qp-actions button,.qp-actions a{min-height:39px}
+.qp-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px;margin-bottom:17px}
+.qp-kpi{padding:19px;position:relative;overflow:hidden}.qp-kpi:before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:var(--cyan)}
+.qp-kpi:nth-child(2):before{background:var(--blue)}.qp-kpi:nth-child(3):before{background:var(--amber)}.qp-kpi:nth-child(4):before{background:var(--lime)}
+.qp-kpi span{font-size:11px;color:var(--muted);font-weight:750}.qp-kpi strong{display:block;font-size:29px;line-height:1.2;letter-spacing:-.05em;margin:8px 0}.qp-kpi small{font-size:10px;color:var(--muted)}
+.qp-toolbar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:16px 19px;margin:0 0 16px}
+.qp-toolbar .qp-range{font-size:13px;font-weight:850;min-width:195px;text-align:center}
+.qp-main{display:grid;grid-template-columns:minmax(0,1.75fr) minmax(290px,.8fr);gap:16px;margin-bottom:16px}
+.qp-panel{padding:21px;min-width:0}.qp-panel h2{font-size:16px;letter-spacing:-.025em;margin:0}.qp-sub{font-size:11px;color:var(--muted);margin:3px 0 18px}
+.qp-columns{display:grid;grid-template-columns:repeat(13,minmax(47px,1fr));gap:5px;overflow-x:auto;padding-bottom:4px}
+.qp-week{min-width:47px;text-align:center;font-size:10px;color:var(--muted);border:1px solid var(--line);border-radius:9px;padding:8px 3px;background:var(--panel2)}
+.qp-week b{display:block;color:var(--ink);font-size:11px}.qp-week.today{border-color:var(--cyan)}
+.qp-track{display:grid;grid-template-columns:175px repeat(13,minmax(47px,1fr));gap:5px;min-width:900px;align-items:center;margin:7px 0}
+.qp-track-label{min-width:0;border-radius:9px;background:var(--panel2);border:1px solid var(--line);padding:9px 10px;font-size:11px;font-weight:760;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qp-track-label small{display:block;color:var(--muted);font-size:9px;font-weight:550;margin-top:3px}
+.qp-track-cell{height:35px;background:var(--panel2);border:1px solid var(--line);border-radius:7px}
+.qp-track-cell.active{background:rgba(105,172,255,.25);border-color:var(--blue)}
+.qp-track-cell.study{background:rgba(104,220,150,.20);border-color:var(--lime)}
+.qp-track-cell.exam{background:rgba(255,183,113,.23);border-color:var(--amber)}
+.qp-track-cell.deadline{background:rgba(255,126,146,.22);border-color:var(--red)}
+.qp-gantt-scroll{overflow-x:auto;scrollbar-color:var(--line) transparent}
+.qp-track-header{display:grid;grid-template-columns:175px repeat(13,minmax(47px,1fr));gap:5px;min-width:900px;padding:0 0 8px}
+.qp-track-header span{text-align:center;color:var(--muted);font-size:10px}
+.qp-track-header span:first-child{text-align:left;font-weight:850;color:var(--ink)}
+.qp-track-header b{display:block;color:var(--ink);font-size:11px}
+.qp-risks{display:grid;gap:8px;max-height:465px;overflow:auto}.qp-risk{border:1px solid var(--line);background:var(--panel2);border-radius:11px;padding:11px 13px}
+.qp-risk strong{display:block;font-size:12px;overflow-wrap:anywhere}.qp-risk small{color:var(--muted);font-size:10px}.qp-risk i{display:block;font-style:normal;font-weight:850;font-size:10px;margin-bottom:4px;color:var(--amber)}
+.qp-risk.danger{border-color:var(--red)}.qp-risk.danger i{color:var(--red)}.qp-risk.exam i{color:var(--lime)}
+.qp-bottom{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(320px,.86fr);gap:16px}
+.qp-filter{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}.qp-filter select,.qp-filter input{max-width:190px}
+.qp-table-wrap{max-height:490px;overflow:auto}.qp-table{border-collapse:collapse;width:100%;min-width:670px}.qp-table th{position:sticky;top:0;background:var(--panel2);color:var(--muted);font-size:10px;letter-spacing:.06em;text-align:left;z-index:1}
+.qp-table th,.qp-table td{border-bottom:1px solid var(--line);padding:10px 9px;vertical-align:top;font-size:11px}
+.qp-table td strong{font-size:11px}.qp-table td small{display:block;color:var(--muted);margin-top:3px}
+.qp-tag{font-size:10px;font-weight:800;border-radius:7px;border:1px solid var(--line);padding:4px 7px;display:inline-flex;white-space:nowrap}.qp-tag.exam{color:var(--amber)}.qp-tag.study{color:var(--lime)}.qp-tag.work{color:var(--blue)}
+.qp-table button{padding:5px 7px;border:1px solid var(--line);border-radius:7px;background:var(--panel2);color:var(--ink);margin-right:4px}
+.qp-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.qp-form .wide{grid-column:1/-1}
+.qp-form label{font-size:11px}.qp-form .field{margin-top:5px;width:100%}.qp-form textarea{resize:vertical;min-height:63px}
+.qp-msg{font-size:11px;color:var(--muted);margin:9px 0 0;line-height:1.65}
+.qp-msg.warn{color:var(--amber)}.qp-empty{padding:24px;text-align:center;color:var(--muted);font-size:12px}
+@media(max-width:1100px){.qp-main,.qp-bottom{grid-template-columns:1fr}}
+@media(max-width:720px){#quarterRoot{padding-top:20px}.qp-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.qp-panel{padding:15px}.qp-form{grid-template-columns:1fr}.qp-form .wide{grid-column:auto}.qp-toolbar{padding:13px}.qp-toolbar .qp-range{min-width:auto}}
+
 </style>
 </head>
 <body>
 <aside id="wsPublicGate" role="region" aria-label="Private WorkStudy access required"><div class="ws-gate-card"><div class="eyebrow">YOURPORTFOLIO · OWNER ACCESS</div><h2>WorkStudy <span class="cyan">360</span></h2><p>The complete interface is hosted here, but live Timesheets, academic information and planning tools run only after owner verification. Your private JavaScript and data are not served by GitHub Pages.</p><a href="https://portfolio-data-bridge.siyabongatshem.workers.dev/workstudy360.html">Open my secured workspace →</a><small>Other visitors cannot access personal records or save study plans.</small></div></aside>
-<header class="topbar"><div class="topinner shell"><a class="brand" href="/app.html"><span class="brandmark">W</span><span>YourPortfolio <span class="cyan">/ WorkStudy 360</span></span></a><span class="topcenter">WORK · LEARN · GROW</span><div class="topright"><span class="chip"><i></i> Owner workspace</span><button class="quiet" type="button" id="themeBtn" aria-label="Toggle theme">☼</button><a class="quiet" href="/app.html">← Workspace</a></div></div></header>
+<header class="topbar"><div class="topinner shell"><a class="brand" href="/app.html"><span class="brandmark">W</span><span>YourPortfolio <span class="cyan">/ WorkStudy 360</span></span></a><span class="topcenter">WORK · LEARN · GROW</span><div class="topright"><span class="chip"><i></i> Owner workspace</span><button class="quiet" type="button" id="themeBtn" aria-label="Toggle theme">☼</button><a class="quiet" href="/workstudy360.html?view=quarter">◷ 90-Day Planner</a><a class="quiet" href="/app.html">← Workspace</a></div></div></header>
 <main class="shell">
+<section id="quarterRoot" aria-label="90-day project and study planning centre">
+ <div class="qp-head"><div><div class="eyebrow">YOURPORTFOLIO · PRIVATE MISSION PLANNING</div><h1>90-Day <span class="cyan">Planning Centre</span></h1><p>Your Siya work schedule, upcoming engineering milestones, academic deadlines and final exams, in one owner-only planning cockpit. Move the window forward to see the rest of 2027.</p></div>
+ <div class="qp-actions"><a href="/workstudy360.html" class="btn">← WorkStudy 360</a><button id="qpRefresh" class="btn" type="button">↻ Refresh</button><button id="qpSave" class="btn" type="button" disabled>Save private plan</button><button id="qpExcel" class="btn primary" type="button">↓ Export Excel (.xlsx)</button></div></div>
+ <div class="qp-kpis"><article class="panel qp-kpi"><span>Planned work milestones</span><strong id="qpCountWork">—</strong><small>Within the selected 91 days</small></article><article class="panel qp-kpi"><span>Academic deadlines</span><strong id="qpCountStudy">—</strong><small>Outstanding Studies + private entries</small></article><article class="panel qp-kpi"><span>Final exams</span><strong id="qpCountExam">—</strong><small>Review institutional exam timetable</small></article><article class="panel qp-kpi"><span>Schedule warnings</span><strong id="qpCountAlerts">—</strong><small>Close deadlines and overlapping weeks</small></article></div>
+ <div class="panel qp-toolbar"><button id="qpPrevious" class="smallbtn" type="button" aria-label="Previous 13 weeks">‹</button><span class="qp-range" id="qpRange">Loading…</span><button id="qpNext" class="smallbtn" type="button" aria-label="Next 13 weeks">›</button><button id="qpToday" class="smallbtn" type="button">Start today</button><span class="muted" style="font-size:11px">13-week rolling view · entries stay in your private account</span></div>
+ <div id="qpNotice" class="notice" role="status" aria-live="polite">Connecting securely to your records…</div>
+ <div class="qp-main">
+  <section class="panel qp-panel"><div class="sectionhead"><div><h2>Three-month delivery timeline</h2><p class="qp-sub">Each column represents one week. Work, study and exams have distinct colours.</p></div><span class="chip">13 weeks</span></div><div class="qp-gantt-scroll"><div class="qp-track-header" id="qpHeader"></div><div id="qpTimeline"></div></div><div class="legend"><span><b class="w"></b>Work</span><span><b class="s"></b>Study</span><span><b class="d"></b>Exam/deadline</span></div></section>
+  <aside class="panel qp-panel"><div class="sectionhead"><div><h2>Deadline and conflict radar</h2><p class="qp-sub">Exams are prioritised. Work overlaps are warnings, not automatic rescheduling.</p></div></div><div class="qp-risks" id="qpRadar"></div></aside>
+ </div>
+ <div class="qp-bottom">
+  <section class="panel qp-panel"><div class="sectionhead"><div><h2>Plan register</h2><p class="qp-sub">Edit your own work milestones and add private study, exam and personal goals.</p></div><span class="chip">Siya · personal</span></div>
+   <div class="qp-filter"><select id="qpFilter" class="field" aria-label="Filter planning type"><option value="all">All categories</option><option value="work">Work projects</option><option value="study">Study / assignments</option><option value="exam">Final exams</option><option value="personal">Personal</option></select><input id="qpSearch" class="field" placeholder="Search work or module" aria-label="Search the plan"></div>
+   <div class="qp-table-wrap"><table class="qp-table"><thead><tr><th>Activity</th><th>Type</th><th>Start</th><th>Due / milestone</th><th>Status</th><th>Actions</th></tr></thead><tbody id="qpRows"></tbody></table></div>
+   <p class="qp-msg">Study deadlines come from Studies and remain read-only here; edit them in Studies. The imported work milestones come from the Siya row of your supplied workbook.</p>
+  </section>
+  <section class="panel qp-panel"><div class="sectionhead"><div><h2 id="qpFormTitle">Add a planning item</h2><p class="qp-sub">Record exact dates, effort and priority so the radar becomes more useful.</p></div></div>
+   <form id="qpForm" class="qp-form">
+    <input type="hidden" id="qpEditId"><label class="wide">Activity / deliverable<input class="field" id="qpTitle" required maxlength="140" placeholder="e.g. PolyComp implementation readiness"></label>
+    <label>Category<select class="field" id="qpCategory"><option value="work">Work project</option><option value="study">Study</option><option value="exam">Exam</option><option value="personal">Personal</option></select></label>
+    <label>Project / module<input class="field" id="qpProject" maxlength="65" placeholder="e.g. PolyComp / BSC107"></label>
+    <label>Start date<input class="field" id="qpStart" type="date" required></label><label>Deadline / target date<input class="field" id="qpDue" type="date" required></label>
+    <label>Estimated effort (hours)<input class="field" id="qpHours" type="number" step="0.5" min="0" max="1000" placeholder="Optional"></label>
+    <label>Priority<select class="field" id="qpPriority"><option value="normal">Normal</option><option value="high">High</option><option value="critical">Critical</option></select></label>
+    <label>Status<select class="field" id="qpStatus"><option value="planned">Planned</option><option value="progress">In progress</option><option value="blocked">Blocked</option><option value="done">Completed</option></select></label>
+    <label class="wide">Notes<textarea class="field" id="qpNotes" maxlength="400" placeholder="Dependencies, preparation, equipment, tasks…"></textarea></label>
+    <div class="wide qp-actions"><button type="submit" class="btn primary" id="qpAddBtn">+ Add to private plan</button><button type="button" id="qpCancel" class="btn">Clear</button></div>
+   </form><p class="qp-msg" id="qpFormMessage">Your existing Timesheets, Studies and other WorkStudy functions are not modified by planning entries.</p>
+  </section>
+ </div>
+ <p class="qp-msg" style="margin-top:20px">Work dates supplied in the workbook are week-start estimates, not guaranteed deadlines. Exams reflect current Studies data and should be checked against the official timetable. Excel includes both the selected 91-day plan and your full future roadmap.</p>
+</section>
+
 <section class="hero"><div><div class="eyebrow">Your personal operating system</div><h1>Make every hour <span class="cyan">count.</span></h1><p>A private intelligence layer that aligns real project hours, academic deadlines and available energy. No HR workspace, no shared grades and no changes to your existing records.</p></div><div class="actions"><button id="refreshBtn" class="btn" type="button">↻ Sync records</button><button id="generateBtn" class="btn primary" type="button">✦ Run Autopilot</button><button id="saveBtn" class="btn" type="button" disabled>Save plan</button></div></section>
 <div id="notice" class="notice" role="status" aria-live="polite">Connecting securely to your Timesheets, Studies and personal planner…</div>
 
