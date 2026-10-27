@@ -209,6 +209,42 @@ body.qp-mode main.shell > :not(#quarterRoot){display:none!important}
 .qp-onedrive-status{font-size:11px;line-height:1.6;color:var(--muted);margin:11px 0 0}
 .qp-onedrive-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:11px}
 @media(max-width:780px){.qp-onedrive-grid{grid-template-columns:1fr}}
+
+/* Engineering Intelligence v1 — accessible, responsive, owner-only */
+.qe-panel{margin:18px 0 21px;padding:23px;border:1px solid color-mix(in srgb,var(--blue) 40%,var(--line))}
+.qe-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
+.qe-head h2{font-size:clamp(20px,2.5vw,27px);letter-spacing:-.035em;margin:6px 0}
+.qe-head p{font-size:12px;max-width:800px;color:var(--muted);margin:0}
+.qe-control{display:flex;gap:9px;flex-wrap:wrap;align-items:end;margin:17px 0}
+.qe-control label{flex:1;min-width:185px}.qe-control .field{width:100%}
+.qe-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:11px;margin-bottom:16px}
+.qe-stat{border:1px solid var(--line);border-radius:12px;padding:14px;background:var(--panel2)}
+.qe-stat span{font-size:10px;color:var(--muted)}.qe-stat strong{display:block;font-size:20px;margin-top:5px;overflow-wrap:anywhere}
+.qe-health{border-radius:9px;border:1px solid var(--line);padding:6px 10px;font-size:11px;font-weight:850;color:var(--muted)}
+.qe-health.on-track{color:var(--lime);border-color:var(--lime)}.qe-health.at-risk{color:var(--amber);border-color:var(--amber)}.qe-health.delayed{color:var(--red);border-color:var(--red)}
+.qe-layout{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(285px,.92fr);gap:14px}
+.qe-inset{border:1px solid var(--line);border-radius:14px;background:var(--panel2);padding:17px;min-width:0}
+.qe-inset h3{font-size:14px;margin:0 0 7px}.qe-inset p{font-size:11px;color:var(--muted);margin:0 0 12px}
+.qe-stages{display:grid;gap:8px;max-height:430px;overflow-y:auto}
+.qe-stage{display:grid;grid-template-columns:25px minmax(0,1fr) auto;gap:11px;align-items:center;text-align:left;width:100%;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:11px;cursor:pointer}
+.qe-stage[aria-pressed=true]{border-color:var(--cyan);box-shadow:inset 0 0 0 1px var(--cyan)}
+.qe-stage .qe-marker{height:23px;width:23px;border:1px solid var(--line);border-radius:7px;display:grid;place-items:center;color:var(--cyan);font-weight:800;font-size:11px}
+.qe-stage small{display:block;color:var(--muted);margin-top:2px;font-size:10px}
+.qe-stage .qe-status{font-size:10px;color:var(--muted)}.qe-stage.is-done .qe-marker{color:var(--lime)}.qe-stage.is-blocked .qe-marker{color:var(--red)}
+.qe-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.qe-form label{font-size:11px;color:var(--muted)}
+.qe-form .wide{grid-column:1/-1}.qe-form .field{width:100%;min-width:0;margin-top:4px}
+.qe-taskline{display:flex;gap:7px;margin-top:11px}.qe-taskline input{flex:1;width:100%;min-width:0}.qe-checks{display:grid;gap:7px;max-height:180px;overflow:auto;margin:12px 0}
+.qe-check{display:flex;gap:8px;align-items:center;padding:8px;border-radius:8px;background:var(--panel);border:1px solid var(--line);font-size:11px;overflow-wrap:anywhere}
+.qe-check span{flex:1}.qe-check button{border:0;background:transparent;color:var(--red)}
+.qe-evidence{margin:13px 0 0;display:grid;gap:7px}.qe-evidence div{border:1px solid var(--line);border-radius:9px;padding:9px 11px;font-size:11px;color:var(--muted)}
+.qe-bottom{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+.qe-mappings{display:grid;gap:7px;max-height:200px;overflow:auto;margin:11px 0}
+.qe-map{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 11px;background:var(--panel);border:1px solid var(--line);border-radius:9px;font-size:11px}
+.qe-map button{border:1px solid var(--line);background:transparent;color:var(--red);border-radius:7px;padding:5px 8px;cursor:pointer}
+.qe-message{font-size:11px;color:var(--muted);margin-top:10px;line-height:1.5}
+@media(max-width:1050px){.qe-layout,.qe-bottom{grid-template-columns:1fr}.qe-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.qe-panel{padding:15px}.qe-form{grid-template-columns:1fr}.qe-form .wide{grid-column:auto}.qe-control{flex-direction:column;align-items:stretch}.qe-control label{min-width:0}}
+
 </style>
 </head>
 <body>
@@ -236,14 +272,39 @@ body.qp-mode main.shell > :not(#quarterRoot){display:none!important}
 <label for="qpProjectSelect">Work milestone</label><select class="field qp-project-select" id="qpProjectSelect"></select>
 <div class="qp-inline-fields"><label>Progress (%)<input id="qpProgress" class="qp-progress" type="range" min="0" max="100" step="5" value="0"></label><strong id="qpProgressValue">0%</strong><label>Exam / milestone notes<input class="field" id="qpDetailNotes" maxlength="160" placeholder="Dependencies, delivery risks…"></label></div>
 <div class="qp-waterfall"><i id="qpProgressBar" style="width:0%"></i></div>
-<div class="qp-intel-metrics" style="grid-template-columns:repeat(3,minmax(0,1fr))"><div class="qp-stat"><small>Planned</small><strong id="qpDetailEstimate">—</strong></div><div class="qp-stat"><small>Timesheets (matched)</small><strong id="qpActualHours">—</strong></div><div class="qp-stat"><small>Baseline movement</small><strong id="qpBaselineVariance">—</strong></div></div>
+<div class="qp-intel-metrics" style="grid-template-columns:repeat(3,minmax(0,1fr))"><div class="qp-stat"><small>Planned</small><strong id="qpDetailEstimate">—</strong></div><div class="qp-stat"><small>Timesheets (linked)</small><strong id="qpActualHours">—</strong></div><div class="qp-stat"><small>Baseline movement</small><strong id="qpBaselineVariance">—</strong></div></div>
 <label for="qpSubtask">Project steps / dependencies</label><div class="qp-task-input"><input id="qpSubtask" class="field" maxlength="100" placeholder="e.g. Confirm equipment readiness"><button class="btn primary" id="qpAddSubtask" type="button">Add step</button></div><div class="qp-task-list" id="qpSubtaskList"></div>
-<p class="qp-msg">Timesheet matching is based on project names and may be incomplete. No timesheet entries are changed.</p>
+<p class="qp-msg">Link exact Timesheet project names in Engineering Intelligence below. Unlinked projects show unknown actual hours. No timesheet entries are changed.</p>
 </section>
 <section class="panel qp-panel"><div class="sectionhead"><div><h2>Final-exam availability</h2><p class="qp-sub">Confirm dates before allocating work leave. After-hours quizzes never reduce work capacity.</p></div><span class="chip">Exam-sensitive only</span></div>
 <div id="qpExamCards" class="qp-risks" style="max-height:350px"></div><div class="qp-inline-action" style="margin:12px 0"><button class="btn" id="qpPrepareExams" type="button">+ Propose private revision tasks</button><a href="/workstudy360.html" class="btn">Open Study Autopilot</a></div><p class="qp-msg">Exam preparations are recommendations only. Use your normal leave approval process; this planner cannot book leave.</p>
 </section>
 </div>
+
+<section class="panel qe-panel" id="qpEngPanel" aria-labelledby="qpEngTitle">
+ <div class="qe-head"><div><div class="eyebrow">ENGINEERING INTELLIGENCE · OWNER ONLY</div><h2 id="qpEngTitle">Engineering project lifecycle <span class="cyan">✦</span></h2><p>Track engineering deliverables from preparation through commissioning, connect verified Timesheet projects, and see explainable project health. No fabricated progress or dates.</p></div><span id="qpEngHealth" class="qe-health">Not assessed</span></div>
+ <div class="qe-control"><label>Engineering project<select class="field" id="qpEngProject" aria-label="Select engineering project"></select></label><label>Phase template<select class="field" id="qpEngTemplate"><option value="dcs">DCS / Automation</option><option value="commissioning">Commissioning / SAT</option><option value="it">PC / IT Deployment</option><option value="general">General Engineering</option></select></label><button type="button" id="qpEngInit" class="btn primary">+ Create lifecycle</button></div>
+ <div class="qe-stats"><div class="qe-stat"><span>Lifecycle completion</span><strong id="qpEngProgress">—</strong></div><div class="qe-stat"><span>Mapped actual work</span><strong id="qpEngActual">—</strong></div><div class="qe-stat"><span>Planned effort</span><strong id="qpEngEstimated">—</strong></div><div class="qe-stat"><span>Project milestones</span><strong id="qpEngMilestones">—</strong></div></div>
+ <div class="qe-layout">
+  <div class="qe-inset"><h3>Lifecycle and dependencies</h3><p>Click a phase to set its status, dates, effort and prerequisites. Blank target dates are intentionally not treated as deadlines.</p><div id="qpEngStages" class="qe-stages"></div><div class="qe-evidence" id="qpEngEvidence"></div></div>
+  <div class="qe-inset"><h3 id="qpEngEditTitle">Phase details</h3><p>Editing these fields updates only your unsaved planning draft.</p>
+   <form id="qpEngForm" class="qe-form"><label class="wide">Phase name<input id="qpEngPhaseName" class="field" maxlength="80" required></label>
+    <label>Status<select id="qpEngPhaseStatus" class="field"><option value="not-started">Not started</option><option value="progress">In progress</option><option value="blocked">Blocked</option><option value="done">Completed</option></select></label>
+    <label>Estimated hours<input id="qpEngPhaseHours" class="field" type="number" min="0" max="1000" step=".5" placeholder="Unknown"></label>
+    <label>Start date<input id="qpEngPhaseStart" class="field" type="date"></label><label>Target completion date<input id="qpEngPhaseDue" class="field" type="date"></label>
+    <label class="wide">Depends on<select class="field" id="qpEngPhaseDependency"><option value="">No dependency</option></select></label>
+    <div class="wide"><button class="btn primary" id="qpEngPhaseApply" type="submit">Apply phase changes</button></div>
+   </form>
+   <div style="margin-top:15px"><label>Phase checklist</label><div class="qe-taskline"><input id="qpEngTask" class="field" maxlength="100" placeholder="e.g. Verify I/O list"><button class="btn" id="qpEngTaskAdd" type="button">Add</button></div><div id="qpEngTasks" class="qe-checks"></div></div>
+  </div>
+ </div>
+ <div class="qe-bottom">
+  <section class="qe-inset"><h3>Timesheet project mapping</h3><p>Explicitly choose exact Timesheet project labels for this engineering project. Actual recorded hours use these links only, with no double counting.</p><div id="qpEngLinks" class="qe-mappings"></div><div class="qp-inline-action"><select class="field" id="qpEngTimesheetChoice" aria-label="Timesheet project to link" style="min-width:190px;flex:1"></select><button class="btn primary" id="qpEngLink" type="button">Link project</button></div><p class="qe-message" id="qpEngLinkNote">A blank mapping is treated as unknown actual effort, never as zero.</p></section>
+  <section class="qe-inset"><h3>Health evidence and reporting</h3><p>Status is determined from explicitly entered completion targets, blockers, dependency status, effort and actual records.</p><div class="qe-evidence" id="qpEngHealthDetails"></div><div class="qp-inline-action" style="margin-top:14px"><button type="button" id="qpEngCopy" class="btn">Copy engineering summary</button><button type="button" id="qpEngSave" class="btn primary">Save private plan</button></div><p class="qe-message">Manager Excel reports include project-level health and milestones, not private study data or phase checklist notes.</p></section>
+ </div>
+ <div class="qe-message" id="qpEngMessage" role="status" aria-live="polite">Select a project and create its lifecycle when you have its actual stages. No stages will be recorded as completed automatically.</div>
+</section>
+
 <section class="panel qp-panel qp-manager" id="qpManagement">
  <div class="sectionhead"><div><div class="eyebrow">ONEDRIVE · LIVE EXCEL COLLABORATION</div><h2>Manager workbook and sharing</h2><p class="qp-sub">Keep one shared OneDrive workbook for your team. Invite specific people through Microsoft's sharing controls rather than publishing a public link.</p></div><span class="chip">Owner workspace</span></div>
  <div class="qp-onedrive-panel">
