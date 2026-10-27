@@ -170,6 +170,37 @@ body.qp-mode main.shell > :not(#quarterRoot){display:none!important}
 @media(max-width:1100px){.qp-main,.qp-bottom{grid-template-columns:1fr}}
 @media(max-width:720px){#quarterRoot{padding-top:20px}.qp-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.qp-panel{padding:15px}.qp-form{grid-template-columns:1fr}.qp-form .wide{grid-column:auto}.qp-toolbar{padding:13px}.qp-toolbar .qp-range{min-width:auto}}
 
+
+/* WorkStudy 360 Planning Intelligence v2 */
+.qp-intel{display:grid;grid-template-columns:minmax(0,1.8fr) minmax(310px,.95fr);gap:16px;margin:16px 0}
+.qp-intel .qp-panel{padding:20px}
+.qp-intel-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:14px 0}
+.qp-stat{border-radius:12px;border:1px solid var(--line);background:var(--panel2);padding:13px;min-width:0}
+.qp-stat small{font-size:10px;color:var(--muted);display:block}.qp-stat strong{display:block;font-size:24px;line-height:1.2;margin-top:7px}
+.qp-chart-legend{font-size:11px;color:var(--muted);display:flex;gap:12px;flex-wrap:wrap;margin:9px 0}
+.qp-chart-legend span:before{content:"";display:inline-block;height:9px;width:9px;border-radius:3px;background:var(--blue);margin-right:5px}
+.qp-chart-legend span:nth-child(2):before{background:var(--green,var(--lime))}.qp-chart-legend span:nth-child(3):before{background:var(--amber)}
+.qp-cap{display:grid;grid-template-columns:repeat(13,minmax(33px,1fr));gap:5px;overflow-x:auto;margin-top:12px}
+.qp-cap-col{min-width:33px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);padding:7px 3px;text-align:center}
+.qp-cap-col b{display:block;font-size:11px}.qp-cap-col small{display:block;font-size:9px;color:var(--muted)}
+.qp-cap-bar{height:76px;border-radius:5px;background:rgba(120,155,175,.17);display:flex;flex-direction:column;justify-content:flex-end;overflow:hidden;margin:8px auto;width:19px}
+.qp-cap-bar i{display:block;width:100%;background:var(--blue)}.qp-cap-col.overload .qp-cap-bar i{background:var(--red)}.qp-cap-col.unknown{border-color:var(--amber)}
+.qp-inline-fields{display:flex;gap:10px;align-items:end;flex-wrap:wrap}.qp-inline-fields label{flex:1;min-width:105px}
+.qp-inline-fields .field{width:100%}
+.qp-insight{border:1px solid var(--line);border-radius:11px;background:var(--panel2);padding:10px 12px;color:var(--muted);font-size:11px;line-height:1.55;margin:7px 0}
+.qp-interact{margin:16px 0;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:16px}
+.qp-task-input{display:flex;gap:7px;align-items:center}.qp-task-input input{flex:1}
+.qp-task-list{display:grid;gap:7px;margin:12px 0;max-height:175px;overflow:auto}
+.qp-task-row{display:flex;align-items:center;gap:8px;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:9px;color:var(--muted);font-size:11px}
+.qp-task-row span{flex:1;overflow-wrap:anywhere}.qp-task-row button{background:none;border:0;color:var(--red);cursor:pointer}
+.qp-progress{accent-color:var(--cyan);width:100%}
+.qp-manager{margin:16px 0}.qp-manager-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.qp-project-select{width:100%;margin-bottom:12px}.qp-inline-action{display:flex;gap:8px;flex-wrap:wrap}
+.qp-gantt-move{cursor:grab}.qp-gantt-move:active{cursor:grabbing}.qp-gantt-move:hover{outline:2px solid var(--cyan)}
+.qp-waterfall{height:10px;border-radius:9px;background:var(--panel2);overflow:hidden;margin-top:10px}.qp-waterfall i{display:block;background:linear-gradient(90deg,var(--cyan),var(--lime));height:100%;transition:width .15s}
+@media(max-width:1100px){.qp-intel,.qp-interact{grid-template-columns:1fr}}
+@media(max-width:760px){.qp-intel-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.qp-manager-grid{grid-template-columns:1fr}.qp-cap{overflow-x:auto}}
+
 </style>
 </head>
 <body>
@@ -182,7 +213,36 @@ body.qp-mode main.shell > :not(#quarterRoot){display:none!important}
  <div class="qp-kpis"><article class="panel qp-kpi"><span>Planned work milestones</span><strong id="qpCountWork">—</strong><small>Within the selected 91 days</small></article><article class="panel qp-kpi"><span>Academic deadlines</span><strong id="qpCountStudy">—</strong><small>Outstanding Studies + private entries</small></article><article class="panel qp-kpi"><span>Final exams</span><strong id="qpCountExam">—</strong><small>Review institutional exam timetable</small></article><article class="panel qp-kpi"><span>Schedule warnings</span><strong id="qpCountAlerts">—</strong><small>Close deadlines and overlapping weeks</small></article></div>
  <div class="panel qp-toolbar"><button id="qpPrevious" class="smallbtn" type="button" aria-label="Previous 13 weeks">‹</button><span class="qp-range" id="qpRange">Loading…</span><button id="qpNext" class="smallbtn" type="button" aria-label="Next 13 weeks">›</button><button id="qpToday" class="smallbtn" type="button">Start today</button><span class="muted" style="font-size:11px">13-week rolling view · entries stay in your private account</span></div>
  <div id="qpNotice" class="notice" role="status" aria-live="polite">Connecting securely to your records…</div>
- <div class="qp-main">
+ 
+<div class="qp-intel" id="qpIntelligence">
+ <section class="panel qp-panel"><div class="sectionhead"><div><div class="eyebrow">CAPACITY INTELLIGENCE</div><h2>13-week capacity forecast</h2><p class="qp-sub">Week-by-week estimates using your expected work shifts and project hours. Unknown estimates are clearly flagged.</p></div><span class="chip">Working hours only</span></div>
+ <div class="qp-inline-fields"><label>Weekly capacity (h)<input class="field" type="number" id="qpWeekCapacity" min="10" max="80" step="1" value="40"></label><label>After-hours study target (h)<input class="field" type="number" id="qpStudyCapacity" min="0" max="40" step="1" value="12"></label><label>Exam-day work allowance (h)<input class="field" type="number" id="qpExamAllowance" min="0" max="12" step="1" value="0"></label></div>
+ <div class="qp-intel-metrics"><div class="qp-stat"><small>Scheduled project hours</small><strong id="qpAllocated">—</strong></div><div class="qp-stat"><small>Working-hours capacity</small><strong id="qpAvailable">—</strong></div><div class="qp-stat"><small>Unestimated activities</small><strong id="qpUnknown">—</strong></div><div class="qp-stat"><small>Forecast over-capacity weeks</small><strong id="qpOverloaded">—</strong></div></div>
+ <div id="qpCapacityBars" class="qp-cap" aria-label="13 week capacity estimate"></div><div class="qp-chart-legend"><span>Planned work allocation</span><span>Free working hours</span><span>Unverified exam availability</span></div>
+ <p class="qp-msg" id="qpCapacityFootnote">Week-start milestones have unknown duration until you add estimated hours. Forecasts are estimates, not confirmed commitments.</p>
+ </section>
+ <aside class="panel qp-panel"><div class="sectionhead"><div><div class="eyebrow">SIYA PLANNING INTELLIGENCE</div><h2>Next best actions</h2><p class="qp-sub">Rule-based recommendations grounded in your schedule; optional existing AI coach remains separate.</p></div></div><div id="qpAdvice" aria-live="polite"></div><div class="qp-inline-action"><button class="btn" type="button" id="qpCopySummary">Copy manager briefing</button><button class="btn" type="button" id="qpBaseline">Save baseline snapshot</button></div><p class="qp-msg" id="qpBaselineStatus">No planning baseline recorded yet.</p></aside>
+</div>
+<div class="qp-interact">
+<section class="panel qp-panel"><div class="sectionhead"><div><h2>Project breakdown &amp; actuals</h2><p class="qp-sub">Select a work milestone, track subtasks and compare estimated hours with real Timesheet entries.</p></div><span class="chip">Private records</span></div>
+<label for="qpProjectSelect">Work milestone</label><select class="field qp-project-select" id="qpProjectSelect"></select>
+<div class="qp-inline-fields"><label>Progress (%)<input id="qpProgress" class="qp-progress" type="range" min="0" max="100" step="5" value="0"></label><strong id="qpProgressValue">0%</strong><label>Exam / milestone notes<input class="field" id="qpDetailNotes" maxlength="160" placeholder="Dependencies, delivery risks…"></label></div>
+<div class="qp-waterfall"><i id="qpProgressBar" style="width:0%"></i></div>
+<div class="qp-intel-metrics" style="grid-template-columns:repeat(3,minmax(0,1fr))"><div class="qp-stat"><small>Planned</small><strong id="qpDetailEstimate">—</strong></div><div class="qp-stat"><small>Timesheets (matched)</small><strong id="qpActualHours">—</strong></div><div class="qp-stat"><small>Baseline movement</small><strong id="qpBaselineVariance">—</strong></div></div>
+<label for="qpSubtask">Project steps / dependencies</label><div class="qp-task-input"><input id="qpSubtask" class="field" maxlength="100" placeholder="e.g. Confirm equipment readiness"><button class="btn primary" id="qpAddSubtask" type="button">Add step</button></div><div class="qp-task-list" id="qpSubtaskList"></div>
+<p class="qp-msg">Timesheet matching is based on project names and may be incomplete. No timesheet entries are changed.</p>
+</section>
+<section class="panel qp-panel"><div class="sectionhead"><div><h2>Final-exam availability</h2><p class="qp-sub">Confirm dates before allocating work leave. After-hours quizzes never reduce work capacity.</p></div><span class="chip">Exam-sensitive only</span></div>
+<div id="qpExamCards" class="qp-risks" style="max-height:350px"></div><p class="qp-msg">Exam preparations are recommendations only. Use your normal leave approval process; this planner cannot book leave.</p>
+</section>
+</div>
+<section class="panel qp-panel qp-manager" id="qpManagement">
+ <div class="sectionhead"><div><div class="eyebrow">MANAGEMENT REPORTING</div><h2>Share a live Excel workbook</h2><p class="qp-sub">Your reports exclude private quizzes, assessments, grades and study notes. Sharing is controlled by your Microsoft 365 permissions, not by a public GitHub link.</p></div><span class="chip">Manager-safe data</span></div>
+ <div class="qp-manager-grid"><div class="qp-note"><strong>1. Export a valid manager workbook</strong><p>Use the Manager briefing export above. Charts and the week-by-week plan are regular Excel cells and data, so they can be updated in Excel.</p></div><div class="qp-note"><strong>2. Co-edit in Microsoft 365</strong><p>Open the workbook in your organisation's OneDrive or SharePoint, choose Share, and give specific people view or edit access. Your live link is issued by Microsoft 365.</p><a class="btn" href="https://www.microsoft365.com/launch/excel" rel="noopener noreferrer" target="_blank">Open Excel for web ↗</a></div></div>
+ <p class="qp-msg">Automatic two-way Excel sync is not active yet: a connected Microsoft 365 location and its explicit sharing permissions are required. A public portfolio URL is not a safe substitute for an internal manager workbook.</p>
+</section>
+
+<div class="qp-main">
   <section class="panel qp-panel"><div class="sectionhead"><div><h2>Three-month delivery timeline</h2><p class="qp-sub">Each column represents one week. Work, study and exams have distinct colours.</p></div><span class="chip">13 weeks</span></div><div class="qp-gantt-scroll"><div class="qp-track-header" id="qpHeader"></div><div id="qpTimeline"></div></div><div class="legend"><span><b class="w"></b>Work</span><span><b class="s"></b>Study</span><span><b class="d"></b>Exam/deadline</span></div></section>
   <aside class="panel qp-panel"><div class="sectionhead"><div><h2>Deadline and conflict radar</h2><p class="qp-sub">Only final exams can trigger work–study clash warnings. Quizzes and assignments are planned after hours.</p></div></div><div class="qp-risks" id="qpRadar"></div><p class="qp-note" style="margin-top:13px">✓ Routine quizzes and assignments are treated as after-hours commitments, not work conflicts. Exam dates still need verification against the official timetable.</p></aside>
  </div>
