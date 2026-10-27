@@ -242,7 +242,7 @@ body.qp-mode main.shell > :not(#quarterRoot){display:none!important}
 .qe-map{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 11px;background:var(--panel);border:1px solid var(--line);border-radius:9px;font-size:11px}
 .qe-map button{border:1px solid var(--line);background:transparent;color:var(--red);border-radius:7px;padding:5px 8px;cursor:pointer}
 .qe-message{font-size:11px;color:var(--muted);margin-top:10px;line-height:1.5}
-#qpEngDelete:not(:disabled){color:var(--red);border-color:var(--red)}#qpEngUndoDelete:not([hidden]){border-color:var(--lime);color:var(--lime)}
+#qpEngDelete:not(:disabled){color:var(--red);border-color:var(--red)}#qpEngUndoDelete[hidden]{display:none!important}#qpEngUndoDelete:not([hidden]){border-color:var(--lime);color:var(--lime)}
 @media(max-width:1050px){.qe-layout,.qe-bottom{grid-template-columns:1fr}.qe-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:600px){.qe-panel{padding:15px}.qe-form{grid-template-columns:1fr}.qe-form .wide{grid-column:auto}.qe-control{flex-direction:column;align-items:stretch}.qe-control label{min-width:0}}
 
