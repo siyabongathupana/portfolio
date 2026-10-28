@@ -258,6 +258,12 @@ body.qp-mode main.shell > :not(#quarterRoot){display:none!important}
  <div class="qp-kpis"><article class="panel qp-kpi"><span>Planned work milestones</span><strong id="qpCountWork">—</strong><small>Within the selected 91 days</small></article><article class="panel qp-kpi"><span>Academic deadlines</span><strong id="qpCountStudy">—</strong><small>Outstanding Studies + private entries</small></article><article class="panel qp-kpi"><span>Final exams</span><strong id="qpCountExam">—</strong><small>Review institutional exam timetable</small></article><article class="panel qp-kpi"><span>Schedule warnings</span><strong id="qpCountAlerts">—</strong><small>Close deadlines and overlapping weeks</small></article></div>
  <div class="panel qp-toolbar"><button id="qpPrevious" class="smallbtn" type="button" aria-label="Previous 13 weeks">‹</button><span class="qp-range" id="qpRange">Loading…</span><button id="qpNext" class="smallbtn" type="button" aria-label="Next 13 weeks">›</button><button id="qpToday" class="smallbtn" type="button">Start today</button><span class="muted" style="font-size:11px">13-week rolling view · entries stay in your private account</span></div>
  <div id="qpNotice" class="notice" role="status" aria-live="polite">Connecting securely to your records…</div>
+ <div class="panel" style="margin:12px 0 17px;padding:15px 18px">
+  <div class="qp-head" style="margin:0;align-items:center">
+   <div><strong style="font-size:13px">One plan. One reporting workflow.</strong><p style="margin-top:4px">1. Add weekly work and expected outputs in YourPortfolio &nbsp;→&nbsp; 2. Save privately &nbsp;→&nbsp; 3. Export an updated Excel snapshot for management.</p><p id="qpManagerReady" style="margin-top:5px;font-size:11px;color:var(--muted)">Checking project report readiness…</p></div>
+   <button type="button" id="qpSaveExportManager" class="btn primary">Save &amp; export manager Excel</button>
+  </div>
+ </div>
  
 <div class="qp-intel" id="qpIntelligence">
  <section class="panel qp-panel"><div class="sectionhead"><div><div class="eyebrow">CAPACITY INTELLIGENCE</div><h2>13-week capacity forecast</h2><p class="qp-sub">Week-by-week estimates using your expected work shifts and project hours. Unknown estimates are clearly flagged.</p></div><span class="chip">Working hours only</span></div>
@@ -341,6 +347,9 @@ body.qp-mode main.shell > :not(#quarterRoot){display:none!important}
     <label>Estimated effort (hours)<input class="field" id="qpHours" type="number" step="0.5" min="0" max="1000" placeholder="Optional"></label>
     <label>Priority<select class="field" id="qpPriority"><option value="normal">Normal</option><option value="high">High</option><option value="critical">Critical</option></select></label>
     <label>Status<select class="field" id="qpStatus"><option value="planned">Planned</option><option value="progress">In progress</option><option value="blocked">Blocked</option><option value="done">Completed</option></select></label>
+    <label class="wide">This week's planned work<textarea class="field" id="qpFocus" maxlength="180" placeholder="e.g. Configure workstation software and test domain connectivity"></textarea></label>
+    <label class="wide">Expected output / evidence<textarea class="field" id="qpDeliverable" maxlength="180" placeholder="e.g. PCs configured and verified, checklist ready for review"></textarea></label>
+    <p class="wide qp-msg" style="margin:0">You can fill these in later as work is assigned. Both fields appear in the manager Excel report, so avoid confidential or personal notes here.</p>
     <label class="wide">Notes<textarea class="field" id="qpNotes" maxlength="400" placeholder="Dependencies, preparation, equipment, tasks…"></textarea></label>
     <div class="wide qp-actions"><button type="submit" class="btn primary" id="qpAddBtn">+ Add to private plan</button><button type="button" id="qpCancel" class="btn">Clear</button></div>
    </form><p class="qp-msg" id="qpFormMessage">Your existing Timesheets, Studies and other WorkStudy functions are not modified by planning entries.</p>
