@@ -4,6 +4,9 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="dark light"><meta name="robots" content="noindex,nofollow,noarchive">
 <title>WorkStudy 360 | YourPortfolio</title>
+<meta name="theme-color" content="#07111e">
+<meta name="description" content="Private work, project and study planning in YourPortfolio. Owner access required.">
+<link rel="icon" type="image/svg+xml" sizes="any" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22a%22%20x2%3D%221%22%20y2%3D%221%22%3E%3Cstop%20stop-color%3D%22%2340e2e6%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%2379a8ff%22%2F%3E%3C%2FlinearGradient%3E%3C%2Fdefs%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2216%22%20fill%3D%22url(%23a)%22%2F%3E%3Cpath%20d%3D%22m10%2021%207.6%2024h9l5.4-13.5L37.4%2045h9L54%2021H43l-2.7%2012-4.5-12h-8L23%2033l-3-12z%22%20fill%3D%22%23071827%22%2F%3E%3C%2Fsvg%3E">
 <style>
 :root{color-scheme:dark;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif;--bg:#07111e;--panel:#0d2032;--panel2:#10283c;--line:#25445c;--ink:#e9f6ff;--muted:#9bb6ca;--cyan:#43e3e7;--blue:#8eaaff;--lime:#91e8ad;--amber:#ffc67e;--red:#ff9aaf;--shadow:rgba(0,0,0,.24)}
 :root[data-theme=light]{color-scheme:light;--bg:#f4f8fc;--panel:#fff;--panel2:#eef5fb;--line:#cadae6;--ink:#18354d;--muted:#56728a;--cyan:#007f99;--blue:#465fc5;--lime:#22855f;--amber:#ad631b;--red:#b84459;--shadow:rgba(27,66,100,.08)}
@@ -246,6 +249,13 @@ body.qp-mode main.shell > :not(#quarterRoot){display:none!important}
 @media(max-width:1050px){.qe-layout,.qe-bottom{grid-template-columns:1fr}.qe-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:600px){.qe-panel{padding:15px}.qe-form{grid-template-columns:1fr}.qe-form .wide{grid-column:auto}.qe-control{flex-direction:column;align-items:stretch}.qe-control label{min-width:0}}
 
+
+/* Final UI polish: visible keyboard focus, reduced motion, consistent controls */
+:where(a,button,input,select,textarea):focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;transition-duration:.01ms!important}}
+.qp-report-select{min-width:225px;max-width:315px}
+.qp-head .qp-actions{align-items:center}
+.qp-onedrive-panel a:not([href]){pointer-events:none}
 </style>
 </head>
 <body>
